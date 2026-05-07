@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>場次列表 - Session List</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+	</head>
+	<body class="bg-zinc-900 text-white min-h-screen">
+		<div id="navigationbar"></div>
+
+		<div class="max-w-6xl mx-auto py-8 px-4">
+			<h1 class="text-3xl font-bold mb-6">場次管理 Sessions</h1>
+			<!-- 篩選搜尋區塊 -->
+			<div class="bg-zinc-800 rounded-lg p-4 mb-6">
+				<div class="flex flex-wrap justify-between gap-4 items-center my-[10px]">
+					<div class="flex items-center justify-between gap-2">
+						<input type="date" class="bg-zinc-700 text-white rounded px-3 py-2" id="startdate" placeholder="開始日期">
+						~
+						<input type="date" class="bg-zinc-700 text-white rounded px-3 py-2" id="enddate" placeholder="結束日期">
+					</div>
+					<select class="bg-zinc-700 text-white rounded px-3 py-2 text-center" id="club" required>
+						<option value="">-- 請選擇 --</option>
+					</select>
+					<select class="bg-zinc-700 text-white rounded px-3 py-2" id="gametype">
+						<option value="all">全部遊戲類型</option>
+						<option value="cash">現金局</option>
+						<option value="tournament">錦標賽</option>
+						<option value="limited">限時錦標賽</option>
+					</select>
+					<input type="text" class="bg-zinc-700 text-white rounded px-3 py-2" id="name" placeholder="名稱">
+				</div>
+				<div class="text-right">
+					<input type="button" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded" id="search" value="搜尋">
+					<a href="newsession.html" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded h-[40px] inline-block">新增場次</a>
+				</div>
+			</div>
+			<!-- 場次列表 -->
+			<div class="h-[50vh] overflow-auto" id="main"></div>
+			<!-- 場次統計預覽 -->
+			<div class="bg-zinc-800 rounded-lg p-6 mt-8 mb-8">
+				<div class="text-lg font-semibold mb-4 text-center">場次統計預覽</div>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div class="flex flex-col items-center">
+						<div class="text-zinc-400">總場次</div>
+						<div class="text-2xl font-bold" id="gamecount">0</div>
+					</div>
+					<div class="flex flex-col items-center">
+						<div class="text-zinc-400">總盈虧</div>
+						<div class="text-2xl font-bold text-green-400" id="profit">+0</div>
+					</div>
+					<div class="flex flex-col items-center">
+						<div class="text-zinc-400">平均時長</div>
+						<div class="text-2xl font-bold" id="avgplaylength">0 小時</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="sessionlist.js"></script>
+	</body>
+</html>

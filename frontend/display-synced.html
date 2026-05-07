@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Poker Clock — 賽事顯示</title>
+	<style>
+		* { box-sizing: border-box; margin: 0; padding: 0 }
+
+		#root {
+			background: #0d0d0d; color: #e2e8f0;
+			font-family: 'Inter', system-ui, sans-serif;
+			height: 100vh; overflow: hidden;
+			display: flex; flex-direction: column
+		}
+
+		@keyframes marquee { 0% { transform: translateX(100vw) } 100% { transform: translateX(-100%) } }
+		@keyframes flash-panel { 0%, 100% { background: #111 } 50% { background: #1a0000 } }
+		@keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
+		@keyframes pop { 0% { transform: scale(1) } 50% { transform: scale(1.06) } 100% { transform: scale(1) } }
+
+		.mono { font-family: 'JetBrains Mono', 'Courier New', monospace }
+		.timer-main { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: clamp(90px, 15vw, 170px); font-weight: 900; letter-spacing: -6px; line-height: 1; color: #fff; transition: color 0.3s }
+		.timer-red { color: #ef4444 }
+		.timer-amber { color: #fbbf24 }
+		.timer-paused { color: #888 }
+		.blink-anim { animation: blink 0.7s ease-in-out infinite }
+		.flash-bg { animation: flash-panel 0.7s ease-in-out infinite }
+		.blind-big { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: clamp(32px, 5vw, 62px); font-weight: 900; color: #fff; letter-spacing: -1px }
+		.ante-big { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: clamp(22px, 3.5vw, 46px); font-weight: 900; color: #eab308 }
+		.lbl { font-size: 11px; color: #404040; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px }
+		.card { background: #111; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px }
+		.prow { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #181818; font-size: 14px }
+		.stat-num { font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 900 }
+		.pop-anim { animation: pop 0.4s ease }
+
+		.lvl-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; border-radius: 6px; font-size: 12px; margin-bottom: 2px; cursor: default; transition: background 0.2s }
+		.lvl-row.active { background: #1a2a1a; border: 1px solid #166534 }
+		.lvl-row.active.is-break { background: #2a2010; border-color: #854f0b }
+		.lvl-row.done { color: #333 }
+		.lvl-row.upcoming { color: #555 }
+		.lvl-row.is-break-row { background: rgba(133, 79, 11, 0.08) }
+
+		.sync-indicator { position: fixed; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: #4ade80; z-index: 999; box-shadow: 0 0 8px #4ade80; animation: blink 2s infinite }
+		.sync-indicator.off { background: #555; box-shadow: none; animation: none }
+
+		.bubble-banner { position: absolute; top: 0; left: 0; right: 0; background: #854f0b; color: #fbbf24; text-align: center; padding: 6px; font-size: 14px; font-weight: 800; letter-spacing: 3px; z-index: 5 }
+
+		.itm-banner { background: linear-gradient(135deg, #14391f 0%, #0a1f10 100%); border: 1px solid #166534; border-radius: 8px; padding: 7px 9px; margin-bottom: 8px; font-size: 11px; color: #4ade80; font-weight: 700; letter-spacing: 0.5px; text-align: center; line-height: 1.4 }
+		.itm-banner .big { font-size: 18px; font-weight: 900; color: #4ade80; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.5px; }
+		.itm-banner .pct { font-size: 11px; color: #4ade80; opacity: 0.7; font-family: 'JetBrains Mono', monospace }
+		.prow.in-money { background: linear-gradient(90deg, rgba(34, 197, 94, 0.06), transparent); border-bottom-color: #1a2a1a }
+		.prow.below-bubble { opacity: 0.35 }
+	</style>
+</head>
+
+<body>
+	<div class="sync-indicator" id="syncDot" title="與裁判台同步中"></div>
+	<div id="root">
+		<div style="flex:1;display:flex;flex-direction:column;padding:12px 14px;gap:10px">
+
+			<div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+				<div>
+					<div class="lbl" style="margin-bottom:2px">Tournament</div>
+					<div style="font-size:clamp(14px,2vw,20px);font-weight:900;color:#fff;letter-spacing:-0.5px">
+						<span id="tournName">公館萬能 2 錦標賽</span>
+						<span id="tournSub" style="color:#333"></span>
+					</div>
+				</div>
+				<div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+					<div style="font-size:11px;color:#555;text-align:right;line-height:1.6">
+						Buy-in <span style="color:#888" id="bInfo">$500+50</span><br>
+						<span id="statusInfo" style="color:#4ade80;font-weight:700">▶ RUNNING</span>
+					</div>
+				</div>
+			</div>
+
+			<div style="display:grid;grid-template-columns:210px 1fr 210px;gap:10px;flex:1;min-height:0">
+
+				<div style="display:flex;flex-direction:column;gap:10px">
+					<div class="card" style="flex:1">
+						<div class="lbl">Payouts</div>
+						<div id="itmBanner" class="itm-banner" style="display:none"></div>
+						<div id="payoutList"></div>
+						<div style="margin-top:10px;padding-top:10px;border-top:1px solid #1e1e1e">
+							<div class="lbl">Total Prize Pool</div>
+							<div class="stat-num" style="font-size:28px;color:#22c55e" id="prizePoolDisplay"></div>
+							<div style="font-size:11px;color:#404040;margin-top:2px" id="prizePoolCalc"></div>
+						</div>
+					</div>
+					<div class="card" id="breakCountdownCard">
+						<div class="lbl">Next Break</div>
+						<div id="breakCountdownDisplay" class="stat-num" style="font-size:26px;color:#fbbf24"></div>
+						<div style="font-size:11px;color:#555;margin-top:3px" id="breakAfterLabel"></div>
+					</div>
+					<div class="card">
+						<div class="lbl">Next Blinds</div>
+						<div id="nextBlindsInfo"></div>
+					</div>
+				</div>
+
+				<div class="card" id="centerPanel" style="display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:18px;transition:background 0.3s">
+					<div id="bubbleBanner" class="bubble-banner" style="display:none">🫧 BUBBLE TIME · 泡泡圈</div>
+					<div id="h4hBanner" class="bubble-banner" style="display:none;background:#7f1d1d;color:#fca5a5">🃏 HAND-FOR-HAND · 同步發牌</div>
+
+					<div style="position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:10px">
+						<span id="tagLabel" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:11px;color:#555;font-weight:700;letter-spacing:1px">LEVEL</span>
+						<span id="levelNum" class="mono" style="font-size:30px;font-weight:900;color:#fff"></span>
+						<span id="levelOf" style="font-size:12px;color:#404040;font-family:'JetBrains Mono',monospace"></span>
+					</div>
+					<div id="regStatus" style="position:absolute;top:16px;right:16px"></div>
+
+					<div id="breakOverlay" style="display:none;flex-direction:column;align-items:center;justify-content:center;position:absolute;inset:0;background:#0d0d0d;border-radius:12px;z-index:10">
+						<div style="font-size:16px;color:#fbbf24;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px">Break Time</div>
+						<div id="breakTimerDisplay" class="mono" style="font-size:clamp(70px,12vw,130px);font-weight:900;color:#fbbf24;letter-spacing:-4px;line-height:1"></div>
+						<div style="margin-top:14px;font-size:13px;color:#555">Next: Level <span id="breakNextLevel"></span> — <span id="breakNextBlinds" style="color:#888"></span></div>
+					</div>
+
+					<div id="mainContent" style="text-align:center;width:100%">
+						<div id="timerDisplay" class="timer-main">20:00</div>
+						<div style="width:88%;height:5px;background:#1a1a1a;border-radius:3px;margin:12px auto">
+							<div id="progressBar" style="height:100%;border-radius:3px;background:#22c55e;transition:width 1s linear,background 0.5s"></div>
+						</div>
+						<div style="margin-top:10px">
+							<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px">
+								<span style="font-size:15px;font-weight:700;color:#404040;letter-spacing:2px;text-transform:uppercase">Blinds</span>
+								<div id="blindsDisplay" class="blind-big"></div>
+							</div>
+							<div style="display:flex;align-items:center;justify-content:center;gap:12px">
+								<span style="font-size:13px;font-weight:700;color:#404040;letter-spacing:2px;text-transform:uppercase">BB Ante</span>
+								<div id="anteDisplay" class="ante-big"></div>
+							</div>
+						</div>
+					</div>
+					<div style="position:absolute;bottom:10px;left:16px;font-size:10px;color:#1e1e1e;font-weight:700;letter-spacing:2px">POKER CLOCK PRO</div>
+				</div>
+
+				<div style="display:flex;flex-direction:column;gap:10px">
+					<div class="card">
+						<div class="lbl">Players Remaining</div>
+						<div class="stat-num" style="font-size:54px;color:#fff" id="playersDisplay">52</div>
+						<div style="font-size:12px;color:#404040;font-family:'JetBrains Mono',monospace" id="entriesLabel">/ 52 entries</div>
+						<div id="bubbleStatus" style="margin-top:8px;font-size:11px;color:#fbbf24;font-weight:700;letter-spacing:0.5px;display:none"></div>
+					</div>
+					<div class="card">
+						<div class="lbl">Avg Stack</div>
+						<div class="stat-num" style="font-size:26px;color:#fff" id="avgStack"></div>
+					</div>
+					<div class="card" style="flex:1;overflow-y:auto">
+						<div class="lbl">Schedule</div>
+						<div id="blindStructureList"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div style="background:#0a0a0a;border-top:1px solid #1a1a1a;height:75px;overflow:hidden;display:flex;align-items:center;flex-shrink:0">
+			<div id="marqueeText" style="display:inline-block;white-space:nowrap;animation:marquee 30s linear infinite;font-size:30px;font-weight:600;color:#eab308;letter-spacing:0.5px"></div>
+		</div>
+	</div>
+
+	<script>
+		'use strict';
+
+		const STORAGE_KEY = 'pokerClockState_v3';
+		const OLD_KEY = 'pokerClockState_v2';
+		const CHANNEL_NAME = 'poker-clock-sync';
+
+		const state = {
+			tournName: '公館萬能 2 錦標賽',
+			subtitle: '',
+			schedule: [{ type: 'level', sb: 100, bb: 200, ante: 200, dur: 20 }],
+			payouts: [],
+			currentIndex: 0,
+			secondsLeft: 1200,
+			running: false,
+			players: 52,
+			totalEntries: 52,
+			startingChips: 40000,
+			buyin: 500,
+			fee: 50,
+			handForHand: false,
+			bubbleMode: false,
+			marqueeText: '',
+			regClosed: false,
+			prizePoolMode: 'auto',
+			prizePoolManual: 0,
+			defaultBreakDur: 10,
+			itmMode: 'pct',     // 'pct' | 'count'
+			itmPct: 15,
+			itmCount: 7,
+		};
+
+		// Load + migrate from v2
+		try {
+			let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+			if (!saved) {
+				const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
+				if (old) saved = migrateFromV2(old);
+			}
+			if (saved) Object.assign(state, saved);
+		} catch (e) {}
+
+		function migrateFromV2(s) {
+			if (s.levels && !s.schedule) {
+				const sched = [];
+				const ba = s.breakAfter || [];
+				const bd = s.breakDur || 10;
+				s.levels.forEach((lv, i) => {
+					sched.push({ type: 'level', sb: lv.sb, bb: lv.bb, ante: lv.ante, dur: lv.dur });
+					if (ba.includes(i)) sched.push({ type: 'break', dur: bd });
+				});
+				s.schedule = sched;
+				s.currentIndex = 0;
+				delete s.levels; delete s.breakAfter; delete s.currentLevel; delete s.isBreak; delete s.breakSecondsLeft; delete s.breakDur;
+			}
+			return s;
+		}
+
+		// Audio
+		let audioCtx;
+		function ensureAudio() {
+			if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+			if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+		}
+		function beep(freq, dur, vol, type = 'sine', delay = 0) {
+			if (!audioCtx) return;
+			const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+			o.connect(g); g.connect(audioCtx.destination);
+			o.type = type; o.frequency.value = freq;
+			const t = audioCtx.currentTime + delay;
+			g.gain.setValueAtTime(0, t);
+			g.gain.linearRampToValueAtTime(vol, t + 0.01);
+			g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+			o.start(t); o.stop(t + dur + 0.05);
+		}
+		document.addEventListener('click', ensureAudio, { once: true });
+		document.addEventListener('keydown', ensureAudio, { once: true });
+
+		const playLevelEnd = () => { beep(1046, 0.2, 0.4); beep(1046, 0.2, 0.4, 'sine', 0.18); beep(1046, 0.4, 0.4, 'sine', 0.36); };
+		const playBreakStart = () => { beep(1046, 0.3, 0.35); beep(784, 0.3, 0.35, 'sine', 0.35); beep(523, 0.5, 0.35, 'sine', 0.7); };
+
+		// Channel
+		let channel, channelOk = false;
+		try { channel = new BroadcastChannel(CHANNEL_NAME); channelOk = true; } catch (e) {}
+
+		if (channelOk) {
+			channel.onmessage = (ev) => {
+				if (!ev.data) return;
+				const data = ev.data;
+				if (data.type === 'state' && data.state) {
+					const prevIdx = state.currentIndex;
+					Object.assign(state, data.state);
+					render();
+					if (data.action === 'item-change' || data.action === 'next-item' || data.action === 'jump') {
+						if (state.currentIndex !== prevIdx) {
+							const it = state.schedule[state.currentIndex];
+							if (it && it.type === 'break') playBreakStart();
+							else playLevelEnd();
+						}
+					}
+				}
+			};
+			try { channel.postMessage({ type: 'request-state' }); } catch {}
+		}
+
+		window.addEventListener('storage', (e) => {
+			if (e.key === STORAGE_KEY && e.newValue) {
+				try { Object.assign(state, JSON.parse(e.newValue)); render(); } catch {}
+			}
+		});
+
+		// Helpers
+		const $ = id => document.getElementById(id);
+		const fmt = n => Math.round(n).toLocaleString();
+		const fmtTime = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); };
+
+		function curItem() { return state.schedule[state.currentIndex]; }
+		function isBreakNow() { const it = curItem(); return it && it.type === 'break'; }
+		function totalLevels() { return state.schedule.filter(it => it.type === 'level').length; }
+		function levelNumOf(idx) {
+			let n = 0;
+			for (let i = 0; i <= idx; i++) if (state.schedule[i] && state.schedule[i].type === 'level') n++;
+			return n;
+		}
+		function nextLevelItem(fromIdx) {
+			for (let i = fromIdx + 1; i < state.schedule.length; i++) if (state.schedule[i].type === 'level') return { idx: i, item: state.schedule[i] };
+			return null;
+		}
+		function nextBreakItem(fromIdx) {
+			let secs = state.secondsLeft;
+			for (let i = fromIdx + 1; i < state.schedule.length; i++) {
+				if (state.schedule[i].type === 'break') return { idx: i, item: state.schedule[i], secsUntil: secs };
+				secs += state.schedule[i].dur * 60;
+			}
+			// If currently in a break, no "next break"
+			return null;
+		}
+		function prizePool() {
+			if (state.prizePoolMode === 'manual') return state.prizePoolManual || 0;
+			return state.buyin * state.totalEntries;
+		}
+
+		// 計算 ITM (進獎金圈) 人數
+		function itmCount() {
+			const maxN = Math.max(1, state.totalEntries || 1);
+			let n;
+			if (state.itmMode === 'count') n = parseInt(state.itmCount, 10) || 1;
+			else n = Math.round((state.totalEntries || 0) * (parseFloat(state.itmPct) || 0) / 100);
+			return Math.max(1, Math.min(n, maxN));
+		}
+
+		function buildPayouts() {
+			const pool = prizePool();
+			const payouts = state.payouts || [];
+			const ic = itmCount();
+			const ipct = state.totalEntries > 0 ? (ic / state.totalEntries * 100) : 0;
+			const playersLeft = state.players || 0;
+			const remainingToBubble = playersLeft - ic;
+
+			// ITM 橫幅：前 N 名進獎金圈
+			const banner = $('itmBanner');
+			if (payouts.length > 0) {
+				banner.style.display = 'block';
+				let bubbleLine = '';
+				if (remainingToBubble > 1) {
+					bubbleLine = `<div style="margin-top:4px;font-size:10px;color:#888;letter-spacing:0.5px">距泡泡 ${remainingToBubble} 人</div>`;
+				} else if (remainingToBubble === 1 && playersLeft > 0) {
+					bubbleLine = `<div style="margin-top:4px;font-size:11px;color:#fbbf24;font-weight:900;letter-spacing:0.5px;animation:blink 1s ease-in-out infinite"> 泡泡圈！</div>`;
+				} else if (playersLeft > 0) {
+					bubbleLine = `<div style="margin-top:4px;font-size:10px;color:#4ade80;letter-spacing:0.5px">已進獎金圈</div>`;
+				}
+				banner.innerHTML = `
+					<div style="font-size:9px;color:#888;letter-spacing:2px;margin-bottom:2px">IN THE MONEY</div>
+					<div>前 <span class="big">${ic}</span> 名 <span class="pct">(${ipct.toFixed(1)}%)</span></div>
+					${bubbleLine}
+				`;
+			} else {
+				banner.style.display = 'none';
+			}
+
+			// 名次清單 — 各自捨入到 $100，再把總和的捨入差補到最後一名讓總和 = 獎池
+			const raws = payouts.map(p => Math.round(pool * p.pct / 100) * 100);
+			const sumRaw = raws.reduce((a, b) => a + b, 0);
+			if (raws.length > 0 && pool > 0) raws[raws.length - 1] += (pool - sumRaw);
+
+			$('payoutList').innerHTML = payouts.map((p, i) => {
+				const cls = i < ic ? 'prow mono in-money' : 'prow mono below-bubble';
+				return `<div class="${cls}" style="color:${p.color}"><span>${p.rank}</span><span>$${fmt(raws[i])}</span></div>`;
+			}).join('');
+
+			$('prizePoolDisplay').textContent = '$' + fmt(pool);
+			$('prizePoolCalc').textContent = state.prizePoolMode === 'manual'
+				? '手動設定'
+				: state.totalEntries + ' × $' + fmt(state.buyin) + '  (rake excluded)';
+
+			// Players 卡片下方補 bubble 提示
+			const bs = $('bubbleStatus');
+			if (bs && payouts.length > 0 && playersLeft > 0) {
+				if (remainingToBubble > 1) {
+					bs.style.display = 'block';
+					bs.style.color = remainingToBubble <= 3 ? '#fbbf24' : '#666';
+					bs.textContent = `距泡泡 ${remainingToBubble} 人 · ITM 前 ${ic}`;
+				} else if (remainingToBubble === 1) {
+					bs.style.display = 'block';
+					bs.style.color = '#fbbf24';
+					bs.textContent = ` 泡泡圈中 (前 ${ic} 名 ITM)`;
+				} else {
+					bs.style.display = 'block';
+					bs.style.color = '#4ade80';
+					bs.textContent = `✓ 已進獎金圈 (前 ${ic} 名 ITM)`;
+				}
+			} else if (bs) {
+				bs.style.display = 'none';
+			}
+		}
+
+		function buildScheduleList() {
+			$('blindStructureList').innerHTML = state.schedule.map((it, i) => {
+				const isActive = i === state.currentIndex;
+				const isDone = i < state.currentIndex;
+				const isBr = it.type === 'break';
+				let cls = 'lvl-row';
+				if (isActive) cls += ' active' + (isBr ? ' is-break' : '');
+				else if (isDone) cls += ' done';
+				else cls += ' upcoming';
+				if (isBr) cls += ' is-break-row';
+
+				const ln = isBr ? '☕' : 'L' + levelNumOf(i);
+				const blinds = isBr ? '<span style="color:#fbbf24">休息</span>' : `<span style="font-family:'JetBrains Mono',monospace;color:${isActive ? '#fff' : isDone ? '#2a2a2a' : '#555'}">${fmt(it.sb)}/${fmt(it.bb)}</span>`;
+				const regTag = it.regCloseAfter ? '<span style="color:#7f1d1d;font-size:9px;margin-left:4px;background:#3f0f0f;padding:1px 4px;border-radius:3px;font-weight:800">REG✕</span>' : '';
+				return `<div class="${cls}">
+					<span style="color:${isActive ? (isBr ? '#fbbf24' : '#4ade80') : isDone ? '#2a2a2a' : '#555'};min-width:32px;font-size:11px;font-weight:800">${ln}</span>
+					${blinds}
+					<span style="color:${isActive ? '#eab308' : isDone ? '#2a2a2a' : '#404040'}">${it.dur}m${regTag}</span>
+				</div>`;
+			}).join('');
+		}
+
+		function render() {
+			$('tournName').textContent = state.tournName;
+			$('tournSub').textContent = state.subtitle ? '— ' + state.subtitle : '';
+			$('bInfo').textContent = '$' + fmt(state.buyin) + '+' + fmt(state.fee);
+			$('statusInfo').innerHTML = state.running ? '<span style="color:#4ade80">▶ RUNNING</span>' : '<span style="color:#888">⏸ PAUSED</span>';
+
+			$('bubbleBanner').style.display = state.bubbleMode ? 'block' : 'none';
+			$('h4hBanner').style.display = state.handForHand ? 'block' : 'none';
+
+			const it = curItem();
+			if (!it) return;
+
+			const overlay = $('breakOverlay');
+			if (it.type === 'break') {
+				overlay.style.display = 'flex';
+				$('breakTimerDisplay').textContent = fmtTime(state.secondsLeft);
+				$('breakTimerDisplay').className = 'mono' + (!state.running ? ' timer-paused' : '');
+				const next = nextLevelItem(state.currentIndex);
+				if (next) {
+					$('breakNextLevel').textContent = levelNumOf(next.idx);
+					$('breakNextBlinds').textContent = fmt(next.item.sb) + '/' + fmt(next.item.bb);
+				} else {
+					$('breakNextLevel').textContent = '—';
+					$('breakNextBlinds').textContent = '結束';
+				}
+				$('tagLabel').textContent = 'BREAK';
+				$('tagLabel').style.color = '#fbbf24';
+			} else {
+				overlay.style.display = 'none';
+				$('tagLabel').textContent = 'LEVEL';
+				$('tagLabel').style.color = '#555';
+			}
+
+			const totalSecs = it.dur * 60;
+			const pct = totalSecs > 0 ? Math.max(0, (state.secondsLeft / totalSecs) * 100) : 0;
+			const td = $('timerDisplay');
+			td.textContent = fmtTime(state.secondsLeft);
+			td.className = 'timer-main';
+			if (!state.running && it.type !== 'break') td.classList.add('timer-paused');
+			else if (state.secondsLeft <= 30) td.classList.add('timer-red');
+			else if (state.secondsLeft <= 60) td.classList.add('timer-amber');
+
+			const barColor = state.secondsLeft <= 30 ? '#ef4444' : state.secondsLeft <= 60 ? '#fbbf24' : pct < 30 ? '#eab308' : '#22c55e';
+			$('progressBar').style.width = pct + '%';
+			$('progressBar').style.background = barColor;
+
+			if (it.type === 'level') {
+				$('levelNum').textContent = levelNumOf(state.currentIndex);
+				$('levelOf').textContent = '/ ' + totalLevels();
+				$('blindsDisplay').textContent = fmt(it.sb) + ' / ' + fmt(it.bb);
+				$('anteDisplay').textContent = fmt(it.ante);
+			} else {
+				const next = nextLevelItem(state.currentIndex);
+				$('levelNum').textContent = '☕';
+				$('levelOf').textContent = '休息';
+				if (next) {
+					$('blindsDisplay').textContent = fmt(next.item.sb) + ' / ' + fmt(next.item.bb);
+					$('anteDisplay').textContent = fmt(next.item.ante);
+				} else {
+					$('blindsDisplay').textContent = '—';
+					$('anteDisplay').textContent = '—';
+				}
+			}
+
+			$('avgStack').textContent = fmt(state.startingChips * state.totalEntries / Math.max(1, state.players));
+			$('playersDisplay').textContent = state.players;
+			$('entriesLabel').textContent = '/ ' + state.totalEntries + ' entries';
+
+			$('regStatus').innerHTML = state.regClosed
+				? '<span style="background:#3f0f0f;border:1px solid #7f1d1d;color:#f87171;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;letter-spacing:1px">REG CLOSED</span>'
+				: '<span style="background:#14391f;border:1px solid #166534;color:#4ade80;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;letter-spacing:1px">REG OPEN</span>';
+
+			// Next blinds info
+			const nb = $('nextBlindsInfo');
+			const next = nextLevelItem(state.currentIndex);
+			if (next) {
+				nb.innerHTML = `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #181818;font-size:13px;color:#888"><span>Level ${levelNumOf(next.idx)}</span><span style="color:#ccc;font-family:'JetBrains Mono',monospace">${fmt(next.item.sb)}/${fmt(next.item.bb)}</span></div><div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #181818;font-size:13px;color:#888"><span>BB Ante</span><span style="color:#eab308;font-family:'JetBrains Mono',monospace">${fmt(next.item.ante)}</span></div><div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:#888"><span>Duration</span><span style="color:#ccc;font-family:'JetBrains Mono',monospace">${next.item.dur} min</span></div>`;
+			} else {
+				nb.innerHTML = '<div style="font-size:12px;color:#444">Final level</div>';
+			}
+
+			// Next break
+			const brk = nextBreakItem(state.currentIndex);
+			const bc = $('breakCountdownCard');
+			if (brk && it.type !== 'break') {
+				bc.style.display = 'block';
+				const bd = $('breakCountdownDisplay');
+				bd.textContent = fmtTime(brk.secsUntil);
+				bd.style.color = brk.secsUntil <= 300 ? '#ef4444' : '#fbbf24';
+				$('breakAfterLabel').textContent = '休息時長 ' + brk.item.dur + ' 分';
+			} else if (it.type === 'break') {
+				bc.style.display = 'block';
+				const bd = $('breakCountdownDisplay');
+				bd.textContent = '休息中';
+				bd.style.color = '#fbbf24';
+				$('breakAfterLabel').textContent = fmtTime(state.secondsLeft) + ' 剩餘';
+			} else {
+				bc.style.display = 'none';
+			}
+
+			// Marquee
+			const mt = $('marqueeText');
+			const newText = state.marqueeText || '⚠ 歡迎參加錦標賽';
+			if (mt.dataset.text !== newText) {
+				mt.dataset.text = newText;
+				mt.innerHTML = newText.split('|').map(s => s.trim()).filter(Boolean).join(' &nbsp;|&nbsp; ');
+			}
+
+			buildScheduleList();
+			buildPayouts();
+		}
+
+		// Local tick to keep timer smooth between sync messages
+		setInterval(() => {
+			if (!state.running) return;
+			if (state.secondsLeft > 0) {
+				state.secondsLeft--;
+				if (state.secondsLeft === 30) { beep(880, 0.15, 0.4); beep(880, 0.15, 0.4, 'sine', 0.2); beep(880, 0.15, 0.4, 'sine', 0.4); }
+				if (state.secondsLeft <= 5 && state.secondsLeft > 0) beep(880, 0.1, 0.3);
+			}
+			render();
+		}, 1000);
+
+		if (!channelOk) $('syncDot').classList.add('off');
+		render();
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+#imagePreview.dragover {
+	border-color: #2563eb;
+	background-color: #e0e7ff;
+}
+
+#card-picker, #board-cards-area {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	max-width: 600px;
+	margin: 2rem auto;
+}
+
+.card-row {
+	display: flex;
+	gap: 4px;
+	justify-content: center;
+}
+
+.card-btn {
+	width: 32px;
+	height: 40px;
+	border-radius: 6px;
+	border: 1.5px solid #444;
+	background: #232323;
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1rem;
+	cursor: pointer;
+	transition: border 0.2s, background 0.2s;
+	padding: 0;
+	margin: 0;
+	user-select: none;
+}
+
+.card-btn.selected {
+	border: 1.5px solid #00e676;
+	background: #263238;
+}
+
+.card-suit {
+	font-size: 1.1rem;
+	margin-left: 2px;
+}
+
+.btns {
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
+	margin: 2rem 0;
+}
+
+button.action {
+	padding: 0.4rem 1.2rem;
+	border-radius: 6px;
+	border: none;
+	background: #00e676;
+	color: #222;
+	font-weight: bold;
+	font-size: 1rem;
+	cursor: pointer;
+}
+
+button.action:active {
+	background: #00c853;
+}

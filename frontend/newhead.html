@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>新增手牌 - New Hand</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="bg-zinc-900 text-white min-h-screen">
+		<div id="navigationbar"></div>
+
+		<div class="flex justify-between items-center max-w-6xl mx-auto py-4 px-2 sm:px-4 my-2">
+			<input type="button" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded text-sm font-bold cursor-pointer" id="back" value="上一頁">
+			<input type="button" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm font-bold cursor-pointer" id="cleardata" value="清空緩存資料">
+		</div>
+
+		<div class="max-w-6xl mx-auto py-4 px-2 sm:px-4 lg:min-h-[75vh]">
+			<h1 class="text-2xl font-bold mb-6">新增手牌紀錄</h1>
+			<!-- 狀態步驟條 -->
+			<div class="mb-6 flex flex-wrap gap-2 text-xs" id="step-bar">
+				<button type="button" class="step-btn px-3 py-1 rounded bg-emerald-500 text-white">設定</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">手牌</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">翻牌前下注</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">翻牌</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">轉牌前下注</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">轉牌</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">河牌前下注</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">河牌</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">開牌前下注</button>
+				<button type="button" class="step-btn px-3 py-1 rounded bg-zinc-700 text-white">開牌</button>
+			</div>
+			<!-- 狀態內容區：手牌 -->
+			<div class="block" id="setting">
+				<div class="mb-4">
+					<label class="block mb-2 text-zinc-300">目前玩家及籌碼量設定</label>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm bg-zinc-800 rounded-lg overflow-hidden">
+							<thead>
+								<tr class="bg-zinc-700 text-zinc-300">
+									<th class="py-2 px-2">座位</th>
+									<th class="py-2 px-2">有人</th>
+									<th class="py-2 px-2">玩家名稱</th>
+									<th class="py-2 px-2">籌碼量</th>
+									<th class="py-2 px-2">本輪禁手</th>
+									<th class="py-2 px-2">莊家</th>
+									<th class="py-2 px-2">HERO</th>
+								</tr>
+							</thead>
+							<tbody id="settingtable">
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+			<!-- 狀態內容區：手牌 -->
+			<div class="hidden" id="step-content">
+				<div class="mb-4">
+					<label class="block mb-2 text-zinc-300">選擇起手牌</label>
+					<div id="card-picker"></div>
+					<div class="mt-2 text-sm">
+						<span class="inline-block bg-zinc-700 px-2 py-1 rounded" id="selected-card1">?</span>
+						<span class="inline-block bg-zinc-700 px-2 py-1 rounded" id="selected-card2">?</span>
+					</div>
+					<div class="text-xs text-zinc-400 mt-2">* 點選卡牌，兩張牌不能重複</div>
+				</div>
+				<div class="flex justify-end">
+					<button type="button" class="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded text-lg font-bold" id="nextstep">下一步</button>
+				</div>
+			</div>
+			<!-- 公共牌選擇區 -->
+			<div class="hidden" id="board-content">
+				<div class="mb-4">
+					<label class="block mb-2 text-zinc-300" id="board-label"></label>
+					<div id="board-cards-area"></div>
+					<div class="mt-2 text-sm">
+						<span class="inline-block bg-zinc-700 px-2 py-1 rounded" id="selected-board"></span>
+					</div>
+					<div class="text-xs text-zinc-400 mt-2">* 點選牌面與花色，不能重複</div>
+				</div>
+				<div class="flex justify-end">
+					<button type="button"
+						class="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded text-lg font-bold" id="nextstep">下一步</button>
+				</div>
+			</div>
+			<!-- 下注狀態內容（自動產生玩家列） -->
+			<div id="betting-content" class="hidden">
+				<div class="mb-4">
+					<label class="block mb-2 text-zinc-300">玩家動作紀錄</label>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm bg-zinc-800 rounded-lg overflow-hidden">
+							<thead>
+								<tr class="bg-zinc-700 text-zinc-300">
+									<th class="py-2 px-2">座位</th>
+									<th class="py-2 px-2">玩家</th>
+									<th class="py-2 px-2">動作</th>
+									<th class="py-2 px-2">籌碼量</th>
+									<th class="py-2 px-2">時間銀行次數</th>
+								</tr>
+							</thead>
+							<tbody id="betting-table-body"></tbody>
+						</table>
+					</div>
+					<div class="text-xs text-zinc-400 mt-2">* 依照座位與玩家自動產生，僅能選擇有效動作</div>
+				</div>
+				<div class="flex justify-end">
+					<input type="button" class="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded text-lg font-bold" id="nextstep" value="下一步">
+				</div>
+			</div>
+			<div class="hidden" id="showdown-content"></div>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="newhead.js"></script>
+	</body>
+</html>

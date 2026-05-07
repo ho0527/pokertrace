@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Poker Timer with Marquee</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .timer-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 自定義跑馬燈動畫 */
+        @keyframes marquee {
+            0% {
+                transform: translateX(100%);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 20s linear infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-zinc-950 text-slate-200 h-screen flex flex-col">
+
+    <!-- Top Content Wrapper (包含 Header 和 Grid) -->
+    <div class="flex-grow p-6 flex flex-col">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-black tracking-tighter text-white">公館萬能 2 錦標賽 (04/10)</h1>
+        </div>
+
+        <div class="grid grid-cols-12 gap-4 flex-grow">
+            <!-- Left: Payouts -->
+            <div class="col-span-3 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                <div
+                    class="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                    Payouts</div>
+                <ul class="space-y-3 font-mono">
+                    <li class="flex justify-between border-b border-zinc-800/50 pb-1 text-yellow-500"><span>1ST</span>
+                        <span>8800</span></li>
+                    <li class="flex justify-between border-b border-zinc-800/50 pb-1"><span>2ND</span> <span>5200</span>
+                    </li>
+                    <li class="flex justify-between border-b border-zinc-800/50 pb-1"><span>3RD</span> <span>3200</span>
+                    </li>
+                    <li class="flex justify-between border-b border-zinc-800/50 pb-1"><span>4TH</span> <span>2200</span>
+                    </li>
+                    <li class="flex justify-between border-b border-zinc-800/50 pb-1 text-slate-400"><span>5TH</span>
+                        <span>1600</span></li>
+                    <li class="flex justify-between border-b border-zinc-800/50 pb-1 text-slate-400"><span>6TH</span>
+                        <span>1300</span></li>
+                    <li class="flex justify-between text-slate-400"><span>7TH</span> <span>1100</span></li>
+                </ul>
+                <div class="mt-8">
+                    <p class="text-xs text-slate-500 uppercase">Total Prize Pool</p>
+                    <p class="text-4xl font-black text-green-500">$23,400</p>
+                </div>
+            </div>
+
+            <!-- Middle: Timer & Blinds -->
+            <div
+                class="col-span-6 flex flex-col items-center justify-center bg-zinc-900 rounded-2xl border border-zinc-700 shadow-2xl relative">
+                <div class="text-center z-10">
+                    <div class="timer-font text-[13rem] font-black leading-none text-white tracking-tighter">07:24</div>
+                    <div class="mt-10 space-y-4">
+                        <div class="flex items-center justify-center gap-6">
+                            <span class="text-3xl font-bold text-slate-500">BLINDS:</span>
+                            <span class="text-7xl font-black text-white">2,500/5,000</span>
+                        </div>
+                        <div class="flex items-center justify-center gap-6">
+                            <span class="text-2xl font-bold text-slate-500">BB ANTE:</span>
+                            <span class="text-5xl font-black text-yellow-500">5,000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Stats -->
+            <div class="col-span-3 flex flex-col gap-4">
+                <div class="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 text-right leading-tight">
+                    <p class="text-sm text-slate-500 uppercase font-bold">Level 15</p>
+                    <p class="text-xl text-red-500 font-bold mt-1">Registration Closed</p>
+                </div>
+                <div class="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 text-right">
+                    <p class="text-sm text-slate-500 uppercase font-bold mb-2">Avg Stack</p>
+                    <p class="text-4xl font-black text-white">173,333</p>
+                </div>
+                <div
+                    class="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800 text-right flex-grow flex flex-col justify-end">
+                    <p class="text-sm text-slate-500 uppercase font-bold">Players Remaining</p>
+                    <p class="text-6xl font-black text-white">9 / 52</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Marquee Container -->
+    <div class="w-full bg-zinc-900 border-t border-zinc-700 h-16 flex items-center overflow-hidden">
+        <div class="flex-grow overflow-hidden relative">
+            <div class="animate-marquee text-2xl font-bold text-yellow-400">
+                ⚠️ 比賽提醒：下一個級別將開始進行籌碼顏色汰換。請各位玩家注意自身籌碼數量。 | 歡迎參加公館萬能錦標賽，祝各位玩家順利晉級！ | 下一場大型賽事將於本週日 14:00 開始報名。
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

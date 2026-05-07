@@ -1,0 +1,1 @@
+set DJANGO_ASPROX_MAX_REQUESTS=0 && python manage.py runserver 8061

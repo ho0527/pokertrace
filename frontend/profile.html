@@ -1,0 +1,404 @@
+<!--
+	製作人員: 賀皓群(小賀) / dc: chris0527 / line: ho960527 / email: chris960527ho@gmail.com / 電話: 0906585605
+
+		|-------    -----    -                     -     -----  -----  -----   -------|
+	   |-------    -        -            - - -          -                     -------|
+	  |-------    -        -------    -          -     -----    --       --  -------|
+	 |-------    -        -     -    -          -         -      --     --  -------|
+	|-------    -----    -     -    -          -     -----         -----  -------|
+
+	無授權禁止拷貝使用!
+-->
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>個人資料 - Profile</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+	</head>
+	<body class="bg-zinc-900 text-white min-h-screen">
+		<div id="navigationbar"></div>
+
+		<div class="max-w-6xl mx-auto py-8 px-4">
+			<h1 class="text-3xl font-bold mb-2">個人資料 Profile</h1>
+			<p class="text-zinc-400 mb-8">PLAYER ID: <span class="text-white font-mono font-bold" id="playerid">P-00001</span></p>
+
+			<!-- ===== 報表區塊 ===== -->
+			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
+				<!-- 切換器 -->
+				<div class="flex gap-2 mb-6">
+					<button onclick="switchReport('monthly')" id="tab-monthly"
+						class="report-tab px-5 py-2 rounded-full text-sm font-semibold transition bg-blue-600 text-white">
+						月報表
+					</button>
+					<button onclick="switchReport('yearly')" id="tab-yearly"
+						class="report-tab px-5 py-2 rounded-full text-sm font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
+						年報表
+					</button>
+					<button onclick="switchReport('career')" id="tab-career"
+						class="report-tab px-5 py-2 rounded-full text-sm font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
+						生涯報表
+					</button>
+				</div>
+
+				<!-- 月報表日期選擇 -->
+				<div id="filter-monthly" class="mb-5 flex items-center gap-3">
+					<label class="text-zinc-400 text-sm">選擇年月：</label>
+					<input type="month" id="monthly-date" value="2026-05"
+						class="bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:outline-none focus:border-blue-500">
+				</div>
+
+				<!-- 年報表日期選擇 -->
+				<div id="filter-yearly" class="mb-5 flex items-center gap-3 hidden">
+					<label class="text-zinc-400 text-sm">選擇年份：</label>
+					<select id="yearly-date" class="bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:outline-none focus:border-blue-500">
+						<option value="2026">2026</option>
+						<option value="2025">2025</option>
+						<option value="2024">2024</option>
+						<option value="2023">2023</option>
+					</select>
+				</div>
+
+				<!-- 報表內容 -->
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<!-- Cash -->
+					<div class="bg-zinc-900 rounded-lg p-5 flex flex-col gap-3">
+						<div class="flex items-center gap-2 mb-1">
+							<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+							<span class="font-semibold text-zinc-200">Cash <span class="text-zinc-500 text-xs font-normal">現金桌</span></span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>局數</span><span class="text-white font-mono" id="cash-games">48</span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>總買入</span><span class="text-white font-mono" id="cash-buyin">$12,000</span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>總收益</span><span class="text-green-400 font-mono font-bold" id="cash-profit">+$3,400</span>
+						</div>
+					</div>
+					<!-- TLT -->
+					<div class="bg-zinc-900 rounded-lg p-5 flex flex-col gap-3">
+						<div class="flex items-center gap-2 mb-1">
+							<span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
+							<span class="font-semibold text-zinc-200">TLT <span class="text-zinc-500 text-xs font-normal">限時錦標賽</span></span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>場次</span><span class="text-white font-mono" id="tlt-games">12</span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>總買入</span><span class="text-white font-mono" id="tlt-buyin">$6,000</span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>總收益</span><span class="text-red-400 font-mono font-bold" id="tlt-profit">-$800</span>
+						</div>
+					</div>
+					<!-- MTT -->
+					<div class="bg-zinc-900 rounded-lg p-5 flex flex-col gap-3">
+						<div class="flex items-center gap-2 mb-1">
+							<span class="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
+							<span class="font-semibold text-zinc-200">MTT <span class="text-zinc-500 text-xs font-normal">錦標賽</span></span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>場次</span><span class="text-white font-mono" id="mtt-games">5</span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>總買入</span><span class="text-white font-mono" id="mtt-buyin">$5,000</span>
+						</div>
+						<div class="flex justify-between text-sm text-zinc-400">
+							<span>總收益</span><span class="text-green-400 font-mono font-bold" id="mtt-profit">+$12,500</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- 小計 -->
+				<div class="mt-5 pt-5 border-t border-zinc-700 flex justify-between items-center">
+					<span class="text-zinc-400 text-sm">總盈虧</span>
+					<span class="text-2xl font-bold text-green-400" id="report-total">+$15,100</span>
+				</div>
+			</div>
+
+			<!-- ===== 聘用人員 ===== -->
+			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
+				<div class="text-lg font-semibold mb-5">聘用人員</div>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<!-- 發牌員 -->
+					<div class="bg-zinc-900 rounded-lg p-4 flex flex-col gap-3">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<span class="text-xl">🃏</span>
+								<span class="font-semibold">發牌員</span>
+								<span class="bg-zinc-700 text-zinc-300 text-xs rounded-full px-2 py-0.5" id="dealer-count">3</span>
+							</div>
+							<button onclick="openStaffModal('dealer')"
+								class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded transition">
+								管理
+							</button>
+						</div>
+						<div class="space-y-1" id="dealer-list">
+							<div class="text-xs text-zinc-400 flex justify-between"><span>P-00042 王小明</span><button class="text-zinc-600 hover:text-red-400">✕</button></div>
+							<div class="text-xs text-zinc-400 flex justify-between"><span>P-00078 李大華</span><button class="text-zinc-600 hover:text-red-400">✕</button></div>
+							<div class="text-xs text-zinc-400 flex justify-between"><span>P-00115 張三</span><button class="text-zinc-600 hover:text-red-400">✕</button></div>
+						</div>
+					</div>
+					<!-- 裁判 -->
+					<div class="bg-zinc-900 rounded-lg p-4 flex flex-col gap-3">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<span class="text-xl">⚖️</span>
+								<span class="font-semibold">裁判</span>
+								<span class="bg-zinc-700 text-zinc-300 text-xs rounded-full px-2 py-0.5" id="referee-count">1</span>
+							</div>
+							<button onclick="openStaffModal('referee')"
+								class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded transition">
+								管理
+							</button>
+						</div>
+						<div class="space-y-1" id="referee-list">
+							<div class="text-xs text-zinc-400 flex justify-between"><span>P-00033 陳裁判</span><button class="text-zinc-600 hover:text-red-400">✕</button></div>
+						</div>
+					</div>
+					<!-- 助理 -->
+					<div class="bg-zinc-900 rounded-lg p-4 flex flex-col gap-3">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<span class="text-xl">🙋</span>
+								<span class="font-semibold">助理</span>
+								<span class="bg-zinc-700 text-zinc-300 text-xs rounded-full px-2 py-0.5" id="assistant-count">2</span>
+							</div>
+							<button onclick="openStaffModal('assistant')"
+								class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded transition">
+								管理
+							</button>
+						</div>
+						<div class="space-y-1" id="assistant-list">
+							<div class="text-xs text-zinc-400 flex justify-between"><span>P-00201 林助理</span><button class="text-zinc-600 hover:text-red-400">✕</button></div>
+							<div class="text-xs text-zinc-400 flex justify-between"><span>P-00088 吳小助</span><button class="text-zinc-600 hover:text-red-400">✕</button></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- ===== 語言切換 ===== -->
+			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
+				<div class="text-lg font-semibold mb-4">選擇語言 Language</div>
+				<div class="flex gap-2">
+					<button onclick="switchLang('zh')" id="lang-zh"
+						class="lang-btn px-6 py-2 rounded-full text-sm font-semibold transition bg-blue-600 text-white">
+						🇹🇼 中文
+					</button>
+					<button onclick="switchLang('en')" id="lang-en"
+						class="lang-btn px-6 py-2 rounded-full text-sm font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
+						🇺🇸 English
+					</button>
+				</div>
+			</div>
+
+			<!-- ===== 其他連結 ===== -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+				<a href="display-synced.html"
+					class="bg-zinc-800 hover:bg-zinc-700 rounded-lg p-5 shadow flex items-center gap-3 transition">
+					<span class="text-2xl">⏱️</span>
+					<div>
+						<div class="font-semibold">簡易本地計時器</div>
+						<div class="text-xs text-zinc-400">Display Synced Timer</div>
+					</div>
+				</a>
+				<a href="referee-control.html"
+					class="bg-zinc-800 hover:bg-zinc-700 rounded-lg p-5 shadow flex items-center gap-3 transition">
+					<span class="text-2xl">🎛️</span>
+					<div>
+						<div class="font-semibold">裁判控制台</div>
+						<div class="text-xs text-zinc-400">Referee Control Panel</div>
+					</div>
+				</a>
+			</div>
+
+			<!-- 登出 -->
+			<div class="mb-8">
+				<input type="button" class="button bg-red-700 hover:bg-red-800 px-6 py-2 rounded cursor-pointer w-full" id="signout" value="登出 Sign Out">
+			</div>
+		</div>
+
+		<div id="footer"></div>
+
+		<!-- ===== 聘用人員燈箱 ===== -->
+		<div id="staffmodal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50">
+			<div class="bg-zinc-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+				<!-- Header -->
+				<div class="flex justify-between items-center mb-5">
+					<h2 class="text-xl font-bold" id="staffmodal-title">發牌員名單</h2>
+					<button onclick="closeStaffModal()" class="text-zinc-400 hover:text-white text-2xl leading-none">&times;</button>
+				</div>
+
+				<!-- 新增欄位 -->
+				<div class="flex gap-2 mb-5">
+					<input type="text" id="staffid-input" placeholder="輸入使用者 ID（e.g. P-00099）"
+						class="flex-1 bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:outline-none focus:border-blue-500">
+					<button onclick="addStaff()"
+						class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold transition">
+						新增
+					</button>
+				</div>
+
+				<!-- 目前名單 -->
+				<div class="text-xs text-zinc-400 mb-2">目前名單</div>
+				<div class="overflow-y-auto flex-1 space-y-2" id="staffmodal-list">
+					<!-- 動態填入 -->
+				</div>
+
+				<!-- Footer -->
+				<div class="mt-5 pt-4 border-t border-zinc-700">
+					<button onclick="closeStaffModal()"
+						class="w-full bg-zinc-600 hover:bg-zinc-700 px-4 py-2 rounded text-sm transition">
+						關閉
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			// ===== 報表切換 =====
+			const reportTabs = ['monthly', 'yearly', 'career'];
+
+			function switchReport(type) {
+				reportTabs.forEach(t => {
+					const tab = document.getElementById('tab-' + t);
+					tab.classList.remove('bg-blue-600', 'text-white');
+					tab.classList.add('bg-zinc-700', 'text-zinc-300');
+				});
+				document.getElementById('tab-' + type).classList.remove('bg-zinc-700', 'text-zinc-300');
+				document.getElementById('tab-' + type).classList.add('bg-blue-600', 'text-white');
+
+				document.getElementById('filter-monthly').classList.add('hidden');
+				document.getElementById('filter-yearly').classList.add('hidden');
+				if (type === 'monthly') document.getElementById('filter-monthly').classList.remove('hidden');
+				if (type === 'yearly') document.getElementById('filter-yearly').classList.remove('hidden');
+
+				// 寫死假資料示例 (日後串接 API)
+				const data = {
+					monthly: { cashGames: 48, cashBuyin: '$12,000', cashProfit: '+$3,400', tltGames: 12, tltBuyin: '$6,000', tltProfit: '-$800', mttGames: 5, mttBuyin: '$5,000', mttProfit: '+$12,500', total: '+$15,100', totalClass: 'text-green-400' },
+					yearly:  { cashGames: 312, cashBuyin: '$98,000', cashProfit: '+$21,000', tltGames: 88, tltBuyin: '$44,000', tltProfit: '+$5,600', mttGames: 24, mttBuyin: '$24,000', mttProfit: '+$38,000', total: '+$64,600', totalClass: 'text-green-400' },
+					career:  { cashGames: 1024, cashBuyin: '$410,000', cashProfit: '+$72,000', tltGames: 380, tltBuyin: '$190,000', tltProfit: '-$12,000', mttGames: 95, mttBuyin: '$95,000', mttProfit: '+$180,000', total: '+$240,000', totalClass: 'text-green-400' },
+				};
+				const d = data[type];
+				document.getElementById('cash-games').textContent = d.cashGames;
+				document.getElementById('cash-buyin').textContent = d.cashBuyin;
+				document.getElementById('cash-profit').textContent = d.cashProfit;
+				document.getElementById('cash-profit').className = 'font-mono font-bold ' + (d.cashProfit.startsWith('+') ? 'text-green-400' : 'text-red-400');
+				document.getElementById('tlt-games').textContent = d.tltGames;
+				document.getElementById('tlt-buyin').textContent = d.tltBuyin;
+				document.getElementById('tlt-profit').textContent = d.tltProfit;
+				document.getElementById('tlt-profit').className = 'font-mono font-bold ' + (d.tltProfit.startsWith('+') ? 'text-green-400' : 'text-red-400');
+				document.getElementById('mtt-games').textContent = d.mttGames;
+				document.getElementById('mtt-buyin').textContent = d.mttBuyin;
+				document.getElementById('mtt-profit').textContent = d.mttProfit;
+				document.getElementById('mtt-profit').className = 'font-mono font-bold ' + (d.mttProfit.startsWith('+') ? 'text-green-400' : 'text-red-400');
+				const totalEl = document.getElementById('report-total');
+				totalEl.textContent = d.total;
+				totalEl.className = 'text-2xl font-bold ' + d.totalClass;
+			}
+
+			// ===== 聘用人員燈箱 =====
+			const staffData = {
+				dealer: [
+					{ id: 'P-00042', name: '王小明' },
+					{ id: 'P-00078', name: '李大華' },
+					{ id: 'P-00115', name: '張三' },
+				],
+				referee: [
+					{ id: 'P-00033', name: '陳裁判' },
+				],
+				assistant: [
+					{ id: 'P-00201', name: '林助理' },
+					{ id: 'P-00088', name: '吳小助' },
+				],
+			};
+			const staffLabel = { dealer: '發牌員', referee: '裁判', assistant: '助理' };
+			let currentStaffType = 'dealer';
+
+			function openStaffModal(type) {
+				currentStaffType = type;
+				document.getElementById('staffmodal-title').textContent = staffLabel[type] + ' 名單';
+				renderStaffModal();
+				const modal = document.getElementById('staffmodal');
+				modal.classList.remove('hidden');
+				modal.classList.add('flex');
+			}
+
+			function closeStaffModal() {
+				const modal = document.getElementById('staffmodal');
+				modal.classList.add('hidden');
+				modal.classList.remove('flex');
+				document.getElementById('staffid-input').value = '';
+			}
+
+			function renderStaffModal() {
+				const list = staffData[currentStaffType];
+				const container = document.getElementById('staffmodal-list');
+				if (list.length === 0) {
+					container.innerHTML = '<div class="text-zinc-500 text-sm text-center py-4">尚無成員</div>';
+					return;
+				}
+				container.innerHTML = list.map((s, i) => `
+					<div class="flex items-center justify-between bg-zinc-900 rounded px-3 py-2">
+						<div>
+							<span class="text-xs font-mono text-zinc-400">${s.id}</span>
+							<span class="ml-2 text-sm text-white">${s.name}</span>
+						</div>
+						<button onclick="removeStaff(${i})" class="text-zinc-500 hover:text-red-400 text-lg leading-none transition">&times;</button>
+					</div>
+				`).join('');
+			}
+
+			function addStaff() {
+				const input = document.getElementById('staffid-input').value.trim();
+				if (!input) return;
+				// 寫死假資料 - 日後串接 API 查詢使用者
+				const mockUsers = {
+					'P-00099': '周測試',
+					'P-00055': '黃範例',
+					'P-00010': '蔡新人',
+				};
+				const name = mockUsers[input] || '未知使用者';
+				const already = staffData[currentStaffType].find(s => s.id === input);
+				if (already) { alert('此使用者已在名單中！'); return; }
+				staffData[currentStaffType].push({ id: input, name });
+				document.getElementById('staffid-input').value = '';
+				renderStaffModal();
+			}
+
+			function removeStaff(index) {
+				staffData[currentStaffType].splice(index, 1);
+				renderStaffModal();
+			}
+
+			// 點擊遮罩關閉
+			document.getElementById('staffmodal').addEventListener('click', function(e) {
+				if (e.target === this) closeStaffModal();
+			});
+
+			// ===== 語言切換 =====
+			function switchLang(lang) {
+				['zh', 'en'].forEach(l => {
+					const btn = document.getElementById('lang-' + l);
+					btn.classList.remove('bg-blue-600', 'text-white');
+					btn.classList.add('bg-zinc-700', 'text-zinc-300');
+				});
+				const active = document.getElementById('lang-' + lang);
+				active.classList.remove('bg-zinc-700', 'text-zinc-300');
+				active.classList.add('bg-blue-600', 'text-white');
+				// 日後串接翻譯邏輯
+			}
+		</script>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="profile.js"></script>
+	</body>
+</html>

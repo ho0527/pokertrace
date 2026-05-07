@@ -1,0 +1,9 @@
+.git/
+.vscode/
+.copilot/
+upload/
+/**/.DS_Store
+/**/__pycache__
+/**/.pytest_cache
+introduction copy.md
+pokertrace-firebase-adminsdk-fbsvc-bdb33658a6.json

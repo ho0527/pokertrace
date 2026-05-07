@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>新增場次 - Add Session</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="bg-zinc-900 text-white min-h-screen">
+		<div id="navigationbar"></div>
+
+		<div class="max-w-xl mx-auto py-10 px-4">
+			<h2 class="text-2xl font-bold mb-4">新增場次</h2>
+			<form method="POST" class="bg-zinc-800 rounded-lg p-6 shadow space-y-6" id="form">
+				<div>
+					<label for="gametype" class="block mb-2 text-zinc-300">賽事類型</label>
+					<select class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="gameeventtype">
+						<option value="cash">現金局</option>
+						<option value="tournament">錦標賽</option>
+						<option value="limited">限時錦標賽</option>
+					</select>
+				</div>
+				<div>
+					<label for="location" class="block mb-2 text-zinc-300">名稱</label>
+					<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="name">
+				</div>
+				<div>
+					<label for="clubid" class="block mb-2 text-zinc-300">地點</label>
+					<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="clubid" required>
+						<option value="">-- 請選擇 --</option>
+					</select>
+				</div>
+				<div class="flex gap-4">
+					<div class="w-full">
+						<label for="gametype" class="block mb-2 text-zinc-300">遊戲類型</label>
+						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="gametype"></select>
+					</div>
+					<div class="w-full">
+						<label for="limittype" class="block mb-2 text-zinc-300">限注類型</label>
+						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="limittype"></select>
+					</div>
+				</div>
+				<div class="flex gap-4">
+					<div class="w-full">
+						<label for="stacktype" class="block mb-2 text-zinc-300">籌碼類型</label>
+						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="stacktype"></select>
+					</div>
+					<div class="w-full">
+						<label for="eventtype" class="block mb-2 text-zinc-300">賽事類型</label>
+						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="eventtype"></select>
+					</div>
+				</div>
+				<div>
+					<label for="starttime" class="block mb-2 text-zinc-300">開始日期</label>
+					<input type="date" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="date">
+				</div>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="starttime" class="block mb-2 text-zinc-300">開始時間</label>
+						<input type="time" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="starttime" step="1" value="14:00">
+					</div>
+					<div>
+						<label for="endtime" class="block mb-2 text-zinc-300">結束時間</label>
+						<input type="time" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="endtime" step="1" value="20:30">
+					</div>
+				</div>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="buyin" class="block mb-2 text-zinc-300">買入費</label>
+						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="buyin" value="600">
+					</div>
+					<div>
+						<label for="chip" class="block mb-2 text-zinc-300">起始籌碼</label>
+						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="chip" value="25000">
+					</div>
+				</div>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="buyin" class="block mb-2 text-zinc-300">重買次數</label>
+						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="rebuycount" value="0">
+					</div>
+					<div>
+						<label for="chip" class="block mb-2 text-zinc-300">重買費用</label>
+						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="rebuybuyin" value="600">
+					</div>
+				</div>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="buyin" class="block mb-2 text-zinc-300">獲獎金額</label>
+						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="winprice" value="0">
+					</div>
+					<div>
+						<label for="buyin" class="block mb-2 text-zinc-300">獲獎獎品</label>
+						<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="winthing" value="N/A">
+					</div>
+				</div>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="buyin" class="block mb-2 text-zinc-300">名次</label>
+						<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="place" value="0">
+					</div>
+					<div>
+						<label for="buyin" class="block mb-2 text-zinc-300">總買入</label>
+						<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="totalbuyin" value="0">
+					</div>
+				</div>
+				<div>
+					<label for="note" class="block mb-2 text-zinc-300">備註</label>
+					<textarea class="w-full bg-zinc-700 text-white rounded px-3 py-2 resize-none" id="description" rows="2" placeholder="可填寫本場重點或心得"></textarea>
+				</div>
+				<div class="text-red-500 text-center font-bold my-1" id="error"></div>
+				<div class="flex justify-end">
+					<button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded text-lg font-bold" id="submit">送出</button>
+				</div>
+			</form>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="newsession.js"></script>
+	</body>
+</html>

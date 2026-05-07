@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>場次詳情 - Session Detail</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+	</head>
+	<body class="bg-zinc-900 text-white min-h-screen">
+		<div id="navigationbar"></div>
+
+		<div class="flex justify-between items-center max-w-6xl mx-auto py-4 px-2 sm:px-4 my-2">
+			<input type="button" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded text-sm font-bold cursor-pointer" id="back" value="上一頁">
+		</div>
+
+		<div class="max-w-6xl mx-auto py-4 px-2 sm:px-4 min-h-[70vh]">
+			<h1 class="text-2xl font-bold mb-4">桌次詳情 #<span id="tabletoken"></span></h1>
+			<!-- Tabs -->
+			<div class="mb-6 border-b border-zinc-700 flex flex-wrap">
+				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="overview" data-id="0">總覽</button>
+				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="players" data-id="1">玩家</button>
+				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="hands" data-id="2">手牌</button>
+				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="stats" data-id="3">統計</button>
+				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="ev" data-id="4">EV圖</button>
+			</div>
+			<!-- Tab Contents -->
+			<div id="tab-overview" class="tab-content">
+				<div class="bg-zinc-800 rounded-lg p-6 mb-4">
+					<div class="text-lg font-semibold mb-2">
+						場次資訊
+						<span class="text-zinc-500 my-2 font-normal text-sm" id="date"></span>
+					</div>
+					<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm" id="info"></div>
+				</div>
+				<div class="bg-zinc-800 rounded-lg p-6">
+					<div class="text-lg font-semibold mb-2">備註</div>
+					<div id="description">今晚狀態佳，策略執行順利。</div>
+				</div>
+			</div>
+			<div id="tab-players" class="tab-content hidden">
+				<div class="bg-zinc-800 rounded-lg p-6">
+					<form method="POST" id="settingform">
+						<div class="flex flex-col justify-between sm:flex-row sm:items-center gap-4 mb-6">
+							<div class="flex gap-4">
+								<div>
+									<label class="text-zinc-300 mr-2">最大座位數：</label>
+									<select class="bg-zinc-700 text-white rounded px-2 py-1 cursor-pointer" id="maxseat">
+										<option value="6">6人桌</option>
+										<option value="8">8人桌</option>
+										<option value="9" selected>9人桌</option>
+										<option value="10">10人桌</option>
+									</select>
+								</div>
+								<div>
+									<label class="text-zinc-300 mr-2">第一莊家：</label>
+									<select class="bg-zinc-700 text-white rounded px-2 py-1 cursor-pointer" id="firstdealerplace"></select>
+								</div>
+								<div>
+									<label class="text-zinc-300 mr-2">本人座位：</label>
+									<select class="bg-zinc-700 text-white rounded px-2 py-1 cursor-pointer" id="selfseating"></select>
+								</div>
+							</div>
+							<input type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded font-bold cursor-pointer" id="save" value="儲存">
+						</div>
+					</form>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm bg-zinc-900 rounded-lg overflow-hidden">
+							<thead>
+								<tr class="bg-zinc-700 text-zinc-300">
+									<th class="py-2 px-2">座位</th>
+									<th class="py-2 px-2">事件流</th>
+									<!-- <th class="py-2 px-2">操作</th> -->
+								</tr>
+							</thead>
+							<tbody id="seat-event-table-body">
+								<!-- 動態產生座位事件流 -->
+							</tbody>
+						</table>
+					</div>
+					<div class="text-xs text-zinc-400 mt-4">
+						* 每個座位可多次入座/換人/重新買入/離席，完整記錄事件歷史，支援錦標賽換桌與補位。
+					</div>
+				</div>
+			</div>
+			<div id="tab-hands" class="tab-content hidden">
+				<div class="flex justify-between items-center mb-4">
+					<div class="text-lg font-semibold">手牌紀錄</div>
+					<a href="" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded text-white font-bold" id="newhead">新增手牌</a>
+				</div>
+				<div class="overflow-x-auto">
+					<table class="w-full text-sm bg-zinc-800 rounded-lg overflow-hidden">
+						<thead>
+							<tr class="bg-zinc-700 text-zinc-300">
+								<th class="py-2 px-2">#</th>
+								<th class="py-2 px-2">位置</th>
+								<th class="py-2 px-2">起手牌</th>
+								<!-- <th class="py-2 px-2">行動</th> -->
+								<th class="py-2 px-2">結果</th>
+								<!-- <th class="py-2 px-2">重要性</th> -->
+							</tr>
+						</thead>
+						<tbody class="text-center" id="handtable"></tbody>
+					</table>
+				</div>
+			</div>
+			<div id="tab-stats" class="tab-content hidden">
+				<div class="bg-zinc-800 rounded-lg p-6">
+					<div class="text-lg font-semibold mb-4">統計數據</div>
+					<ul class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+						<li>總手牌數：12</li>
+						<li>勝率：41.7%</li>
+						<li>平均盈虧：+120</li>
+						<li>最大單手盈虧：+600</li>
+					</ul>
+				</div>
+			</div>
+			<div id="tab-ev" class="tab-content hidden">
+				<div class="bg-zinc-800 rounded-lg p-6">
+					<div class="text-lg font-semibold mb-4">EV圖</div>
+					<div id="evChart" style="height: 300px;"></div>
+				</div>
+			</div>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="table.js"></script>
+	</body>
+</html>

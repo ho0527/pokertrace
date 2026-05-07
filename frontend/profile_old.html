@@ -1,0 +1,100 @@
+<!--
+	製作人員: 賀皓群(小賀) / dc: chris0527 / line: ho960527 / email: chris960527ho@gmail.com / 電話: 0906585605
+
+		|-------    -----    -                     -     -----  -----  -----   -------|
+	   |-------    -        -            - - -          -                     -------|
+	  |-------    -        -------    -          -     -----    --       --  -------|
+	 |-------    -        -     -    -          -         -      --     --  -------|
+	|-------    -----    -     -    -          -     -----         -----  -------|
+
+	無授權禁止拷貝使用!
+-->
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>會員系統 - Member System</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+	</head>
+	<body class="bg-zinc-900 text-white min-h-screen lg:overflow-hidden">
+		<div id="navigationbar"></div>
+
+		<div class="max-w-6xl mx-auto py-8 px-4">
+			<h1 class="text-3xl font-bold mb-6">個人資料 Dashboard</h1>
+			<h1 class="text-3xl font-bold mb-6">PLAYER ID: <span id="playerid"></span></h1>
+			<!-- 個人統計概覽 -->
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+				<div class="bg-zinc-800 rounded-lg p-6 shadow flex flex-col items-center">
+					<div class="text-lg font-semibold mb-2">月報表</div>
+					<div class="text-2xl font-bold text-green-400" id="todaytotalprofit">+$0</div>
+				</div>
+				<div class="bg-zinc-800 rounded-lg p-6 shadow flex flex-col items-center">
+					<div class="text-lg font-semibold mb-2">年報表</div>
+					<div class="text-2xl font-bold text-green-400" id="weektotalprofit">+$0</div>
+				</div>
+				<div class="bg-zinc-800 rounded-lg p-6 shadow flex flex-col items-center">
+					<div class="text-lg font-semibold mb-2">生涯報表</div>
+					<div class="text-2xl font-bold text-green-400" id="monthtotalprofit">+$0</div>
+				</div>
+			</div>
+			<!-- 快速動作面板 & 快速入桌 -->
+			<!-- <div class="flex flex-col md:flex-row gap-6 mb-8">
+				<div class="flex-1 bg-zinc-800 rounded-lg p-6 shadow mb-4 md:mb-0">
+					<div class="text-lg font-semibold mb-4">快速動作</div>
+					<div class="flex flex-wrap gap-3">
+						<button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">充值</button>
+						<button class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">提領</button>
+						<button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">轉帳</button>
+						<button class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded">邀請好友</button>
+					</div>
+				</div>
+				<div class="flex-1 bg-zinc-800 rounded-lg p-6 shadow flex flex-col justify-between">
+					<div class="text-lg font-semibold mb-4">快速入桌</div>
+					<a href="newtable.html" class="bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded text-lg font-bold">立即入桌</a>
+				</div>
+			</div> -->
+			<!-- 盈虧趨勢圖 -->
+			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
+				<div class="text-lg font-semibold mb-4">選擇語言</div>
+			</div>
+			<!-- 待處理通知 -->
+			<!-- <div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
+				<div class="text-lg font-semibold mb-4">待處理通知</div>
+				<ul class="list-disc pl-6 space-y-2">
+					<li>您有一筆提領申請待審核</li>
+					<li>本週任務尚未完成，點擊前往</li>
+					<li>新活動：邀請好友拿獎勵！</li>
+				</ul>
+			</div> -->
+			<!-- 聘用人員為v2內容 -->
+			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
+				<div class="text-lg font-semibold mb-4">聘用人員</div>
+				<div>發牌員</div>
+				<div>裁判</div>
+				<div>助理</div>
+			</div>
+
+			<div>
+				<a href="display-synced.html" class="bg-zinc-800 rounded-lg p-6 shadow mb-8 w-full text-center">簡易計時器</a>
+			</div>
+			<div>
+				<a href="referee-control.html" class="bg-zinc-800 rounded-lg p-6 shadow mb-8 w-full text-center">裁判控制台</a>
+			</div>
+
+			<div>
+				<input type="button" class="button" id="signout" value="登出">
+			</div>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="profile.js"></script>
+	</body>
+</html>
