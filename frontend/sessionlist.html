@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>場次列表 - Session List</title>
+		<title>場次列表</title>
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
 		<script src="https://cdn.tailwindcss.com"></script>
@@ -13,7 +13,7 @@
 		<div id="navigationbar"></div>
 
 		<div class="max-w-6xl mx-auto py-8 px-4">
-			<h1 class="text-3xl font-bold mb-6">場次管理 Sessions</h1>
+			<h1 class="text-3xl font-bold mb-6">場次管理</h1>
 			<!-- 篩選搜尋區塊 -->
 			<div class="bg-zinc-800 rounded-lg p-4 mb-6">
 				<div class="flex flex-wrap justify-between gap-4 items-center my-[10px]">
@@ -40,6 +40,7 @@
 			</div>
 			<!-- 場次列表 -->
 			<div class="h-[50vh] overflow-auto" id="main"></div>
+			<div class="flex flex-wrap justify-center items-center gap-2 mt-4" id="pagination"></div>
 			<!-- 場次統計預覽 -->
 			<div class="bg-zinc-800 rounded-lg p-6 mt-8 mb-8">
 				<div class="text-lg font-semibold mb-4 text-center">場次統計預覽</div>

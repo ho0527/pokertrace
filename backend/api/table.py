@@ -45,7 +45,7 @@ try:
 					if row:
 						row=row[0]
 						if tokenuserrow["id"]==row["userid"] or 4<=int(tokenuserrow["permission"]):
-							row=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "starttime" ASC""",[sessionid],SETTING["dbsetting"])
+							row=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "name" ASC""",[sessionid],SETTING["dbsetting"])
 
 							return Response({
 								"success": True,
@@ -78,6 +78,112 @@ try:
 			elif h1==h2:tie=tie+1
 		return (win+tie*0.5)/iters
 
+	def parsecardjson(value):
+		try:
+			if not value or value=="null":
+				return []
+			carddata=value
+			if isinstance(value,str):
+				carddata=json.loads(value)
+			if carddata.get("card1") and carddata.get("card2"):
+				return [carddata.get("card1"),carddata.get("card2")]
+		except Exception as error:
+			return []
+		return []
+
+	def parseboardjson(value):
+		cards=[]
+		try:
+			if not value or value=="null":
+				return cards
+			boarddata=value
+			if isinstance(value,str):
+				boarddata=json.loads(value)
+			if boarddata.get("flop"):
+				for card in boarddata["flop"]:
+					if card:
+						cards.append(card)
+			if boarddata.get("turn"):
+				cards.append(boarddata["turn"])
+			if boarddata.get("river"):
+				cards.append(boarddata["river"])
+		except Exception as error:
+			return []
+		return cards
+
+	def getactionseats(bittingrow,actionname):
+		seats=[]
+		for action in bittingrow:
+			if action["action"]==actionname and action["seatno"] not in seats:
+				seats.append(action["seatno"])
+		return seats
+
+	def calcallinstats(hand,seatingrow,bittingrow):
+		stats={}
+		allinseats=getactionseats(bittingrow,"allin")
+		if len(allinseats)==0:
+			return stats
+		board=parseboardjson(hand.get("boardcard"))
+		try:
+			board_eval=[]
+			for card in board:
+				board_eval.append(eval7.Card(card))
+		except Exception as error:
+			return stats
+		for seating in seatingrow:
+			seatno=seating["seatno"]
+			if seatno not in allinseats:
+				continue
+			hero=parsecardjson(seating.get("handcard"))
+			if len(hero)==0 and seatno==hand.get("selfseating"):
+				hero=parsecardjson(hand.get("handcard"))
+			if len(hero)!=2:
+				continue
+			try:
+				hero_eval=[eval7.Card(hero[0]),eval7.Card(hero[1])]
+				opps=[]
+				for opp in seatingrow:
+					if opp["seatno"]!=seatno and opp["seatno"] in allinseats:
+						oppcard=parsecardjson(opp.get("handcard"))
+						if len(oppcard)==0 and opp["seatno"]==hand.get("selfseating"):
+							oppcard=parsecardjson(hand.get("handcard"))
+						if len(oppcard)==2:
+							opps.append([eval7.Card(oppcard[0]),eval7.Card(oppcard[1])])
+				if len(opps)==0:
+					continue
+				equitytotal=0
+				for oppcards in opps:
+					equitytotal=equitytotal+calc_equity(hero_eval,oppcards,board_eval,2000)
+				equity=equitytotal/len(opps)
+				outs=[]
+				if len(board_eval)>=3 and len(board_eval)<5:
+					deck=eval7.Deck()
+					used=hero_eval+board_eval
+					for oppcards in opps:
+						used=used+oppcards
+					for card in used:
+						if card in deck.cards:
+							deck.cards.remove(card)
+					for card in deck.cards:
+						testboard=board_eval+[card]
+						heroscore=eval7.evaluate(hero_eval+testboard)
+						bestopp=None
+						for oppcards in opps:
+							score=eval7.evaluate(oppcards+testboard)
+							if bestopp is None or score>bestopp:
+								bestopp=score
+						if bestopp is not None and heroscore>bestopp:
+							outs.append(str(card))
+				stats[seatno]={
+					"equity": round(equity*100,2),
+					"outs": outs
+				}
+			except Exception as error:
+				stats[seatno]={
+					"error": str(error)
+				}
+		return stats
+
 	@api_view(["GET"])
 	def gettable(request,tableid):
 		header=request.headers.get("Authorization")
@@ -107,7 +213,29 @@ try:
 							for i in range(10):
 								seatingdata.append({"seat":i+1,"history":[]})
 
-							if sessionrow["tablelinked"]:
+							if sessionrow.get("linkuser"):
+								seatingrow=query(SETTING["dbname"],"""
+									SELECT sp."id" AS sessionplayerid,sp."userid",sp."seatno",sp."startchip",
+										u."name",u."playerid"
+									FROM "sessionplayer" sp
+									JOIN "user" u ON u."id"=sp."userid"
+									WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."status"='confirmed' AND sp."seatno" IS NOT NULL AND sp."deletetime" IS NULL
+									ORDER BY sp."seatno" ASC
+								""",[sessionrow["id"],tableid],SETTING["dbsetting"])
+								for seating in seatingrow:
+									if 0<seating["seatno"] and seating["seatno"]<=len(seatingdata):
+										seatingdata[seating["seatno"]-1]["history"].append({
+											"id":seating["sessionplayerid"],
+											"type":"buyin",
+											"player":seating["name"],
+											"time":sessionrow.get("starttime"),
+											"buyin":sessionrow.get("buyin") or 0,
+											"chip":seating.get("startchip") or sessionrow.get("chip") or 0,
+											"userid":seating["userid"],
+											"sessionplayerid":seating["sessionplayerid"]
+										})
+
+							if sessionrow["tablelinked"] and not sessionrow.get("linkuser"):
 								seatingrow=query(SETTING["dbname"],"""
 									SELECT*FROM "seating"
 									WHERE "tableid" IN (
@@ -148,6 +276,8 @@ try:
 
 								for hand in handrow:
 									seatingrow=query(SETTING["dbname"],"""SELECT*FROM "handseating" WHERE "handid"=%s AND "deletetime" IS NULL ORDER BY "seatno" ASC""",[hand["id"]],SETTING["dbsetting"])
+									bittingrow=query(SETTING["dbname"],"""SELECT*FROM "handbittingdata" WHERE "handid"=%s AND "deletetime" IS NULL""",[hand["id"]],SETTING["dbsetting"])
+									allinstats=calcallinstats(hand,seatingrow,bittingrow)
 									selfseating=None
 									for s in seatingrow:
 										if s["seatno"]==hand["selfseating"]:
@@ -258,28 +388,32 @@ try:
 
 									handdata.append({
 										**hand,
-										"bittingdata":query(SETTING["dbname"],"""SELECT*FROM "handbittingdata" WHERE "handid"=%s AND "deletetime" IS NULL""",[hand["id"]],SETTING["dbsetting"]),
+										"bittingdata":bittingrow,
 										"seatingdata":seatingrow,
 										"chipchange":actual_ev,
 										"allin_ev": allin_ev,
 										"luck": luck,
-										"allin_ev_debug": allin_ev_debug
+										"allin_ev_debug": allin_ev_debug,
+										"allinstats": allinstats
 									})
 							else:
-								seatingrow=query(SETTING["dbname"],"""SELECT*FROM "seating" WHERE "tableid"=%s AND "deletetime" IS NULL ORDER BY "seatno" ASC, "time" ASC""",[tableid],SETTING["dbsetting"])
-								for seating in seatingrow:
-									seatingdata[seating["seatno"]-1]["history"].append({
-										"id":seating["id"],
-										"type":seating["type"],
-										"player":seating["name"],
-										"time":seating["time"],
-										"buyin":seating["buyin"],
-										"chip":seating["chip"]
-									})
+								if not sessionrow.get("linkuser"):
+									seatingrow=query(SETTING["dbname"],"""SELECT*FROM "seating" WHERE "tableid"=%s AND "deletetime" IS NULL ORDER BY "seatno" ASC, "time" ASC""",[tableid],SETTING["dbsetting"])
+									for seating in seatingrow:
+										seatingdata[seating["seatno"]-1]["history"].append({
+											"id":seating["id"],
+											"type":seating["type"],
+											"player":seating["name"],
+											"time":seating["time"],
+											"buyin":seating["buyin"],
+											"chip":seating["chip"]
+										})
 
 								handrow=query(SETTING["dbname"],"""SELECT*FROM "hand" WHERE "tableid"=%s AND "deletetime" IS NULL ORDER BY "createtime" DESC""",[tableid],SETTING["dbsetting"])
 								for hand in handrow:
 									seatingrow=query(SETTING["dbname"],"""SELECT*FROM "handseating" WHERE "handid"=%s AND "deletetime" IS NULL ORDER BY "seatno" ASC""",[hand["id"]],SETTING["dbsetting"])
+									bittingrow=query(SETTING["dbname"],"""SELECT*FROM "handbittingdata" WHERE "handid"=%s AND "deletetime" IS NULL""",[hand["id"]],SETTING["dbsetting"])
+									allinstats=calcallinstats(hand,seatingrow,bittingrow)
 									selfseating=None
 									for s in seatingrow:
 										if s["seatno"]==hand["selfseating"]:
@@ -307,12 +441,29 @@ try:
 
 									handdata.append({
 										**hand,
-										"bittingdata":query(SETTING["dbname"],"""SELECT*FROM "handbittingdata" WHERE "handid"=%s AND "deletetime" IS NULL""",[hand["id"]],SETTING["dbsetting"]),
+										"bittingdata":bittingrow,
 										"seatingdata":seatingrow,
-										"chipchange":actual_ev
+										"chipchange":actual_ev,
+										"allinstats":allinstats
 									})
 
 							clubrow=query(SETTING["dbname"],"""SELECT*FROM "club" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionrow["clubid"]],SETTING["dbsetting"])
+							timerlevelrow=query(SETTING["dbname"],"""SELECT*FROM "sessiontimerlevel" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC""",[sessionrow["id"]],SETTING["dbsetting"])
+							registeredrow=query(SETTING["dbname"],"""
+								SELECT sp."id" as sessionplayerid,sp."userid",sp."status",sp."buyin",sp."fee",sp."ticketvalue",sp."tableid",sp."seatno",sp."startchip",
+									u."name",u."playerid"
+								FROM "sessionplayer" sp
+								JOIN "user" u ON u."id"=sp."userid"
+								WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."status"='confirmed' AND sp."seatno" IS NOT NULL AND sp."deletetime" IS NULL
+								ORDER BY sp."confirmtime" ASC,sp."registertime" ASC
+							""",[sessionrow["id"],tableid],SETTING["dbsetting"])
+							row=dict(row)
+							if not row.get("maxseat"):
+								row["maxseat"]=sessionrow.get("maxseat") or 9
+							if not row.get("firstdealerplace"):
+								row["firstdealerplace"]=1
+							if not row.get("selfseating"):
+								row["selfseating"]=1
 
 							return Response({
 								"success":True,
@@ -323,6 +474,8 @@ try:
 									"seating":seatingdata,
 									"hand":handdata,
 									"ev":{"actual":ev_actual,"allin":ev_allin},
+									"blindstructures":timerlevelrow or [],
+									"registeredplayers":registeredrow or [],
 									"club":clubrow[0] if clubrow else None,
 									"clubname":clubrow[0]["name"] if clubrow else "協會被刪除"
 								}
@@ -361,95 +514,25 @@ try:
 						if tokenuserrow["id"]==sessionrow["userid"] or 4<=int(tokenuserrow["permission"]):
 							data=json.loads(request.body)
 
-							linkedcheck=validate(data,{
-								"linked": "required|boolean",
+							requestdata=validate(data,{
+								"name": "required|string",
 							},{
 								"required": "ERROR_request_data_not_found",
 								"string": "ERROR_request_data_type_error",
 								"linked": "ERROR_request_data_type_error"
 							})
 
-							if linkedcheck["error"] is None:
-								if linkedcheck["data"]["linked"]==True:
-									requestdata=validate(data,{
-										"linked": "required|boolean",
-										"name": "required|string",
-										"date": "required|string",
-										"chip": "required|integer",
-										"tablelist": "required|array",
-										"tablelist.*.smallblind": "required|integer",
-										"tablelist.*.bigblind": "required|integer",
-										"tablelist.*.bigblindante": "required|integer",
-										"tablelist.*.ante": "required|integer",
-										"tablelist.*.starttime": "required|string",
-										"tablelist.*.endtime": "required|string"
-									},{
-										"required": "ERROR_request_data_not_found",
-										"string": "ERROR_request_data_type_error",
-										"integer": "ERROR_request_data_type_error"
-									})
+							if requestdata["error"] is None:
+								name=requestdata["data"].get("name")
 
-									if requestdata["error"] is None:
-										query(SETTING["dbname"],"""UPDATE "session" SET "tablelinked"=%s WHERE "id"=%s AND "deletetime" IS NULL""",[True,sessionid],SETTING["dbsetting"])
+								row=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s""",[sessionid],SETTING["dbsetting"])
 
-										name=requestdata["data"].get("name")
-										date=requestdata["data"].get("date")
-										chip=requestdata["data"].get("chip")
-										tablelist=requestdata["data"].get("tablelist")
+								query(SETTING["dbname"],"""INSERT INTO "table"("token","sessionid","name")VALUES(%s,%s,%s)""",[f"TB{sessionrow["token"]}{(str(len(row)+1)).zfill(2)}",sessionid,name],SETTING["dbsetting"])
 
-										for i in range(len(tablelist)):
-											level=tablelist[i].get("level")
-											smallblind=tablelist[i].get("smallblind")
-											bigblind=tablelist[i].get("bigblind")
-											bigblindante=tablelist[i].get("bigblindante")
-											ante=tablelist[i].get("ante")
-											starttime=date+" "+tablelist[i].get("starttime")+"+00:00"
-											endtime=date+" "+tablelist[i].get("endtime")+"+00:00"
-
-											query(SETTING["dbname"],"""INSERT INTO "table"("token","sessionid","name","smallblind","bigblind","bigblindante","ante","chip","starttime","endtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",[f"TB{sessionrow["token"]}{(str(i+1)).zfill(2)}",sessionid,name+level,smallblind,bigblind,bigblindante,ante,chip,starttime,endtime],SETTING["dbsetting"])
-
-										return Response({
-											"success": True,
-											"data": ""
-										},status.HTTP_200_OK)
-									else:
-										return errorresponse(requestdata["error"])
-								else:
-									requestdata=validate(data,{
-										"name": "required|string",
-										"smallblind": "required|integer",
-										"bigblind": "required|integer",
-										"bigblindante": "required|integer",
-										"ante": "required|integer",
-										"chip": "required|integer",
-										"starttime": "required|string",
-										"endtime": "required|string"
-									},{
-										"required": "ERROR_request_data_not_found",
-										"string": "ERROR_request_data_type_error",
-										"integer": "ERROR_request_data_type_error"
-									})
-
-									if requestdata["error"] is None:
-										name=requestdata["data"].get("name")
-										smallblind=requestdata["data"].get("smallblind")
-										bigblind=requestdata["data"].get("bigblind")
-										bigblindante=requestdata["data"].get("bigblindante")
-										ante=requestdata["data"].get("ante")
-										chip=requestdata["data"].get("chip")
-										starttime=requestdata["data"].get("starttime")
-										endtime=requestdata["data"].get("endtime")
-
-										row=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s""",[sessionid],SETTING["dbsetting"])
-
-										query(SETTING["dbname"],"""INSERT INTO "table"("token","sessionid","name","smallblind","bigblind","bigblindante","ante","chip","starttime","endtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",[f"TB{sessionrow["token"]}{(str(len(row)+1)).zfill(2)}",sessionid,name,smallblind,bigblind,bigblindante,ante,chip,starttime,endtime],SETTING["dbsetting"])
-
-										return Response({
-											"success": True,
-											"data": ""
-										},status.HTTP_200_OK)
-									else:
-										return errorresponse(requestdata["error"])
+								return Response({
+									"success": True,
+									"data": ""
+								},status.HTTP_200_OK)
 							else:
 								return errorresponse(requestdata["error"])
 						else:
@@ -491,30 +574,16 @@ try:
 
 								requestdata=validate(data,{
 									"name": "required|string",
-									"smallblind": "required|integer",
-									"bigblind": "required|integer",
-									"bigblindante": "required|integer",
-									"ante": "required|integer",
-									"chip": "required|integer",
-									"starttime": "required|string",
-									"endtime": "required|string"
 								},{
 									"required": "ERROR_request_data_not_found",
 									"string": "ERROR_request_data_type_error",
-									"integer": "ERROR_request_data_type_error"
+									"linked": "ERROR_request_data_type_error"
 								})
 
 								if requestdata["error"] is None:
 									name=requestdata["data"].get("name")
-									smallblind=requestdata["data"].get("smallblind")
-									bigblind=requestdata["data"].get("bigblind")
-									bigblindante=requestdata["data"].get("bigblindante")
-									ante=requestdata["data"].get("ante")
-									chip=requestdata["data"].get("chip")
-									starttime=requestdata["data"].get("starttime")
-									endtime=requestdata["data"].get("endtime")
 
-									query(SETTING["dbname"],"""UPDATE "table" SET "name"=%s,"smallblind"=%s,"bigblind"=%s,"bigblindante"=%s,"ante"=%s,"chip"=%s,"starttime"=%s,"endtime"=%s WHERE "id"=%s""",[name,smallblind,bigblind,bigblindante,ante,chip,starttime,endtime,tableid],SETTING["dbsetting"])
+									query(SETTING["dbname"],"""UPDATE "table" SET "name"=%s WHERE "id"=%s""",[name,tableid],SETTING["dbsetting"])
 
 									return Response({
 										"success": True,
@@ -577,8 +646,6 @@ try:
 									maxseat=requestdata["data"].get("maxseat")
 									firstdealerplace=requestdata["data"].get("firstdealerplace")
 									selfseating=requestdata["data"].get("selfseating")
-
-									query(SETTING["dbname"],"""UPDATE "table" SET "maxseat"=%s,"firstdealerplace"=%s,"selfseating"=%s WHERE "id"=%s""",[maxseat,firstdealerplace,selfseating,tableid],SETTING["dbsetting"])
 
 									return Response({
 										"success": True,

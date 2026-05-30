@@ -33,6 +33,7 @@ ALLOWED_HOSTS=["*"]
 # Application definition
 
 INSTALLED_APPS=[
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,6 +41,7 @@ INSTALLED_APPS=[
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "corsheaders",
+    'channels',
 ]
 
 MIDDLEWARE=[
@@ -72,6 +74,14 @@ TEMPLATES=[
 ]
 
 WSGI_APPLICATION='project00058.wsgi.application'
+ASGI_APPLICATION='project00058.asgi.application'
+
+# WebSocket channel layer (開發用 InMemory, 生產建議改 Redis)
+CHANNEL_LAYERS={
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 
 # Database
@@ -131,8 +141,8 @@ CORS_URLS_REGEX=r"^.*$"
 EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST="smtp.gmail.com"
 EMAIL_PORT=587
-EMAIL_HOST_USER="chris960527ho@gmail.com"
-EMAIL_HOST_PASSWORD="ebhs xkxc szyt kgjm"
+EMAIL_HOST_USER="// 輸入你要用來送信的電子郵件"
+EMAIL_HOST_PASSWORD="// 16位密碼"
 EMAIL_USE_TLS=True
 DEFAULT_FROM_EMAIL=EMAIL_HOST_USER
 

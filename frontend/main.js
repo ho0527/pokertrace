@@ -14,37 +14,72 @@ if(!weblsget(WEBLSNAME+"signin")){
 	href("signin.html")
 }
 
+let mainchart=null
+
+function maintext(key){
+	return TRANSLATE[LANGUAGE]["mainpage"][key]
+}
+
+function applymainlanguage(){
+	document.title=maintext("title")
+	let title=document.querySelector("h1")
+	if(title){
+		title.textContent=maintext("title")
+	}
+	let labels=document.querySelectorAll(".grid.grid-cols-1.md\\:grid-cols-3.gap-6.mb-8 .text-lg")
+	let labelkeys=[
+		"todayprofit",
+		"weekprofit",
+		"monthprofit"
+	]
+	for(let i=0;i<labels.length&&i<labelkeys.length;i=i+1){
+		labels[i].textContent=maintext(labelkeys[i])
+	}
+	let trendtitle=document.querySelector(".bg-zinc-800.rounded-lg.p-6.shadow.mb-8 .text-lg")
+	if(trendtitle){
+		trendtitle.textContent=maintext("weeklytrend")
+	}
+}
+
+function rendermainchart(profitdata){
+	let datelabel=[]
+	let today=new Date()
+	for(let i=6;i>=0;i=i-1){
+		let date=new Date(today.getFullYear(),today.getMonth(),today.getDate()-i)
+		datelabel.push(`${date.getMonth()+1}/${date.getDate()}`)
+	}
+
+	if(!mainchart){
+		mainchart=echarts.init(domgetid("trendChart"))
+	}
+
+	let option={
+		"tooltip": { trigger: "axis" },
+		"xAxis": { type: "category",data: datelabel },
+		"yAxis": { type: "value" },
+		"series": [{
+			name: maintext("profit"),
+			type: "line",
+			smooth: true,
+			data: profitdata,
+			areaStyle: {
+				color: "#22d3ee",
+				opacity: 0.2
+			},
+			lineStyle: { color: "#22d3ee" },
+			itemStyle: { color: "#22d3ee" }
+		}]
+	}
+	mainchart.setOption(option)
+}
+
+applymainlanguage()
+
 ajax("GET",AJAXURL+"getuser",function(event,data){
 	if(data["success"]){
 		let row=data["data"]
-		// data["data"]["totalprice"]=10000
 
-		// 產生最近七天的日期標籤
-		let datelabel=[]
-		let today=new Date()
-		for(let i=6;i>=0;i--){
-			let d=new Date(today.getFullYear(),today.getMonth(),today.getDate()-i)
-			datelabel.push(`${d.getMonth()+1}/${d.getDate()}`)
-		}
-		let mychart=echarts.init(domgetid("trendChart"))
-		let option={
-			"tooltip": { trigger: "axis" },
-			"xAxis": { type: "category",data: datelabel },
-			"yAxis": { type: "value" },
-			"series": [{
-				name: "盈虧",
-				type: "line",
-				smooth: true,
-				data: row["lastweekprofit"],
-				areaStyle: {
-					color: "#22d3ee",
-					opacity: 0.2
-				},
-				lineStyle: { color: "#22d3ee" },
-				itemStyle: { color: "#22d3ee" }
-			}]
-		}
-		mychart.setOption(option)
+		rendermainchart(row["lastweekprofit"])
 
 		innerhtml("#todaytotalprofit",`${0<=row["todaytotalprofit"]?"+":""}${row["todaytotalprofit"]}`,false)
 		innerhtml("#weektotalprofit",`${0<=row["weektotalprofit"]?"+":""}${row["weektotalprofit"]}`,false)
@@ -54,7 +89,7 @@ ajax("GET",AJAXURL+"getuser",function(event,data){
 		addclass("#monthtotalprofit",[`${0<=row["monthtotalprofit"]?"text-green-400":"text-red-400"}`])
 	}else{
 		if(data["data"]=="ERROR_token_error"||data["data"]=="ERROR_token_not_found"){
-			alert("權杖已失效，請重新登入")
+			alert(TRANSLATE[LANGUAGE]["errorlist"][data["data"]])
 			weblsset(WEBLSNAME+"signin",null)
 			weblsset(WEBLSNAME+"token",null)
 			weblsset(WEBLSNAME+"userid",null)
@@ -62,7 +97,7 @@ ajax("GET",AJAXURL+"getuser",function(event,data){
 			weblsset(WEBLSNAME+"name",null)
 			href("signin.html")
 		}else{
-			alert("網路不佳，請重新嘗試")
+			alert(maintext("networkerror"))
 		}
 	}
 },null,[

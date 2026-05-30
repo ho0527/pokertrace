@@ -16,6 +16,12 @@ function clearlocalstorage(){
     weblsset(WEBLSNAME+"showdowndata",null)
     weblsset(WEBLSNAME+"winner",null)
     weblsset(WEBLSNAME+"winnerprice",null)
+    weblsset(WEBLSNAME+"handgametype",null)
+    weblsset(WEBLSNAME+"blindlevel",null)
+    weblsset(WEBLSNAME+"handsmallblind",null)
+    weblsset(WEBLSNAME+"handbigblind",null)
+    weblsset(WEBLSNAME+"handbigblindante",null)
+    weblsset(WEBLSNAME+"handante",null)
 }
 
 onclick("#back",function(element,event){
@@ -35,13 +41,29 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 
         // let minchip="100"
 		let startchip=row["chip"]
+		let islinkeduser=row["linkuser"]==true
 		let dealerseat=weblsget(WEBLSNAME+"dealerseat")??(row["hand"].length==0?row["firstdealerplace"]:row["hand"][row["hand"].length-1]["dealerseat"])
 		let selfseating=weblsget(WEBLSNAME+"selfseating")??row["selfseating"]
 		let seating=row["seating"]
+		let registeredplayers=row["registeredplayers"]||[]
+		let blindstructures=row["blindstructures"]||[]
+		let handgametype=weblsget(WEBLSNAME+"handgametype")??(row["gametype"]||"holdem")
+		let blindlevel=weblsget(WEBLSNAME+"blindlevel")??"custom"
 		let smallblind=int(row["smallblind"])||0
 		let bigblind=int(row["bigblind"])||0
 		let bigblindante=int(row["bigblindante"])||0
 		let ante=int(row["ante"])||0
+		if((smallblind==0||bigblind==0)&&0<blindstructures.length){
+			smallblind=int(blindstructures[0]["smallblind"])||0
+			bigblind=int(blindstructures[0]["bigblind"])||0
+			bigblindante=int(blindstructures[0]["bigblindante"])||0
+			ante=int(blindstructures[0]["ante"])||0
+			blindlevel=blindstructures[0]["id"]
+		}
+		smallblind=int(weblsget(WEBLSNAME+"handsmallblind")??smallblind)
+		bigblind=int(weblsget(WEBLSNAME+"handbigblind")??bigblind)
+		bigblindante=int(weblsget(WEBLSNAME+"handbigblindante")??bigblindante)
+		ante=int(weblsget(WEBLSNAME+"handante")??ante)
 		let step=int(weblsget(WEBLSNAME+"step")??0)
 		let handcard=json(weblsget(WEBLSNAME+"handcard"))??{ "card1": "", "card2": "" }
 		let boardcard=json(weblsget(WEBLSNAME+"boardcard"))??{ "flop": [null,null,null],"turn": null,"river": null }
@@ -53,6 +75,9 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 		let smallblindseat=-1
 		let bigblindseat=-1
 		let seatcount=0
+		if(islinkeduser&&domgetid("randomregisteredseat")){
+			domgetid("randomregisteredseat").style.display="none"
+		}
 
 		if(weblsget(WEBLSNAME+"dealerseat")){
 			dealerseat=weblsget(WEBLSNAME+"dealerseat")
@@ -114,6 +139,74 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
             return [totalpot,seatpot]
         }
 
+		function setHandBlindInput(){
+			if(domgetid("handgametype")){
+				value("#handgametype",handgametype,false)
+			}
+			if(domgetid("handsmallblind")){
+				value("#handsmallblind",smallblind,false)
+				value("#handbigblind",bigblind,false)
+				value("#handbigblindante",bigblindante,false)
+				value("#handante",ante,false)
+			}
+			if(domgetid("blindlevelselect")){
+				let html=`<option value="custom">自填</option>`
+				for(let i=0;i<blindstructures.length;i=i+1){
+					let level=blindstructures[i]
+					html=html+`<option value="${level["id"]}">LV${level["sortorder"]} ${level["smallblind"]}/${level["bigblind"]} (${level["ante"]})</option>`
+				}
+				innerhtml("#blindlevelselect",html,false)
+				value("#blindlevelselect",blindlevel,false)
+			}
+		}
+
+		setHandBlindInput()
+
+		onchange("#handgametype",function(element,event){
+			handgametype=element.value
+			weblsset(WEBLSNAME+"handgametype",handgametype)
+		})
+
+		onchange("#blindlevelselect",function(element,event){
+			blindlevel=element.value
+			weblsset(WEBLSNAME+"blindlevel",blindlevel)
+			if(blindlevel!="custom"){
+				for(let i=0;i<blindstructures.length;i=i+1){
+					if(String(blindstructures[i]["id"])==String(blindlevel)){
+						smallblind=int(blindstructures[i]["smallblind"])
+						bigblind=int(blindstructures[i]["bigblind"])
+						ante=int(blindstructures[i]["ante"])
+						bigblindante=0
+						if(blindstructures[i]["bigblindante"]){
+							bigblindante=int(blindstructures[i]["bigblindante"])
+						}
+					}
+				}
+				setHandBlindInput()
+				weblsset(WEBLSNAME+"handsmallblind",smallblind)
+				weblsset(WEBLSNAME+"handbigblind",bigblind)
+				weblsset(WEBLSNAME+"handbigblindante",bigblindante)
+				weblsset(WEBLSNAME+"handante",ante)
+			}
+		})
+
+		onchange("#handsmallblind",function(element,event){
+			smallblind=int(element.value)
+			weblsset(WEBLSNAME+"handsmallblind",smallblind)
+		})
+		onchange("#handbigblind",function(element,event){
+			bigblind=int(element.value)
+			weblsset(WEBLSNAME+"handbigblind",bigblind)
+		})
+		onchange("#handbigblindante",function(element,event){
+			bigblindante=int(element.value)
+			weblsset(WEBLSNAME+"handbigblindante",bigblindante)
+		})
+		onchange("#handante",function(element,event){
+			ante=int(element.value)
+			weblsset(WEBLSNAME+"handante",ante)
+		})
+
 		// 初始化座位列表
 		if(seatinglist.length == 1){
             if(row["hand"].length==0){
@@ -121,7 +214,9 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
                     if(seating[i]&&seating[i]["history"]&&seating[i]["history"].length!=0&&seating[i]["history"][seating[i]["history"].length-1]&&seating[i]["history"][seating[i]["history"].length-1]["type"]!="leave"){
                         seatinglist.push({
                             "chip": seating[i]["history"][seating[i]["history"].length-1]["chip"]||seating[i]["chip"]||0,
-                            "name": seating[i]["history"][seating[i]["history"].length-1]["player"]
+                            "name": seating[i]["history"][seating[i]["history"].length-1]["player"],
+                            "userid": seating[i]["history"][seating[i]["history"].length-1]["userid"],
+                            "sessionplayerid": seating[i]["history"][seating[i]["history"].length-1]["sessionplayerid"]
                         })
                         seatcount=seatcount+1
                     }else{
@@ -137,7 +232,9 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
                     if(0<row["hand"][row["hand"].length-1]["seatingdata"][i]["endchip"]){
                         seatinglist[row["hand"][row["hand"].length-1]["seatingdata"][i]["seatno"]]={
                             "chip": row["hand"][row["hand"].length-1]["seatingdata"][i]["endchip"],
-                            "name": row["hand"][row["hand"].length-1]["seatingdata"][i]["name"]
+                            "name": row["hand"][row["hand"].length-1]["seatingdata"][i]["name"],
+                            "userid": row["hand"][row["hand"].length-1]["seatingdata"][i]["userid"],
+                            "sessionplayerid": row["hand"][row["hand"].length-1]["seatingdata"][i]["sessionplayerid"]
                         }
                         seatcount=seatcount+1
                     }else{
@@ -152,6 +249,37 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 				if(seatinglist[i]&&seatinglist[i]!=false) seatcount++
 			}
 		}
+
+		onclick("#randomregisteredseat",function(element,event){
+			if(registeredplayers.length==0){
+				alert("目前沒有可連結的報名使用者")
+				return
+			}
+			let seats=[]
+			for(let i=1;i<seatinglist.length;i=i+1){
+				seats.push(i)
+			}
+			for(let i=seats.length-1;0<i;i=i-1){
+				let j=Math.floor(Math.random()*(i+1))
+				let tmp=seats[i]
+				seats[i]=seats[j]
+				seats[j]=tmp
+			}
+			for(let i=1;i<seatinglist.length;i=i+1){
+				seatinglist[i]=false
+			}
+			for(let i=0;i<registeredplayers.length&&i<seats.length;i=i+1){
+				let seat=seats[i]
+				seatinglist[seat]={
+					"chip": startchip,
+					"name": registeredplayers[i]["name"],
+					"userid": registeredplayers[i]["userid"],
+					"sessionplayerid": registeredplayers[i]["sessionplayerid"]
+				}
+			}
+			weblsset(WEBLSNAME+"seatinglist",str(seatinglist))
+			renderSettingTable()
+		})
 
 		// ==================== 核心功能函數 ====================
 
@@ -541,7 +669,7 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 				})
 
 				lastActions.forEach(function(action,seat){
-					if(action!="fold"){
+					if(action!="fold"&&action!="allin"){
 						activePlayers.add(seat)
 					}
 				})
@@ -1352,7 +1480,16 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
                 })
             }
 
+            let activeplayers=getActivePlayers()
+            let activeset={}
+            for(let ai=0;ai<activeplayers.length;ai=ai+1){
+                activeset[activeplayers[ai]["seat"]]=true
+            }
+
             for(let i=0;i<seatinglist.length;i=i+1){
+                if(i!=0&&!activeset[i]){
+                    continue
+                }
                 if(seatinglist[i]!=null&&seatinglist[i]!=false){
                     if(i==selfseating){
                         let tr=document.createElement("tr")
@@ -1368,7 +1505,7 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 
                         tr.innerHTML=`
                             <td class="py-2 px-2">${i}</td>
-                            <td class="py-2 px-2">${seatinglist[i]["name"]}</td>
+                            <td class="py-2 px-2">${seatinglist[i]["name"]}<div class="text-xs text-zinc-500">籌碼 ${seatinglist[i]["chip"]}</div></td>
                             <td class="py-2 px-2" id="card-display-${i}">${carddisplay}</td>
                             <td class="py-2 px-2">
                                 <div class="flex align-center justify-center">
@@ -1400,7 +1537,7 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 
                         tr.innerHTML=`
                             <td class="py-2 px-2">${i}</td>
-                            <td class="py-2 px-2">${seatinglist[i]["name"]}</td>
+                            <td class="py-2 px-2">${seatinglist[i]["name"]}<div class="text-xs text-zinc-500">籌碼 ${seatinglist[i]["chip"]}</div></td>
                             <td class="py-2 px-2" id="card-display-${i}">${carddisplay}</td>
                             <td class="py-2 px-2">
                                 <div class="flex align-center justify-center">
@@ -1501,6 +1638,17 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
                     return
                 }
 
+                let hasemptybutton=false
+                let hasdeadsmallblind=false
+                for(let i=1;i<seatinglist.length;i=i+1){
+                    if(seatinglist[i]&&seatinglist[i]["specialbutton"]=="EMPTY_BUTTON"){
+                        hasemptybutton=true
+                    }
+                    if(seatinglist[i]&&seatinglist[i]["specialbutton"]=="DEAD_SMALLBLIND"){
+                        hasdeadsmallblind=true
+                    }
+                }
+
                 ajax("POST",AJAXURL+"/newhead/"+tableid,function(event,data){
                     if(data["success"]){
                         alert("手牌記錄完成！")
@@ -1521,7 +1669,15 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
                     "winnerprice": winnerprice,
                     "ps": getvalue("ps"),
                     "totalpot": pot[0],
-                    "positionpot": pot[1]
+                    "positionpot": pot[1],
+                    "gametype": handgametype,
+                    "blindlevel": blindlevel,
+                    "smallblind": smallblind,
+                    "bigblind": bigblind,
+                    "bigblindante": bigblindante,
+                    "ante": ante,
+                    "emptybutton": hasemptybutton,
+                    "deadsmallblind": hasdeadsmallblind
                 }),[
                     ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
                 ])
@@ -1856,6 +2012,54 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 
 			tbody.innerHTML=""
 
+			if(islinkeduser){
+				for(let i=1;i<seatinglist.length;i=i+1){
+					if(seatinglist[i]&&seatinglist[i]!=false){
+						let tr=document.createElement("tr")
+						tr.className="bg-zinc-800 text-zinc-300"
+						tr.innerHTML=`
+		                    <td class="py-2 px-2">${i}</td>
+		                    <td class="py-2 px-2">已排座</td>
+		                    <td class="py-2 px-2">${seatinglist[i]["name"]}</td>
+		                    <td class="py-2 px-2">${seatinglist[i]["chip"]}</td>
+		                    <td class="py-2 px-2">-</td>
+		                    <td class="py-2 px-2">-</td>
+		                    <td class="py-2 px-2">-</td>
+		                    <td class="py-2 px-2">
+		                        <div class="flex items-center justify-center">
+		                            <input type="radio" name="dealer" class="w-4 h-4 cursor-pointer" data-seat="${i}" ${parseInt(dealerseat)==i ? "checked" : ""}>
+		                        </div>
+		                    </td>
+		                    <td class="py-2 px-2">
+		                        <div class="flex items-center justify-center">
+		                            <input type="radio" name="hero" class="w-4 h-4 cursor-pointer" data-seat="${i}" ${parseInt(selfseating)==i ? "checked" : ""}>
+		                        </div>
+		                    </td>
+		                `
+						tbody.appendChild(tr)
+					}
+				}
+
+				tbody.querySelectorAll('input[name="dealer"]').forEach(function(radio){
+					radio.addEventListener("change",function(){
+						if(this.checked){
+							dealerseat=parseInt(this.dataset.seat)
+							weblsset(WEBLSNAME+"dealerseat",dealerseat)
+						}
+					})
+				})
+
+				tbody.querySelectorAll('input[name="hero"]').forEach(function(radio){
+					radio.addEventListener("change",function(){
+						if(this.checked){
+							selfseating=parseInt(this.dataset.seat)
+							weblsset(WEBLSNAME+"selfseating",selfseating)
+						}
+					})
+				})
+				return
+			}
+
 			for(let i=1;i<seatinglist.length;i++){
 				let hasPlayer=seatinglist[i]&&seatinglist[i]!=false
 				let playerName=hasPlayer ? seatinglist[i].name : ""
@@ -1875,6 +2079,16 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
                     </td>
                     <td class="py-2 px-2">
                         <input type="number" class="chipcount bg-zinc-600 text-white rounded px-2 py-1 text-xs w-full" data-seat="${i}" value="${playerChip}">
+                    </td>
+                    <td class="py-2 px-2">
+                        <div class="flex items-center justify-center">
+                            <input type="checkbox" class="emptybutton w-4 h-4 cursor-pointer" data-seat="${i}" ${seatinglist[i]["specialbutton"]=="EMPTY_BUTTON" ? "checked" : ""}>
+                        </div>
+                    </td>
+                    <td class="py-2 px-2">
+                        <div class="flex items-center justify-center">
+                            <input type="checkbox" class="deadsmallblind w-4 h-4 cursor-pointer" data-seat="${i}" ${seatinglist[i]["specialbutton"]=="DEAD_SMALLBLIND" ? "checked" : ""}>
+                        </div>
                     </td>
                     <td class="py-2 px-2">
                         <div class="flex items-center justify-center">
@@ -1935,6 +2149,49 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 					seatinglist[seat].chip=parseInt(tbody.querySelector(`.chipcount[data-seat="${seat}"]`).value)||0
 
 					weblsset(WEBLSNAME+"seatinglist",str(seatinglist))
+				})
+			})
+
+			function setspecialbutton(seat,type,checked){
+				let nameInput=tbody.querySelector(`.playername[data-seat="${seat}"]`)
+				let chipInput=tbody.querySelector(`.chipcount[data-seat="${seat}"]`)
+				let cb=tbody.querySelector(`.haveseat[data-seat="${seat}"]`)
+				let emptyInput=tbody.querySelector(`.emptybutton[data-seat="${seat}"]`)
+				let deadInput=tbody.querySelector(`.deadsmallblind[data-seat="${seat}"]`)
+				if(!seatinglist[seat]){
+					seatinglist[seat]={}
+				}
+				if(checked){
+					cb.checked=true
+					seatinglist[seat].specialbutton=type
+					seatinglist[seat].name="("+type+")"
+					seatinglist[seat].chip=parseInt(chipInput.value)||0
+					if(!seatinglist[seat].chip){
+						seatinglist[seat].chip=startchip
+					}
+					nameInput.value=seatinglist[seat].name
+					chipInput.value=seatinglist[seat].chip
+					if(type=="EMPTY_BUTTON"&&deadInput){
+						deadInput.checked=false
+					}
+					if(type=="DEAD_SMALLBLIND"&&emptyInput){
+						emptyInput.checked=false
+					}
+				}else if(seatinglist[seat].specialbutton==type){
+					seatinglist[seat].specialbutton=""
+				}
+				weblsset(WEBLSNAME+"seatinglist",str(seatinglist))
+			}
+
+			tbody.querySelectorAll(".emptybutton").forEach(function(input){
+				input.addEventListener("change",function(){
+					setspecialbutton(parseInt(this.dataset.seat),"EMPTY_BUTTON",this.checked)
+				})
+			})
+
+			tbody.querySelectorAll(".deadsmallblind").forEach(function(input){
+				input.addEventListener("change",function(){
+					setspecialbutton(parseInt(this.dataset.seat),"DEAD_SMALLBLIND",this.checked)
 				})
 			})
 

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>聯絡訊息後台 - PokerTrace</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="bg-zinc-950 text-white min-h-screen">
+		<div id="navigationbar"></div>
+		<main class="max-w-6xl mx-auto px-4 py-8">
+			<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+				<div>
+					<h1 class="text-3xl font-black">聯絡訊息後台</h1>
+					<p class="text-zinc-400 mt-2">只有 permission 大於等於 4 的管理者可以查看使用者送出的建議與問題。</p>
+				</div>
+				<div class="flex gap-2">
+					<select id="contactstatusfilter" class="bg-zinc-800 border border-zinc-700 rounded px-3 py-2">
+						<option value="">全部狀態</option>
+						<option value="new">新訊息</option>
+						<option value="read">已讀</option>
+						<option value="done">已處理</option>
+					</select>
+					<button id="reloadcontactmessages" class="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold px-4 py-2 rounded">重新整理</button>
+				</div>
+			</div>
+			<div id="contactmessageadminlist" class="mt-6 space-y-4"></div>
+			<div id="contactmessagepagination" class="mt-6 flex flex-wrap gap-2"></div>
+		</main>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="contactadmin.js"></script>
+	</body>
+</html>

@@ -144,7 +144,18 @@ try:
 						sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[tablerow["sessionid"]],SETTING["dbsetting"])
 						if sessionrow:
 							sessionrow=sessionrow[0]
+							canrecord=False
+							if not sessionrow.get("unifiedhandrecord"):
+								canrecord=True
 							if tokenuserrow["id"]==sessionrow["userid"] or 4<=int(tokenuserrow["permission"]):
+								canrecord=True
+							if sessionrow.get("unifiedhandrecord"):
+								staffrow=query(SETTING["dbname"],f"""SELECT*FROM "sessionstaff" WHERE "sessionid"=%s AND "staffuserid"=%s AND "role" IN ('dealer','floor','assistant') AND "status"='active' AND "deletetime" IS NULL""",[sessionrow["id"],tokenuserrow["id"]],SETTING["dbsetting"])
+								if not staffrow:
+									staffrow=query(SETTING["dbname"],f"""SELECT*FROM "userstaff" WHERE "userid"=%s AND "staffuserid"=%s AND "role" IN ('dealer','floor','assistant') AND "status"='active' AND "deletetime" IS NULL""",[sessionrow["userid"],tokenuserrow["id"]],SETTING["dbsetting"])
+								if staffrow:
+									canrecord=True
+							if canrecord:
 								requestdata=validate(json.loads(request.body),{
 									"dealerseat": "required|integer",
 									"selfseating": "required|integer",
@@ -163,7 +174,15 @@ try:
 									"winnerprice": "required|array",
 									"ps": "string",
 									"totalpot": "required|integer",
-									"positionpot": "required|array"
+									"positionpot": "required|array",
+									"gametype": "string",
+									"blindlevel": "string",
+									"smallblind": "integer",
+									"bigblind": "integer",
+									"bigblindante": "integer",
+									"ante": "integer",
+									"emptybutton": "boolean",
+									"deadsmallblind": "boolean"
 								},{
 									"required": "ERROR_request_data_not_found",
 									"string": "ERROR_request_data_type_error",
@@ -187,10 +206,44 @@ try:
 									ps=requestdata["data"].get("ps")
 									totalpot=requestdata["data"].get("totalpot")
 									positionpot=requestdata["data"].get("positionpot")
+									gametype=requestdata["data"].get("gametype") or tablerow.get("gametype") or sessionrow.get("gametype") or "holdem"
+									blindlevel=requestdata["data"].get("blindlevel") or ""
+									smallblind=requestdata["data"].get("smallblind") or tablerow.get("smallblind") or 0
+									bigblind=requestdata["data"].get("bigblind") or tablerow.get("bigblind") or 0
+									bigblindante=requestdata["data"].get("bigblindante") or tablerow.get("bigblindante") or 0
+									ante=requestdata["data"].get("ante") or tablerow.get("ante") or 0
+									emptybutton=True if requestdata["data"].get("emptybutton")==True else False
+									deadsmallblind=True if requestdata["data"].get("deadsmallblind")==True else False
+
+									if sessionrow.get("linkuser"):
+										linkedseating=[None]
+										maxseat=int(sessionrow.get("maxseat") or 9)
+										for i in range(maxseat):
+											linkedseating.append(False)
+										linkedrow=query(SETTING["dbname"],f"""
+											SELECT sp."id" AS sessionplayerid,sp."userid",sp."seatno",sp."startchip",u."name"
+											FROM "sessionplayer" sp
+											JOIN "user" u ON u."id"=sp."userid"
+											WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."status"='confirmed' AND sp."seatno" IS NOT NULL AND sp."deletetime" IS NULL
+										""",[sessionrow["id"],tableid],SETTING["dbsetting"])
+										for linked in linkedrow or []:
+											seatno=int(linked["seatno"])
+											if 0<seatno and seatno<len(linkedseating):
+												oldseat=seatinglist[seatno] if seatno<len(seatinglist) and seatinglist[seatno] else {}
+												if not isinstance(oldseat,dict):
+													oldseat={}
+												linkedseating[seatno]={
+													"chip": oldseat.get("chip") or linked.get("startchip") or sessionrow.get("chip") or 0,
+													"name": linked["name"],
+													"userid": linked["userid"],
+													"sessionplayerid": linked["sessionplayerid"],
+													"banned": oldseat.get("banned") if isinstance(oldseat,dict) else False
+												}
+										seatinglist=linkedseating
 
 									handrow=query(SETTING["dbname"],f"""SELECT*FROM "hand" WHERE "tableid"=%s""",[tableid],SETTING["dbsetting"])
 
-									row=query(SETTING["dbname"],f"""INSERT INTO "hand"("token","userid","tableid","dealerseat","selfseating","handcard","boardcard","totalpot","ps","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",[f"{tablerow["token"]}{(str(len(handrow)+1)).zfill(4)}",tokenuserrow["id"],tableid,dealerseat,selfseating,json.dumps(handcard),json.dumps(boardcard),totalpot,ps,nowtime()],SETTING["dbsetting"])
+									row=query(SETTING["dbname"],f"""INSERT INTO "hand"("token","userid","tableid","dealerseat","selfseating","handcard","boardcard","totalpot","gametype","blindlevel","smallblind","bigblind","bigblindante","ante","emptybutton","deadsmallblind","ps","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",[f"{tablerow["token"]}{(str(len(handrow)+1)).zfill(4)}",tokenuserrow["id"],tableid,dealerseat,selfseating,json.dumps(handcard),json.dumps(boardcard),totalpot,gametype,blindlevel,smallblind,bigblind,bigblindante,ante,emptybutton,deadsmallblind,ps,nowtime()],SETTING["dbsetting"])
 
 									for seatno in range(1,len(seatinglist)):
 										if seatinglist[seatno]!=False:
@@ -199,14 +252,18 @@ try:
 											winnered=True if (seatno<len(winner) and winner[seatno] and winner[seatno]==True) else False
 											ppot=positionpot[seatno] if seatno<len(positionpot) and (positionpot[seatno] is not None or positionpot[seatno] is not False) else 0
 											wpot=winnerprice[seatno] if seatno<len(winnerprice) and (winnerprice[seatno] is not None or winnerprice[seatno] is not False) else 0
+											showdownkey=str(seatno)
+											userid=seatinglist[seatno].get("userid") if isinstance(seatinglist[seatno],dict) else None
+											sessionplayerid=seatinglist[seatno].get("sessionplayerid") if isinstance(seatinglist[seatno],dict) else None
+											specialbutton=seatinglist[seatno].get("specialbutton") if isinstance(seatinglist[seatno],dict) else None
 
-											if (seatno in showdowndata) and (showdowndata[seatno]["shown"]==True):
+											if (showdownkey in showdowndata) and (showdowndata[showdownkey]["shown"]==True):
 												handcard={
-													"card1": showdowndata[seatno]["card1"],
-													"card2": showdowndata[seatno]["card2"]
+													"card1": showdowndata[showdownkey]["card1"],
+													"card2": showdowndata[showdownkey]["card2"]
 												}
 
-											query(SETTING["dbname"],f"""INSERT INTO "handseating"("handid","seatno","name","chip","handcard","banned","chipchange","endchip","winnered","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",[row,seatno,seatinglist[seatno]["name"],chip,json.dumps(handcard),seatinglist[seatno]["banned"] if ("banned" in seatinglist[seatno] and seatinglist[seatno]["banned"]==True) else False,ppot,chip+wpot-ppot if winnered else chip-ppot,winnered,nowtime()],SETTING["dbsetting"])
+											query(SETTING["dbname"],f"""INSERT INTO "handseating"("handid","seatno","name","chip","handcard","banned","chipchange","endchip","winnered","userid","sessionplayerid","specialbutton","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",[row,seatno,seatinglist[seatno]["name"],chip,json.dumps(handcard),seatinglist[seatno]["banned"] if ("banned" in seatinglist[seatno] and seatinglist[seatno]["banned"]==True) else False,ppot,chip+wpot-ppot if winnered else chip-ppot,winnered,userid,sessionplayerid,specialbutton,nowtime()],SETTING["dbsetting"])
 
 									for type in bittingdata:
 										for actiondata in bittingdata[type]:

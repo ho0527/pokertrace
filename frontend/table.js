@@ -97,7 +97,7 @@ ajax("GET",AJAXURL+"gettable/"+id,function(event,data){
 		innerhtml("#date",date,false)
 		innerhtml("#info",`
 			<div><span class="text-zinc-400">地點：</span>${row["clubname"]}</div>
-			<div><span class="text-zinc-400">遊戲類型：</span>${TRANSLATE["zhtw"]["gametype"][row["gametype"]]}</div>
+			<div><span class="text-zinc-400">遊戲類型：</span>${TRANSLATE[LANGUAGE]["gametype"][row["gametype"]]}</div>
 			<div><span class="text-zinc-400">小盲/大盲：</span>${row["smallblind"]}/${row["bigblind"]}</div>
 			<div><span class="text-zinc-400">大盲前注,前注：</span>(${row["bigblindante"]},${row["ante"]})</div>
 			<div><span class="text-zinc-400">買入：</span>${row["buyin"]}${(row["buyin"]!=row["rebuybuyin"])?("/"+row["rebuybuyin"]):""}</div>
@@ -111,11 +111,18 @@ ajax("GET",AJAXURL+"gettable/"+id,function(event,data){
 		innerhtml("#handtable",``,false)
 		for(let i=0;i<row["hand"].length;i=i+1){
 			let winprice=row["hand"][i]["chipchange"]
+			let allintext=""
+			let allinstats=row["hand"][i]["allinstats"]||{}
+			for(let seat in allinstats){
+				if(allinstats[seat]&&allinstats[seat]["equity"]!=null){
+					allintext=allintext+`<div class="text-xs text-purple-300">S${seat} ${allinstats[seat]["equity"]}% outs:${(allinstats[seat]["outs"]||[]).join(" ")}</div>`
+				}
+			}
 			innerhtml("#handtable",`
 				<tr class="handtr hover:bg-zinc-700 transition cursor-pointer">
 					<td class="py-2 px-2">${i+1}</td>
 					<td>${getseatnameforhand(seatcount, row["hand"][i]["dealerseat"], row["hand"][i]["selfseating"])}</td>
-					<td>${json(row["hand"][i]["handcard"])["card1"]} ${json(row["hand"][i]["handcard"])["card2"]}</td>
+					<td>${json(row["hand"][i]["handcard"])["card1"]} ${json(row["hand"][i]["handcard"])["card2"]}${allintext}</td>
 					<!-- <td>加注-跟注-下注-棄牌</td> -->
 					<td class="${0<=winprice?"text-green-400":"text-red-400"} font-bold">${0<=winprice?"+":""}${winprice}</td>
 					<!-- <td>★</td> -->
@@ -267,7 +274,7 @@ function renderSeatEventTable(maxSeat=9){
 		} else{
 			historyHtml=seat.history.map((h,idx) => `
 				<div class="flex flex-wrap gap-2 items-center text-xs mb-1">
-					<span class="rounded bg-zinc-700 px-2 py-0.5">${TRANSLATE["zhtw"]["seatingtype"][h["type"]]}</span>
+					<span class="rounded bg-zinc-700 px-2 py-0.5">${TRANSLATE[LANGUAGE]["seatingtype"][h["type"]]}</span>
 					<span>${h.player?h.player:''}</span>
 					<span>${h["time"].includes("T")?h["time"].split("T")[1].split("Z")[0]:h["time"]}</span>
 					${h.buyin?`<span class="text-red-400">${h.buyin}</span>`:''}

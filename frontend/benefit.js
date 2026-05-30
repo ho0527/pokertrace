@@ -5,6 +5,26 @@ if(!weblsget(WEBLSNAME+"signin")){
 let allSessionData=[]
 let chart=null
 
+function benefittext(key){
+    return TRANSLATE[LANGUAGE]["benefit"][key]
+}
+
+function applybenefitlanguage(){
+    document.title=benefittext("title")
+    innertext("h1",benefittext("title"),false)
+    let labels=document.querySelectorAll("label")
+    if(0<labels.length){
+        labels[0].textContent=benefittext("startdate")
+    }
+    if(1<labels.length){
+        labels[1].textContent=benefittext("enddate")
+    }
+    innertext("#search",benefittext("search"),false)
+    innertext("#reset",benefittext("reset"),false)
+}
+
+applybenefitlanguage()
+
 // 計算時間差（分鐘）
 function calculateduration(starttime,endtime){
     let start=new Date(starttime)
@@ -16,9 +36,9 @@ function calculateduration(starttime,endtime){
 // 格式化時長顯示
 function formatduration(minutes){
     if(minutes<60){
-        return `${minutes} 分鐘`
+        return `${minutes} ${benefittext("minute")}`
     }else{
-        return `${Math.floor(minutes/60)} 小時 ${minutes%60} 分鐘`
+        return `${Math.floor(minutes/60)} ${benefittext("hour")} ${minutes%60} ${benefittext("minute")}`
     }
 }
 
@@ -31,16 +51,41 @@ function renderChart(){
     let allDailyProfit={}
     let allSortedDates=[]
 
+    function sessionshowmoney(row){
+        return row["isstaff"]!=true&&((row["isown"]==false&&row["owned"]==true)||(row["isown"]==true&&row["owned"]==false))&&((row["isown"]==false&&row["myregistrationstatus"]=="confirmed")||row["owned"]==false)
+    }
+
+    function sessionprofit(row){
+        if(row["isstaff"]==true){
+            return null
+        }
+        if(row["owned"]==true){
+            if(row["isown"]==true){
+                return null
+            }
+            if(row["myregistrationstatus"]=="confirmed"&&row["myregistration"]){
+                return float(row["myregistration"]["profit"]||0)
+            }
+            return null
+        }
+        if(row["isown"]==true){
+            return float(row["winprice"]||0)-((float(row["buyin"]||0)+float(row["buyinfee"]||0))+((float(row["rebuybuyin"]||0)+float(row["rebuyfee"]||0))*float(row["rebuycount"]||0)))
+        }
+        return null
+    }
+
     for(let i=0;i<allSessionData.length;i=i+1){
         let session=allSessionData[i]
         let date=session["starttime"].split("T")[0]
-        let profit=session["winprice"]-(session["buyin"]+(session["rebuybuyin"]*session["rebuycount"]))
+        let profit=sessionprofit(session)
 
-        if(allDailyProfit[date]==undefined){
-            allDailyProfit[date]=0
-            allSortedDates.push(date)
+        if(profit!==null&&sessionshowmoney(session)){
+            if(allDailyProfit[date]==undefined){
+                allDailyProfit[date]=0
+                allSortedDates.push(date)
+            }
+            allDailyProfit[date]+=profit
         }
-        allDailyProfit[date]+=profit
     }
 
     allSortedDates.sort()
@@ -91,7 +136,7 @@ function renderChart(){
                 let date=params[0].name
                 let value=params[0].value
                 let dailyValue=dailyProfit[date] || 0
-                return `${date}<br>當日收益: ${dailyValue}<br>累計收益: ${value}`
+                return `${date}<br>${benefittext("dailyprofit")}: ${dailyValue}<br>${benefittext("cumulativeprofit")}: ${value}`
             }
         },
         grid: {
@@ -104,7 +149,7 @@ function renderChart(){
         xAxis: {
             type: "category",
             data: sortedDates,
-            name: "日期",
+            name: benefittext("date"),
             nameLocation: "middle",
             nameGap: 30,
             nameTextStyle: {
@@ -121,7 +166,7 @@ function renderChart(){
         },
         yAxis: {
             type: "value",
-            name: "金額",
+            name: benefittext("amount"),
             nameLocation: "middle",
             nameGap: 50,
             nameTextStyle: {
@@ -173,9 +218,9 @@ function renderChart(){
 }
 
 // 獲取所有session資料
-ajax("GET",AJAXURL+"getsessionlist",function(event,data){
+ajax("GET",AJAXURL+"getsessionlist?limit=1000",function(event,data){
     if(data["success"]){
-        allSessionData=data["data"]
+        allSessionData=(data["data"]["sessions"]||data["data"]||[])
 
         let today = new Date()
         let thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -186,7 +231,7 @@ ajax("GET",AJAXURL+"getsessionlist",function(event,data){
         // 初始繪製
         renderChart()
     }else{
-        alert("網路不佳，請重新嘗試")
+        pttoast(benefittext("networkerror"),"error")
     }
 },null,[
     ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]

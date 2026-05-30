@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<meta name="theme-color" content="#0d0d0d">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<title>賽程結構 — Poker Clock</title>
+	<link href="../material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+	<link href="../material/icon/icon.png" rel="apple-touch-icon">
+	<link rel="stylesheet" href="control.css">
+</head>
+
+<body>
+	<div class="layout">
+		<div class="topbar">
+			<div class="title-row">
+				<div style="flex:1;min-width:0">
+					<div class="tname" id="tournName">賽程結構</div>
+					<div class="tname-sub"><span id="tournSub">STRUCTURE VIEW</span> · LV <span id="hLv">—</span>/<span id="hLvMax">—</span></div>
+				</div>
+				<div id="regBadge" class="reg-badge reg-open">REG OPEN</div>
+			</div>
+		</div>
+
+		<div class="section">
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+				<button class="btn btn-ghost btn-sm" id="btnBack">返回控制台</button>
+				<button class="btn btn-primary btn-sm" id="btnEdit">編輯結構</button>
+			</div>
+		</div>
+
+		<div class="section">
+			<div class="section-title">賽程結構</div>
+			<div class="card" style="padding:0">
+				<div class="lvl-list structure-list" id="structureList"></div>
+			</div>
+		</div>
+
+		<div class="section">
+			<div class="section-title">摘要</div>
+			<div class="card">
+				<div class="player-meta" style="margin-top:0">
+					<div class="meta-cell">
+						<div class="lbl">Level</div>
+						<div class="v" id="levelCount">—</div>
+					</div>
+					<div class="meta-cell">
+						<div class="lbl">總時長</div>
+						<div class="v amber" id="totalDuration">—</div>
+					</div>
+				</div>
+				<div id="regHint" style="font-size:12px;color:#666;margin-top:10px;line-height:1.6"></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="status-bar">
+		<div><span class="sync-dot" id="syncDot"></span><span id="syncText">讀取中</span></div>
+		<div id="lastAction">就緒</div>
+	</div>
+
+	<div class="toast" id="toast"></div>
+
+	<script src="timerconfig.js"></script>
+	<script src="structure.js"></script>
+</body>
+
+</html>

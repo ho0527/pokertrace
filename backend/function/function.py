@@ -39,7 +39,17 @@ ERRORLIST={
 	"ERROR_email_exist": status.HTTP_409_CONFLICT,
 	"ERROR_request_mimes_type_error": status.HTTP_400_BAD_REQUEST,
 	"ERROR_request_data_not_found": status.HTTP_400_BAD_REQUEST,
-	"ERROR_request_data_not_found": status.HTTP_400_BAD_REQUEST,
+	"ERROR_already_signed_up": status.HTTP_409_CONFLICT,
+	"ERROR_staff_not_found": status.HTTP_404_NOT_FOUND,
+	"ERROR_staff_role_mismatch": status.HTTP_400_BAD_REQUEST,
+	"ERROR_staff_already_invited": status.HTTP_409_CONFLICT,
+	"ERROR_staff_self_invite": status.HTTP_400_BAD_REQUEST,
+	"ERROR_verifytoken_invalid": status.HTTP_400_BAD_REQUEST,
+	"ERROR_session_not_open_for_registration": status.HTTP_400_BAD_REQUEST,
+	"ERROR_cannot_register_own_session": status.HTTP_400_BAD_REQUEST,
+	"ERROR_already_registered": status.HTTP_409_CONFLICT,
+	"ERROR_registration_not_found": status.HTTP_404_NOT_FOUND,
+	"ERROR_timer_player_not_found": status.HTTP_404_NOT_FOUND,
 }
 
 def errorresponse(key):

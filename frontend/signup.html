@@ -1,47 +1,363 @@
+<!--
+	製作人員: 賀皓群(小賀) / dc: chris0527 / line: ho960527 / email: chris960527ho@gmail.com / 電話: 0906585605
+
+		|-------    -----    -                     -     -----  -----  -----   -------|
+	   |-------    -        -            - - -          -                     -------|
+	  |-------    -        -------    -          -     -----    --       --  -------|
+	 |-------    -        -     -    -          -         -      --     --  -------|
+	|-------    -----    -     -    -          -     -----         -----  -------|
+
+	無授權禁止拷貝使用!
+-->
+
 <!DOCTYPE html>
 <html lang="zh-TW">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>登入頁面 - Sign In Page</title>
-		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
-		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-		<script src="https://cdn.tailwindcss.com"></script>
-	</head>
-	<body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center">
-		<div class="w-full max-w-md bg-zinc-800 rounded-xl shadow-lg p-8">
-			<h1 class="text-2xl font-bold text-gray-300 mb-6 text-center">歡迎回來</h1>
-			<form method="POST" class="space-y-6" id="form">
-				<div>
-					<label for="text" class="block text-sm font-medium text-gray-200 mb-2">使用者名稱</label>
-					<input type="text" class="w-full px-4 py-2 border border-gray-800 bg-zinc-900 rounded-lg" id="username" name="username" required>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>註冊 - Register</title>
+	<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+	<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		/* 粒子背景 */
+		#particles {
+			position: fixed;
+			inset: 0;
+			pointer-events: none;
+			overflow: hidden;
+			z-index: 0;
+		}
+		.particle {
+			position: absolute;
+			border-radius: 50%;
+			opacity: 0;
+			animation: floatUp linear infinite;
+		}
+		@keyframes floatUp {
+			0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+			10%  { opacity: 0.6; }
+			90%  { opacity: 0.3; }
+			100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+		}
+
+		/* 歡迎文字動畫 */
+		@keyframes fadeSlideDown {
+			from { opacity: 0; transform: translateY(-30px); }
+			to   { opacity: 1; transform: translateY(0); }
+		}
+		@keyframes fadeSlideUp {
+			from { opacity: 0; transform: translateY(30px); }
+			to   { opacity: 1; transform: translateY(0); }
+		}
+		@keyframes shimmer {
+			0%   { background-position: -200% center; }
+			100% { background-position: 200% center; }
+		}
+		@keyframes pulse-ring {
+			0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+			70%  { box-shadow: 0 0 0 16px rgba(59,130,246,0); }
+			100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+		}
+		@keyframes cardIn {
+			from { opacity: 0; transform: translateY(40px) scale(0.97); }
+			to   { opacity: 1; transform: translateY(0) scale(1); }
+		}
+		@keyframes iconSpin {
+			0%   { transform: rotate(0deg) scale(1); }
+			50%  { transform: rotate(180deg) scale(1.15); }
+			100% { transform: rotate(360deg) scale(1); }
+		}
+		@keyframes dotBlink {
+			0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+			40%            { opacity: 1;   transform: scale(1.2); }
+		}
+
+		.welcome-title {
+			animation: fadeSlideDown 0.9s cubic-bezier(.22,1,.36,1) both;
+		}
+		.welcome-sub {
+			animation: fadeSlideUp 1s 0.2s cubic-bezier(.22,1,.36,1) both;
+		}
+		.card-anim {
+			animation: cardIn 0.8s 0.4s cubic-bezier(.22,1,.36,1) both;
+		}
+
+		.shimmer-text {
+			background: linear-gradient(90deg, #60a5fa, #a78bfa, #34d399, #60a5fa);
+			background-size: 200% auto;
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+			animation: shimmer 3s linear infinite;
+		}
+
+		/* 帳號類型切換器 */
+		.role-btn {
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 6px;
+			padding: 14px 10px;
+			border-radius: 12px;
+			border: 2px solid transparent;
+			background: #27272a;
+			cursor: pointer;
+			transition: all 0.22s cubic-bezier(.22,1,.36,1);
+			flex: 1;
+		}
+		.role-btn:hover {
+			border-color: #3f3f46;
+			background: #3f3f46;
+			transform: translateY(-2px);
+		}
+		.role-btn.active {
+			border-color: #3b82f6;
+			background: #1e3a5f;
+			animation: pulse-ring 1.2s ease-out;
+		}
+		.role-btn .role-icon {
+			font-size: 1.8rem;
+			transition: transform 0.4s;
+		}
+		.role-btn.active .role-icon {
+			animation: iconSpin 0.5s ease-out;
+		}
+		.role-btn .role-label {
+			font-size: 0.75rem;
+			font-weight: 600;
+			color: #a1a1aa;
+			transition: color 0.2s;
+		}
+		.role-btn.active .role-label {
+			color: #93c5fd;
+		}
+		.role-btn .role-sub {
+			font-size: 0.6rem;
+			color: #52525b;
+		}
+		.role-btn.active .role-sub {
+			color: #3b82f6;
+		}
+
+		/* 語言切換 */
+		.lang-btn {
+			padding: 8px 20px;
+			border-radius: 999px;
+			font-size: 0.85rem;
+			font-weight: 600;
+			border: 2px solid transparent;
+			background: #27272a;
+			color: #a1a1aa;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+		.lang-btn.active {
+			background: #1d4ed8;
+			color: #fff;
+			border-color: #3b82f6;
+		}
+		.lang-btn:hover:not(.active) {
+			background: #3f3f46;
+			color: #fff;
+		}
+
+		/* 輸入框 focus 效果 */
+		.input-field {
+			width: 100%;
+			background: #27272a;
+			color: #fff;
+			border: 2px solid #3f3f46;
+			border-radius: 10px;
+			padding: 12px 16px;
+			font-size: 0.95rem;
+			outline: none;
+			transition: border-color 0.2s, box-shadow 0.2s;
+		}
+		.input-field:focus {
+			border-color: #3b82f6;
+			box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+		}
+		.input-field::placeholder { color: #52525b; }
+
+		/* 送出按鈕 */
+		.submit-btn {
+			width: 100%;
+			padding: 14px;
+			border-radius: 12px;
+			font-size: 1rem;
+			font-weight: 700;
+			letter-spacing: 0.05em;
+			cursor: pointer;
+			border: none;
+			position: relative;
+			overflow: hidden;
+			background: linear-gradient(135deg, #2563eb, #7c3aed);
+			color: #fff;
+			transition: transform 0.15s, box-shadow 0.15s;
+		}
+		.submit-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+		}
+		.submit-btn:active { transform: scale(0.98); }
+		.submit-btn::after {
+			content: '';
+			position: absolute;
+			inset: 0;
+			background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+		}
+
+		/* 載入中點點 */
+		.loading-dot {
+			width: 8px; height: 8px;
+			border-radius: 50%;
+			background: #fff;
+			display: inline-block;
+			animation: dotBlink 1.2s ease-in-out infinite;
+		}
+		.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+		.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+		/* 成功畫面 */
+		@keyframes successPop {
+			0%   { transform: scale(0); opacity: 0; }
+			60%  { transform: scale(1.15); opacity: 1; }
+			100% { transform: scale(1); opacity: 1; }
+		}
+		.success-icon { animation: successPop 0.6s cubic-bezier(.22,1,.36,1) both; }
+
+		/* 卡片光暈 */
+		.card-glow {
+			position: relative;
+		}
+		.card-glow::before {
+			content: '';
+			position: absolute;
+			inset: -1px;
+			border-radius: 17px;
+			background: linear-gradient(135deg, #3b82f6, #7c3aed, #10b981);
+			opacity: 0.35;
+			z-index: -1;
+			filter: blur(8px);
+		}
+	</style>
+</head>
+<body class="bg-zinc-900 text-white min-h-screen flex flex-col items-center justify-center px-4 py-12 relative">
+
+	<!-- 粒子背景 -->
+	<div id="particles"></div>
+
+	<!-- 歡迎區 -->
+	<div class="text-center mb-10 relative z-10">
+		<h1 class="welcome-title text-4xl md:text-5xl font-black mb-3 shimmer-text">
+			感謝您註冊PokerTrace！
+		</h1>
+		<p class="welcome-sub text-zinc-400 text-base md:text-lg">
+			Welcome to the PokerTrace &nbsp;·&nbsp; 建立您的帳號以開始使用
+		</p>
+	</div>
+
+	<!-- 表單卡片 -->
+	<div class="card-anim card-glow w-full max-w-md relative z-10">
+		<div class="bg-zinc-800 rounded-2xl p-8 shadow-2xl">
+
+			<!-- 步驟提示 -->
+			<div class="flex items-center gap-2 mb-7">
+				<div class="w-2 h-2 rounded-full bg-blue-500"></div>
+				<div class="flex-1 h-0.5 bg-blue-500"></div>
+				<div class="w-2 h-2 rounded-full bg-purple-500"></div>
+				<div class="flex-1 h-0.5 bg-zinc-600"></div>
+				<div class="w-2 h-2 rounded-full bg-zinc-600"></div>
+			</div>
+
+			<form id="form">
+
+				<!-- 顯示名稱 -->
+				<div class="mb-6">
+					<label class="block text-sm font-semibold text-zinc-300 mb-2">
+						顯示名稱 <span class="text-red-400">*</span>
+						<span class="text-zinc-500 font-normal ml-1">Display Name</span>
+					</label>
+					<input type="text" id="username" class="input-field" placeholder="請輸入您的名稱…" maxlength="30" required>
+					<p class="text-xs text-zinc-500 mt-1.5 hidden" id="username-err">⚠ 請輸入名稱</p>
 				</div>
-				<div>
-					<label for="email" class="block text-sm font-medium text-gray-200 mb-2">電子郵件</label>
-					<input type="text" class="w-full px-4 py-2 border border-gray-800 bg-zinc-900 rounded-lg" id="email" name="email" required>
+
+				<!-- 語言 -->
+				<div class="mb-6">
+					<label class="block text-sm font-semibold text-zinc-300 mb-3">
+						語言偏好 <span class="text-zinc-500 font-normal ml-1">Language</span>
+					</label>
+					<div class="flex gap-2">
+						<button type="button" class="lang-btn active" id="lang-zh" onclick="switchLang('zh')">🇹🇼 中文</button>
+						<button type="button" class="lang-btn"        id="lang-en" onclick="switchLang('en')">🇺🇸 English</button>
+					</div>
+					<input type="hidden" id="lang-value" value="zh">
 				</div>
-				<div>
-					<label for="name" class="block text-sm font-medium text-gray-200 mb-2">姓名</label>
-					<input type="text" class="w-full px-4 py-2 border border-gray-800 bg-zinc-900 rounded-lg" id="name" name="name" required>
+
+				<!-- 帳號類型 -->
+				<div class="mb-8">
+					<label class="block text-sm font-semibold text-zinc-300 mb-3">
+						帳號類型 <span class="text-red-400">*</span>
+						<span class="text-zinc-500 font-normal ml-1">Account Type</span>
+					</label>
+					<div class="text-sm text-red-500">請注意，帳號類型選擇後無法再修改，請謹慎選擇</div>
+					<div class="flex gap-2" id="role-group">
+						<button type="button" class="role-btn" id="role-player" onclick="switchRole('player')">
+							<span class="role-icon">🎮</span>
+							<span class="role-label">Player</span>
+							<span class="role-sub">玩家</span>
+						</button>
+						<button type="button" class="role-btn" id="role-dealer" onclick="switchRole('dealer')">
+							<span class="role-icon">🃏</span>
+							<span class="role-label">Dealer</span>
+							<span class="role-sub">發牌員</span>
+						</button>
+						<button type="button" class="role-btn" id="role-floor" onclick="switchRole('floor')">
+							<span class="role-icon">⚖️</span>
+							<span class="role-label">Floor</span>
+							<span class="role-sub">裁判</span>
+						</button>
+						<button type="button" class="role-btn" id="role-assistant" onclick="switchRole('assistant')">
+							<span class="role-icon">🙋</span>
+							<span class="role-label">Assistant</span>
+							<span class="role-sub">助理</span>
+						</button>
+					</div>
+					<p class="text-xs text-zinc-500 mt-1.5 hidden" id="role-err">⚠ 請選擇帳號類型</p>
+					<input type="hidden" id="role-value" value="">
 				</div>
-				<div>
-					<label for="phone" class="block text-sm font-medium text-gray-200 mb-2">電話</label>
-					<input type="text" class="w-full px-4 py-2 border border-gray-800 bg-zinc-900 rounded-lg" id="phone" name="phone" required>
-				</div>
-				<div>
-					<label for="password" class="block text-sm font-medium text-gray-200 mb-2">密碼</label>
-					<input type="password" class="w-full px-4 py-2 border border-gray-800 bg-zinc-900 rounded-lg" id="password" name="password" required>
-				</div>
-				<button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg transition-colors" id="submit">註冊</button>
+
+				<!-- 送出按鈕 -->
+				<button type="submit" class="submit-btn" id="submit-btn">
+					<span id="submit-text">確認送出 Submit</span>
+					<span id="submit-loading" class="hidden gap-2 justify-center items-center">
+						<span class="loading-dot"></span>
+						<span class="loading-dot"></span>
+						<span class="loading-dot"></span>
+					</span>
+				</button>
 			</form>
-			<div class="text-red-500 text-center my-2" id="error"></div>
-			<div class="flex justify-between mt-6 text-sm">
-				<a href="signin.html" class="text-blue-500 hover:underline">返回登入</a>
-				<div></div>
+
+			<!-- 成功畫面（隱藏） -->
+			<div id="success-screen" class="hidden flex-col items-center text-center py-4">
+				<div class="success-icon text-6xl mb-4">🎉</div>
+				<h2 class="text-2xl font-bold text-green-400 mb-2">註冊成功！</h2>
+				<p class="text-zinc-400 text-sm mb-1">歡迎，<span class="text-white font-semibold" id="success-name"></span>！</p>
+				<p class="text-zinc-500 text-xs mb-6">
+					帳號類型：<span class="text-blue-300" id="success-role"></span>
+					語言：<span class="text-purple-300" id="success-lang"></span>
+				</p>
+				<a href="main.html" class="submit-btn inline-block text-center no-underline" style="text-decoration:none; display:block;">
+					前往主頁 →
+				</a>
 			</div>
 		</div>
+	</div>
 
-		<script src="initialize.js"></script>
-		<script src="signup.js"></script>
-	</body>
+	<script src="translate.js"></script>
+	<script src="initialize.js"></script>
+	<script src="signup.js"></script>
+</body>
 </html>

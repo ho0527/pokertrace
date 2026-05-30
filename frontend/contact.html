@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>聯絡我們 - PokerTrace</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="bg-zinc-950 text-white min-h-screen">
+		<div id="navigationbar"></div>
+		<main class="max-w-5xl mx-auto px-4 py-10">
+			<div class="grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
+				<div>
+					<a href="./" class="text-emerald-300 hover:text-emerald-200 text-sm">返回首頁</a>
+					<h1 class="text-3xl font-black mt-5">聯絡我們</h1>
+					<p class="text-zinc-400 mt-4 leading-7">
+						有任何功能建議、錯誤回報、使用問題或合作想法，都可以從這裡送出。你的回饋會進入後台，由管理者查看與處理。
+					</p>
+					<div class="bg-zinc-900 border border-zinc-800 rounded p-5 mt-6">
+						<div class="font-bold">適合回報的內容</div>
+						<div class="text-sm text-zinc-400 mt-3 leading-6">
+							賽事流程建議、報名或座位操作問題、計時器需求、開源部署問題、畫面錯誤、翻譯問題、資料統計異常。
+						</div>
+					</div>
+				</div>
+
+				<form id="contactform" class="bg-zinc-900 border border-zinc-800 rounded p-5 space-y-4">
+					<div>
+						<label class="block text-sm text-zinc-300 mb-2">姓名</label>
+						<input id="contactname" class="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2" maxlength="100" required>
+					</div>
+					<div>
+						<label class="block text-sm text-zinc-300 mb-2">Email</label>
+						<input id="contactemail" type="email" class="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2" maxlength="150" required>
+					</div>
+					<div>
+						<label class="block text-sm text-zinc-300 mb-2">主旨</label>
+						<input id="contactsubject" class="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2" maxlength="150" placeholder="例如：報名清單建議">
+					</div>
+					<div>
+						<label class="block text-sm text-zinc-300 mb-2">內容</label>
+						<textarea id="contactmessage" class="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 min-h-40" maxlength="3000" required></textarea>
+					</div>
+					<button id="contactsubmit" class="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold px-5 py-3 rounded w-full" type="submit">送出訊息</button>
+				</form>
+			</div>
+		</main>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="contact.js"></script>
+	</body>
+</html>

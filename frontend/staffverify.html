@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>員工邀請確認 - Staff Verify</title>
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+	<body class="bg-zinc-900 text-white min-h-screen flex items-center justify-center px-4">
+		<div class="bg-zinc-800 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+			<div id="loading" class="">
+				<div class="text-5xl mb-4">⏳</div>
+				<h1 class="text-xl font-bold mb-2">驗證中...</h1>
+				<p class="text-zinc-400 text-sm">正在處理您的邀請確認</p>
+			</div>
+			<div id="success" class="hidden">
+				<div class="text-6xl mb-4">🎉</div>
+				<h1 class="text-2xl font-bold mb-2 text-green-400">確認成功！</h1>
+				<p class="text-zinc-300 mb-6" id="successmsg">您已成功加入該主辦的員工名單。</p>
+				<a href="signin.html" class="inline-block bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded text-white font-semibold transition">前往登入</a>
+			</div>
+			<div id="alreadyactive" class="hidden">
+				<div class="text-6xl mb-4">✅</div>
+				<h1 class="text-2xl font-bold mb-2 text-blue-400">已確認過</h1>
+				<p class="text-zinc-300 mb-6">您先前已確認過此邀請。</p>
+				<a href="signin.html" class="inline-block bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded text-white font-semibold transition">前往登入</a>
+			</div>
+			<div id="failed" class="hidden">
+				<div class="text-6xl mb-4">❌</div>
+				<h1 class="text-2xl font-bold mb-2 text-red-400">驗證失敗</h1>
+				<p class="text-zinc-300 mb-6" id="failedmsg">此連結無效或已過期。</p>
+				<a href="signin.html" class="inline-block bg-zinc-600 hover:bg-zinc-700 px-6 py-3 rounded text-white font-semibold transition">回首頁</a>
+			</div>
+		</div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="staffverify.js"></script>
+	</body>
+</html>

@@ -12,14 +12,6 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 		sessionid=row["sessionid"]
 
 		value("#name",row["name"])
-		value("#smallblind",row["smallblind"])
-		value("#bigblind",row["bigblind"])
-		value("#bigblindante",row["bigblindante"])
-		value("#ante",row["ante"])
-		value("#chip",row["chip"])
-		value("#date",row["starttime"].split("T")[0])
-		value("#starttime",row["starttime"].split("T")[1].split("Z")[0])
-		value("#endtime",row["endtime"].split("T")[1].split("Z")[0])
 
 		onclick("#back",function(element,event){
 			href("session.html?id="+sessionid+"#1")
@@ -35,8 +27,6 @@ ajax("GET",AJAXURL+"gettable/"+tableid,function(event,data){
 value("#date",new Date().toISOString().split("T")[0])
 
 onsubmit("#form",function(element,event){
-	let timezone="+00:00"
-
 	event.preventDefault()
 
 	domgetid("submit").disabled=true
@@ -50,14 +40,7 @@ onsubmit("#form",function(element,event){
 			domgetid("submit").disabled=false
 		}
 	},str({
-		"name": getvalue("name"),
-		"smallblind": int(getvalue("smallblind")),
-		"bigblind": int(getvalue("bigblind")),
-		"bigblindante": int(getvalue("bigblindante")),
-		"ante": int(getvalue("ante")),
-		"chip": float(getvalue("chip")),
-		"starttime": `${getvalue("date")} ${getvalue("starttime")}${timezone}`,
-		"endtime": `${getvalue("date")} ${getvalue("endtime")}${timezone}`
+		"name": getvalue("name")
 	}),[
 		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 	])

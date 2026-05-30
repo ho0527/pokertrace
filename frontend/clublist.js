@@ -5,12 +5,64 @@ if(!weblsget(WEBLSNAME+"signin")){
 
 let clubdata=[]
 
+function clubtext(key){
+	return TRANSLATE[LANGUAGE]["clublist"][key]
+}
+
+function applyclublanguage(){
+	document.title=clubtext("title")
+	innertext("h1",clubtext("title"),false)
+	domgetid("searchname").placeholder=clubtext("searchplaceholder")
+	domgetid("searchbutton").value=clubtext("search")
+	domgetid("addclubbutton").value=clubtext("addclub")
+	let heads=document.querySelectorAll("thead th")
+	let headtexts=[
+		"#",
+		clubtext("name"),
+		clubtext("address"),
+		clubtext("note"),
+		clubtext("action")
+	]
+	for(let i=0;i<heads.length&&i<headtexts.length;i=i+1){
+		heads[i].textContent=headtexts[i]
+	}
+	let stattitle=document.querySelector(".bg-zinc-800.rounded-lg.p-6.my-8 .text-lg")
+	if(stattitle){
+		stattitle.textContent=clubtext("stats")
+	}
+	let statlabels=document.querySelectorAll(".bg-zinc-800.rounded-lg.p-6.my-8 .text-zinc-400")
+	if(0<statlabels.length){
+		statlabels[0].textContent=clubtext("totalclubs")
+	}
+	if(1<statlabels.length){
+		statlabels[1].textContent=clubtext("displaycount")
+	}
+	let labels=document.querySelectorAll("#clubform label")
+	if(0<labels.length){
+		labels[0].innerHTML=clubtext("name")+' <span class="text-red-500">*</span>'
+	}
+	if(1<labels.length){
+		labels[1].innerHTML=clubtext("address")+' <span class="text-red-500">*</span>'
+	}
+	if(2<labels.length){
+		labels[2].textContent=clubtext("note")
+	}
+	innertext("#modaltitle",clubtext("addclub"),false)
+	innertext("#cancelbutton",clubtext("cancel"),false)
+	let submit=document.querySelector("#clubform button[type=\"submit\"]")
+	if(submit){
+		submit.textContent=TRANSLATE[LANGUAGE]["confirm"]
+	}
+}
+
+applyclublanguage()
+
 ajax("GET",AJAXURL+"getclublist",function(event,data){
 	if(data["success"]){
 		clubdata=data["data"]
 		main()
 	}else{
-		alert("權限已失效,請重新登入")
+		alert(clubtext("tokenexpired"))
 		weblsset(WEBLSNAME+"signin",null)
 		weblsset(WEBLSNAME+"token",null)
 		href("signin.html")
@@ -49,8 +101,8 @@ function main(){
 					<td class="py-3 px-4"><a href="https://www.google.com/maps?q=${club["address"]}" target="__blank" class="underline text-blue-500">${club["address"]}</a></td>
 					<td class="py-3 px-4">${club["ps"]||"-"}</td>
 					<td class="py-3 px-4">
-						<button class="text-blue-400 hover:underline mr-3 editbutton" data-id="${club["id"]}">編輯</button>
-						<button class="text-red-400 hover:underline deletebutton" data-id="${club["id"]}">刪除</button>
+						<button class="text-blue-400 hover:underline mr-3 editbutton" data-id="${club["id"]}">${clubtext("edit")}</button>
+						<button class="text-red-400 hover:underline deletebutton" data-id="${club["id"]}">${clubtext("delete")}</button>
 					</td>
 				</tr>
 			`)
@@ -70,7 +122,7 @@ function main(){
 		}
 
 		if(club){
-			innertext("#modaltitle","編輯協會",false)
+			innertext("#modaltitle",clubtext("editclub"),false)
 			value("#clubid",club["id"])
 			value("#clubname",club["name"])
 			value("#clubaddress",club["address"])
@@ -84,12 +136,12 @@ function main(){
 	onclick(".deletebutton",function(element,event){
 		let clubid=dataset(element,"id")
 
-		if(confirm("確定刪除此協會?")){
+		if(confirm(clubtext("deleteconfirm"))){
 			element.disabled=true
 
 			ajax("DELETE",AJAXURL+"deleteclub/"+clubid,function(event,data){
 				if(data["success"]){
-					alert("刪除成功")
+					alert(clubtext("deletesuccess"))
 
 					ajax("GET",AJAXURL+"getclublist",function(event,data){
 						if(data["success"]){
@@ -100,7 +152,7 @@ function main(){
 						["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 					])
 				}else{
-					alert("刪除失敗")
+					alert(clubtext("deletefail"))
 					element.disabled=false
 				}
 			},null,[
@@ -111,7 +163,7 @@ function main(){
 }
 
 onclick("#addclubbutton",function(){
-	innertext("#modaltitle","新增協會",false)
+	innertext("#modaltitle",clubtext("addclub"),false)
 	value("#clubid","")
 	value("#clubname","")
 	value("#clubaddress","")
@@ -148,9 +200,9 @@ onsubmit("#clubform",function(element,event){
 	ajax(method,url,function(event,data){
 		if(data["success"]){
 			if(clubid){
-				alert("修改成功")
+				alert(clubtext("editsuccess"))
 			}else{
-				alert("新增成功")
+				alert(clubtext("addsuccess"))
 			}
 
 			style("#clubmodal",[
@@ -167,9 +219,9 @@ onsubmit("#clubform",function(element,event){
 			])
 		}else{
 			if(data["data"]){
-				alert("操作失敗: "+data["data"])
+				alert(clubtext("operationfail")+": "+data["data"])
 			}else{
-				alert("操作失敗: 未知錯誤")
+				alert(clubtext("operationfail")+": "+clubtext("unknownerror"))
 			}
 		}
 	},str({
@@ -183,12 +235,12 @@ onsubmit("#clubform",function(element,event){
 })
 
 function deleteclub(clubid,element){
-	if(confirm("確定刪除此協會?")){
+	if(confirm(clubtext("deleteconfirm"))){
 		element.disabled=true
 
 		ajax("DELETE",AJAXURL+"deleteclub/"+clubid,function(event,data){
 			if(data["success"]){
-				alert("刪除成功")
+				alert(clubtext("deletesuccess"))
 
 				ajax("GET",AJAXURL+"getclublist",function(event,data){
 					if(data["success"]){
@@ -199,7 +251,7 @@ function deleteclub(clubid,element){
 					["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 				])
 			}else{
-				alert("刪除失敗")
+				alert(clubtext("deletefail"))
 				element.disabled=false
 			}
 		},null,[

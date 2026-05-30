@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Poker Clock — 賽事顯示</title>
+		<link rel="stylesheet" href="display.css">
+		<link href="../material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+		<link href="../material/icon/icon.png" rel="apple-touch-icon">
+	</head>
+
+	<body>
+		<div class="sync-indicator" id="syncDot" title="與裁判台同步中"></div>
+		<div id="root">
+			<div class="display-shell" style="flex:1;display:flex;flex-direction:column;padding:12px 14px;gap:10px">
+				<div class="display-header" style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+					<div>
+						<div class="lbl" style="margin-bottom:2px">Tournament</div>
+						<div style="font-size:clamp(14px,2vw,20px);font-weight:900;color:#fff;letter-spacing:-0.5px">
+							<span id="tournName"></span>
+							<span id="tournSub" style="color:#333"></span>
+						</div>
+					</div>
+					<div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+						<div style="font-size:11px;color:#555;text-align:right;line-height:1.6">
+							Buy-in <span style="color:#888" id="bInfo">$500+100</span><br>
+							<span id="statusInfo" style="color:#4ade80;font-weight:700">▶ RUNNING</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="display-main" style="display:grid;grid-template-columns:350px 1fr 350px;gap:12px;flex:1;min-height:0">
+					<div class="payout-column" style="display:flex;flex-direction:column;gap:10px">
+						<div class="card payout-card" style="flex:1">
+							<div class="lbl">Payouts</div>
+							<div id="itmBanner" class="itm-banner" style="display:none"></div>
+							<div id="payoutList"></div>
+							<div class="prize-pool-card" style="margin-top:10px;padding-top:10px;border-top:1px solid #1e1e1e">
+								<div class="lbl">Total Prize Pool</div>
+								<div class="stat-num prizePoolDisplay" style="font-size:28px;color:#22c55e" id="prizePoolDisplay"></div>
+								<div style="font-size:11px;color:#404040;margin-top:2px" class="prizePoolCalc" id="prizePoolCalc"></div>
+							</div>
+						</div>
+					</div>
+
+					<div class="card" id="centerPanel" style="display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:18px;transition:background 0.3s">
+						<div id="bubbleBanner" class="bubble-banner" style="display:none">BUBBLE TIME · 泡泡圈</div>
+						<div id="h4hBanner" class="bubble-banner" style="display:none;background:#7f1d1d;color:#fca5a5">HAND-FOR-HAND · 同步發牌</div>
+
+						<div style="position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:10px">
+							<span id="tagLabel" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:2px 8px;font-size:11px;color:#555;font-weight:700;letter-spacing:1px">LEVEL</span>
+							<span id="levelNum" class="mono" style="font-size:30px;font-weight:900;color:#fff"></span>
+							<span id="levelOf" style="font-size:12px;color:#404040;font-family:'JetBrains Mono',monospace"></span>
+						</div>
+						<div id="regStatus" style="position:absolute;top:16px;right:16px"></div>
+
+						<div id="breakOverlay" style="display:none;flex-direction:column;align-items:center;justify-content:center;position:absolute;inset:0;background:#0d0d0d;border-radius:12px;z-index:10">
+							<div style="font-size:16px;color:#fbbf24;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px">Break Time</div>
+							<div id="breakTimerDisplay" class="mono" style="font-size:clamp(90px,16vw,190px);font-weight:900;color:#fbbf24;letter-spacing:-4px;line-height:1"></div>
+							<div style="margin-top:14px;font-size:30px;color:#555">Next: Level <span id="breakNextLevel"></span> — <span id="breakNextBlinds" style="color:#888"></span></div>
+						</div>
+
+						<div id="mainContent" style="text-align:center;width:100%">
+							<div id="timerDisplay" class="timer-main">20:00</div>
+							<div style="width:88%;height:5px;background:#1a1a1a;border-radius:3px;margin:12px auto">
+								<div id="progressBar" style="height:100%;border-radius:3px;background:#22c55e;transition:width 1s linear,background 0.5s"></div>
+							</div>
+							<div style="margin-top:10px">
+								<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px">
+									<span style="font-size:15px;font-weight:700;color:#404040;letter-spacing:2px;text-transform:uppercase">Blinds</span>
+									<div id="blindsDisplay" class="blind-big"></div>
+								</div>
+								<div style="display:flex;align-items:center;justify-content:center;gap:12px">
+									<span style="font-size:13px;font-weight:700;color:#404040;letter-spacing:2px;text-transform:uppercase">BB Ante</span>
+									<div id="anteDisplay" class="ante-big"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="info-column" style="display:flex;flex-direction:column;gap:10px;justify-content: space-between;">
+						<div class="card players-card">
+							<div class="lbl">Players Remaining</div>
+							<div class="stat-num" style="font-size:50px;color:#fff">
+								<span id="playersDisplay">9</span><span id="entriesLabel">/9</span>
+							</div>
+							<div id="bubbleStatus" style="display:none;margin-top:8px;font-size:11px;color:#fbbf24;font-weight:700;letter-spacing:0.5px;display:none"></div>
+						</div>
+						<div class="card avg-card">
+							<div class="lbl">Avg Stack</div>
+							<div class="stat-num" style="font-size:50px;color:#fff" id="avgStack"></div>
+						</div>
+						<div class="card" id="regCountdownCard">
+							<div class="lbl">Registration Close</div>
+							<div id="regCountdownDisplay" class="stat-num" style="font-size:50px;color:#4ade80"></div>
+							<div style="font-size:15px;color:#555;margin-top:3px;display: none;" id="regCloseAfterLabel"></div>
+						</div>
+						<div class="card" id="breakCountdownCard">
+							<div class="lbl">Next Break</div>
+							<div id="breakCountdownDisplay" class="stat-num" style="font-size:50px;color:#fbbf24"></div>
+							<div style="font-size:15px;color:#555;margin-top:3px;display: none" id="breakAfterLabel"></div>
+						</div>
+						<div class="card" id="nextBlindsCard">
+							<div class="lbl">Next Blinds</div>
+							<div id="nextBlindsInfo"></div>
+						</div>
+						<div class="card" style="flex:1;overflow-y:auto;display:none">
+							<div class="lbl">Schedule</div>
+							<div id="blindStructureList"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="marquee-wrap" id="marqueeWrap" style="background:#0a0a0a;border-top:1px solid #1a1a1a;height:86px;overflow:hidden;display:flex;align-items:center;flex-shrink:0">
+				<div id="marqueeText" style="display:inline-block;white-space:nowrap;font-size:38px;font-weight:700;color:#eab308;letter-spacing:0.5px"></div>
+			</div>
+			<div class="card mobile-prize-card">
+				<div class="lbl">Total Prize Pool</div>
+				<div class="stat-num prizePoolDisplay" style="font-size:28px;color:#22c55e"></div>
+				<div style="font-size:11px;color:#404040;margin-top:2px" class="prizePoolCalc"></div>
+			</div>
+		</div>
+
+		<script src="timerconfig.js"></script>
+		<script src="display.js"></script>
+	</body>
+</html>
