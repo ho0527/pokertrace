@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="主辦損益平衡：回本所需報名人數。免費線上撲克工具，不用登入、無廣告。Break Even: Entries needed to break even. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/breakeven.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="主辦損益平衡 / Break Even - PokerTrace">
+		<meta property="og:description" content="主辦損益平衡：回本所需報名人數。免費線上撲克工具，不用登入、無廣告。Break Even: Entries needed to break even. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/breakeven.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>主辦損益平衡 (Break Even) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="betitle">主辦損益平衡</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="becostlabel" for="becost">固定成本</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="becost" min="0" inputmode="numeric" value="20000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="befeelabel" for="befee">每人手續費</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="befee" min="0" inputmode="numeric" value="200"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="beperlabel" for="beper">每人進獎池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="beper" min="0" inputmode="numeric" value="1000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="beguaranteelabel" for="beguarantee">保底獎池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="beguarantee" min="0" inputmode="numeric" value="150000"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bebelabel">損益平衡人數</div><div class="mt-1 text-3xl font-extrabold text-emerald-400" id="bebe">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="beguarlabel">達保底人數</div><div class="mt-1 text-3xl font-extrabold" id="beguar">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="beoverlaylabel">未達保底每差 1 人補貼</div><div class="mt-1 text-3xl font-extrabold text-amber-400" id="beoverlay">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="benote">未達保底時，主辦每多 1 人可減少 overlay（每人進獎池）。損益平衡人數同時考慮手續費收入與 overlay 補貼。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">辦一場比賽要多少人才回本？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">主辦成本包含場地、人力、設備與保底獎池的風險。這個工具由固定成本、每人變動成本與抽成設定，反推損益兩平所需的報名人數，並顯示不同人數下的盈虧，讓你在公告保底前就知道自己承擔多少風險。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/breakeven.js"></script>
+	</body>
+</html>

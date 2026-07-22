@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="賣股 / Markup：賣股成本與鎖定利潤。免費線上撲克工具，不用登入、無廣告。Staking Markup: Markup and locked profit. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/stakingmarkup.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="賣股 / Markup / Staking Markup - PokerTrace">
+		<meta property="og:description" content="賣股 / Markup：賣股成本與鎖定利潤。免費線上撲克工具，不用登入、無廣告。Staking Markup: Markup and locked profit. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/stakingmarkup.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>賣股 / Markup (Staking Markup) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="smtitle">賣股 / Markup 試算</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="smbuyinlabel" for="smbuyin">總買入</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="smbuyin" min="0" inputmode="numeric" value="10000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="smsoldlabel" for="smsold">賣出比例 (%)</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="smsold" min="0" max="100" step="0.1" inputmode="decimal" value="50"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="smmarkuplabel" for="smmarkup">Markup 倍率</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="smmarkup" step="0.05" min="1" inputmode="decimal" value="1.2"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="smpaidlabel">買家支付</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="smpaid">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="smcostlabel">你的實付成本</div><div class="mt-1 text-2xl font-extrabold" id="smcost">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="smkeeplabel">你保留權益</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="smkeep">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="smlockedlabel">Markup 鎖定利潤</div><div class="mt-1 text-2xl font-extrabold text-amber-400" id="smlocked">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="smnote">買家支付 = 買入 × 賣出% × markup。你的實付成本 = 買入 − 買家支付。買家可分得賣出%的獎金，你保留其餘。Markup 鎖定利潤 = 買入 × 賣出% ×（markup − 1）。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">賣股與 Markup 怎麼算？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">賣出比賽股份時常加收 markup：例如 1.2 的 markup 表示買家用 1.2 倍價格買你的股份。輸入買入、出售比例與 markup，工具算出買家成本、你鎖定的利潤與各種結果下的分配，讓賣股條件雙方都算得清楚。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/stakingmarkup.js"></script>
+	</body>
+</html>

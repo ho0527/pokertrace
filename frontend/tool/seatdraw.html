@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="座位抽籤：隨機分配桌號與座位。免費線上撲克工具，不用登入、無廣告。Seat Draw: Random table and seat assignment. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/seatdraw.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="座位抽籤 / Seat Draw - PokerTrace">
+		<meta property="og:description" content="座位抽籤：隨機分配桌號與座位。免費線上撲克工具，不用登入、無廣告。Seat Draw: Random table and seat assignment. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/seatdraw.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>座位抽籤 (Seat Draw) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="sdtitle">座位抽籤</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sdplayerslabel" for="sdplayers">選手數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sdplayers" min="1" inputmode="numeric" value="27"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sdseatslabel" for="sdseats">每桌座位數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sdseats" min="2" max="10" inputmode="numeric" value="9"></div>
+					<div class="flex items-end"><input type="button" class="min-h-12 w-full rounded-2xl bg-emerald-500 px-5 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400" id="sddraw" value="重新抽籤"></div>
+				</div>
+
+				<div class="mt-3 text-sm text-zinc-400"><span id="sdsummarylabel">桌數</span>：<span id="sdsummary" class="font-bold text-white">-</span></div>
+				<div id="sdtables" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+				<div class="mt-3 text-xs text-zinc-500" id="sdnote">以輪流方式平均分配，各桌人數差距不超過 1 人。每次按「重新抽籤」會產生新的隨機座位。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">座位抽籤</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入選手名單與桌數，工具隨機分配桌號與座位，支援平均分桌與每桌人數上限。開賽前一鍵完成抽籤，公平、快速、不用撕紙條。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/seatdraw.js"></script>
+	</body>
+</html>

@@ -1,0 +1,1321 @@
+/* 共用小工具樣式：選牌、全螢幕燈箱、牌面、勝率雙頭條 */
+
+#tbtimer.tbexpired {
+	animation: tbflash .6s ease-in-out infinite;
+	border-color: var(--color-danger);
+}
+
+@keyframes tbflash {
+
+	0%,
+	100% {
+		background: rgba(9, 9, 11, 0.7);
+	}
+
+	50% {
+		background: rgba(127, 29, 29, 0.6);
+	}
+}
+
+.gametypebtn {
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	color: #d4d4d8;
+}
+
+.gametypebtn.active {
+	background: linear-gradient(to right, var(--color-primary), var(--color-primary-hover));
+	border-color: var(--color-primary);
+	color: #ffffff;
+}
+
+/* 手牌列 */
+
+#handlist {
+	display: flex;
+	justify-content: space-around;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.handrow {
+	align-items: center;
+	background: rgba(9, 9, 11, 0.6);
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	width: 275px;
+	/* display: flex; */
+	/* gap: 20px; */
+	/* justify-content: space-between; */
+	padding: 15px 20px;
+}
+
+@media (max-width: 900px) {
+	.handrow {
+		width: 100%;
+		max-width: 275px;
+	}
+}
+
+@media (max-width: 650px) {
+	.handrow {
+		max-width: none;
+	}
+}
+
+.handrowbest {
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 1px rgba(52, 211, 153, .3), 0 18px 32px rgba(16, 185, 129, .12);
+}
+
+.handrow-cards,
+.handrowcard {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
+#boardcard {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* gap: 28px; */
+	margin-top: 10px;
+	width: 100%;
+}
+
+#boardcard .boardstreet {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#boardcard .boardstreetflop {
+	gap: 12px;
+}
+
+#boardcard .cardslot {
+	font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+	font-size: 30px;
+	min-height: 72px;
+	min-width: 58px;
+	padding: 8px 12px;
+}
+
+.handrow-label {
+	color: var(--color-text-muted);
+	font-size: 13px;
+	font-weight: 800;
+	min-width: 56px;
+}
+
+.handrow-remove {
+	background: #7f1d1d;
+	border-radius: 12px;
+	color: #fff;
+	font-weight: 800;
+	padding: 6px 12px;
+}
+
+.handrow-remove:hover {
+	background: #991b1b;
+}
+
+/* 牌位（可點） */
+.cardslot {
+	align-items: center;
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	border-radius: 12px;
+	color: var(--color-text);
+	cursor: pointer;
+	display: inline-flex;
+	font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+	font-size: 21px;
+	font-weight: 900;
+	justify-content: center;
+	min-height: 54px;
+	min-width: 42px;
+	padding: 4px 8px;
+	transition: border-color .15s ease, background .15s ease;
+}
+
+.cardslot:hover {
+	border-color: var(--color-primary-soft);
+}
+
+.cardslot.filled {
+	background: var(--color-bg);
+}
+
+.cardslotbest {
+	border-color: var(--color-primary-soft);
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, .55), 0 0 16px rgba(16, 185, 129, .45);
+	transform: translateY(-1px);
+}
+
+/* 牌面文字顏色 */
+.cardred {
+	color: #f87171;
+}
+
+.cardblack {
+	color: #e5e7eb;
+}
+
+/* 全螢幕選牌燈箱 */
+.toolmodal {
+	background: rgba(0, 0, 0, .92);
+	display: flex;
+	flex-direction: column;
+	inset: 0;
+	position: fixed;
+	z-index: 80;
+}
+
+.toolmodal-body {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	height: 100%;
+	overflow: auto;
+	padding: 18px clamp(14px, 4vw, 40px) 28px;
+	width: 100%;
+}
+
+.toolmodal-head {
+	align-items: center;
+	display: flex;
+	justify-content: space-between;
+}
+
+.toolmodal-title {
+	font-size: 20px;
+	font-weight: 900;
+}
+
+.toolmodal-close {
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	border-radius: 14px;
+	color: var(--color-text);
+	font-weight: 800;
+	padding: 8px 16px;
+}
+
+.toolmodal-selected {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: center;
+}
+
+.toolmodal-selected span {
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	border-radius: 12px;
+	font-size: 22px;
+	font-weight: 900;
+	min-width: 48px;
+	padding: 8px 10px;
+	text-align: center;
+}
+
+.cardpicker {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: auto 0;
+	width: 100%;
+}
+
+.cardpicker-row {
+	display: flex;
+	gap: 6px;
+	justify-content: center;
+	width: 100%;
+}
+
+.cardbtn {
+	align-items: center;
+	background: var(--color-surface);
+	border: 1px solid #3f3f46;
+	border-radius: 10px;
+	color: #ffffff;
+	cursor: pointer;
+	display: flex;
+	flex: 1 1 0;
+	flex-direction: column;
+	font-weight: 900;
+	height: 56px;
+	justify-content: center;
+	line-height: 1;
+	max-width: 44px;
+	min-width: 0;
+	overflow: hidden;
+	width: auto;
+}
+
+.cardbtn .r {
+	font-size: 18px;
+}
+
+.cardbtn .s {
+	font-size: 16px;
+}
+
+.cardbtn.selected {
+	background: #047857;
+	border-color: var(--color-primary);
+}
+
+.cardbtn.disabled {
+	cursor: not-allowed;
+	opacity: .25;
+}
+
+.toolmodal-actions {
+	display: flex;
+	gap: 10px;
+}
+
+.toolmodal-actions button,
+.toolmodal-actions input[type="button"],
+.toolmodal-actions input[type="submit"],
+.toolmodal-actions input[type="reset"] {
+	border-radius: 16px;
+	flex: 1 1 0;
+	font-weight: 900;
+	min-height: 52px;
+}
+
+.toolmodal-cancel {
+	background: var(--color-surface-2);
+	color: var(--color-text);
+}
+
+.toolmodal-confirm {
+	background: linear-gradient(to right, var(--color-primary), var(--color-primary-hover));
+	color: #ffffff;
+}
+
+@media (max-width:480px) {
+	.toolmodal-body {
+		gap: 10px;
+	}
+
+	.cardpicker-row {
+		gap: 4px;
+	}
+
+	.cardbtn {
+		height: 48px;
+	}
+
+	.cardbtn .r {
+		font-size: 15px;
+	}
+
+	.cardbtn .s {
+		font-size: 13px;
+	}
+
+	.toolmodal-selected span {
+		font-size: 18px;
+		min-width: 38px;
+		padding: 6px 8px;
+	}
+}
+
+/* 勝率列 */
+.equityinline {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid rgba(63, 63, 70, .9);
+}
+
+.equityloading {
+	color: var(--color-text-muted);
+	font-size: 13px;
+	font-weight: 800;
+	text-align: center;
+}
+
+.equitybar {
+	background: var(--color-surface-2);
+	border-radius: 999px;
+	display: flex;
+	height: 8px;
+	margin: 5px 0 8px;
+	overflow: hidden;
+}
+
+.equitybar-win {
+	background: linear-gradient(to right, var(--color-primary-soft), var(--color-primary));
+	height: 100%;
+	border-radius: 999px;
+}
+
+.equitybar-tie {
+	background: #f59e0b;
+	height: 100%;
+	margin-left: auto;
+	border-radius: 999px;
+}
+
+.equitypct {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	font-size: 14px;
+	font-weight: 800;
+}
+
+.equitypct .win {
+	color: var(--color-primary-soft);
+}
+
+.equitypct .tie {
+	color: var(--color-warning);
+}
+
+.equityout {
+	color: #d4d4d8;
+	font-size: 14px;
+	margin-top: 8px;
+}
+
+.equityout .cardchip {
+	font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+	background: var(--color-surface);
+	border: 1px solid #3f3f46;
+	border-radius: 8px;
+	display: inline-block;
+	font-weight: bold;
+	margin: 2px 3px 0 0;
+	padding: 2px 7px;
+}
+
+/* ===== 公開 API 文件：可收合端點手風琴 ===== */
+.apiep {
+	background: linear-gradient(to bottom, rgba(24, 24, 27, 0.95), rgba(9, 9, 11, 0.95));
+	border: 1px solid var(--color-border);
+	border-radius: 20px;
+	overflow: hidden;
+}
+
+.apiep-head {
+	align-items: center;
+	background: transparent;
+	color: var(--color-text);
+	cursor: pointer;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding: 16px 18px;
+	text-align: left;
+	width: 100%;
+}
+
+.apiep-head:hover {
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.apiep-method {
+	border-radius: 8px;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 900;
+	letter-spacing: .5px;
+	padding: 3px 10px;
+}
+
+.apiep-path {
+	color: #6ee7b7;
+	font-family: monospace;
+	font-size: 16px;
+	font-weight: 800;
+}
+
+.apiep-titletext {
+	color: var(--color-text-muted);
+	font-size: 14px;
+}
+
+.apiep-chevron {
+	color: var(--color-text-faint);
+	margin-left: auto;
+	transition: transform .18s ease;
+}
+
+.apiep.open .apiep-chevron {
+	transform: rotate(180deg);
+}
+
+.apiep-body {
+	display: none;
+	padding: 0 18px 18px;
+}
+
+.apiep.open .apiep-body {
+	display: block;
+}
+
+.apiep-desc {
+	color: #d4d4d8;
+	font-size: 14px;
+	line-height: 1.7;
+	margin-bottom: 12px;
+}
+
+.apiep-auth {
+	background: rgba(9, 9, 11, 0.7);
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	color: var(--color-text-muted);
+	font-size: 13px;
+	line-height: 1.7;
+	padding: 10px 12px;
+}
+
+.apisection-title {
+	color: var(--color-text-faint);
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: .14em;
+	margin: 18px 0 6px;
+	text-transform: uppercase;
+}
+
+.apiparam-group {
+	color: var(--color-primary-soft);
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: .04em;
+	margin: 12px 0 2px;
+}
+
+.apifield {
+	border-top: 1px solid #1f1f23;
+	padding: 10px 0;
+}
+
+.apifield-top {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.apifield-name {
+	color: #6ee7b7;
+	font-family: monospace;
+	font-size: 14px;
+	font-weight: 800;
+	word-break: break-all;
+}
+
+.apifield-type {
+	color: var(--color-text-muted);
+	font-family: monospace;
+	font-size: 12px;
+}
+
+.apifield-req {
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 800;
+	padding: 1px 8px;
+}
+
+.apifield-req.req {
+	background: rgba(16, 185, 129, 0.18);
+	color: var(--color-primary-soft);
+}
+
+.apifield-req.opt {
+	background: rgba(113, 113, 122, 0.2);
+	color: var(--color-text-muted);
+}
+
+.apifield-desc {
+	color: #c7c7cc;
+	font-size: 13px;
+	line-height: 1.6;
+	margin-top: 4px;
+}
+
+.apifield-desc code,
+.apiep-desc code,
+.apinote-body code {
+	background: var(--color-surface);
+	border-radius: 6px;
+	font-size: 12px;
+	padding: 1px 5px;
+}
+
+.apinotes {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: 1fr;
+	margin-top: 12px;
+}
+
+@media (min-width: 640px) {
+	.apinotes {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.apinote {
+	background: rgba(9, 9, 11, 0.7);
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	padding: 12px 14px;
+}
+
+.apinote-title {
+	color: var(--color-text);
+	font-size: 13px;
+	font-weight: 800;
+	margin-bottom: 4px;
+}
+
+.apinote-body {
+	color: #c7c7cc;
+	font-size: 13px;
+	line-height: 1.7;
+}
+
+.apicode-label {
+	color: var(--color-text-muted);
+	font-size: 12px;
+	font-weight: 700;
+	margin: 10px 0 4px;
+}
+
+.apicode {
+	background: rgba(9, 9, 11, 0.85);
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	color: #d4d4d8;
+	font-size: 12px;
+	line-height: 1.6;
+	overflow-x: auto;
+	padding: 14px;
+	white-space: pre;
+}
+
+/* ===== API 文件：搜尋、分類側欄與版面 ===== */
+.apidoc-search-wrap {
+	position: relative;
+}
+
+.apidoc-search {
+	background: rgba(9, 9, 11, 0.7);
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	color: var(--color-text);
+	font-size: 14px;
+	outline: none;
+	padding: 12px 16px;
+	transition: border-color .15s ease, box-shadow .15s ease;
+	width: 100%;
+}
+
+.apidoc-search::placeholder {
+	color: var(--color-text-faint);
+}
+
+.apidoc-search:focus {
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.apidoc-layout {
+	align-items: start;
+	display: grid;
+	gap: 20px;
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+	.apidoc-layout {
+		grid-template-columns: 232px minmax(0, 1fr);
+	}
+}
+
+.apidoc-side {
+	display: none;
+}
+
+@media (min-width: 900px) {
+	.apidoc-side {
+		display: block;
+	}
+}
+
+.apidoc-side-inner {
+	position: sticky;
+	top: 16px;
+	max-height: calc(100vh - 32px);
+	overflow-y: auto;
+}
+
+.apinav-title {
+	color: var(--color-text-faint);
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: .14em;
+	margin-bottom: 8px;
+	text-transform: uppercase;
+}
+
+.apinav {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.apinav-link {
+	align-items: center;
+	border-radius: 12px;
+	color: var(--color-text-muted);
+	cursor: pointer;
+	display: flex;
+	font-size: 14px;
+	gap: 8px;
+	justify-content: space-between;
+	padding: 8px 12px;
+	text-decoration: none;
+	transition: background .12s ease, color .12s ease;
+}
+
+.apinav-link:hover {
+	background: rgba(255, 255, 255, 0.04);
+	color: var(--color-text);
+}
+
+.apinav-count {
+	background: var(--color-surface);
+	border-radius: 999px;
+	color: var(--color-text-faint);
+	font-size: 11px;
+	font-weight: 700;
+	min-width: 22px;
+	padding: 1px 7px;
+	text-align: center;
+}
+
+.apidoc-main {
+	display: flex;
+	flex-direction: column;
+	gap: 22px;
+	min-width: 0;
+}
+
+.apicat {
+	scroll-margin-top: 16px;
+	margin: 10px 0px;
+}
+
+.apicat-head {
+	align-items: center;
+	background: transparent;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	margin-bottom: 4px;
+	padding: 4px 0;
+	text-align: left;
+	width: 100%;
+}
+
+.apicat-head:hover .apicat-title {
+	color: #6ee7b7;
+}
+
+.apicat-chevron {
+	color: var(--color-text-faint);
+	margin-left: auto;
+	transition: transform .18s ease;
+}
+
+.apicat.collapsed .apicat-chevron {
+	transform: rotate(-90deg);
+}
+
+.apicat.collapsed .apicat-desc,
+.apicat.collapsed .apicat-list {
+	display: none;
+}
+
+.apifield-sub {
+	border-left: 2px solid var(--color-border);
+	margin: 6px 0 2px 4px;
+	padding-left: 12px;
+}
+
+.apifield-sub .apifield {
+	padding: 6px 0;
+}
+
+.apifield-sub .apifield:first-child {
+	border-top: 0;
+}
+
+.apifield-sub .apifield-name {
+	font-size: 13px;
+}
+
+.apicat-title {
+	color: var(--color-text);
+	font-size: 20px;
+	font-weight: 800;
+}
+
+.apicat-count {
+	background: rgba(16, 185, 129, 0.15);
+	border-radius: 999px;
+	color: var(--color-primary-soft);
+	font-size: 12px;
+	font-weight: 800;
+	padding: 1px 9px;
+}
+
+.apicat-desc {
+	color: var(--color-text-muted);
+	font-size: 13px;
+	line-height: 1.7;
+	margin-bottom: 12px;
+}
+
+.apicat-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.apidoc-empty {
+	color: var(--color-text-muted);
+	font-size: 14px;
+	padding: 32px 0;
+	text-align: center;
+}
+
+.apidocemptyhidden {
+	display: none;
+}
+
+/* ===== GTO 參考工具：控制列、矩陣、圖例、詳情 ===== */
+.gtocontrolgrid {
+	display: grid;
+	gap: 14px 24px;
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+	.gtocontrolgrid {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.gtocontrolrow {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.gtocontrollabel {
+	color: var(--color-text-muted);
+	font-size: 13px;
+	font-weight: 800;
+}
+
+.gtooptrow {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.gtoopt {
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	border-radius: 14px;
+	color: #d4d4d8;
+	font-size: 14px;
+	font-weight: 800;
+	min-height: 40px;
+	padding: 0 16px;
+}
+
+.gtoopt.gtooptactive {
+	background: linear-gradient(to right, var(--color-primary), var(--color-primary-hover));
+	border-color: var(--color-primary);
+	color: #ffffff;
+}
+
+.gtocell {
+	align-items: center;
+	border-radius: 3px;
+	cursor: pointer;
+	display: flex;
+	font-size: 10px;
+	font-weight: 700;
+	justify-content: center;
+	padding: 4px 0;
+	transition: transform .1s ease, box-shadow .1s ease;
+}
+
+@media (min-width: 640px) {
+	.gtocell {
+		font-size: 12px;
+	}
+}
+
+.gtocell:hover {
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, .35);
+}
+
+.gtocellselected {
+	box-shadow: 0 0 0 2px #ffffff;
+	transform: translateY(-1px);
+}
+
+.gtolegenditem {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+}
+
+.gtolegendswatch {
+	border-radius: 4px;
+	display: inline-block;
+	height: 14px;
+	width: 14px;
+}
+
+.gtolegendlabel {
+	color: var(--color-text);
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.gtolegendpct {
+	color: var(--color-text-muted);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	margin-left: auto;
+}
+
+.gtodetailhint {
+	color: var(--color-text-faint);
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.gtodetailhead {
+	align-items: center;
+	display: flex;
+	gap: 10px;
+}
+
+.gtodetailhand {
+	font-family: var(--font-mono);
+	font-size: 22px;
+	font-weight: 900;
+}
+
+.gtodetailaction {
+	border-radius: 10px;
+	font-size: 13px;
+	font-weight: 800;
+	padding: 4px 12px;
+}
+
+.gtodetailnote {
+	color: var(--color-text-muted);
+	font-size: 13px;
+	margin-top: 10px;
+}
+
+.gtofreqwrap {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.gtofreqrow {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+}
+
+.gtofreqlabel {
+	color: var(--color-text-muted);
+	font-size: 12px;
+	min-width: 84px;
+}
+
+.gtofreqbar {
+	background: var(--color-surface-2);
+	border-radius: 999px;
+	flex: 1 1 0;
+	height: 8px;
+	overflow: hidden;
+}
+
+.gtofreqbar span {
+	border-radius: 999px;
+	display: block;
+	height: 100%;
+}
+
+.gtofreqpct {
+	color: var(--color-text);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	min-width: 38px;
+	text-align: right;
+}
+
+/* ===== 矩陣混合色條（push/fold 與 RFI/3bet 共用） ===== */
+.gtocell {
+	overflow: hidden;
+	position: relative;
+}
+
+.gtocellsegs {
+	display: flex;
+	inset: 0;
+	position: absolute;
+}
+
+.gtocellsegs span {
+	display: block;
+	height: 100%;
+}
+
+.gtocelllabel {
+	color: #fff;
+	position: relative;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+	z-index: 1;
+}
+
+/* ===== push/fold EV 詳情 ===== */
+.gtodetailev {
+	border-top: 1px solid #27272a;
+	font-size: 13px;
+	margin-top: 10px;
+	padding-top: 8px;
+}
+
+.gtoevnum {
+	font-family: var(--font-mono);
+	font-weight: 900;
+	color: var(--color-primary-soft);
+}
+
+.gtoevtag {
+	color: var(--color-text-muted);
+	font-size: 12px;
+}
+
+/* ===== 對戰樹 ===== */
+.gtotreectl {
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	border-radius: 12px;
+	color: #d4d4d8;
+	font-size: 13px;
+	font-weight: 800;
+	min-height: 34px;
+	padding: 0 12px;
+}
+
+.gtotreebtn {
+	border-radius: 14px;
+	font-size: 14px;
+	font-weight: 900;
+	min-height: 44px;
+	padding: 0 22px;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+}
+
+.gtotreebtn-jam {
+	background: #f43f5e;
+	color: #1a0307;
+}
+
+.gtotreebtn-call {
+	background: #38bdf8;
+	color: #04121c;
+}
+
+.gtotreebtn-fold {
+	background: #27272a;
+	color: #a1a1aa;
+	border: 1px solid #3f3f46;
+}
+
+.gtotreebtn-link {
+	background: var(--color-surface-2);
+	color: #6ee7b7;
+	border: 1px solid #3f3f46;
+}
+
+.gtoseat {
+	border: 1px solid #27272a;
+	border-radius: 12px;
+	min-width: 64px;
+	padding: 6px 8px;
+	text-align: center;
+}
+
+.gtoseatpos {
+	font-size: 12px;
+	font-weight: 800;
+	color: #d4d4d8;
+}
+
+.gtoseatact {
+	font-size: 11px;
+	margin-top: 2px;
+	color: var(--color-text-faint);
+}
+
+.gtoseathero {
+	background: var(--color-primary);
+	border-radius: 999px;
+	color: #04140e;
+	font-size: 9px;
+	font-weight: 900;
+	margin-left: 4px;
+	padding: 0 5px;
+}
+
+.gtoseat-act {
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 1px rgba(16, 185, 129, .4);
+}
+
+.gtoseat-act .gtoseatact {
+	color: var(--color-primary-soft);
+	font-weight: 800;
+}
+
+.gtoseat-jam {
+	border-color: #f43f5e;
+}
+
+.gtoseat-jam .gtoseatact {
+	color: #fb7185;
+	font-weight: 800;
+}
+
+.gtoseat-call {
+	border-color: #38bdf8;
+}
+
+.gtoseat-call .gtoseatact {
+	color: #7dd3fc;
+	font-weight: 800;
+}
+
+.gtoseat-fold {
+	opacity: .55;
+}
+
+.gtolinetag {
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 700;
+	padding: 3px 10px;
+	background: var(--color-surface-2);
+	color: #d4d4d8;
+}
+
+.gtolinetag-empty {
+	color: var(--color-text-faint);
+	background: transparent;
+	border: 1px dashed #3f3f46;
+}
+
+.gtolinetag-jam {
+	background: rgba(244, 63, 94, .18);
+	color: #fb7185;
+}
+
+.gtolinetag-call {
+	background: rgba(56, 189, 248, .18);
+	color: #7dd3fc;
+}
+
+.gtolinetag-fold {
+	background: #27272a;
+	color: #a1a1aa;
+}
+
+/* ===== 翻後 GTO 求解器 ===== */
+.fscardpick {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.fssel {
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	border-radius: 10px;
+	color: var(--color-text);
+	font-size: 16px;
+	font-weight: 800;
+	min-height: 44px;
+	padding: 0 8px;
+}
+
+.fssuitsel {
+	font-size: 18px;
+}
+
+.fscell {
+	align-items: center;
+	border-radius: 3px;
+	cursor: pointer;
+	display: flex;
+	justify-content: center;
+	overflow: hidden;
+	position: relative;
+}
+
+.fscell-empty {
+	background: #18181b;
+}
+
+.fscell-sel {
+	box-shadow: 0 0 0 2px #fff;
+	z-index: 2;
+}
+
+.fssegs {
+	display: flex;
+	inset: 0;
+	position: absolute;
+}
+
+.fsseg {
+	height: 100%;
+	display: block;
+}
+
+.fslabel {
+	color: #fff;
+	font-size: 9px;
+	font-weight: 800;
+	padding: 3px 0;
+	position: relative;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+	z-index: 1;
+}
+
+/* 下注尺寸列：原本是 flex 不換行，窄螢幕五顆按鈕會撐到 690px 把整頁推爆 */
+.fsbetsizewrap {
+	min-width: 0;
+}
+
+.fsbetsizerow {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	min-width: 0;
+}
+
+.fsdetailhint {
+	color: var(--color-text-faint);
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.fsdetailhead {
+	align-items: baseline;
+	display: flex;
+	gap: 12px;
+	margin-bottom: 6px;
+}
+
+.fsdetailhand {
+	font-family: var(--font-mono);
+	font-size: 20px;
+	font-weight: 900;
+}
+
+.fsdetailmix {
+	color: var(--color-primary-soft);
+	font-size: 13px;
+	font-weight: 800;
+}
+
+.fsdetailtable {
+	font-size: 13px;
+	width: 100%;
+}
+
+.fsdetailtable th {
+	color: var(--color-text-faint);
+	font-size: 11px;
+	font-weight: 800;
+	padding: 4px 8px;
+	text-align: left;
+}
+
+.fsdetailtable td {
+	border-top: 1px solid #27272a;
+	padding: 6px 8px;
+}
+
+.fsdetailtable .fsnum {
+	font-family: var(--font-mono);
+	text-align: right;
+}
+
+.fsdot {
+	border-radius: 3px;
+	display: inline-block;
+	height: 11px;
+	margin-right: 6px;
+	width: 11px;
+}
+
+.fsok {
+	color: var(--color-primary-soft);
+	font-weight: 800;
+}
+
+.fsdetailnote {
+	color: var(--color-text-faint);
+	font-size: 12px;
+	line-height: 1.6;
+	margin-top: 8px;
+}
+
+@media (min-width: 640px) {
+	.fslabel {
+		font-size: 11px;
+	}
+}
+
+.text-center {
+	text-align: center;
+}
+
+/* ===== Preflop 決策卡：13x13 起手牌矩陣 ===== */
+.preflopgrid {
+	display: grid;
+	grid-template-columns: repeat(13, minmax(0, 1fr));
+}

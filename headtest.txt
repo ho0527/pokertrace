@@ -3,30 +3,28 @@ PokerTrace 新增手牌流程與 UI 操作規劃
 目標
 1. 讓玩家、主辦、floor、assistant、dealer 在權限允許時可以快速新增手牌。
 2. 當賽事 unifiedhandrecord=false 時，維持玩家自行記錄自己的手牌。
-3. 當賽事 unifiedhandrecord=true 時，由 owner、floor、assistant、dealer 統一記錄整桌手牌。
+3. 當賽事 unifiedhandrecord=true 時，由 owner、floor、assistant、dealer 統一記錄整桌手牌，使用者可以馬上看到紀錄的情況。
 4. 座位數以 session.maxseat 為準，牌桌只保留 name，座位與人數上限由賽事設定控制。
 
 入口
-1. session.html 的手牌分頁顯示「新增手牌」按鈕。
+1. table.html 的手牌分頁顯示「新增手牌」按鈕。
 2. control.html 若是連動使用者賽事，可從玩家名單快速開啟該桌新增手牌。
 3. registrations.html 玩家座位列可提供「記錄手牌」入口，帶入 tableid、seatno、playerid。
 
-新增手牌 Lightbox
-1. 第一步：選擇牌桌與座位
+新增手牌 newhead
+1. 第一步：選擇牌桌與座位、選擇牌局基本資料
    - 牌桌下拉顯示 table.name。
    - 座位使用 1 到 session.maxseat。
    - unifiedhandrecord=false 時，預設鎖定目前登入玩家所在座位，只允許改自己的座位。
    - unifiedhandrecord=true 時，工作人員可選任意座位或整桌。
-2. 第二步：選擇牌局基本資料
    - 盲注級別：從 timer state 或 sessiontimerlevel 帶入，可手動修正。
    - Ante 模式：讀取 session.antemode，顯示大盲前注或前注。
-   - 手牌時間：預設現在，可修正。
-3. 第三步：輸入手牌
+3. 第二步：輸入手牌
    - Hero hole cards：兩張牌輸入器，支援點選花色與點數。
    - Board：Flop 三張、Turn 一張、River 一張，依街口逐步填寫。
    - 動作摘要：preflop/flop/turn/river 各一個簡短文字框。
    - Pot / result：輸入投入、贏得、淨利。
-4. 第四步：確認
+4. 第三步：確認
    - 顯示桌名、座位、玩家、盲注、手牌、board、結果。
    - 儲存後用 toast 顯示成功，並留在手牌列表，不重整整頁。
 
@@ -46,3 +44,6 @@ PokerTrace 新增手牌流程與 UI 操作規劃
 2. unifiedhandrecord=false 時玩家不能幫自己新增手牌。
 3. unifiedhandrecord=true 時工作人員可記錄任意座位，但 dealer 仍不可操作計時器。 會用websocket 因為可能會有助理協助紀錄手牌
 4. 儲存成功後不重整 session.html，只重新載入手牌列表。
+
+請注意手牌應該會是「連動」的也就是上一筆的資料是會進去下一筆的
+需處理可能有的獨立大盲(DEAD_SMALLBLIND)以及空按鈕(EMPTY_BUTTON)的情況 應該會是兩個勾選框，如果成立，那會在那個位置上寫上代碼

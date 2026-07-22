@@ -6,7 +6,11 @@
 
 ## 主要檔案
 
-- 目前沒有固定檔案；新增內容時請同步更新本說明。
+- `Generated image 1.png`
+- `control_display.png`
+- `default.png`
+- `indeximage.png`
+- `user-merge-trapezoid-gray.png`
 
 ## 子資料夾
 

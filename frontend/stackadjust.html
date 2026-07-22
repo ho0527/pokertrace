@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>計分牌校正 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="newedithand.css">
+	</head>
+	<body class="newhand-page bg-zinc-900 text-white min-h-screen">
+		<div id="navigationbar"></div>
+		<main class="newhand-shell">
+			<div class="newhand-topbar">
+				<div>
+					<div class="newhand-eyebrow">PokerTrace</div>
+					<h1 id="pagetitle">計分牌校正</h1>
+				</div>
+				<div class="newhand-topactions">
+					<a href="sessionlist.html" id="back">上一頁</a>
+				</div>
+			</div>
+			<section class="newhand-status">
+				<div>
+					<span>牌桌</span>
+					<strong id="tablename">-</strong>
+				</div>
+				<div>
+					<span>Dealer</span>
+					<strong id="dealerlabel">-</strong>
+				</div>
+				<div>
+					<span>選手</span>
+					<strong id="playercount">-</strong>
+				</div>
+				<div>
+					<span>總增減</span>
+					<strong id="totaladjust">0</strong>
+				</div>
+				<div>
+					<span>場上總碼量</span>
+						<strong id="totalinplay">-</strong>
+					</div>
+					<div>
+						<span>狀態</span>
+					<strong id="savestatus">尚未儲存</strong>
+				</div>
+			</section>
+			<section class="newhand-grid">
+				<div class="newhand-panel">
+					<div class="newhand-panelhead">
+						<div>
+							<h2>校正原因</h2>
+							<p>這會建立一筆紀錄，下一手會承接校正後碼量</p>
+						</div>
+					</div>
+					<div class="newhand-fields">
+						<div>
+							<label for="exceptiontype">原因</label>
+							<select id="exceptiontype">
+								<option value="chipcount">現場點數校正</option>
+								<option value="raceoff">換色 / Race off</option>
+								<option value="penalty">罰碼 / 補碼</option>
+								<option value="seatfix">座位資料修正</option>
+								<option value="other">其他</option>
+							</select>
+						</div>
+						<div>
+							<label for="dealerseat">Dealer</label>
+							<select id="dealerseat"></select>
+						</div>
+					</div>
+					<div class="note-label mt-3">
+						<label for="ps">備註</label>
+						<textarea id="ps" rows="4" placeholder="請記錄校正原因"></textarea>
+					</div>
+				</div>
+				<div class="newhand-panel">
+					<div class="newhand-panelhead">
+						<div>
+							<h2>碼量增減</h2>
+							<p id="adjustnote">填入每位選手本次增減量</p>
+						</div>
+					</div>
+					<div class="newhand-seatlist" id="adjustlist"></div>
+				</div>
+			</section>
+			<section class="newhand-panel">
+				<div id="warnings" class="newhand-warnings"></div>
+				<div class="newhand-actions">
+					<input type="button" class="primary save" id="saveadjust" value="儲存校正">
+				</div>
+			</section>
+		</main>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="stackadjust.js"></script>
+	</body>
+</html>

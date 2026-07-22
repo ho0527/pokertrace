@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="有效計分牌：雙方較小計分牌與 BB 數。免費線上撲克工具，不用登入、無廣告。Effective Stack: Effective stack in BB. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/effstack.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="有效計分牌 / Effective Stack - PokerTrace">
+		<meta property="og:description" content="有效計分牌：雙方較小計分牌與 BB 數。免費線上撲克工具，不用登入、無廣告。Effective Stack: Effective stack in BB. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/effstack.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>有效計分牌 (Effective Stack) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="estitle">有效計分牌</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="esyoulabel" for="esyou">你的計分牌</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="esyou" min="0" inputmode="numeric" value="18000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="esopplabel" for="esopp">對手計分牌</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="esopp" min="0" inputmode="numeric" value="11000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="esbblabel" for="esbb">大盲（選填）</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="esbb" min="0" step="any" inputmode="decimal" value="500"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="esefflabel">有效計分牌</div><div class="mt-1 text-3xl font-extrabold text-emerald-400" id="eseff">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="esbbcountlabel">有效大盲數</div><div class="mt-1 text-3xl font-extrabold" id="esbbcount">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="esnote">有效計分牌 = 雙方計分牌較小者，即這手牌最多能贏或輸的量。多人底池時取你與各對手的較小值分別計算。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">有效計分牌是什麼？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">兩人對戰時，實際能贏能輸的最大量由較短的一方決定，這就是有效計分牌。所有尺寸與策略決策都應該以有效計分牌（換算成 BB）為基準，而不是自己的總計分牌。輸入雙方計分牌與盲注，立即得到有效深度。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/effstack.js"></script>
+	</body>
+</html>

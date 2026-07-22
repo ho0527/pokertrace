@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="Chip Race：移除小面額換計分牌與餘值。免費線上撲克工具，不用登入、無廣告。Chip Race: Race off small chips. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/chiprace.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="Chip Race - PokerTrace">
+		<meta property="og:description" content="Chip Race：移除小面額換計分牌與餘值。免費線上撲克工具，不用登入、無廣告。Chip Race: Race off small chips. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/chiprace.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>Chip Race - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="crtitle">Chip Race</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crsmalllabel" for="crsmall">移除面額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crsmall" min="1" inputmode="numeric" value="25"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crcountlabel" for="crcount">桌上該面額總顆數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crcount" min="0" inputmode="numeric" value="74"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crnewlabel" for="crnew">換發面額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crnew" min="1" inputmode="numeric" value="100"></div>
+				</div>
+				<div class="mt-4 flex flex-wrap gap-2">
+					<input type="button" class="min-h-10 rounded-2xl border border-emerald-600/60 bg-emerald-600/10 px-4 text-sm font-bold text-emerald-300 transition hover:bg-emerald-600/20" id="crprofilechips" value="從個人資料載入面額">
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="crvaluelabel">移除總值</div><div class="mt-1 text-3xl font-extrabold text-zinc-200" id="crvalue">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="crnewchipslabel">換出新計分牌</div><div class="mt-1 text-3xl font-extrabold text-emerald-400" id="crnewchips">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="crremainlabel">餘值（高牌 race）</div><div class="mt-1 text-3xl font-extrabold text-amber-400" id="crremain">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="crnote">移除總值 = 移除面額 × 顆數。這裡算的是全桌總量：可整除部分換成新面額計分牌，剩下不足一顆新計分牌的是全桌餘值。實際 chip race 是各家先自行換到最大整數，再用各自剩下的零頭發牌比高牌決定進位計分牌，因此各家零頭加總通常會大於這裡的全桌餘值。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">Chip Race 怎麼做？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">移除小面額時，湊不滿一顆大計分牌的零頭傳統上用發牌比大小（chip race）決定歸屬。這個工具幫你算出全桌要準備多少顆新計分牌，以及換不完的全桌餘值；實際發牌時再依「一人最多得一顆、不會因 race 出局」等標準規則處理各家零頭。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/chiprace.js"></script>
+	</body>
+</html>

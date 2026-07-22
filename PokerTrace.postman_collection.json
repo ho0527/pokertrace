@@ -1,0 +1,3577 @@
+{
+    "info": {
+        "name": "PokerTrace API Test Collection",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Generated for project00061. Set baseurl and ids before running destructive endpoints."
+    },
+    "variable": [
+        {
+            "key": "baseurl",
+            "value": "http://127.0.0.1:8000"
+        },
+        {
+            "key": "token",
+            "value": ""
+        },
+        {
+            "key": "userid",
+            "value": "1"
+        },
+        {
+            "key": "messageid",
+            "value": "1"
+        },
+        {
+            "key": "typeid",
+            "value": "1"
+        },
+        {
+            "key": "clubid",
+            "value": "1"
+        },
+        {
+            "key": "sessionid",
+            "value": "1"
+        },
+        {
+            "key": "tableid",
+            "value": "1"
+        },
+        {
+            "key": "seatno",
+            "value": "1"
+        },
+        {
+            "key": "seatingid",
+            "value": "1"
+        },
+        {
+            "key": "handid",
+            "value": "1"
+        },
+        {
+            "key": "staffid",
+            "value": "1"
+        },
+        {
+            "key": "verifytoken",
+            "value": "verify-token"
+        },
+        {
+            "key": "sessionstaffid",
+            "value": "1"
+        },
+        {
+            "key": "timerplayerid",
+            "value": "1"
+        },
+        {
+            "key": "sessionplayerid",
+            "value": "1"
+        },
+        {
+            "key": "keyword",
+            "value": "test"
+        },
+        {
+            "key": "seriesid",
+            "value": "1"
+        },
+        {
+            "key": "notificationid",
+            "value": "1"
+        },
+        {
+            "key": "recordid",
+            "value": "1"
+        },
+        {
+            "key": "tablename",
+            "value": "session"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "System",
+            "item": [
+                {
+                    "name": "Swagger UI",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/swagger/",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "swagger",
+                                ""
+                            ]
+                        },
+                        "description": "",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "OpenAPI JSON",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/swagger.json",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "swagger.json"
+                            ]
+                        },
+                        "description": "",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "WebSocket Timer",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseurl}}/ws/timer/{{sessionid}}/?token={{token}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "ws",
+                                "timer",
+                                "{{sessionid}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "description": "Postman ?? WebSocket request ???ws://127.0.0.1:8000/ws/timer/{{sessionid}}/?token={{token}}"
+                    }
+                },
+                {
+                    "name": "WebSocket Hand",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseurl}}/ws/hand/{{sessionid}}/?token={{token}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "ws",
+                                "hand",
+                                "{{sessionid}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "description": "Postman ?? WebSocket request ???ws://127.0.0.1:8000/ws/hand/{{sessionid}}/?token={{token}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Auth / User",
+            "item": [
+                {
+                    "name": "Signin",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/signin",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "signin"
+                            ]
+                        },
+                        "description": "",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"idtoken\": \"test-id-token\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.success && json.data && json.data.token) {",
+                                    "    pm.collectionVariables.set('token', json.data.token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Signup",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/signup",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "signup"
+                            ]
+                        },
+                        "description": "",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"????\",\n    \"type\": \"player\",\n    \"language\": \"zh-Hant\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Signout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/signout",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "signout"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Signin Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/signincheck",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "signincheck"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get User",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getuser?includefee=1",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getuser?includefee=1"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Search Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/searchusers?keyword={{keyword}}&sessionid={{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "searchusers?keyword={{keyword}}&sessionid={{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get User Report",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getuserreport?includefee=1",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getuserreport?includefee=1"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit User Language",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edituserlanguage",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edituserlanguage"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"langkey\": \"zh-Hant\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit User Chip Colors",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edituserchipcolors",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edituserchipcolors"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"colors\": [\n        {\n            \"value\": 25,\n            \"color\": \"#25a55f\"\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit User Chip Sets",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edituserchipset",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edituserchipset"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sets\": [\n        {\n            \"name\": \"default\",\n            \"chips\": [\n                25,\n                100,\n                500,\n                1000\n            ]\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Tool Favorite",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettoolfavorite",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettoolfavorite"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit Tool Favorite",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edittoolfavorite",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edittoolfavorite"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"favorites\": [\n        \"equity\",\n        \"icm\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit User",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edituser",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edituser"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"test@example.com\",\n    \"name\": \"test user\",\n    \"phone\": \"0900000000\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete User Account",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deleteuseraccount",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deleteuseraccount"
+                            ]
+                        },
+                        "description": "confirmtext must equal the signed-in user playerid.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"confirmtext\": \"{{userid}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Contact",
+            "item": [
+                {
+                    "name": "New Contact Message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newcontactmessage",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newcontactmessage"
+                            ]
+                        },
+                        "description": "",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"?????\",\n    \"email\": \"test@example.com\",\n    \"subject\": \"????\",\n    \"message\": \"????\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Contact Messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getcontactmessages?page=1&limit=20&status=open",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getcontactmessages?page=1&limit=20&status=open"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit Contact Message",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editcontactmessage/{{messageid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editcontactmessage",
+                                "{{messageid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"closed\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Reply Contact Message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/replycontactmessage/{{messageid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "replycontactmessage",
+                                "{{messageid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"subject\": \"Re: ????\",\n    \"message\": \"???????\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Type",
+            "item": [
+                {
+                    "name": "Get Type List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettypelist",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettypelist"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Type",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettype/{{typeid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettype",
+                                "{{typeid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Type",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newtype",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newtype"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"gametype\": \"holdem\",\n    \"name\": \"????\",\n    \"clubid\": \"{{clubid}}\",\n    \"buyin\": 1000,\n    \"rebuycount\": 1,\n    \"rebuybuyin\": 1000,\n    \"winprice\": 0,\n    \"chip\": 10000,\n    \"starttime\": \"2026-06-01 19:00:00\",\n    \"endtime\": \"2026-06-01 23:00:00\",\n    \"description\": \"??\",\n    \"place\": \"????\",\n    \"totalbuyin\": 1000,\n    \"winthing\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Type",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edittype/{{typeid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edittype",
+                                "{{typeid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"??????\",\n    \"clubid\": \"{{clubid}}\",\n    \"buyin\": 1000,\n    \"rebuycount\": 1,\n    \"rebuybuyin\": 1000,\n    \"winprice\": 0,\n    \"winthing\": \"\",\n    \"chip\": 10000,\n    \"starttime\": \"2026-06-01 19:00:00\",\n    \"endtime\": \"2026-06-01 23:00:00\",\n    \"description\": \"??\",\n    \"place\": \"????\",\n    \"totalbuyin\": 1000\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Type",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deletetype/{{typeid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deletetype",
+                                "{{typeid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Club",
+            "item": [
+                {
+                    "name": "Get Club List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getclublist",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getclublist"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Club",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getclub/{{clubid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getclub",
+                                "{{clubid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Club",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newclub",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newclub"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"????\",\n    \"address\": \"???\",\n    \"ps\": \"??\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Club",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editclub/{{clubid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editclub",
+                                "{{clubid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"??????\",\n    \"address\": \"???\",\n    \"ps\": \"????\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Club",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deleteclub/{{clubid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deleteclub",
+                                "{{clubid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Session",
+            "item": [
+                {
+                    "name": "Get Session List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsessionlist",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsessionlist"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Session",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsession/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsession",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Session",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newsession",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newsession"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"gametype\": \"holdem\",\n    \"name\": \"????\",\n    \"clubid\": \"{{clubid}}\",\n    \"buyin\": 1000,\n    \"buyinfee\": 100,\n    \"chip\": 10000,\n    \"rebuycount\": 1,\n    \"rebuybuyin\": 1000,\n    \"rebuyfee\": 100,\n    \"rebuychip\": 10000,\n    \"reentrycount\": 1,\n    \"reentrybuyin\": 1000,\n    \"reentryfee\": 100,\n    \"reentrychip\": 10000,\n    \"addoncount\": 0,\n    \"addonbuyin\": 0,\n    \"addonfee\": 0,\n    \"addonchip\": 0,\n    \"linkuser\": \"\",\n    \"winprice\": 0,\n    \"winthing\": \"\",\n    \"inmoney\": true,\n    \"inft\": false,\n    \"starttime\": \"2026-06-01 19:00:00\",\n    \"endtime\": \"2026-06-01 23:00:00\",\n    \"description\": \"??\",\n    \"place\": \"????\",\n    \"totalbuyin\": 1000,\n    \"gametypeid\": \"\",\n    \"limittypeid\": \"\",\n    \"stacktypeid\": \"\",\n    \"eventtypeid\": \"\",\n    \"owned\": true,\n    \"openregistration\": true,\n    \"maxseat\": 9,\n    \"antemode\": \"bigblindante\",\n    \"unifiedhandrecord\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Copy Session",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/copysession/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "copysession",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit Session",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editsession/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editsession",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"gametype\": \"holdem\",\n    \"name\": \"????\",\n    \"clubid\": \"{{clubid}}\",\n    \"buyin\": 1000,\n    \"buyinfee\": 100,\n    \"chip\": 10000,\n    \"rebuycount\": 1,\n    \"rebuybuyin\": 1000,\n    \"rebuyfee\": 100,\n    \"rebuychip\": 10000,\n    \"reentrycount\": 1,\n    \"reentrybuyin\": 1000,\n    \"reentryfee\": 100,\n    \"reentrychip\": 10000,\n    \"addoncount\": 0,\n    \"addonbuyin\": 0,\n    \"addonfee\": 0,\n    \"addonchip\": 0,\n    \"linkuser\": \"\",\n    \"winprice\": 0,\n    \"winthing\": \"\",\n    \"inmoney\": true,\n    \"inft\": false,\n    \"starttime\": \"2026-06-01 19:00:00\",\n    \"endtime\": \"2026-06-01 23:00:00\",\n    \"description\": \"??\",\n    \"place\": \"????\",\n    \"totalbuyin\": 1000,\n    \"gametypeid\": \"\",\n    \"limittypeid\": \"\",\n    \"stacktypeid\": \"\",\n    \"eventtypeid\": \"\",\n    \"owned\": true,\n    \"openregistration\": true,\n    \"maxseat\": 9,\n    \"antemode\": \"bigblindante\",\n    \"unifiedhandrecord\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Session Settings",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editsessionsettings/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editsessionsettings",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"????\",\n    \"maxseat\": 9,\n    \"antemode\": \"bigblindante\",\n    \"unifiedhandrecord\": false,\n    \"chips\": [\n        {\n            \"value\": 25,\n            \"color\": \"#25a55f\"\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Session Result",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editsessionresult/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editsessionresult",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"rebuycount\": 1,\n    \"winprice\": 0,\n    \"winthing\": \"\",\n    \"place\": \"1\",\n    \"totalbuyin\": 1000,\n    \"inmoney\": true,\n    \"inft\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Session Relations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsessionrelations/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsessionrelations",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Search Session Relations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/searchsessionrelations/{{sessionid}}?keyword={{keyword}}&page=1&limit=20",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "searchsessionrelations",
+                                "{{sessionid}}?keyword={{keyword}}&page=1&limit=20"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit Session Relations",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editsessionrelations/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editsessionrelations",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"relationtype\": \"nextday\",\n    \"direction\": \"outgoing\",\n    \"targetids\": [\n        \"{{sessionid}}\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Session",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deletesession/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deletesession",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Table / Seating",
+            "item": [
+                {
+                    "name": "Get Table List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettablelist/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettablelist",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Table",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettable/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettable",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Table",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newtable/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newtable",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"A?\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Table",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edittable/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edittable",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"A???\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Table Setting",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edittablesetting/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edittablesetting",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"maxseat\": 9,\n    \"firstdealerplace\": 1,\n    \"selfseating\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Table",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deletetable/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deletetable",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Seating List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getseatinglist/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getseatinglist",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Seating",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getseating/{{seatingid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getseating",
+                                "{{seatingid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Seating",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newseating/{{tableid}}/{{seatno}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newseating",
+                                "{{tableid}}",
+                                "{{seatno}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"type\": \"player\",\n    \"name\": \"????\",\n    \"time\": \"2026-06-01 19:00:00\",\n    \"buyin\": 1000,\n    \"chip\": 10000\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Seating",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editseating/{{seatingid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editseating",
+                                "{{seatingid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"maxseat\": 9,\n    \"firstdealerplace\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Seating",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deleteseating/{{seatingid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deleteseating",
+                                "{{seatingid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Session Table Board",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsessiontableboard/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsessiontableboard",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Save Table Players",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/savetableplayers/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "savetableplayers",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"players\": [\n        {\n            \"seatno\": 1,\n            \"sessionplayerid\": \"{{sessionplayerid}}\"\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Eliminate Table Player",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/eliminatetableplayer/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "eliminatetableplayer",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sessionplayerid\": \"{{sessionplayerid}}\",\n    \"seatno\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Move Table Player",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/movetableplayer/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "movetableplayer",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sessionplayerid\": \"{{sessionplayerid}}\",\n    \"targettableid\": \"{{tableid}}\",\n    \"seatno\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Merge Table Players",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/mergetableplayers/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "mergetableplayers",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"targettableid\": \"{{tableid}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Hand",
+            "item": [
+                {
+                    "name": "Get Hand Context",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gethandcontext/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gethandcontext",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Hand List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gethandlist/{{tableid}}?datefrom=&dateto=&playerid=&seatno=&userid=",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gethandlist",
+                                "{{tableid}}?datefrom=&dateto=&playerid=&seatno=&userid="
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Session Hand List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsessionhandlist/{{sessionid}}?seatno=",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsessionhandlist",
+                                "{{sessionid}}?seatno="
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Hand",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gethand/{{handid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gethand",
+                                "{{handid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Solve Hand Winner",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/solvehandwinner",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "solvehandwinner"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"selfseating\": 1,\n    \"handcard\": {\n        \"card1\": \"As\",\n        \"card2\": \"Ah\"\n    },\n    \"boardcard\": {\n        \"flop\": [\n            \"Ks\",\n            \"Qs\",\n            \"Js\"\n        ],\n        \"turn\": \"Ts\",\n        \"river\": \"9s\"\n    },\n    \"showdowndata\": {}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "New Hand",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newhand/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newhand",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"recordtype\": \"hand\",\n    \"selfseating\": 1,\n    \"seatinglist\": [],\n    \"dealerseat\": 1,\n    \"handcard\": {\n        \"card1\": \"As\",\n        \"card2\": \"Ah\"\n    },\n    \"boardcard\": {\n        \"flop\": [\n            \"Ks\",\n            \"Qs\",\n            \"Js\"\n        ],\n        \"turn\": \"Ts\",\n        \"river\": \"9s\"\n    },\n    \"bittingdata\": {\n        \"preflop\": [],\n        \"flop\": [],\n        \"turn\": [],\n        \"river\": []\n    },\n    \"winner\": [\n        1\n    ],\n    \"winnerprice\": [\n        100\n    ],\n    \"showdowndata\": {},\n    \"gametype\": \"holdem\",\n    \"blindlevel\": \"1\",\n    \"levelid\": \"1\",\n    \"smallblind\": 50,\n    \"bigblind\": 100,\n    \"bigblindante\": 100,\n    \"ante\": 0,\n    \"emptybutton\": false,\n    \"deadsmallblind\": false,\n    \"actionsjson\": [],\n    \"adjustments\": {},\n    \"note\": \"????\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Hand",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edithand/{{handid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edithand",
+                                "{{handid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"handcard\": {\n        \"card1\": \"As\",\n        \"card2\": \"Ah\"\n    },\n    \"boardcard\": {\n        \"flop\": [\n            \"Ks\",\n            \"Qs\",\n            \"Js\"\n        ],\n        \"turn\": \"Ts\",\n        \"river\": \"9s\"\n    },\n    \"actionsjson\": []\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Hand",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deletehand/{{handid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deletehand",
+                                "{{handid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Time Bank",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettimebank/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettimebank",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Save Time Bank",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/savetimebank/{{tableid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "savetimebank",
+                                "{{tableid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"state\": {\n        \"seatno\": 1,\n        \"remaining\": 15\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Broadcast Hand List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getbroadcasthandlist/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getbroadcasthandlist",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Broadcast Control",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getbroadcastcontrol/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getbroadcastcontrol",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Broadcast Release",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/broadcastrelease/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "broadcastrelease",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"action\": \"release\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Session Chips",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsessionchips/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsessionchips",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit My Hand Card",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editmyhandcard/{{handid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editmyhandcard",
+                                "{{handid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"handcard\": {\n        \"card1\": \"As\",\n        \"card2\": \"Ah\"\n    },\n    \"note\": \"test note\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Equity",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/equity",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "equity"
+                            ]
+                        },
+                        "description": "Public endpoint: works without token but is rate limited per IP.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"gametype\": \"HE\",\n    \"handlist\": [\n        [\n            \"As\",\n            \"Ah\"\n        ],\n        [\n            \"Ks\",\n            \"Kh\"\n        ]\n    ],\n    \"board\": []\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Staff",
+            "item": [
+                {
+                    "name": "Get Staff List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getstafflist",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getstafflist"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Staff",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newstaff",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newstaff"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"playerid\": \"{{userid}}\",\n    \"role\": \"dealer\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Staff",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deletestaff/{{staffid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deletestaff",
+                                "{{staffid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Verify Staff",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/verifystaff/{{verifytoken}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "verifystaff",
+                                "{{verifytoken}}"
+                            ]
+                        },
+                        "description": "",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Session Staff List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsessionstafflist/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsessionstafflist",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Session Staff",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newstaff/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newstaff",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"playerid\": \"{{userid}}\",\n    \"role\": \"floor\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Session Staff",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deletesessionstaff/{{sessionstaffid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deletesessionstaff",
+                                "{{sessionstaffid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Timer",
+            "item": [
+                {
+                    "name": "Get Timer",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettimer/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettimer",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Save Timer",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/savetimer/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "savetimer",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"action\": \"save\",\n    \"state\": {\n        \"status\": \"paused\",\n        \"level\": 1,\n        \"remaining\": 1200\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Timer Players",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/gettimerplayers/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "gettimerplayers",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit Timer Player",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edittimerplayer/{{sessionid}}/{{timerplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edittimerplayer",
+                                "{{sessionid}}",
+                                "{{timerplayerid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"action\": \"eliminate\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Registration",
+            "item": [
+                {
+                    "name": "Register Session",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/registersession/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "registersession",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Unregister Session",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/unregistersession/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "unregistersession",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get My Registrations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getmyregistrations",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getmyregistrations"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get My Registration Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getmyregistrationstatus/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getmyregistrationstatus",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Session Registration List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getsessionregistrationlist/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getsessionregistrationlist",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Register Session Player",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/registersessionplayer/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "registersessionplayer",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"playerid\": \"{{userid}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Advance Session Player",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/advancesessionplayer/{{sessionplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "advancesessionplayer",
+                                "{{sessionplayerid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"advancechip\": 10000\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Confirm Session Player",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/confirmsessionplayer/{{sessionplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "confirmsessionplayer",
+                                "{{sessionplayerid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Cancel Session Player",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/cancelsessionplayer/{{sessionplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "cancelsessionplayer",
+                                "{{sessionplayerid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Edit Session Player Finance",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editsessionplayerfinance/{{sessionplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editsessionplayerfinance",
+                                "{{sessionplayerid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"buyin\": 1000,\n    \"fee\": 100,\n    \"rebuycount\": 0,\n    \"reentrycount\": 0,\n    \"addoncount\": 0,\n    \"prize\": 0,\n    \"prizeoverride\": false,\n    \"ticketvalue\": 0,\n    \"paymenttype\": \"cash\",\n    \"place\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Session Player Seat",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editsessionplayerseat/{{sessionplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editsessionplayerseat",
+                                "{{sessionplayerid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"tableid\": \"{{tableid}}\",\n    \"seatno\": \"{{seatno}}\",\n    \"startchip\": 10000,\n    \"prizeoverride\": false,\n    \"paymenttype\": \"cash\",\n    \"ticketvalue\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Randomize Session Player Seats",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/randomizesessionplayerseats/{{sessionid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "randomizesessionplayerseats",
+                                "{{sessionid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"mode\": \"unseated\",\n    \"playerids\": [],\n    \"tableids\": [\n        \"{{tableid}}\"\n    ],\n    \"tableid\": \"{{tableid}}\",\n    \"startchip\": 10000\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Check In Info",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getcheckininfo/{{sessionplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getcheckininfo",
+                                "{{sessionplayerid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Rebuy Session Player",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/rebuysessionplayer/{{sessionplayerid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "rebuysessionplayer",
+                                "{{sessionplayerid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                }
+            ]
+        },
+        {
+            "name": "User Admin",
+            "item": [
+                {
+                    "name": "Get User List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getuserlist",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getuserlist"
+                            ]
+                        },
+                        "description": "permission>=4 only."
+                    }
+                },
+                {
+                    "name": "Block User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/blockuser/{{userid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "blockuser",
+                                "{{userid}}"
+                            ]
+                        },
+                        "description": "permission>=4 only. blocktime in minutes.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"test block\",\n    \"blocktime\": 60\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Ban User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/banuser/{{userid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "banuser",
+                                "{{userid}}"
+                            ]
+                        },
+                        "description": "permission>=4 only.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"reason\": \"test ban\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit User Permission",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/edituserpermission/{{userid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "edituserpermission",
+                                "{{userid}}"
+                            ]
+                        },
+                        "description": "permission must be one of 1,2,3,4,5.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"permission\": \"4\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete User",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deleteuser/{{userid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deleteuser",
+                                "{{userid}}"
+                            ]
+                        },
+                        "description": "permission>=4 only."
+                    }
+                },
+                {
+                    "name": "Get Audit Log",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getauditlog?page=1&limit=20&userid=&tablename=&action=&recordid=&keyword=",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getauditlog"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "userid",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "tablename",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "action",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "recordid",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "keyword",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": "permission>=4 only."
+                    }
+                },
+                {
+                    "name": "Get Api Log",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getapilog?page=1&limit=20&userid=&keyword=",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getapilog"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "userid",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "keyword",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": "permission>=4 only."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Notification",
+            "item": [
+                {
+                    "name": "Get Notification List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getnotificationlist?page=1&limit=20&keyword=",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getnotificationlist"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "keyword",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Notification Unread Count",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getnotificationunreadcount",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getnotificationunreadcount"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Read Notification",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/readnotification/{{notificationid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "readnotification",
+                                "{{notificationid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Read All Notification",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/readallnotification",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "readallnotification"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Delete Notification",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deletenotification/{{notificationid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deletenotification",
+                                "{{notificationid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Series",
+            "item": [
+                {
+                    "name": "Get Series List",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getserieslist",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getserieslist"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Get Series",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getseries/{{seriesid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getseries",
+                                "{{seriesid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "New Series",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/newseries",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "newseries"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"test series\",\n    \"clubid\": \"{{clubid}}\",\n    \"scoringtype\": \"point\",\n    \"starttime\": \"2026-06-01 19:00:00\",\n    \"endtime\": \"2026-06-30 23:00:00\",\n    \"description\": \"test\",\n    \"private\": false,\n    \"sessionids\": [\n        \"{{sessionid}}\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Series",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editseries/{{seriesid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editseries",
+                                "{{seriesid}}"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"test series edited\",\n    \"clubid\": \"{{clubid}}\",\n    \"scoringtype\": \"point\",\n    \"starttime\": \"2026-06-01 19:00:00\",\n    \"endtime\": \"2026-06-30 23:00:00\",\n    \"description\": \"test\",\n    \"private\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Edit Series Sessions",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/editseriessessions/{{seriesid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "editseriessessions",
+                                "{{seriesid}}"
+                            ]
+                        },
+                        "description": "sessionids is an integer array.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sessionids\": [\n        1\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Get Series Leaderboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/getseriesleaderboard/{{seriesid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "getseriesleaderboard",
+                                "{{seriesid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Delete Series",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/deleteseries/{{seriesid}}",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "deleteseries",
+                                "{{seriesid}}"
+                            ]
+                        },
+                        "description": ""
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Batch",
+            "item": [
+                {
+                    "name": "Batch Create Sessions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/batchcreatesessions",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "batchcreatesessions"
+                            ]
+                        },
+                        "description": "common.clubid / common.starttime / common.endtime are required. flights must not be empty.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"seriesid\": \"\",\n    \"common\": {\n        \"clubid\": \"{{clubid}}\",\n        \"starttime\": \"2026-06-01 19:00:00\",\n        \"endtime\": \"2026-06-01 23:00:00\",\n        \"buyin\": 1000,\n        \"buyinfee\": 100,\n        \"chip\": 10000,\n        \"rebuycount\": 1,\n        \"rebuybuyin\": 1000,\n        \"rebuyfee\": 100,\n        \"rebuychip\": 10000,\n        \"reentrycount\": 1,\n        \"reentrybuyin\": 1000,\n        \"reentryfee\": 100,\n        \"reentrychip\": 10000,\n        \"addoncount\": 0,\n        \"addonbuyin\": 0,\n        \"addonfee\": 0,\n        \"addonchip\": 0,\n        \"maxseat\": 9,\n        \"antemode\": \"bigblindante\",\n        \"description\": \"test\",\n        \"place\": \"test place\"\n    },\n    \"flights\": [\n        {\n            \"name\": \"Day 1A\",\n            \"starttime\": \"2026-06-01 19:00:00\",\n            \"endtime\": \"2026-06-01 23:00:00\",\n            \"schedule\": []\n        }\n    ],\n    \"advancement\": []\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "GTO",
+            "item": [
+                {
+                    "name": "Solve Flop",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/solveflop",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "solveflop"
+                            ]
+                        },
+                        "description": "Rate limited.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"board\": [\n        \"Ks\",\n        \"Qs\",\n        \"Js\"\n    ],\n    \"ooprange\": \"AA,KK,AKs\",\n    \"iprange\": \"QQ,JJ,AQs\",\n    \"pot\": 10,\n    \"stack\": 100,\n    \"betsizes\": [\n        0.33,\n        0.66\n    ],\n    \"raisemult\": 3.0,\n    \"iters\": 600,\n    \"shortdeck\": false,\n    \"thirdranges\": []\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Solve Next Street",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/solvenextstreet",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "solvenextstreet"
+                            ]
+                        },
+                        "description": "Rate limited. path is the action path taken on the previous street.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"board\": [\n        \"Ks\",\n        \"Qs\",\n        \"Js\"\n    ],\n    \"newcard\": \"Ts\",\n    \"path\": [\n        \"check\",\n        \"check\"\n    ],\n    \"ooprange\": \"AA,KK,AKs\",\n    \"iprange\": \"QQ,JJ,AQs\",\n    \"pot\": 10,\n    \"stack\": 100,\n    \"betsizes\": [\n        0.33,\n        0.66\n    ],\n    \"raisemult\": 3.0,\n    \"iters\": 600,\n    \"shortdeck\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Structure",
+            "item": [
+                {
+                    "name": "Parse Structure",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseurl}}/parsestructure",
+                            "host": [
+                                "{{baseurl}}"
+                            ],
+                            "path": [
+                                "parsestructure"
+                            ]
+                        },
+                        "description": "mode: rule / ai / image. image is base64 data when mode is image.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"mode\": \"rule\",\n    \"text\": \"Level 1 25/50 20min\",\n    \"image\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

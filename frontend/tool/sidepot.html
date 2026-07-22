@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="邊池計算：多人 all-in 主池與邊池分配。免費線上撲克工具，不用登入、無廣告。Side Pot: Main and side pot calculation. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/sidepot.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="邊池計算 / Side Pot - PokerTrace">
+		<meta property="og:description" content="邊池計算：多人 all-in 主池與邊池分配。免費線上撲克工具，不用登入、無廣告。Side Pot: Main and side pot calculation. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/sidepot.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>邊池計算 (Side Pot) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="sptitle">邊池計算</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+				<div class="mb-3 flex items-center justify-between">
+					<div class="text-lg font-extrabold" id="spplayerstitle">玩家投入</div>
+					<input type="button" class="rounded-2xl bg-zinc-800 px-3 py-1.5 text-sm font-bold text-zinc-100 hover:bg-zinc-700" id="spaddplayer" value="+ 玩家">
+				</div>
+				<div class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
+					<span class="w-28 sm:w-36" id="spnamehead">名稱</span>
+					<span class="flex-1" id="spchipshead">投入計分牌</span>
+					<span class="w-24 text-center" id="spfoldhead">攤牌</span>
+					<span class="w-12"></span>
+				</div>
+				<div id="spplayers" class="space-y-2"></div>
+				<div class="mt-3 text-xs text-zinc-500" id="spnote">取消「攤牌」表示該玩家已棄牌：他投入的計分牌仍計入彩池，但不能贏得彩池。</div>
+			</section>
+
+			<section class="mt-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-4 flex items-center justify-between">
+					<div class="text-lg font-extrabold" id="spresulttitle">彩池分配</div>
+					<div class="text-sm text-zinc-400"><span id="sptotallabel">總彩池</span>：<span id="sptotal" class="font-mono font-extrabold text-emerald-400">-</span></div>
+				</div>
+				<div id="spresults" class="space-y-3"></div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">邊池怎麼分？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">多人 all-in 時，每個人只能贏自己有跟到的部分：最短計分牌組成主池，超出的部分依序組成邊池。輸入各家投入量，工具自動算出主池與各邊池的金額和參與者，攤牌時照表分錢不出錯。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/sidepot.js"></script>
+	</body>
+</html>

@@ -1,7 +1,7 @@
 import os
 import django
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project00058.settings")  # ← 修改成你的設定路徑
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "pokertrace.settings")  # ← 修改成你的設定路徑
 django.setup()
 
 from django.core.mail import send_mail

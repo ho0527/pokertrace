@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="Add-on 划算嗎：每計分牌成本比較。免費線上撲克工具，不用登入、無廣告。Add-on EV: Compare chip cost. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/addonev.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="Add-on 划算嗎 / Add-on EV - PokerTrace">
+		<meta property="og:description" content="Add-on 划算嗎：每計分牌成本比較。免費線上撲克工具，不用登入、無廣告。Add-on EV: Compare chip cost. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/addonev.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>Add-on 划算嗎 (Add-on EV) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="aetitle">Add-on 划算嗎</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="aebuyinlabel" for="aebuyin">初始買入金額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="aebuyin" min="0" inputmode="numeric" value="1000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="aestartlabel" for="aestart">初始計分牌</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="aestart" min="0" inputmode="numeric" value="20000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="aefeelabel" for="aefee">Addon 費用</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="aefee" min="0" inputmode="numeric" value="500"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="aechipslabel" for="aechips">Addon 計分牌</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="aechips" min="0" inputmode="numeric" value="15000"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="aebasecostlabel">初始每計分牌成本</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="aebasecost">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="aeaddoncostlabel">Addon 每計分牌成本</div><div class="mt-1 text-2xl font-extrabold" id="aeaddoncost">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="aeverdictlabel">建議</div><div class="mt-1 text-2xl font-extrabold" id="aeverdict">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="aenote">每計分牌成本越低代表 CP 值越高。Addon 每計分牌成本低於初始買入時，純就計分牌價值通常划算；實戰仍需考慮 ICM 與剩餘計分牌深度。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">Add-on 該不該買？怎麼判斷划不划算</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">Add-on 是比賽中一次性加買計分牌的選項。判斷值不值得買，最直接的方式是比較「每千計分牌成本」：把 add-on 的價格除以拿到的計分牌量，再跟原始買入的每計分牌成本比較。通常 add-on 的計分牌單價比買入便宜、而且你的計分牌偏短時，加買的價值最高。這個工具直接算出兩邊的單位成本與差異，現場幾秒鐘就能做決定。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/addonev.js"></script>
+	</body>
+</html>

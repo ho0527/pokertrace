@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="賽事 KPI 摘要：抽水率、淨利率等指標。免費線上撲克工具，不用登入、無廣告。KPI Summary: Rake rate, margin, and metrics. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/kpi.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="賽事 KPI 摘要 / KPI Summary - PokerTrace">
+		<meta property="og:description" content="賽事 KPI 摘要：抽水率、淨利率等指標。免費線上撲克工具，不用登入、無廣告。KPI Summary: Rake rate, margin, and metrics. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/kpi.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<base href="../">
+		<title>賽事 KPI 摘要 (KPI Summary) - PokerTrace 免費撲克工具</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="kptitle">賽事 KPI 摘要</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="kpentrieslabel" for="kpentries">報名人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="kpentries" min="1" inputmode="numeric" value="80"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="kprevenuelabel" for="kprevenue">總收入</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="kprevenue" min="0" inputmode="numeric" value="135000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="kppoollabel" for="kppool">總獎池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="kppool" min="0" inputmode="numeric" value="120000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="kpcostlabel" for="kpcost">主辦成本</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="kpcost" min="0" inputmode="numeric" value="9000"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="kpperlabel">人均收入</div><div class="mt-1 text-xl font-extrabold text-zinc-200" id="kpper">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="kprakelabel">抽水率</div><div class="mt-1 text-xl font-extrabold" id="kprake">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="kpsharelabel">獎池佔比</div><div class="mt-1 text-xl font-extrabold text-zinc-200" id="kpshare">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="kpprofitlabel">主辦淨利</div><div class="mt-1 text-xl font-extrabold" id="kpprofit">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="kpmarginlabel">淨利率</div><div class="mt-1 text-xl font-extrabold" id="kpmargin">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="kpnote">抽水率 =（總收入 − 總獎池）÷ 總收入。主辦淨利 = 總收入 − 總獎池 − 成本（假設獎池由收入支出）。淨利率 = 淨利 ÷ 總收入。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">賽事營運 KPI 摘要</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">報名人次、重購率、抽水率、每桌小時成本、淨利率——這個工具把一場比賽的關鍵營運指標整理成一頁摘要，讓主辦用數字檢討每一場，找出值得複製或需要修正的地方。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/kpi.js"></script>
+	</body>
+</html>

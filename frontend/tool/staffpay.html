@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="工作人員薪資：時薪、獎金、交通試算。免費線上撲克工具，不用登入、無廣告。Staff Pay: Hourly pay, bonus, and travel. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/staffpay.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="工作人員薪資 / Staff Pay - PokerTrace">
+		<meta property="og:description" content="工作人員薪資：時薪、獎金、交通試算。免費線上撲克工具，不用登入、無廣告。Staff Pay: Hourly pay, bonus, and travel. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/staffpay.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>工作人員薪資 (Staff Pay) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="sttitle">工作人員薪資</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sthourlylabel" for="sthourly">時薪</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sthourly" min="0" inputmode="numeric" value="200"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sthourslabel" for="sthours">時數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sthours" step="0.5" min="0" inputmode="decimal" value="8"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="stbonuslabel" for="stbonus">場次獎金</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="stbonus" min="0" inputmode="numeric" value="500"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sttransportlabel" for="sttransport">交通補貼</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sttransport" min="0" inputmode="numeric" value="100"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="stcountlabel" for="stcount">人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="stcount" min="1" inputmode="numeric" value="1"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="stperlabel">每人應付</div><div class="mt-1 text-3xl font-extrabold text-emerald-400" id="stper">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="stbaselabel">其中時薪部分</div><div class="mt-1 text-3xl font-extrabold text-zinc-200" id="stbase">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="sttotallabel">全體合計</div><div class="mt-1 text-3xl font-extrabold" id="sttotal">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="stnote">每人應付 = 時薪 × 時數 + 場次獎金 + 交通補貼。全體合計 = 每人應付 × 人數（假設條件相同，可逐人重算）。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">工作人員薪資試算</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入每位工作人員的時薪、工時、獎金與交通補貼，工具算出個別與總計的人事成本，是主辦財務試算裡最常被低估的一塊。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/staffpay.js"></script>
+	</body>
+</html>

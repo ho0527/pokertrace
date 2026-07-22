@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="勝率解算器：德州 / 奧馬哈 手牌勝率與 outs。免費線上撲克工具，不用登入、無廣告。Equity Solver: Hold'em / Omaha equity and outs. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/equity.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="勝率解算器 / Equity Solver - PokerTrace">
+		<meta property="og:description" content="勝率解算器：德州 / 奧馬哈 手牌勝率與 outs。免費線上撲克工具，不用登入、無廣告。Equity Solver: Hold'em / Omaha equity and outs. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/equity.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>勝率解算器 (Equity Solver) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="equitytitle">勝率解算器</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-5 flex flex-wrap items-center gap-2">
+					<span class="mr-2 text-sm font-bold text-zinc-300" id="equitygametypelabel">遊戲類型</span>
+					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-gametype="HE" value="德州撲克">
+					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-gametype="OM" value="奧馬哈">
+					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-gametype="O5" value="奧馬哈 5">
+					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-gametype="SD" value="短牌">
+				</div>
+
+				<div class="mb-2 mt-6 text-sm font-bold text-zinc-300" id="equityboardlabel">公共牌</div>
+				<div class="mb-4 flex items-center gap-2 md:gap-6" id="boardcard"></div>
+
+				<div class="mb-1 mt-6 text-sm font-bold text-zinc-300" id="equitydeadlabel">燒牌 / 棄牌</div>
+				<div class="mb-2 text-xs text-zinc-500" id="equitydeadhint">這些牌會從牌堆中移除，不計入勝率計算</div>
+				<div class="mb-4 flex flex-wrap items-center gap-2 md:gap-6" id="deadcard"></div>
+
+				<div class="my-2 text-sm font-bold text-zinc-300" id="equityhandlistlabel">玩家手牌</div>
+				<input type="button" class="my-3 min-h-12 w-full rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="addhandbutton" value="+ 新增玩家">
+				<div id="handlist"></div>
+
+				<div class="mt-6 flex flex-wrap gap-2">
+					<input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="clearbutton" value="清空">
+				</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">德州撲克勝率計算器</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入你和對手的手牌（支援德州與奧馬哈）與公共牌，工具即時計算各家勝率、平手率與剩餘 outs。可以用來複盤關鍵手牌、驗證全下決策，或單純弄清楚 AK 對 QQ 到底是幾比幾。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/equity.js"></script>
+	</body>
+</html>

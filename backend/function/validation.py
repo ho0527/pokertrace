@@ -272,7 +272,8 @@ def validate(data,rule,error,checkall=False):
 					if str(value) not in allowed:
 						return seterror(testkey,rulename)
 			elif rulename in ["integer","int"]:
-				if not isinstance(value,int):
+				# bool 是 int 子類，True/False 不當成整數
+				if isinstance(value,bool) or not isinstance(value,int):
 					return seterror(testkey,rulename)
 			elif rulename=="ip":
 				try:
@@ -297,7 +298,7 @@ def validate(data,rule,error,checkall=False):
 			elif rulename=="max":
 				try:
 					size=checksize(value)
-					if size==False or int(rulevaluelist[0])<size:
+					if size is False or int(rulevaluelist[0])<size:
 						return seterror(testkey,rulename)
 				except:
 					return seterror(testkey,rulename)
@@ -312,7 +313,7 @@ def validate(data,rule,error,checkall=False):
 			elif rulename=="min":
 				try:
 					size=checksize(value)
-					if size==False or size<int(rulevaluelist[0]):
+					if size is False or size<int(rulevaluelist[0]):
 						return seterror(testkey,rulename)
 				except:
 					return seterror(testkey,rulename)
@@ -377,7 +378,7 @@ def validate(data,rule,error,checkall=False):
 					return seterror(testkey,rulename)
 			elif rulename=="size":
 				size=checksize(value)
-				if size==False or size!=int(rulevaluelist[0]):
+				if size is False or size!=int(rulevaluelist[0]):
 					return seterror(testkey,rulename)
 			elif rulename in ["bail","required","nullable"]:
 				pass  # 已經處理過
@@ -415,9 +416,11 @@ def validate(data,rule,error,checkall=False):
 					if not returndata["check"]:
 						check=False
 						errordata[fullkey]={}
-						errordata[fullkey][returndata["rulename"]]=returndata["errordata"].replace(":key",f"'{fullkey.split(".")[-1]}'")
+						message=returndata["errordata"] or error.get("default") or "ERROR_request_data_type_error"
+						keyname=fullkey.split(".")[-1]
+						errordata[fullkey][returndata["rulename"]]=message.replace(":key","'" + keyname + "'")
 						if not firsterror:
-							firsterror=returndata["errordata"].replace(":key",f"'{fullkey.split(".")[-1]}'")
+							firsterror=message.replace(":key","'" + keyname + "'")
 						if not checkall:
 							break
 						if "bail" in testrulelist:

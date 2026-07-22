@@ -1,0 +1,32 @@
+# PokerTrace backend dependencies
+# Python 3.10+ / Django ASGI
+
+# Web framework
+# 5.0 系列已 EOL (2025-04 終止支援), 改用 5.2 LTS (延長支援至 2028-04)。
+# 這裡只是宣告變更, 實際升級需自行執行 pip install -r requirements.txt 並重測。
+Django==5.2.16
+djangorestframework==3.15.2
+django-cors-headers==4.4.0
+
+# ASGI / WebSocket
+daphne==4.2.1
+uvicorn==0.32.0
+channels==4.2.2
+channels-redis==4.3.0
+asgiref==3.11.1
+redis==6.3.0
+
+# Database drivers
+psycopg2-binary==2.9.11
+mysqlclient==2.2.4
+mysql-connector-python==9.3.0
+
+# Auth / security / integrations
+bcrypt==3.2.0
+google-auth==2.35.0
+firebase-admin==7.3.0
+requests==2.32.2
+
+# Poker / calculation
+eval7==0.1.10
+numpy==2.2.6

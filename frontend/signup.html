@@ -15,10 +15,11 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>註冊 - Register</title>
+	<title>註冊 - PokerTrace</title>
+	<link rel="stylesheet" href="index.css">
 	<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 	<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="tailwind.css">
 	<style>
 		/* 粒子背景 */
 		#particles {
@@ -55,9 +56,9 @@
 			100% { background-position: 200% center; }
 		}
 		@keyframes pulse-ring {
-			0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
-			70%  { box-shadow: 0 0 0 16px rgba(59,130,246,0); }
-			100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+			0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+			70%  { box-shadow: 0 0 0 16px rgba(16,185,129,0); }
+			100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
 		}
 		@keyframes cardIn {
 			from { opacity: 0; transform: translateY(40px) scale(0.97); }
@@ -84,7 +85,7 @@
 		}
 
 		.shimmer-text {
-			background: linear-gradient(90deg, #60a5fa, #a78bfa, #34d399, #60a5fa);
+			background: linear-gradient(90deg, #34d399, #10b981, #6ee7b7, #34d399);
 			background-size: 200% auto;
 			-webkit-background-clip: text;
 			-webkit-text-fill-color: transparent;
@@ -100,21 +101,31 @@
 			align-items: center;
 			gap: 6px;
 			padding: 14px 10px;
-			border-radius: 12px;
-			border: 2px solid transparent;
+			border-radius: 16px;
+			border: 2px solid #3f3f46;
 			background: #27272a;
 			cursor: pointer;
 			transition: all 0.22s cubic-bezier(.22,1,.36,1);
 			flex: 1;
+			/* input 的 value 文字不會換行, 預設 min-width:auto 會把按鈕撐到整串文字寬度,
+			   四顆中英雙語標籤合計遠超過卡片寬度而爆版。改 2 欄網格並允許收縮。 */
+			min-width: 0;
+			width: 100%;
 		}
 		.role-btn:hover {
-			border-color: #3f3f46;
+			border-color: #52525b;
 			background: #3f3f46;
 			transform: translateY(-2px);
 		}
+		/* 窄螢幕改單欄: 2 欄時「Assistant 助理」這種較長的雙語標籤會被裁切 */
+		@media (max-width: 430px) {
+			#role-group {
+				grid-template-columns: 1fr;
+			}
+		}
 		.role-btn.active {
-			border-color: #3b82f6;
-			background: #1e3a5f;
+			border-color: #10b981;
+			background: #064e3b;
 			animation: pulse-ring 1.2s ease-out;
 		}
 		.role-btn .role-icon {
@@ -131,14 +142,14 @@
 			transition: color 0.2s;
 		}
 		.role-btn.active .role-label {
-			color: #93c5fd;
+			color: #6ee7b7;
 		}
 		.role-btn .role-sub {
 			font-size: 0.6rem;
 			color: #52525b;
 		}
 		.role-btn.active .role-sub {
-			color: #3b82f6;
+			color: #10b981;
 		}
 
 		/* 語言切換 */
@@ -147,16 +158,16 @@
 			border-radius: 999px;
 			font-size: 0.85rem;
 			font-weight: 600;
-			border: 2px solid transparent;
+			border: 2px solid #3f3f46;
 			background: #27272a;
 			color: #a1a1aa;
 			cursor: pointer;
 			transition: all 0.2s;
 		}
 		.lang-btn.active {
-			background: #1d4ed8;
+			background: #059669;
 			color: #fff;
-			border-color: #3b82f6;
+			border-color: #10b981;
 		}
 		.lang-btn:hover:not(.active) {
 			background: #3f3f46;
@@ -169,15 +180,15 @@
 			background: #27272a;
 			color: #fff;
 			border: 2px solid #3f3f46;
-			border-radius: 10px;
+			border-radius: 16px;
 			padding: 12px 16px;
 			font-size: 0.95rem;
 			outline: none;
 			transition: border-color 0.2s, box-shadow 0.2s;
 		}
 		.input-field:focus {
-			border-color: #3b82f6;
-			box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+			border-color: #10b981;
+			box-shadow: 0 0 0 4px rgba(16,185,129,0.15);
 		}
 		.input-field::placeholder { color: #52525b; }
 
@@ -185,7 +196,7 @@
 		.submit-btn {
 			width: 100%;
 			padding: 14px;
-			border-radius: 12px;
+			border-radius: 16px;
 			font-size: 1rem;
 			font-weight: 700;
 			letter-spacing: 0.05em;
@@ -193,13 +204,13 @@
 			border: none;
 			position: relative;
 			overflow: hidden;
-			background: linear-gradient(135deg, #2563eb, #7c3aed);
+			background: linear-gradient(135deg, #10b981, #059669);
 			color: #fff;
 			transition: transform 0.15s, box-shadow 0.15s;
 		}
 		.submit-btn:hover {
 			transform: translateY(-2px);
-			box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+			box-shadow: 0 8px 24px rgba(16,185,129,0.4);
 		}
 		.submit-btn:active { transform: scale(0.98); }
 		.submit-btn::after {
@@ -236,49 +247,49 @@
 			content: '';
 			position: absolute;
 			inset: -1px;
-			border-radius: 17px;
-			background: linear-gradient(135deg, #3b82f6, #7c3aed, #10b981);
-			opacity: 0.35;
+			border-radius: 29px;
+			background: linear-gradient(135deg, #10b981, #059669, #34d399);
+			opacity: 0.30;
 			z-index: -1;
 			filter: blur(8px);
 		}
 	</style>
 </head>
-<body class="bg-zinc-900 text-white min-h-screen flex flex-col items-center justify-center px-4 py-12 relative">
+<body class="bg-zinc-950 text-white min-h-screen flex flex-col items-center justify-center px-4 py-12 relative">
 
 	<!-- 粒子背景 -->
 	<div id="particles"></div>
 
 	<!-- 歡迎區 -->
 	<div class="text-center mb-10 relative z-10">
-		<h1 class="welcome-title text-4xl md:text-5xl font-black mb-3 shimmer-text">
+		<h1 class="welcome-title text-4xl md:text-5xl font-black mb-3 shimmer-text" id="signupwelcometitle">
 			感謝您註冊PokerTrace！
 		</h1>
-		<p class="welcome-sub text-zinc-400 text-base md:text-lg">
+		<p class="welcome-sub text-zinc-400 text-base md:text-lg" id="signupwelcomesub">
 			Welcome to the PokerTrace &nbsp;·&nbsp; 建立您的帳號以開始使用
 		</p>
 	</div>
 
 	<!-- 表單卡片 -->
 	<div class="card-anim card-glow w-full max-w-md relative z-10">
-		<div class="bg-zinc-800 rounded-2xl p-8 shadow-2xl">
+		<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-8 shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
 
 			<!-- 步驟提示 -->
 			<div class="flex items-center gap-2 mb-7">
-				<div class="w-2 h-2 rounded-full bg-blue-500"></div>
-				<div class="flex-1 h-0.5 bg-blue-500"></div>
-				<div class="w-2 h-2 rounded-full bg-purple-500"></div>
-				<div class="flex-1 h-0.5 bg-zinc-600"></div>
-				<div class="w-2 h-2 rounded-full bg-zinc-600"></div>
+				<div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+				<div class="flex-1 h-0.5 bg-emerald-400"></div>
+				<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+				<div class="flex-1 h-0.5 bg-zinc-700"></div>
+				<div class="w-2 h-2 rounded-full bg-zinc-700"></div>
 			</div>
 
 			<form id="form">
 
 				<!-- 顯示名稱 -->
 				<div class="mb-6">
-					<label class="block text-sm font-semibold text-zinc-300 mb-2">
-						顯示名稱 <span class="text-red-400">*</span>
-						<span class="text-zinc-500 font-normal ml-1">Display Name</span>
+					<label class="block text-sm font-semibold text-zinc-300 mb-2" for="username">
+						<span id="usernamelabeltext">顯示名稱</span> <span class="text-red-400">*</span>
+						<span class="text-zinc-500 font-normal ml-1" id="usernamelabelhint">Display Name</span>
 					</label>
 					<input type="text" id="username" class="input-field" placeholder="請輸入您的名稱…" maxlength="30" required>
 					<p class="text-xs text-zinc-500 mt-1.5 hidden" id="username-err">⚠ 請輸入名稱</p>
@@ -287,11 +298,11 @@
 				<!-- 語言 -->
 				<div class="mb-6">
 					<label class="block text-sm font-semibold text-zinc-300 mb-3">
-						語言偏好 <span class="text-zinc-500 font-normal ml-1">Language</span>
+						<span id="languagelabeltext">語言偏好</span> <span class="text-zinc-500 font-normal ml-1" id="languagelabelhint">Language</span>
 					</label>
 					<div class="flex gap-2">
-						<button type="button" class="lang-btn active" id="lang-zh" onclick="switchLang('zh')">🇹🇼 中文</button>
-						<button type="button" class="lang-btn"        id="lang-en" onclick="switchLang('en')">🇺🇸 English</button>
+						<input type="button" class="lang-btn active" id="lang-zh" onclick="switchLang('zh')" value="🇹🇼 中文">
+						<input type="button" class="lang-btn"        id="lang-en" onclick="switchLang('en')" value="🇺🇸 English">
 					</div>
 					<input type="hidden" id="lang-value" value="zh">
 				</div>
@@ -299,57 +310,34 @@
 				<!-- 帳號類型 -->
 				<div class="mb-8">
 					<label class="block text-sm font-semibold text-zinc-300 mb-3">
-						帳號類型 <span class="text-red-400">*</span>
-						<span class="text-zinc-500 font-normal ml-1">Account Type</span>
+						<span id="rolelabeltext">帳號類型</span> <span class="text-red-400">*</span>
+						<span class="text-zinc-500 font-normal ml-1" id="rolelabelhint">Account Type</span>
 					</label>
-					<div class="text-sm text-red-500">請注意，帳號類型選擇後無法再修改，請謹慎選擇</div>
-					<div class="flex gap-2" id="role-group">
-						<button type="button" class="role-btn" id="role-player" onclick="switchRole('player')">
-							<span class="role-icon">🎮</span>
-							<span class="role-label">Player</span>
-							<span class="role-sub">玩家</span>
-						</button>
-						<button type="button" class="role-btn" id="role-dealer" onclick="switchRole('dealer')">
-							<span class="role-icon">🃏</span>
-							<span class="role-label">Dealer</span>
-							<span class="role-sub">發牌員</span>
-						</button>
-						<button type="button" class="role-btn" id="role-floor" onclick="switchRole('floor')">
-							<span class="role-icon">⚖️</span>
-							<span class="role-label">Floor</span>
-							<span class="role-sub">裁判</span>
-						</button>
-						<button type="button" class="role-btn" id="role-assistant" onclick="switchRole('assistant')">
-							<span class="role-icon">🙋</span>
-							<span class="role-label">Assistant</span>
-							<span class="role-sub">助理</span>
-						</button>
+					<div class="text-sm text-red-500" id="rolewarning">請注意，帳號類型選擇後無法再修改，請謹慎選擇</div>
+					<div class="grid grid-cols-2 gap-2" id="role-group">
+						<input type="button" class="role-btn" id="role-player" onclick="switchRole('player')" value="🎮 Player 選手">
+						<input type="button" class="role-btn" id="role-dealer" onclick="switchRole('dealer')" value="🃏 Dealer 發牌員">
+						<input type="button" class="role-btn" id="role-floor" onclick="switchRole('floor')" value="⚖️ Floor 裁判">
+						<input type="button" class="role-btn" id="role-assistant" onclick="switchRole('assistant')" value="🙋 Assistant 助理">
 					</div>
 					<p class="text-xs text-zinc-500 mt-1.5 hidden" id="role-err">⚠ 請選擇帳號類型</p>
 					<input type="hidden" id="role-value" value="">
 				</div>
 
 				<!-- 送出按鈕 -->
-				<button type="submit" class="submit-btn" id="submit-btn">
-					<span id="submit-text">確認送出 Submit</span>
-					<span id="submit-loading" class="hidden gap-2 justify-center items-center">
-						<span class="loading-dot"></span>
-						<span class="loading-dot"></span>
-						<span class="loading-dot"></span>
-					</span>
-				</button>
+				<input type="submit" class="submit-btn" id="submit-btn" value="確認送出 Submit">
 			</form>
 
 			<!-- 成功畫面（隱藏） -->
 			<div id="success-screen" class="hidden flex-col items-center text-center py-4">
 				<div class="success-icon text-6xl mb-4">🎉</div>
-				<h2 class="text-2xl font-bold text-green-400 mb-2">註冊成功！</h2>
-				<p class="text-zinc-400 text-sm mb-1">歡迎，<span class="text-white font-semibold" id="success-name"></span>！</p>
+				<h2 class="text-2xl font-bold text-green-400 mb-2" id="successtitle">註冊成功！</h2>
+				<p class="text-zinc-400 text-sm mb-1"><span id="successwelcomeprefix">歡迎，</span><span class="text-white font-semibold" id="success-name"></span><span id="successwelcomesuffix">！</span></p>
 				<p class="text-zinc-500 text-xs mb-6">
-					帳號類型：<span class="text-blue-300" id="success-role"></span>
-					語言：<span class="text-purple-300" id="success-lang"></span>
+					<span id="successrolelabel">帳號類型：</span><span class="text-emerald-300" id="success-role"></span>
+					<span id="successlanglabel">語言：</span><span class="text-emerald-300" id="success-lang"></span>
 				</p>
-				<a href="main.html" class="submit-btn inline-block text-center no-underline" style="text-decoration:none; display:block;">
+				<a href="main.html" class="submit-btn inline-block text-center no-underline" id="successgomain" style="text-decoration:none; display:block;">
 					前往主頁 →
 				</a>
 			</div>

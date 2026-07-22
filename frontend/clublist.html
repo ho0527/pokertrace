@@ -3,85 +3,78 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>協會管理</title>
+		<title>協會管理 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-		<script src="https://cdn.tailwindcss.com"></script>
+		<link rel="stylesheet" href="tailwind.css">
 	</head>
-	<body class="bg-zinc-900 text-white min-h-screen">
+	<body class="min-h-screen bg-zinc-950 text-white">
 		<div id="navigationbar"></div>
 
-		<div class="max-w-6xl mx-auto py-8 px-4">
-			<h1 class="text-3xl font-bold mb-6">協會管理</h1>
-
-			<div class="bg-zinc-800 rounded-lg p-4 mb-6 flex flex-wrap gap-4 items-center">
-				<input type="text" class="bg-zinc-700 text-white rounded px-3 py-2 flex-1" id="searchname" placeholder="搜尋協會名稱">
-				<input type="button" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded cursor-pointer" id="searchbutton" value="搜尋">
-				<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded cursor-pointer" id="addclubbutton" value="新增協會">
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6">
+				<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Clubs</p>
+				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl">協會管理</h1>
 			</div>
 
-			<div class="h-[50vh] overflow-y-auto">
-				<table class="w-full text-sm bg-zinc-800 rounded-lg">
-					<thead class="sticky top-0">
-						<tr class="bg-zinc-700 text-zinc-300">
-							<th class="py-3 px-4">#</th>
-							<th class="py-3 px-4">協會名稱</th>
-							<th class="py-3 px-4">協會地址</th>
-							<th class="py-3 px-4">註解</th>
-							<th class="py-3 px-4">操作</th>
-						</tr>
-					</thead>
-					<tbody class="text-center" id="clubtable"></tbody>
-				</table>
-			</div>
-
-			<div class="bg-zinc-800 rounded-lg p-6 my-8">
-				<div class="text-lg font-semibold mb-4 text-center">協會統計</div>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-					<div class="flex flex-col items-center">
-						<div class="text-zinc-400">總協會數</div>
-						<div class="text-2xl font-bold" id="totalclubs">0</div>
-					</div>
-					<div class="flex flex-col items-center">
-						<div class="text-zinc-400">顯示數量</div>
-						<div class="text-2xl font-bold" id="displaycount">0</div>
+			<section class="mb-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-6">
+				<div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+					<input type="text" class="min-h-12 w-full flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="searchname" placeholder="搜尋協會名稱 / 地址 / 註解" aria-label="搜尋協會">
+					<div class="grid grid-cols-3 gap-2 md:flex md:gap-3">
+						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="searchbutton" value="搜尋">
+						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="clearsearchbutton" value="清空">
+						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="addclubbutton" value="新增協會">
 					</div>
 				</div>
-			</div>
+			</section>
+
+			<div id="clubmain"></div>
+			<div class="mt-4 flex flex-wrap items-center justify-center gap-2" id="clubpagination"></div>
+
+			<section class="bg-zinc-800 rounded-lg p-6 my-8 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="text-lg font-extrabold mb-4 text-center text-white">協會統計</div>
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 flex flex-col items-center">
+						<div class="text-zinc-400 text-sm">總協會數</div>
+						<div class="mt-1 text-2xl font-extrabold text-white" id="totalclubs">0</div>
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 flex flex-col items-center">
+						<div class="text-zinc-400 text-sm">顯示數量</div>
+						<div class="mt-1 text-2xl font-extrabold text-white" id="displaycount">0</div>
+					</div>
+				</div>
+			</section>
 		</div>
 
-		<div id="clubmodal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-			<div class="bg-zinc-800 rounded-lg p-6 w-full max-w-md mx-4">
+		<div id="clubmodal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
+			<div class="w-full max-w-md rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)] md:p-8">
 				<div class="flex justify-between items-center mb-6">
-					<h2 class="text-2xl font-bold" id="modaltitle">新增協會</h2>
-					<button id="closemodal" class="text-zinc-400 hover:text-white text-2xl">&times;</button>
+					<h2 class="text-2xl font-extrabold text-white" id="modaltitle">新增協會</h2>
+					<input type="button" class="text-2xl text-zinc-400 transition hover:text-white" id="closemodal" value="&times;">
 				</div>
 
 				<form id="clubform">
 					<input type="hidden" id="clubid">
 
 					<div class="mb-4">
-						<label class="block text-sm font-medium mb-2">協會名稱 <span class="text-red-500">*</span></label>
-						<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="clubname" required>
+						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubname">協會名稱 <span class="text-red-500">*</span></label>
+						<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubname" required>
 					</div>
 
 					<div class="mb-4">
-						<label class="block text-sm font-medium mb-2">協會地址 <span class="text-red-500">*</span></label>
-						<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="clubaddress" required>
+						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubaddress">協會地址 <span class="text-red-500">*</span></label>
+						<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubaddress" required>
 					</div>
 
 					<div class="mb-6">
-						<label class="block text-sm font-medium mb-2">註解</label>
-						<textarea class="w-full bg-zinc-700 text-white rounded px-3 py-2 h-24" id="clubps" rows="3"></textarea>
+						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubps">註解</label>
+						<textarea class="w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubps" rows="3"></textarea>
 					</div>
 
 					<div class="flex gap-3">
-						<button type="button" class="flex-1 bg-zinc-600 hover:bg-zinc-700 px-4 py-2 rounded cursor-pointer" id="cancelbutton">
-							取消
-						</button>
-						<button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded cursor-pointer">
-							確認
-						</button>
+						<input type="button" class="min-h-12 flex-1 cursor-pointer rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="cancelbutton" value="取消">
+						<input type="submit" class="min-h-12 flex-1 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" value="確認">
 					</div>
 				</form>
 			</div>

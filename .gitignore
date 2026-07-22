@@ -1,0 +1,9 @@
+db.sqlite3
+node_modules/
+__pycache__/
+*.pyc
+*.log
+# 資料庫完整備份含 user/token 等 PII，不進版控（schema-only 的 *_schema.sql 可留）
+# 目錄名以 ! 開頭，gitignore 會誤判為否定符號，需用 \ 轉義
+\!SQL/*.dump
+backend/backup/dumps/

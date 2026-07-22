@@ -6,10 +6,11 @@
 
 ## 主要檔案
 
-- `mod1.html`
-- `mod2.css`
-- `mod2.html`
-- `mod2.js`
+- `mod1.html`：現役的 404 頁面，nginx 的 `error_page 404` 指向這一份。
+
+已於 2026-07-17 移除的檔案（備份保留為 `mod2_old_t1.*`）：
+
+- `mod2.html`／`mod2.css`／`mod2.js`：未串接的舊版特效版本。移除原因為 `mod2.css` 從 `raw.githubusercontent.com` 抓背景圖（會把訪客 IP 洩漏給第三方、離線也會破圖），連結指向本專案不存在的 `/website/anther/respond`，且缺 viewport／`lang`／「回上一頁」／`/frontend/contact.html`，不符本目錄規定。
 
 ## 子資料夾
 

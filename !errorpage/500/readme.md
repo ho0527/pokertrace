@@ -6,9 +6,8 @@
 
 ## 主要檔案
 
-- `custom.js`
-- `index.html`
-- `style.css`
+- `index.html`：現役的 500 頁面，只引用 `/!errorpage/index.css` 與 `/!errorpage/errorpage.js`。
+- `custom.js` / `style.css`：2024-02 的舊版 Alpine/Tailwind 版型殘留檔，改版後 `index.html` 已完全沒有引用，保留供參考（與根目錄 `!errorpage/readme.md` 對同名檔案的處理一致）。建議確認不再需要後移除。
 
 ## 子資料夾
 

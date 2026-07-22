@@ -8,7 +8,7 @@
 #     3. 03XXXXXX 是 dealer
 #     4. 05XXXXXX 是 floor
 #     5. 07XXXXXX 是 assistant
-#     6. email 為 {你的電子郵件}}+prokertrace{playerid}@gmail.com
+#     6. email 為 chris960527ho+prokertrace{playerid}@gmail.com
 #     7. name 為 TU{type}_{id}
 #     8. avatarurl 為 ../material/image/default.png
 #
@@ -16,43 +16,48 @@
 #     python backend\defultuser.py
 #
 # 這支程式可重複執行。若 playerid 已存在就更新測試資料，否則新增。
-# 同時會建立固定 API token: testtoken{playerid}
+# API token 不在這裡建立；請另外執行 defulttoken.py 重新產生所有預設使用者 token
 # ===========================================================================
 
+import os
 import psycopg2
 import sys
 
-DBNAME="// 輸入你的資料庫名稱"
+DBNAME="pokertrace"
 DBHOST="localhost"
-DBUSER="// 輸入你的資料庫使用者名稱"
-DBPASSWORD="// 輸入你的資料庫使用者密碼"
+DBUSER="chris0527"
+DBPASSWORD=os.environ.get("PT_DB_PASSWORD","")
 DBPORT=5432
 
 AVATARURL="../material/image/default.png"
-EMAILPREFIX="// 輸入你的電子郵件"
+EMAILPREFIX="chris960527ho+prokertrace"
 EMAILDOMAIN="@gmail.com"
 
 TESTUSERS=[
 	{
 		"type": "player",
+		"typeshort": "P",
 		"prefix": "01",
 		"count": 30,
 		"permission": 1
 	},
 	{
 		"type": "dealer",
+		"typeshort": "D",
 		"prefix": "03",
 		"count": 10,
 		"permission": 1
 	},
 	{
 		"type": "floor",
+		"typeshort": "F",
 		"prefix": "05",
 		"count": 10,
 		"permission": 1
 	},
 	{
 		"type": "assistant",
+		"typeshort": "A",
 		"prefix": "07",
 		"count": 10,
 		"permission": 1
@@ -69,13 +74,12 @@ def buildusers():
 			users.append({
 				"uid": "test-"+group["type"]+"-"+playerid,
 				"email": EMAILPREFIX+playerid+EMAILDOMAIN,
-				"name": "TU"+group["type"]+"_"+idtext,
+				"name": "TU"+group["typeshort"]+"_"+idtext,
 				"avatarurl": AVATARURL,
 				"permission": group["permission"],
 				"verifytoken": "0",
 				"playerid": playerid,
-				"type": group["type"],
-				"token": "testtoken"+playerid
+				"type": group["type"]
 			})
 	return users
 
@@ -138,26 +142,6 @@ def saveuser(cursor,user):
 	return row[0],"inserted"
 
 
-def savetoken(cursor,userid,user):
-	cursor.execute(
-		"""SELECT "id" FROM public."token" WHERE "token"=%s""",
-		[user["token"]]
-	)
-	row=cursor.fetchone()
-	if row:
-		cursor.execute(
-			"""UPDATE public."token" SET "userid"=%s WHERE "id"=%s""",
-			[userid,row[0]]
-		)
-		return "updated"
-
-	cursor.execute(
-		"""INSERT INTO public."token"("userid","token","createtime")VALUES(%s,%s,NOW())""",
-		[userid,user["token"]]
-	)
-	return "inserted"
-
-
 def main():
 	try:
 		db=psycopg2.connect(
@@ -175,21 +159,14 @@ def main():
 	users=buildusers()
 	inserted=0
 	updated=0
-	tokeninserted=0
-	tokenupdated=0
 
 	try:
 		for user in users:
 			userid,status=saveuser(cursor,user)
-			tokenstatus=savetoken(cursor,userid,user)
 			if status=="inserted":
 				inserted=inserted+1
 			else:
 				updated=updated+1
-			if tokenstatus=="inserted":
-				tokeninserted=tokeninserted+1
-			else:
-				tokenupdated=tokenupdated+1
 		db.commit()
 	except Exception as error:
 		db.rollback()
@@ -202,8 +179,7 @@ def main():
 	db.close()
 	print("[defultuser] 測試使用者完成")
 	print("[defultuser] user inserted: "+str(inserted)+", updated: "+str(updated))
-	print("[defultuser] token inserted: "+str(tokeninserted)+", updated: "+str(tokenupdated))
-	print("[defultuser] 範例 token: testtoken01000001")
+	print("[defultuser] API token 請另外執行 defulttoken.py 產生")
 
 
 if __name__=="__main__":

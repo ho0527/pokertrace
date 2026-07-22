@@ -1,31 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
     <head>
-        <meta charset="utf-8">
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>網站維護中</title>
-        <link rel="stylesheet" href="/!errorpage/style.css">
+        <title>423 此頁面尚未開放 - PokerTrace</title>
+        <link href="/material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+        <link href="/material/icon/icon.png" rel="apple-touch-icon">
+        <link rel="stylesheet" href="/!errorpage/index.css">
     </head>
-    <body x-data="main" class="relative userselect-none overflow-x-hidden font-nunito text-sm font-normal antialiased" :class="[ $store.app.sidebar ? 'toggle-sidebar' : '', window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ?  'dark' : '', $store.app.menu, $store.app.layout,$store.app.rtlClass]">
-        <div class="main-container min-h-screen text-black dark:text-white-dark">
-            <div class="relative flex min-h-screen items-center justify-center overflow-hidden">
-                <div class="px-6 py-16 text-center font-semibold before:container before:absolute before:left-1/2 before:aspect-square before:-translate-x-1/2 before:rounded-full before:bg-[linear-gradient(180deg,#4361EE_0%,rgba(67,97,238,0)_50.73%)] before:opacity-10 md:py-20">
-                    <div class="relative">
-                        <img :src="($store.app.theme=='dark'||$store.app.isDarkMode)?'/!errorpage/image/maintenence-dark.svg' : '/!errorpage/image/maintenence-light.svg'" alt="maintenence" class="mx-auto -mt-10 w-full max-w-xs object-cover md:-mt-20 md:max-w-lg" draggable="false">
-                        <div class="-mt-8 font-semibold dark:text-white">
-                            <h2 class="mb-5 text-3xl font-bold text-primary md:text-5xl">此 頁 面 維 護 中</h2>
-                            <p class="text-base">
-                                為了讓你有更好了體驗<br>
-                                我們正在更新我們的頁面<br>
-                                請稍後重新訪問
-                            </p><br>
-                            <h4 class="mb-7 text-xl sm:text-2xl">再 次 感 謝 您 的 蒞 臨</h4>
-                        </div>
-                        <a href="/" class="btn btn-gradient mx-auto !mt-7 w-max border-0 uppercase shadow-none">回到首頁</a>
-                    </div>
-                </div>
+    <body>
+        <main class="errorcard">
+            <img src="/!errorpage/image/maintenence-dark.svg" alt="423" class="errorart">
+            <p class="errorcode">423</p>
+            <h1 class="errortitle">此頁面尚未開放</h1>
+            <p class="errordesc">這個工具頁目前未對外開放，沒有預計開放的時間，等待也不會自動恢復。您可以先回首頁使用其他功能；如果您需要這個工具，歡迎聯絡我們告訴我們您的用途。</p>
+            <div class="erroractions">
+                <input type="button" class="btn btn-outline" value="回上一頁" data-error-back>
+                <a href="/frontend/" class="btn btn-primary">回首頁</a>
+                <a href="/frontend/contact.html" class="btn btn-ghost">聯絡我們</a>
             </div>
-        </div>
-        <script src="/!errorpage/custom.js"></script>
+            <p class="errornote">如果您認為此錯誤有誤，歡迎<a href="/frontend/contact.html">聯絡我們</a>回報，或透過 Discord 聯繫 chris0527。</p>
+        </main>
+        <script src="/!errorpage/errorpage.js"></script>
     </body>
 </html>

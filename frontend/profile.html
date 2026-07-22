@@ -1,297 +1,311 @@
-<!--
-	製作人員: 賀皓群(小賀) / dc: chris0527 / line: ho960527 / email: chris960527ho@gmail.com / 電話: 0906585605
-
-		|-------    -----    -                     -     -----  -----  -----   -------|
-	   |-------    -        -            - - -          -                     -------|
-	  |-------    -        -------    -          -     -----    --       --  -------|
-	 |-------    -        -     -    -          -         -      --     --  -------|
-	|-------    -----    -     -    -          -     -----         -----  -------|
-
-	無授權禁止拷貝使用!
--->
-
 <!DOCTYPE html>
 <html lang="zh-TW">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>個人資料</title>
-		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
-		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-		<script src="https://cdn.tailwindcss.com"></script>
-		<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-	</head>
-	<body class="bg-zinc-900 text-white min-h-screen">
-		<div id="navigationbar"></div>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>個人資料 - PokerTrace</title>
+        <link rel="stylesheet" href="index.css">
+        <link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+        <script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+        <link rel="stylesheet" href="tailwind.css">
+    </head>
+    <body class="min-h-screen bg-zinc-950 text-white">
+        <div id="navigationbar"></div>
 
-		<div class="max-w-6xl mx-auto py-8 px-4">
-			<h1 class="text-3xl font-bold mb-2">個人資料</h1>
-			<p class="text-zinc-400 mb-8">玩家 ID: <span class="text-white font-mono font-bold" id="playerid">P-00001</span></p>
+        <div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+            <div class="mb-8">
+                <p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400" id="profileeyebrow">Profile Center</p>
+                <h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="profiletitle">個人資料</h1>
+            </div>
 
-			<!-- ===== 報表區塊 ===== -->
-			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
-				<!-- 切換器 -->
-				<div class="flex gap-2 mb-6">
-					<button onclick="switchReport('month')" id="tab-month"
-						class="report-tab px-5 py-2 rounded-full text-sm font-semibold transition bg-blue-600 text-white">
-						月報表
-					</button>
-					<button onclick="switchReport('year')" id="tab-year"
-						class="report-tab px-5 py-2 rounded-full text-sm font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
-						年報表
-					</button>
-					<button onclick="switchReport('all')" id="tab-all"
-						class="report-tab px-5 py-2 rounded-full text-sm font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
-						生涯報表
-					</button>
-				</div>
+            <div id="profilesections" class="space-y-8">
+                <section id="basicprofilepanel" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+                    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <div class="text-lg font-extrabold text-white" id="basicprofiletitle">基本資料</div>
+                        </div>
+                        <div class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-300" id="profiletypebadge">選手 / 主辦者</div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500" id="basicnamekey">名稱</div>
+                            <div class="text-lg font-bold text-white break-all" id="profilenamevalue" data-textmarquee>-</div>
+                        </div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500" id="basicplayeridkey">選手 ID</div>
+                            <div class="text-lg font-bold text-white font-mono break-all" id="playerid">-</div>
+                        </div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500" id="basicrolekey">角色</div>
+                            <div class="text-lg font-bold text-white" id="profilerolevalue">-</div>
+                        </div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500" id="basicemailkey">電子信箱</div>
+                            <div class="text-lg font-bold text-white break-all" id="profileemailvalue" data-textmarquee>-</div>
+                        </div>
+                    </div>
+                </section>
 
-				<!-- 月報表日期選擇 -->
-				<div id="filter-month" class="mb-5 flex items-center gap-3">
-					<label class="text-zinc-400 text-sm">選擇年月：</label>
-					<input type="month" id="month-date" value="2026-05"
-						class="bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:outline-none focus:border-blue-500">
-				</div>
+                <section id="profilereportpanel" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+                    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <div class="text-lg font-extrabold text-white" id="reportsectiontitle">個人摘要報表</div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="exportreportcsv" value="匯出 CSV">
+                            <a href="benefit.html" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="advancedreportentry">前往進階報表</a>
+                        </div>
+                    </div>
 
-				<!-- 年報表日期選擇 -->
-				<div id="filter-year" class="mb-5 flex items-center gap-3 hidden">
-					<label class="text-zinc-400 text-sm">選擇年份：</label>
-					<select id="year-date" class="bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:outline-none focus:border-blue-500">
-						<option value="2026">2026</option>
-						<option value="2025">2025</option>
-						<option value="2024">2024</option>
-						<option value="2023">2023</option>
-					</select>
-				</div>
+                    <div class="mb-6 flex flex-wrap gap-2">
+                        <input type="button" class="rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white transition" id="tab-month" value="月報表">
+                        <input type="button" class="rounded-full bg-zinc-700 px-5 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-600" id="tab-year" value="年報表">
+                        <input type="button" class="rounded-full bg-zinc-700 px-5 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-600" id="tab-all" value="生涯報表">
+                    </div>
 
-				<!-- 包含服務費切換 -->
-				<div class="mb-5 flex items-center gap-3 bg-zinc-700/40 rounded px-3 py-2">
-					<input type="checkbox" id="includefee" class="w-4 h-4 accent-blue-500 cursor-pointer" checked>
-					<label for="includefee" class="text-zinc-300 text-sm cursor-pointer select-none">
-						盈虧計算包含服務費
-						<span class="text-xs text-zinc-500 ml-1">(取消勾選後，盈虧只算買入金額本身)</span>
-					</label>
-				</div>
+                    <div id="filter-month" class="mb-5 flex flex-wrap items-center gap-3">
+                        <label for="month-date" class="text-sm text-zinc-400" id="monthfilterlabel">選擇年月：</label>
+                        <input type="month" id="month-date" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15">
+                    </div>
 
-				<!-- 報表內容 -->
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<!-- Cash -->
-					<div class="bg-zinc-900 rounded-lg p-5 flex flex-col gap-3">
-						<div class="flex items-center gap-2 mb-1">
-							<span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
-							<span class="font-semibold text-zinc-200">Cash <span class="text-zinc-500 text-xs font-normal">現金桌</span></span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>局數</span><span class="text-white font-mono" id="cash-games">48</span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>總買入</span><span class="text-white font-mono" id="cash-buyin">$12,000</span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>總收益</span><span class="text-green-400 font-mono font-bold" id="cash-profit">+$3,400</span>
-						</div>
-					</div>
-					<!-- TLT -->
-					<div class="bg-zinc-900 rounded-lg p-5 flex flex-col gap-3">
-						<div class="flex items-center gap-2 mb-1">
-							<span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
-							<span class="font-semibold text-zinc-200">TLT <span class="text-zinc-500 text-xs font-normal">限時錦標賽</span></span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>場次</span><span class="text-white font-mono" id="tlt-games">12</span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>總買入</span><span class="text-white font-mono" id="tlt-buyin">$6,000</span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>總收益</span><span class="text-red-400 font-mono font-bold" id="tlt-profit">-$800</span>
-						</div>
-					</div>
-					<!-- MTT -->
-					<div class="bg-zinc-900 rounded-lg p-5 flex flex-col gap-3">
-						<div class="flex items-center gap-2 mb-1">
-							<span class="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
-							<span class="font-semibold text-zinc-200">MTT <span class="text-zinc-500 text-xs font-normal">錦標賽</span></span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>場次</span><span class="text-white font-mono" id="mtt-games">0</span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>總組數</span><span class="text-white font-mono" id="mtt-buyincount">0</span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>總買入</span><span class="text-white font-mono" id="mtt-buyin">0</span>
-						</div>
-						<div class="flex justify-between text-sm text-zinc-400">
-							<span>總收益</span><span class="text-green-400 font-mono font-bold" id="mtt-profit">0</span>
-						</div>
-						<div class="border-t border-zinc-700 mt-1 pt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-							<div class="flex justify-between text-xs text-zinc-400">
-								<span>ROI</span><span class="text-green-400 font-mono" id="mtt-roi">0%</span>
-							</div>
-							<div class="flex justify-between text-xs text-zinc-400">
-								<span>ITM</span><span class="text-white font-mono" id="mtt-itm">0%</span>
-							</div>
-							<div class="flex justify-between text-xs text-zinc-400">
-								<span>FT</span><span class="text-white font-mono" id="mtt-ft">0%</span>
-							</div>
-							<div class="flex justify-between text-xs text-zinc-400">
-								<span>Top3</span><span class="text-white font-mono" id="mtt-top3">0%</span>
-							</div>
-						</div>
-					</div>
-				</div>
+                    <div id="filter-year" class="mb-5 hidden flex-wrap items-center gap-3">
+                        <label for="year-date" class="text-sm text-zinc-400" id="yearfilterlabel">選擇年份：</label>
+                        <select id="year-date" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15"></select>
+                    </div>
 
-				<!-- 小計 -->
-				<div class="mt-5 pt-5 border-t border-zinc-700 flex justify-between items-center">
-					<span class="text-zinc-400 text-sm">總盈虧</span>
-					<span class="text-2xl font-bold text-green-400" id="report-total">+$15,100</span>
-				</div>
-			</div>
+                    <div class="mb-5 flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+                        <input type="checkbox" id="includefee" class="h-[18px] w-[18px] cursor-pointer accent-emerald-500" checked>
+                        <label for="includefee" class="cursor-pointer select-none text-sm text-zinc-300" id="includefeelabel">盈虧計算包含服務費</label>
+                    </div>
 
-			<!-- ===== 聘用人員 ===== -->
-			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8" id="staffsection">
-				<div class="text-lg font-semibold mb-5" id="staffsectiontitle">聘用人員</div>
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="staffsectioncontent">
-					<!-- 發牌員 -->
-					<div class="bg-zinc-900 rounded-lg p-4 flex flex-col gap-3">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<span class="text-xl">🃏</span>
-								<span class="font-semibold">發牌員</span>
-								<span class="bg-zinc-700 text-zinc-300 text-xs rounded-full px-2 py-0.5" id="dealer-count">0</span>
-							</div>
-							<button onclick="openStaffModal('dealer')"
-								class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded transition">
-								管理
-							</button>
-						</div>
-						<div class="space-y-1" id="dealer-list"></div>
-					</div>
-					<!-- 裁判 (對應 user.type = floor) -->
-					<div class="bg-zinc-900 rounded-lg p-4 flex flex-col gap-3">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<span class="text-xl">⚖️</span>
-								<span class="font-semibold">裁判</span>
-								<span class="bg-zinc-700 text-zinc-300 text-xs rounded-full px-2 py-0.5" id="floor-count">0</span>
-							</div>
-							<button onclick="openStaffModal('floor')"
-								class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded transition">
-								管理
-							</button>
-						</div>
-						<div class="space-y-1" id="floor-list"></div>
-					</div>
-					<!-- 助理 -->
-					<div class="bg-zinc-900 rounded-lg p-4 flex flex-col gap-3">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<span class="text-xl">🙋</span>
-								<span class="font-semibold">助理</span>
-								<span class="bg-zinc-700 text-zinc-300 text-xs rounded-full px-2 py-0.5" id="assistant-count">0</span>
-							</div>
-							<button onclick="openStaffModal('assistant')"
-								class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded transition">
-								管理
-							</button>
-						</div>
-						<div class="space-y-1" id="assistant-list"></div>
-					</div>
-				</div>
-			</div>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-3 flex items-center gap-2">
+                                <span class="inline-block h-2 w-2 rounded-full bg-emerald-400"></span>
+                                <span class="font-semibold text-zinc-100" id="cashcardtitle">現金桌</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="cashgameslabel">局數</span>
+                                    <span class="font-mono text-white" id="cash-games">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="cashbuyinlabel">總買入</span>
+                                    <span class="font-mono text-white" id="cash-buyin">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="cashprofitlabel">總收益</span>
+                                    <span class="font-mono font-bold text-green-400" id="cash-profit">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span>ROI</span>
+                                    <span class="font-mono font-bold text-green-400" id="cash-roi">0%</span>
+                                </div>
+                            </div>
+                        </div>
 
-			<!-- ===== 語言切換 ===== -->
-			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
-				<div class="text-lg font-semibold mb-4">選擇語言</div>
-				<div class="flex gap-2">
-					<button onclick="switchLang('zhtw')" id="lang-zhtw"
-						class="lang-btn px-6 py-2 rounded-full text-sm font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
-						中文
-					</button>
-					<button onclick="switchLang('en')" id="lang-en"
-						class="lang-btn px-6 py-2 rounded-full text-sm font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600">
-						英文
-					</button>
-				</div>
-			</div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-3 flex items-center gap-2">
+                                <span class="inline-block h-2 w-2 rounded-full bg-yellow-400"></span>
+                                <span class="font-semibold text-zinc-100" id="tltcardtitle">限時錦標賽</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="tltgameslabel">場次</span>
+                                    <span class="font-mono text-white" id="tlt-games">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="tltbuyinlabel">總買入</span>
+                                    <span class="font-mono text-white" id="tlt-buyin">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="tltprofitlabel">總收益</span>
+                                    <span class="font-mono font-bold text-green-400" id="tlt-profit">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span>ROI</span>
+                                    <span class="font-mono font-bold text-green-400" id="tlt-roi">0%</span>
+                                </div>
+                            </div>
+                        </div>
 
-			<!-- ===== 籌碼顏色 ===== -->
-			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
-				<div class="flex items-center justify-between gap-3">
-					<div>
-						<div class="text-lg font-semibold">籌碼顏色種類</div>
-						<div class="text-xs text-zinc-400 mt-1" id="chipcolorpreview">白色、紅色、藍色、綠色、黑色</div>
-					</div>
-					<button id="openchipcolormodal" class="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-2 rounded transition">管理</button>
-				</div>
-			</div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-3 flex items-center gap-2">
+                                <span class="inline-block h-2 w-2 rounded-full bg-sky-400"></span>
+                                <span class="font-semibold text-zinc-100" id="mttcardtitle">錦標賽</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="mttgameslabel">場次</span>
+                                    <span class="font-mono text-white" id="mtt-games">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="mttbuyincountlabel">總組數</span>
+                                    <span class="font-mono text-white" id="mtt-buyincount">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="mttbuyinlabel">總買入</span>
+                                    <span class="font-mono text-white" id="mtt-buyin">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-zinc-400">
+                                    <span id="mttprofitlabel">總收益</span>
+                                    <span class="font-mono font-bold text-green-400" id="mtt-profit">0</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-zinc-800 pt-4">
+                                <div class="flex justify-between text-xs text-zinc-400">
+                                    <span>ROI</span>
+                                    <span class="font-mono text-white" id="mtt-roi">0%</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-zinc-400">
+                                    <span>ITM</span>
+                                    <span class="font-mono text-white" id="mtt-itm">0%</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-zinc-400">
+                                    <span>FT</span>
+                                    <span class="font-mono text-white" id="mtt-ft">0%</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-zinc-400">
+                                    <span>Top3</span>
+                                    <span class="font-mono text-white" id="mtt-top3">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-			<!-- ===== 其他連結 ===== -->
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-				<a href="display-synced.html"
-					class="bg-zinc-800 hover:bg-zinc-700 rounded-lg p-5 shadow flex items-center gap-3 transition">
-					<span class="text-2xl">⏱️</span>
-					<div>
-						<div class="font-semibold">簡易本地計時器</div>
-						<div class="text-xs text-zinc-400"></div>
-					</div>
-				</a>
-				<a href="referee-control.html"
-					class="bg-zinc-800 hover:bg-zinc-700 rounded-lg p-5 shadow flex items-center gap-3 transition">
-					<span class="text-2xl">🎛️</span>
-					<div>
-						<div class="font-semibold">裁判控制台</div>
-						<div class="text-xs text-zinc-400"></div>
-					</div>
-				</a>
-			</div>
+                    <div class="mt-5 flex items-center justify-between border-t border-zinc-800 pt-5">
+                        <span class="text-sm text-zinc-400" id="reporttotallabel">總盈虧</span>
+                        <span class="text-2xl font-bold text-green-400" id="report-total">0</span>
+                    </div>
+                </section>
 
-			<!-- 登出 -->
-			<div class="mb-8">
-				<input type="button" class="button bg-red-700 hover:bg-red-800 px-6 py-2 rounded cursor-pointer w-full" id="signout" value="登出">
-			</div>
-		</div>
+                <section id="employmentpanel" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+                    <div class="mb-6">
+                        <div class="text-lg font-extrabold text-white" id="employmenttitle">聘用關聯</div>
+                    </div>
+                    <div id="employmentcontent" class="grid grid-cols-1 gap-4 md:grid-cols-3"></div>
+                </section>
 
-		<div id="footer"></div>
+                <section id="preferencespanel" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+                    <div class="mb-6">
+                        <div class="text-lg font-extrabold text-white" id="preferencestitle">偏好設定</div>
+                    </div>
 
-		<!-- ===== 聘用人員燈箱 ===== -->
-		<div id="staffmodal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50">
-			<div class="bg-zinc-800 rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
-				<!-- Header -->
-				<div class="flex justify-between items-center mb-5">
-					<h2 class="text-xl font-bold" id="staffmodal-title">發牌員名單</h2>
-					<button onclick="closeStaffModal()" class="text-zinc-400 hover:text-white text-2xl leading-none">&times;</button>
-				</div>
+                    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-base font-bold text-white" id="languagecardtitle">語言</div>
+                            <div class="mb-4 text-sm leading-7 text-zinc-400" id="languagecarddesc">切換介面語言。</div>
+                            <div class="flex gap-2">
+                                <input type="button" class="rounded-full bg-zinc-700 px-6 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-600" id="lang-zhtw" value="中文">
+                                <input type="button" class="rounded-full bg-zinc-700 px-6 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-600" id="lang-en" value="English">
+                            </div>
+                        </div>
 
-				<!-- 新增欄位 -->
-				<div class="flex gap-2 mb-5">
-					<input type="text" id="staffid-input" placeholder="輸入使用者 ID（e.g. P-00099）"
-						class="flex-1 bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:outline-none focus:border-blue-500">
-					<button onclick="addStaff()"
-						class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold transition">
-						新增
-					</button>
-				</div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-base font-bold text-white" id="chipcolorcardtitle">計分牌顏色種類</div>
+                            <div class="mb-4 text-sm leading-7 text-zinc-400" id="chipcolorcarddesc">整理場次設定可用的顏色名稱。</div>
+                            <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipcolorpreview">尚未設定計分牌顏色</div>
+                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="openchipcolormodal" value="管理">
+                        </div>
 
-				<!-- 目前名單 -->
-				<div class="text-xs text-zinc-400 mb-2">目前名單</div>
-				<div class="overflow-y-auto flex-1 space-y-2" id="staffmodal-list">
-					<!-- 動態填入 -->
-				</div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-base font-bold text-white" id="chipsetcardtitle">常用計分牌組合</div>
+                            <div class="mb-4 text-sm leading-7 text-zinc-400" id="chipsetcarddesc">儲存常用面額組合，供場次快速匯入。</div>
+                            <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipsetpreview">尚未設定常用計分牌組合</div>
+                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="openchipsetmodal" value="管理">
+                        </div>
 
-				<!-- Footer -->
-				<div class="mt-5 pt-4 border-t border-zinc-700">
-					<button onclick="closeStaffModal()"
-						class="w-full bg-zinc-600 hover:bg-zinc-700 px-4 py-2 rounded text-sm transition">
-						關閉
-					</button>
-				</div>
-			</div>
-		</div>
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-base font-bold text-white" id="shakecardtitle">搖一搖回報問題</div>
+                            <div class="mb-4 text-sm leading-7 text-zinc-400" id="shakecarddesc">在手機上搖晃裝置，快速開啟「聯絡我們」視窗。</div>
+                            <input type="button" class="min-h-12 w-full rounded-2xl border px-5 text-sm font-bold transition" id="shaketogglebutton" value="已開啟（點擊關閉）">
+                        </div>
+                    </div>
+                </section>
 
-		<script src="translate.js"></script>
-		<script src="initialize.js"></script>
-		<script src="profile.js"></script>
-	</body>
+                <section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8" id="toolspanel">
+                    <div class="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <h2 class="mb-1 text-xl font-extrabold text-white" id="toolstitle">小工具</h2>
+                            <p class="text-sm text-zinc-400" id="toolssubtitle">現場與練習常用的快速工具</p>
+                        </div>
+                        <a href="toollist.html" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="toollistentry">查看全部工具</a>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" id="promotoolgrid"></div>
+                </section>
+
+                <section class="mt-8" id="signoutpanel">
+                    <input type="button" class="button min-h-12 w-full cursor-pointer rounded-2xl bg-red-600 px-6 text-sm font-bold text-white transition hover:bg-red-500" id="signout" value="登出">
+                </section>
+
+                <section class="rounded-[28px] border border-red-900/60 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8" id="deleteaccountpanel">
+                    <div class="mb-2 text-lg font-extrabold text-red-400" id="deleteaccountcardtitle">刪除帳號</div>
+                    <div class="mb-5 text-sm leading-7 text-zinc-400" id="deleteaccountcarddesc">永久刪除此帳號與所有相關資料，此操作無法復原。</div>
+                    <input type="button" class="min-h-12 w-full cursor-pointer rounded-2xl border border-red-500/50 bg-red-500/10 px-6 text-sm font-bold text-red-300 transition hover:bg-red-500/20" id="deleteaccountbutton" value="刪除帳號">
+                </section>
+            </div>
+        </div>
+
+        <div id="deleteaccountmodal1" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
+            <div class="w-full max-w-sm rounded-[28px] border border-red-900/60 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+                <div class="mb-3 text-xl font-extrabold text-red-400" id="deleteaccountmodal1-title">確認刪除帳號</div>
+                <div class="mb-4 text-sm leading-7 text-zinc-300" id="deleteaccountmodal1-message">此操作「無法復原」，將會「真刪除」所有跟這個帳號有關的資料。</div>
+                <div class="flex justify-end gap-3">
+                    <input type="button" class="rounded-2xl bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="canceldeleteaccount1" value="取消">
+                    <input type="button" class="rounded-2xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-500" id="confirmdeleteaccount1" value="我了解，繼續">
+                </div>
+            </div>
+        </div>
+
+        <div id="deleteaccountmodal2" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
+            <div class="w-full max-w-sm rounded-[28px] border border-red-900/60 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+                <div class="mb-3 text-xl font-extrabold text-red-400" id="deleteaccountmodal2-title">最後確認</div>
+                <div class="mb-4 text-sm leading-7 text-zinc-300" id="deleteaccountmodal2-message">此操作「無法復原」。請輸入你的選手 ID 以確認永久刪除帳號。</div>
+                <input type="text" class="mb-4 min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 font-mono text-[15px] text-white outline-none transition focus:border-red-400 focus:ring-4 focus:ring-red-500/15" id="deleteaccountconfirminput" placeholder="選手 ID">
+                <div class="mb-4 hidden text-sm text-yellow-300" id="deleteaccountmodal2-status"></div>
+                <div class="flex justify-end gap-3">
+                    <input type="button" class="rounded-2xl bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="canceldeleteaccount2" value="取消">
+                    <input type="button" class="rounded-2xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-500" id="confirmdeleteaccount2" value="永久刪除帳號">
+                </div>
+            </div>
+        </div>
+
+        <div id="signoutmodal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
+            <div class="w-full max-w-sm rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+                <div class="mb-3 text-xl font-extrabold text-white" id="signoutmodal-title">確認登出</div>
+                <div class="mb-4 text-sm text-zinc-300" id="signoutmodal-message">確定要登出目前帳號嗎？</div>
+                <div class="mb-4 hidden text-sm text-yellow-300" id="signoutmodal-status"></div>
+                <div class="flex justify-end gap-3">
+                    <input type="button" class="rounded-2xl bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="cancelsignout" value="取消">
+                    <input type="button" class="rounded-2xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-500" id="confirmsignout" value="登出">
+                </div>
+            </div>
+        </div>
+
+        <div id="staffmodal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
+            <div class="flex max-h-[80vh] w-full max-w-md flex-col rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
+                <div class="mb-5 flex items-center justify-between">
+                    <h2 class="text-xl font-extrabold text-white" id="staffmodal-title">發牌員名單</h2>
+                    <input type="button" class="text-2xl leading-none text-zinc-400 transition hover:text-white" id="closestaffmodal" value="&times;">
+                </div>
+                <div class="mb-5 flex gap-2">
+                    <input type="text" id="staffid-input" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" placeholder="輸入使用者 ID（e.g. P-00099）" aria-label="使用者 ID">
+                    <input type="button" class="min-h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="addstaffbutton" value="新增">
+                </div>
+                <div class="mb-2 text-xs text-zinc-400" id="staffmodallistlabel">目前名單</div>
+                <div class="flex-1 overflow-y-auto space-y-2" id="staffmodal-list"></div>
+                <div class="mt-5 border-t border-zinc-800 pt-4">
+                    <input type="button" class="w-full rounded-2xl bg-zinc-800 px-4 py-2.5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="closestaffmodalfooter" value="關閉">
+                </div>
+            </div>
+        </div>
+
+        <div id="footer"></div>
+
+        <script src="translate.js"></script>
+        <script src="initialize.js"></script>
+        <script src="tooldata.js"></script>
+        <script src="profile.js"></script>
+    </body>
 </html>
+

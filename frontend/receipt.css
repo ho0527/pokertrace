@@ -1,0 +1,379 @@
+* {
+	box-sizing: border-box;
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+}
+
+/* 單獨開 receipt.html 時的頁面外觀；用 .receiptpage 限定，避免載入到 register 等頁時污染深色主題。 */
+.receiptpage {
+	background: #e5e7eb;
+	color: #111827;
+	font-family: "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Arial, sans-serif;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.receipttoolbar {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background: #111827;
+	color: #f9fafb;
+	padding: 12px 16px;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.receipttoolbarinner {
+	max-width: 720px;
+	margin: 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.receipttoolbartitle {
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.receipttoolbaractions {
+	display: flex;
+	gap: 8px;
+}
+
+.receiptbutton {
+	cursor: pointer;
+	border: 0;
+	border-radius: 8px;
+	background: #10b981;
+	color: #062017;
+	padding: 8px 16px;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.receiptbutton:hover {
+	background: #34d399;
+}
+
+.receiptbuttonghost {
+	background: #374151;
+	color: #f9fafb;
+}
+
+.receiptbuttonghost:hover {
+	background: #4b5563;
+}
+
+.receipttoolbarnote {
+	max-width: 720px;
+	margin: 8px auto 0;
+	font-size: 12px;
+	color: #9ca3af;
+}
+
+/* 紙寬設定：版面一律以 80mm 設計，靠 zoom 等比縮放到實際紙寬。
+   換紙時只要改 --receiptzoom 一個值（目標紙寬 ÷ 80mm）：
+     80mm -> 1
+     58mm -> 0.725
+     57mm -> 0.7125
+   字級、QR、間距、邊距都會跟著等比縮小，不需要逐項調整。 */
+.receiptsheet {
+	--receiptdesignwidth: 80mm;
+	--receiptzoom: 0.725;
+	--receiptside: 6mm;
+	--receiptqrsize: 36mm;
+	width: var(--receiptdesignwidth);
+	zoom: var(--receiptzoom);
+	margin: 20px auto;
+	background: #ffffff;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.receiptslip {
+	width: 100%;
+	padding: 6mm var(--receiptside) 5mm;
+	text-align: center;
+	color: #000000;
+}
+
+.receiptlogorow {
+	margin-bottom: 4px;
+}
+
+.receiptlogoimg {
+	height: 34px;
+	width: auto;
+}
+
+.receipttitleline {
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+}
+
+.receiptevent {
+	margin-top: 2px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.receiptdatetime {
+	margin-top: 2px;
+	font-size: 12px;
+}
+
+.receiptdivider {
+	border-top: 1px solid #000000;
+	margin: 8px 0;
+}
+
+.receiptname {
+	font-size: 20px;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	word-break: break-word;
+}
+
+.receiptbig {
+	margin: 6px 0 4px;
+	font-size: 46px;
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: 0.02em;
+}
+
+.receiptbigtext {
+	font-size: 22px;
+	letter-spacing: 0.08em;
+}
+
+/* 報名收據下半部靠左；入場編號與 QR 同一列（號碼在左、QR 在右）。 */
+.receiptbody {
+	text-align: left;
+}
+
+.receiptidrow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.receiptidrow .receiptbig {
+	margin: 4px 0;
+}
+
+.receiptidrow .receiptqr {
+	margin: 0;
+	flex: 0 0 auto;
+}
+
+.receiptprizerankline {
+	margin-top: 6px;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.receiptprizelabel {
+	margin-top: 8px;
+	font-size: 12px;
+	letter-spacing: 0.16em;
+	color: #444444;
+}
+
+.receiptprizeamount {
+	margin: 2px 0 6px;
+	font-size: 40px;
+	font-weight: 800;
+	line-height: 1.1;
+}
+
+.receiptsignrow {
+	margin-top: 14px;
+}
+
+.receiptsignline {
+	border-bottom: 1px solid #000000;
+	height: 28px;
+}
+
+.receiptsignlabel {
+	margin-top: 4px;
+	font-size: 11px;
+	color: #555555;
+}
+
+.receiptqr {
+	margin: 4px 0 8px;
+}
+
+/* QR 尺寸寫在設計座標系（80mm）上，實際印出大小 = 此值 × --receiptzoom。
+   58mm 紙（zoom 0.725）下 36mm -> 實印約 26mm，維持與原本 80mm 版相同的實體大小，
+   熱感紙才掃得清楚。要再放大改這裡一個值即可。 */
+.receiptqrsvg {
+	width: var(--receiptqrsize, 36mm);
+	height: var(--receiptqrsize, 36mm);
+}
+
+.receiptkvgroup {
+	text-align: left;
+	margin: 6px 0;
+}
+
+.receiptkv {
+	font-size: 13px;
+	padding: 1px 0;
+	word-break: break-word;
+}
+
+.receiptkvlabel {
+	font-weight: 700;
+}
+
+.receiptseatrow {
+	display: flex;
+	gap: 6px;
+	margin: 8px 0;
+}
+
+/* 桌號／座位框內置中；外層 .receiptbody 是靠左，所以要在框內覆寫回來。 */
+.receiptseatbox {
+	flex: 1 1 0;
+	border: 1px solid #000000;
+	border-radius: 4px;
+	padding: 4px 2px 6px;
+	text-align: center;
+}
+
+.receiptseatlabel {
+	font-size: 10px;
+	color: #333333;
+}
+
+.receiptseatvalue {
+	margin-top: 2px;
+	font-size: 26px;
+	font-weight: 800;
+	min-height: 30px;
+}
+
+.receiptstamp {
+	position: relative;
+	border: 1px dashed #000000;
+	border-radius: 4px;
+	height: 68px;
+	margin: 8px 0;
+}
+
+.receiptstamplabel {
+	position: absolute;
+	top: 4px;
+	left: 6px;
+	font-size: 10px;
+	color: #555555;
+}
+
+.receiptcopylabel {
+	margin: 8px 0 4px;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+}
+
+.receiptnotice {
+	text-align: left;
+	margin-top: 6px;
+}
+
+.receiptnoticetitle {
+	text-align: center;
+	font-size: 11px;
+	font-weight: 700;
+	margin-bottom: 4px;
+}
+
+.receiptnoticebody {
+	font-size: 11px;
+	line-height: 1.5;
+}
+
+.receipttablenotice {
+	font-size: 13px;
+	font-weight: 700;
+	margin-top: 4px;
+}
+
+.receiptblankinline {
+	display: inline-block;
+	min-width: 60px;
+	border-bottom: 1px dotted #666666;
+}
+
+.receiptname .receiptblankinline {
+	min-width: 120px;
+}
+
+.receiptbig .receiptblankinline {
+	min-width: 90px;
+	border-bottom: 2px solid #000000;
+}
+
+.receiptseatvalue .receiptblankinline {
+	min-width: 40px;
+	border-bottom: 2px solid #000000;
+}
+
+.receiptcutline {
+	text-align: center;
+	color: #9ca3af;
+	font-size: 11px;
+	letter-spacing: 2px;
+	padding: 2px 5mm;
+	border-top: 1px dashed #9ca3af;
+	overflow: hidden;
+	white-space: nowrap;
+	user-select: none;
+}
+
+@media print {
+	body {
+		background: #ffffff;
+	}
+
+	.receipttoolbar {
+		display: none;
+	}
+
+	.receiptsheet {
+		width: var(--receiptdesignwidth);
+		margin: 0;
+		box-shadow: none;
+	}
+
+	/* 每一聯各自成一頁：熱感紙印完一聯就走紙裁切，不會四聯連在一起。
+	   底部虛線是每頁的裁切基準線，最後一聯也要有。 */
+	.receiptslip {
+		break-inside: avoid;
+		page-break-inside: avoid;
+		break-after: page;
+		page-break-after: always;
+		padding-bottom: 6mm;
+		border-bottom: 1px dashed #000000;
+	}
+
+	/* 最後一聯後面不再分頁，否則會多吐一張空白。 */
+	.receiptslip:last-child {
+		break-after: auto;
+		page-break-after: auto;
+	}
+
+	/* 已經一聯一頁，畫面上的裁切線在列印時是多餘的。 */
+	.receiptcutline {
+		display: none;
+	}
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="賞金池估算：總賞金池與 PKO 頭上。免費線上撲克工具，不用登入、無廣告。Bounty Pool: Total bounty pool and PKO head value. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/bountypool.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="賞金池估算 / Bounty Pool - PokerTrace">
+		<meta property="og:description" content="賞金池估算：總賞金池與 PKO 頭上。免費線上撲克工具，不用登入、無廣告。Bounty Pool: Total bounty pool and PKO head value. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/bountypool.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>賞金池估算 (Bounty Pool) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="bntitle">賞金池估算</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bnentrieslabel" for="bnentries">報名 / 買入次數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bnentries" min="0" inputmode="numeric" value="120"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bnheadlabel" for="bnhead">每人賞金</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bnhead" min="0" inputmode="numeric" value="500"></div>
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="bnmodelabel" for="bnmode">賞金模式</label>
+						<select id="bnmode" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
+							<option value="normal">一般 Bounty</option>
+							<option value="pko">PKO（半入袋半進頭上）</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bntotallabel">總賞金池</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="bntotal">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bnstartlabel">起始頭上賞金</div><div class="mt-1 text-2xl font-extrabold" id="bnstart">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bnpocketlabel">每淘汰立即入袋</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="bnpocket">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="bnnote">總賞金池 = 報名次數 × 每人賞金。PKO：起始頭上 = 每人賞金 ÷ 2，擊倒時一半入袋、一半加到自己頭上。一般：擊倒全額入袋。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">賞金池與 PKO 頭上金額估算</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入報名人數、買入拆分與賞金比例，工具會算出總賞金池、每人初始頭上賞金，以及 PKO 模式下滾動累積的預期金額，方便主辦設定結構、選手評估賞金賽的實際價值分布。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/bountypool.js"></script>
+	</body>
+</html>

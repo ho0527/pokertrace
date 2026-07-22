@@ -1,51 +1,62 @@
-<!--
-	製作人員: 賀皓群(小賀) / dc: chris0527 / line: ho960527 / email: chris960527ho@gmail.com / 電話: 0906585605
-
-		|-------    -----    -                     -     -----  -----  -----   -------|
-	   |-------    -        -            - - -          -                     -------|
-	  |-------    -        -------    -          -     -----    --       --  -------|
-	 |-------    -        -     -    -          -         -      --     --  -------|
-	|-------    -----    -     -    -          -     -----         -----  -------|
-
-	無授權禁止拷貝使用!
--->
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>主儀表板</title>
+		<title>主儀表板 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-		<script src="https://cdn.tailwindcss.com"></script>
+		<link rel="stylesheet" href="tailwind.css">
 		<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 	</head>
-	<body class="bg-zinc-900 text-white min-h-screen lg:overflow-hidden">
+	<body class="min-h-screen bg-zinc-950 text-white">
 		<div id="navigationbar"></div>
 
-		<div class="max-w-6xl mx-auto py-8 px-4">
-			<h1 class="text-3xl font-bold mb-6">主儀表板</h1>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<section class="grid grid-cols-1 gap-5 lg:grid-cols-[1.5fr_1fr]">
+				<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-7">
+					<div class="mb-2 flex items-center justify-between gap-3">
+						<div class="text-lg font-extrabold text-white" id="mainheading">收益摘要</div>
+						<span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300 empty:hidden" id="mainrolelabel"></span>
+					</div>
+					<div class="mb-5 text-sm leading-7 text-zinc-400" id="mainsummarydesc">這裡會放最常用的入口、角色提示與近期狀態。</div>
+					<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3" id="mainsummarycards">
+						<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+							<div class="mb-2 text-sm text-zinc-400" id="mainlabeltoday">今日盈虧</div>
+							<div class="text-2xl font-extrabold text-green-400" id="todaytotalprofit">+0</div>
+						</div>
+						<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+							<div class="mb-2 text-sm text-zinc-400" id="mainlabelweek">本週盈虧</div>
+							<div class="text-2xl font-extrabold text-green-400" id="weektotalprofit">+0</div>
+						</div>
+						<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+							<div class="mb-2 text-sm text-zinc-400" id="mainlabelmonth">本月盈虧</div>
+							<div class="text-2xl font-extrabold text-green-400" id="monthtotalprofit">+0</div>
+						</div>
+					</div>
+					<div id="trendChart" class="h-[300px]"></div>
+					<div id="mainsummaryempty" class="hidden mt-4"></div>
+				</div>
 
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-				<div class="bg-zinc-800 rounded-lg p-6 shadow flex flex-col items-center">
-					<div class="text-lg font-semibold mb-2">今日盈虧</div>
-					<div class="text-2xl font-bold text-green-400" id="todaytotalprofit">+$0</div>
-				</div>
-				<div class="bg-zinc-800 rounded-lg p-6 shadow flex flex-col items-center">
-					<div class="text-lg font-semibold mb-2">本週盈虧</div>
-					<div class="text-2xl font-bold text-green-400" id="weektotalprofit">+$0</div>
-				</div>
-				<div class="bg-zinc-800 rounded-lg p-6 shadow flex flex-col items-center">
-					<div class="text-lg font-semibold mb-2">本月盈虧</div>
-					<div class="text-2xl font-bold text-green-400" id="monthtotalprofit">+$0</div>
-				</div>
-			</div>
+				<div class="space-y-5">
+					<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+						<div class="mb-3 text-lg font-extrabold text-white" id="mainrecenttitle">上次操作頁</div>
+						<div class="mb-4 text-sm leading-7 text-zinc-400" id="mainrecentdesc">可快速回到你前次中斷的工作頁面</div>
+						<div id="mainrecentcard"></div>
+					</div>
 
-			<div class="bg-zinc-800 rounded-lg p-6 shadow mb-8">
-				<div class="text-lg font-semibold mb-4">個人前週盈虧趨勢圖</div>
-				<div id="trendChart" style="height: 300px;"></div>
-			</div>
+					<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+						<div class="mb-3 text-lg font-extrabold text-white" id="mainnextstepstitle">建議下一步</div>
+						<div id="mainnextsteps" class="space-y-3"></div>
+					</div>
+				</div>
+			</section>
+
+			<section class="mt-8">
+				<div class="mb-4 text-lg font-extrabold text-white" id="mainquicktitle">快速入口</div>
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" id="mainquicklinks"></div>
+			</section>
 		</div>
 
 		<div id="footer"></div>

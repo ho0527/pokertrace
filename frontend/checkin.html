@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>報到核對 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="print.css">
+		<link rel="stylesheet" href="receipt.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-2xl px-4 py-6 md:py-8">
+			<div class="mb-6">
+				<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Check-in</p>
+				<h1 class="text-3xl font-extrabold tracking-tight text-white md:text-4xl">報到核對</h1>
+				<div class="mt-2 text-sm text-zinc-400">掃描收據 QR 後開啟此頁，核對選手報名資料。</div>
+			</div>
+
+			<div id="checkinmain"></div>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="print.js"></script>
+		<script src="qrcode.js"></script>
+		<script src="receipt.js"></script>
+		<script src="checkin.js"></script>
+	</body>
+</html>

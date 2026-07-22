@@ -1,0 +1,102 @@
+/* 一套撲克牌面樣式，session 列表 / handdetail / table 共用。
+   固定寬高，確保每張牌等寬不參差（花色符號非等寬字體，靠固定盒子尺寸對齊）。 */
+
+.pt-cardline {
+	align-items: center;
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: center;
+	vertical-align: middle;
+}
+
+.pt-cardgroup {
+	align-items: center;
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: center;
+	margin: 2px 5px 2px 0px;
+	vertical-align: middle;
+}
+
+.pt-cardgroup-label {
+	color: #a1a1aa;
+	font-size: 12px;
+	font-weight: 800;
+	margin-right: 2px;
+}
+
+.pt-card {
+	align-items: center;
+	background: #18181b;
+	border: 1px solid #3f3f46;
+	border-radius: 10px;
+	box-sizing: border-box;
+	color: #e5e7eb;
+	display: inline-flex;
+	flex: 0 0 auto;
+	font-family: "SFMono-Regular","Menlo","Monaco",monospace;
+	font-size: 19px;
+	font-weight: 900;
+	gap: 1px;
+	height: 46px;
+	justify-content: center;
+	line-height: 1;
+	width: 38px;
+}
+
+.pt-card.red {
+	color: #f87171;
+}
+
+.pt-card.unknown {
+	background: #27272a;
+	border-color: #3f3f46;
+	color: #71717a;
+}
+
+.pt-card.pt-card-best {
+	border-color: #34d399;
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, .55), 0 0 16px rgba(16, 185, 129, .45);
+	transform: translateY(-1px);
+}
+
+.pt-card-rank {
+	font-size: inherit;
+}
+
+.pt-card-suit {
+	font-size: inherit;
+}
+
+.pt-card-note {
+	color: #a1a1aa;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.pt-card-detail {
+	justify-content: flex-start;
+}
+
+.pt-card-divider {
+	align-self: stretch;
+	border-left: 1px solid #3f3f46;
+	margin: 4px 1px;
+	width: 0;
+}
+
+@media (max-width: 640px) {
+	.pt-card {
+		border-radius: 8px;
+		font-size: 16px;
+		height: 40px;
+		width: 32px;
+	}
+
+	.pt-cardline,
+	.pt-cardgroup {
+		gap: 4px;
+	}
+}

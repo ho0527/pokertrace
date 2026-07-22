@@ -12,7 +12,10 @@ from function.function import *
 from .initialize import *
 
 
-CONTACTNOTIFYEMAIL="// 改成你的電子信箱以便收到訊息"
+CONTACTNOTIFYEMAIL="chris960527ho@gmail.com"
+# 公開端點頻率限制: 同一 IP (取不到 IP 時改用 email) 在 CONTACTRATELIMITMINUTE 分鐘內最多 CONTACTRATELIMITCOUNT 筆
+CONTACTRATELIMITMINUTE=10
+CONTACTRATELIMITCOUNT=3
 
 
 def asyncsendmail(*args,**kwargs):
@@ -95,8 +98,23 @@ def newcontactmessage(request):
 			return errorresponse("ERROR_request_data_not_found")
 		if "@" not in email:
 			return errorresponse("ERROR_request_data_type_error")
-		ip=request.META.get("REMOTE_ADDR","")
+		# 優先取 nginx 設的 X-Real-IP，取不到才 fallback REMOTE_ADDR；本部署兩者都是真實 client IP
+		# (uvicorn proxy_headers 預設開啟，已從 X-Forwarded-For 還原真實來源；nginx 兩條 location 也都有
+		#  proxy_set_header X-Real-IP $remote_addr，會覆寫用戶端偽造的標頭值)
+		# (此 ip 同時用於頻率限制計數與寫入 contactmessage.ip 欄)
+		ip=request.META.get("HTTP_X_REAL_IP") or request.META.get("REMOTE_ADDR","")
 		useragent=request.META.get("HTTP_USER_AGENT","")
+		# 免登入公開端點, 用 contactmessage 既有 ip 欄位做簡易頻率限制 (不含軟刪過濾, 刪除訊息不會重置額度);
+		# 取不到 IP 時退而以 email 計數
+		if ip:
+			ratelimitrow=query(SETTING["dbname"],"""SELECT COUNT(*) AS total FROM "contactmessage" WHERE "ip"=%s AND "createtime">=NOW()-make_interval(mins=>%s)""",[ip,CONTACTRATELIMITMINUTE],SETTING["dbsetting"])
+		else:
+			ratelimitrow=query(SETTING["dbname"],"""SELECT COUNT(*) AS total FROM "contactmessage" WHERE "email"=%s AND "createtime">=NOW()-make_interval(mins=>%s)""",[email,CONTACTRATELIMITMINUTE],SETTING["dbsetting"])
+		if ratelimitrow and CONTACTRATELIMITCOUNT<=int(ratelimitrow[0]["total"]):
+			return Response({
+				"success": False,
+				"data": "ERROR_too_many_requests"
+			},status.HTTP_429_TOO_MANY_REQUESTS)
 		query(SETTING["dbname"],f"""
 			INSERT INTO "contactmessage"("userid","name","email","subject","message","ip","useragent","createtime","updatetime")
 			VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
@@ -122,9 +140,10 @@ Email：{email}
 			"data": ""
 		},status.HTTP_200_OK)
 	except Exception as error:
+		printcolorhaveline("fail","[ERROR] "+str(error),"")
 		return Response({
 			"success": False,
-			"data": "ERROR_unknow_error_pls_tell_the_admin:"+str(error)
+			"data": "ERROR_unknow_error_pls_tell_the_admin"
 		},status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -172,6 +191,11 @@ def getcontactmessages(request):
 		total=0
 		if countrow:
 			total=countrow[0]["total"]
+		totalpages=(total+limit-1)//limit
+		if totalpages<=0:
+			totalpages=1
+		if totalpages<page:
+			page=totalpages
 		return Response({
 			"success": True,
 			"data": {
@@ -179,14 +203,18 @@ def getcontactmessages(request):
 				"pagination": {
 					"page": page,
 					"limit": limit,
-					"total": total
+					"total": total,
+					"totalpages": totalpages,
+					"hasprev": 1<page,
+					"hasnext": page<totalpages
 				}
 			}
 		},status.HTTP_200_OK)
 	except Exception as error:
+		printcolorhaveline("fail","[ERROR] "+str(error),"")
 		return Response({
 			"success": False,
-			"data": "ERROR_unknow_error_pls_tell_the_admin:"+str(error)
+			"data": "ERROR_unknow_error_pls_tell_the_admin"
 		},status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -212,9 +240,10 @@ def editcontactmessage(request,messageid):
 			"data": ""
 		},status.HTTP_200_OK)
 	except Exception as error:
+		printcolorhaveline("fail","[ERROR] "+str(error),"")
 		return Response({
 			"success": False,
-			"data": "ERROR_unknow_error_pls_tell_the_admin:"+str(error)
+			"data": "ERROR_unknow_error_pls_tell_the_admin"
 		},status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -266,7 +295,8 @@ PokerTrace
 			"data": ""
 		},status.HTTP_200_OK)
 	except Exception as error:
+		printcolorhaveline("fail","[ERROR] "+str(error),"")
 		return Response({
 			"success": False,
-			"data": "ERROR_unknow_error_pls_tell_the_admin:"+str(error)
+			"data": "ERROR_unknow_error_pls_tell_the_admin"
 		},status.HTTP_500_INTERNAL_SERVER_ERROR)

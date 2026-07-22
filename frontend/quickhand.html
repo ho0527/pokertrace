@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>快速手牌紀錄 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="newedithand.css">
+	</head>
+	<body class="newhand-page newhand-quick bg-zinc-950 text-white min-h-screen">
+		<div id="navigationbar"></div>
+
+		<main class="newhand-shell">
+			<div class="newhand-topbar">
+				<div>
+					<div class="newhand-eyebrow">PokerTrace</div>
+					<h1 id="pagetitle">快速手牌紀錄</h1>
+				</div>
+				<div class="newhand-topactions">
+					<a href="sessionlist.html" id="back">上一頁</a>
+					<input type="button" id="cleardata" value="清空暫存">
+				</div>
+			</div>
+
+			<nav class="newhand-nav" aria-label="手牌流程">
+				<input type="button" class="stepnav active" data-step="1" value="1 位置資訊">
+				<input type="button" class="stepnav" data-step="2" value="2 紀錄手牌">
+				<input type="button" class="stepnav" data-step="3" value="3 檢查送出">
+			</nav>
+
+			<section class="newhand-status">
+				<div>
+					<span>牌桌</span>
+					<strong id="handtablename">-</strong>
+				</div>
+				<div>
+					<span>Dealer</span>
+					<strong id="dealerlabel">-</strong>
+				</div>
+				<div>
+					<span>盲注</span>
+					<strong id="blindlabel">-</strong>
+				</div>
+				<div>
+					<span>選手</span>
+					<strong id="playercountlabel">-</strong>
+				</div>
+				<div>
+					<span>狀態</span>
+					<strong id="savestatus">尚未儲存</strong>
+				</div>
+			</section>
+
+			<section class="newhand-step active" id="step1">
+				<div class="newhand-grid">
+					<section class="newhand-panel">
+						<div class="newhand-panelhead">
+							<div>
+								<h2>位置與盲注</h2>
+									<p>快速紀錄為獨立手牌，可自由設定遊戲類型、盲注與座位</p>
+							</div>
+						</div>
+						<div class="newhand-fields">
+							<label>
+								<span>遊戲類型</span>
+								<select id="handgametype"></select>
+							</label>
+							<label>
+								<span>盲注級別</span>
+								<select id="blindlevelselect"></select>
+							</label>
+							<label id="smallblindfield">
+								<span id="smallblindlabel">小盲</span>
+								<input type="number" id="handsmallblind" min="0" inputmode="numeric">
+							</label>
+							<label id="bigblindfield">
+								<span id="bigblindlabel">大盲</span>
+								<input type="number" id="handbigblind" min="0" inputmode="numeric">
+							</label>
+							<label>
+								<span id="antelabel">Ante</span>
+								<input type="number" id="handante" min="0" inputmode="numeric">
+							</label>
+							<label>
+								<span>Dealer</span>
+								<select id="dealerseat"></select>
+							</label>
+							<label>
+								<span id="selfseatinglabel">Hero 座位</span>
+								<select id="selfseating"></select>
+							</label>
+						</div>
+						<div class="newhand-checks">
+							<label><input type="checkbox" id="emptybutton"> 空 button</label>
+							<label><input type="checkbox" id="deadsmallblind"> 獨立大盲</label>
+						</div>
+						<div class="newhand-actions">
+							<input type="button" id="rebuildblinds" value="重建預設下注">
+							<input type="button" class="primary" data-goto="2" value="下一步">
+						</div>
+					</section>
+
+					<section class="newhand-panel">
+						<div class="newhand-panelhead">
+							<div>
+								<h2>座位</h2>
+									<p>自行選擇入座的座位並輸入起始碼量（可用 BB 或計分牌）</p>
+							</div>
+						</div>
+						<div class="newhand-seatlist" id="seatlist"></div>
+					</section>
+				</div>
+			</section>
+
+			<section class="newhand-step" id="step2">
+				<!-- 導覽 hub -->
+				<div id="step2hub" class="step2view">
+					<section class="newhand-panel">
+						<div class="newhand-panelhead">
+							<div>
+								<h2>紀錄手牌</h2>
+								<p>選擇要操作的項目，現場一步一步點</p>
+							</div>
+						</div>
+						<div class="newhand-hubstatus" id="hubstatus"></div>
+						<div class="newhand-hubgrid">
+							<div class="newhand-hubbtn" role="button" tabindex="0" data-hub="hero">
+								<span class="newhand-hubbtn-title">新增我的手牌</span>
+								<span class="newhand-hubbtn-sub" id="hubherocards">? ?</span>
+							</div>
+							<div class="newhand-hubbtn" role="button" tabindex="0" data-hub="board">
+								<span class="newhand-hubbtn-title" id="hubboardtitle">公共牌</span>
+								<span class="newhand-hubbtn-sub" id="hubboardcards">-</span>
+							</div>
+							<div class="newhand-hubbtn accent" role="button" tabindex="0" data-hub="betting">
+								<span class="newhand-hubbtn-title">下注管理</span>
+								<span class="newhand-hubbtn-sub" id="hubbetinfo">-</span>
+							</div>
+							<div class="newhand-hubbtn" role="button" tabindex="0" data-hub="result">
+								<span class="newhand-hubbtn-title">攤牌 / 結果</span>
+								<span class="newhand-hubbtn-sub" id="hubresultinfo">選牌・選贏家</span>
+							</div>
+						</div>
+						<div class="newhand-actions">
+							<input type="button" data-goto="1" value="上一步">
+							<input type="button" class="primary" data-goto="3" value="下一步">
+						</div>
+					</section>
+				</div>
+
+				<!-- 下注管理 -->
+				<div id="step2betting" class="step2view">
+					<section class="newhand-panel">
+						<div class="newhand-panelhead">
+							<div>
+								<h2>下注管理</h2>
+							</div>
+							<input type="button" class="hubback" data-hub="hub" value="回上頁">
+						</div>
+						<div class="timebank-panel" id="timebankPanel" role="timer" aria-live="polite" aria-atomic="true">
+							<div class="timebank-head">
+								<div class="timebank-title">Timebank</div>
+								<div class="timebank-status" id="timebankStatus">READY</div>
+							</div>
+							<div class="timebank-main">
+								<div class="timebank-count mono" id="timebankCountdown">15</div>
+							</div>
+							<div class="timebank-actions">
+								<input type="button" id="timebankStart" value="開始">
+								<input type="button" id="timebankPause" value="暫停">
+								<input type="button" id="timebankReset" value="重設">
+							</div>
+						</div>
+						<div class="betting-stage">
+							<div class="betting-head">
+								<div>
+									<div class="quick-action-seat" id="currentactionseat">Seat -</div>
+									<div class="quick-action-meta" id="currentactionmeta">等待系統推算下一位</div>
+								</div>
+								<label class="betting-street">
+									<span>街別</span>
+									<select id="actionstreet"></select>
+								</label>
+							</div>
+							<div class="betting-actions">
+								<input type="button" id="quickfold" value="Fold">
+								<input type="button" id="quickcheckcall" value="Check / Call">
+								<input type="button" id="quickraise" value="Bet / Raise">
+							</div>
+							<input type="button" class="betting-herocards" id="bettingherocards" value="選擇手牌">
+						</div>
+						<div class="newhand-actionlist" id="actionlist"></div>
+					</section>
+				</div>
+
+				<!-- 攤牌 / 結果 -->
+				<div id="step2result" class="step2view">
+					<section class="newhand-panel">
+						<div class="newhand-panelhead">
+							<div>
+								<h2>攤牌 / 結果</h2>
+								<p id="showorderhint">系統會提示建議 show 順序，現場仍可 muck 或手動改贏家</p>
+							</div>
+							<input type="button" class="hubback" data-hub="hub" value="回上頁">
+						</div>
+						<div class="newhand-actions">
+							<input type="button" id="solvewinner" value="快速解算">
+						</div>
+						<div class="showdown-list" id="showdownlist"></div>
+						<div class="newhand-summarybox" id="resultsummary"></div>
+						<div class="newhand-actions">
+							<input type="button" class="hubback" data-hub="hub" value="回上頁">
+							<input type="button" class="primary" data-goto="3" value="下一步">
+						</div>
+					</section>
+				</div>
+			</section>
+
+			<section class="newhand-step" id="step3">
+				<div class="newhand-grid">
+					<section class="newhand-panel">
+						<div class="newhand-panelhead">
+							<div>
+								<h2>儲存前檢查</h2>
+									<p>送出前先看警告，黃色為提醒、紅色需修正</p>
+							</div>
+						</div>
+						<div id="warnings" class="newhand-warnings"></div>
+					</section>
+					<section class="newhand-panel">
+						<div class="newhand-panelhead">
+							<div>
+								<h2>摘要</h2>
+								<p>快速手牌為獨立紀錄，不與其他手牌連動，日後可自由編輯</p>
+							</div>
+						</div>
+						<div class="newhand-summarybox" id="summarybox"></div>
+						<label class="note-label">
+							<span>備註</span>
+							<textarea id="ps" rows="4" placeholder="現場補充、裁定或其他說明"></textarea>
+						</label>
+					</section>
+				</div>
+				<div class="newhand-actions">
+					<input type="button" data-goto="2" value="上一步">
+					<input type="button" id="clearhandcache" value="清空暫存">
+						<input type="button" class="primary save" id="savehand" value="送出">
+					<input type="button" class="primary save" id="saveandnext" value="送出，並新增下手牌">
+				</div>
+			</section>
+		</main>
+
+		<div id="footer"></div>
+
+		<script>window.QUICKMODE=true</script>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="handgame/handgame.js"></script>
+		<script src="handgame/holdem.js"></script>
+		<script src="handgame/omaha.js"></script>
+		<script src="handgame/omaha5.js"></script>
+		<script src="handgame/shortdeck.js"></script>
+		<script src="handgame/stud.js"></script>
+		<script src="handgame/razz.js"></script>
+		<script src="handgame/a5draw.js"></script>
+		<script src="handgame/deuce7draw.js"></script>
+		<script src="newedithand.js"></script>
+	</body>
+</html>

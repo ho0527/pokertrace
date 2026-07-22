@@ -1,0 +1,163 @@
+/* 共用列印樣式：把要印的內容組進 #ptprintroot，列印時只顯示它、隱藏站台其他元素。 */
+
+#ptprintroot {
+	display: none;
+}
+
+@media print {
+	html, body {
+		background: #ffffff;
+	}
+
+	body > * {
+		display: none;
+	}
+
+	body > #ptprintroot {
+		display: block;
+		color: #000000;
+		font-family: "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Arial, sans-serif;
+		font-size: 12px;
+		line-height: 1.5;
+		padding: 0 4mm;
+	}
+
+	.ptprintdoc {
+		width: 100%;
+	}
+
+	.ptprinthead {
+		border-bottom: 2px solid #000000;
+		padding-bottom: 8px;
+		margin-bottom: 12px;
+		text-align: center;
+	}
+
+	.ptprinteyebrow {
+		font-size: 11px;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: #444444;
+	}
+
+	.ptprinttitle {
+		font-size: 20px;
+		font-weight: 800;
+	}
+
+	.ptprintsubtitle {
+		margin-top: 2px;
+		font-size: 12px;
+		color: #333333;
+	}
+
+	.ptprintmeta {
+		margin-top: 4px;
+		font-size: 11px;
+		color: #555555;
+	}
+
+	.ptprintsectiontitle {
+		font-size: 13px;
+		font-weight: 700;
+		border-left: 4px solid #000000;
+		padding-left: 8px;
+		margin: 16px 0 8px;
+	}
+
+	.ptprintinfogrid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4px 24px;
+		margin-bottom: 8px;
+	}
+
+	.ptprintinforow {
+		display: flex;
+		gap: 8px;
+		padding: 3px 0;
+		border-bottom: 1px dotted #bbbbbb;
+	}
+
+	.ptprintinfolabel {
+		flex: 0 0 38%;
+		color: #555555;
+	}
+
+	.ptprintinfovalue {
+		flex: 1 1 auto;
+		font-weight: 600;
+	}
+
+	.ptprinttable {
+		width: 100%;
+		border-collapse: collapse;
+		margin-bottom: 10px;
+	}
+
+	.ptprinttable th, .ptprinttable td {
+		border: 1px solid #000000;
+		padding: 4px 6px;
+		text-align: left;
+		vertical-align: top;
+	}
+
+	.ptprinttable th {
+		background: #eeeeee;
+		font-weight: 700;
+		font-size: 11px;
+	}
+
+	.ptprinttable tbody tr {
+		break-inside: avoid;
+		page-break-inside: avoid;
+	}
+
+	.ptprinttable .ptprintnum {
+		text-align: right;
+	}
+
+	.ptprinttable .ptprintcenter {
+		text-align: center;
+	}
+
+	.ptprintnote {
+		white-space: pre-wrap;
+		font-size: 12px;
+		margin-bottom: 10px;
+	}
+
+	.ptprintempty {
+		padding: 12px;
+		text-align: center;
+		color: #666666;
+		border: 1px solid #000000;
+	}
+
+	.ptprintfoot {
+		margin-top: 18px;
+		display: flex;
+		justify-content: space-between;
+		gap: 24px;
+	}
+
+	.ptprintsign {
+		flex: 1 1 auto;
+	}
+
+	.ptprintsignline {
+		border-bottom: 1px solid #000000;
+		height: 26px;
+		margin-top: 18px;
+	}
+
+	.ptprintsignlabel {
+		margin-top: 4px;
+		font-size: 11px;
+		color: #555555;
+	}
+
+	thead {
+		display: table-header-group;
+	}
+}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="底池賠率：底池賠率與所需勝率。免費線上撲克工具，不用登入、無廣告。Pot Odds: Pot odds and required equity. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/potodds.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="底池賠率 / Pot Odds - PokerTrace">
+		<meta property="og:description" content="底池賠率：底池賠率與所需勝率。免費線上撲克工具，不用登入、無廣告。Pot Odds: Pot odds and required equity. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/potodds.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>底池賠率 (Pot Odds) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="potitle">底池賠率</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="poback">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-2">
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="popotlabel" for="popot">目前底池</label>
+						<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="popot" min="0" inputmode="numeric" value="1000">
+					</div>
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="pocalllabel" for="pocall">要跟的注</label>
+						<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="pocall" min="0" inputmode="numeric" value="300">
+					</div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center">
+						<div class="text-sm text-zinc-400" id="poratiolabel">底池賠率</div>
+						<div class="mt-1 text-3xl font-extrabold" id="poratio">-</div>
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center">
+						<div class="text-sm text-zinc-400" id="poneedlabel">所需勝率</div>
+						<div class="mt-1 text-3xl font-extrabold text-emerald-400" id="poneed">-</div>
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center">
+						<div class="text-sm text-zinc-400" id="pomdflabel">最小防守頻率 MDF</div>
+						<div class="mt-1 text-3xl font-extrabold" id="pomdf">-</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="mt-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-3 text-lg font-extrabold" id="poevtitle">跟注 EV</div>
+				<div class="flex flex-wrap items-end gap-3">
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="poeqlabel" for="poeq">預估勝率 (%)</label>
+						<input type="number" class="min-h-12 w-32 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="poeq" min="0" max="100" step="0.1" inputmode="decimal" value="35">
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center">
+						<div class="text-xs text-zinc-400" id="poevlabel">跟注 EV</div>
+						<div class="text-2xl font-extrabold" id="poev">-</div>
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center">
+						<div class="text-xs text-zinc-400" id="poadvicelabel">建議</div>
+						<div class="text-2xl font-extrabold" id="poadvice">-</div>
+					</div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="poevnote">EV = 勝率 × 底池 −（1 − 勝率）× 跟注額。EV 為正代表長期跟注有利。</div>
+			</section>
+
+			<section class="mt-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-3 text-lg font-extrabold" id="pooutstitle">Outs → 勝率（4/2 法則）</div>
+				<div class="flex flex-wrap items-end gap-3">
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="pooutslabel" for="poouts">Outs 數</label>
+						<input type="number" class="min-h-12 w-28 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="poouts" min="0" max="23" inputmode="numeric" value="9">
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center">
+						<div class="text-xs text-zinc-400" id="poflopodds">翻牌看兩張 ≈</div>
+						<div class="text-2xl font-extrabold" id="poflop">-</div>
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center">
+						<div class="text-xs text-zinc-400" id="poturnodds">轉牌看一張 ≈</div>
+						<div class="text-2xl font-extrabold" id="poturn">-</div>
+					</div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="pooutsnote">Outs = 能讓你成牌的剩餘張數。4/2 法則：翻牌看兩張用 Outs × 4、轉牌看一張用 Outs × 2，快速估算成牌勝率。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">底池賠率怎麼算？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">對手下注後，你需要的勝率 = 跟注額 ÷（底池 + 下注 + 跟注額）。例如對手在 100 的底池下注 50，你跟 50 需要 25% 勝率。輸入底池與下注金額，工具立即算出所需勝率，配合補牌表就能做出正確的跟棄決定。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/potodds.js"></script>
+	</body>
+</html>

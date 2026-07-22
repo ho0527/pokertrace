@@ -1,0 +1,46 @@
+@echo off
+rem ============================================================
+rem PokerTrace backend local environment example
+rem Copy this file to localenv.cmd and fill in the values you need.
+rem localenv.cmd is ignored by git. Do not commit real secrets.
+rem ============================================================
+
+rem --- Django ---
+rem set DJANGO_DEBUG=1
+rem set DJANGO_SECRET_KEY=replace-with-your-own-secret
+rem set DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
+rem Comma-separated CORS origin whitelist (required in production), e.g.:
+rem set DJANGO_CORS_ALLOWED_ORIGINS=https://app.example.com,https://example.com
+
+rem --- Worker count for runserver.cmd ---
+rem set WORKERS=6
+
+rem --- Structure parse AI (optional) ---
+rem Leave empty if you only want rule-based parsing.
+rem set STRUCTURE_AI_KEY=
+rem set STRUCTURE_AI_PROVIDER=gemini
+rem set STRUCTURE_AI_MODEL=gemini-2.5-flash
+
+rem --- Email / SMTP ---
+rem set EMAIL_HOST=smtp.gmail.com
+rem set EMAIL_PORT=587
+rem set EMAIL_HOST_USER=
+rem set EMAIL_HOST_PASSWORD=
+
+rem --- Database secret (required) ---
+rem Read by api/initialize.py, dbinitialize.py, defultuser.py and backup/*.
+rem set PT_DB_PASSWORD=your-db-password
+rem Optional DB overrides — only read by backup/* scripts.
+rem (api/initialize.py, dbinitialize.py, defultuser.py hardcode DBNAME/DBUSER/
+rem  DBHOST/DBPORT; change those files directly if your DB differs.)
+rem set PT_DB_HOST=localhost
+rem set PT_DB_PORT=5432
+rem set PT_DB_NAME=pokertrace
+rem set PT_DB_USER=your-db-user
+
+rem --- Firebase credential path ---
+rem set FIREBASE_CREDENTIAL_PATH=C:\path\to\firebase-adminsdk.json
+
+rem --- Example: service machine custom paths or extra env ---
+rem set PYTHONUTF8=1
+rem set PYTHONIOENCODING=utf-8

@@ -3,203 +3,72 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>修改場次 - Edit Session</title>
+		<title>修改場次結果 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-		<script src="https://cdn.tailwindcss.com"></script>
+		<link rel="stylesheet" href="tailwind.css">
 	</head>
-	<body class="bg-zinc-900 text-white min-h-screen">
+	<body class="min-h-screen bg-zinc-950 text-white">
 		<div id="navigationbar"></div>
 
-		<div class="max-w-xl mx-auto py-10 px-4">
-			<h2 class="text-2xl font-bold mb-4">編輯場次</h2>
-			<form method="POST" class="bg-zinc-800 rounded-lg p-6 shadow space-y-6" id="form">
-				<div>
-					<div class="block mb-2 text-zinc-300">遊戲類型:<span class="w-full text-white rounded px-1 py-2" id="gameeventtype"></span></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6">
+				<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Edit Result</p>
+				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl">編輯場次結果</h1>
+			</div>
+
+			<div class="mb-5 rounded-[24px] border border-zinc-800 bg-zinc-900/80 p-5">
+				<div class="mb-2 text-sm font-bold text-zinc-500">場次</div>
+				<div class="text-2xl font-extrabold text-white" id="sessionname">載入中</div>
+				<div class="mt-2 text-sm leading-7 text-zinc-400">
+					<span id="sessiontype"></span>
+					<span id="sessiontime"></span>
 				</div>
-				<div>
-					<label for="name" class="block mb-2 text-zinc-300">名稱</label>
-					<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="name">
-				</div>
-				<div>
-					<label for="clubid" class="block mb-2 text-zinc-300">地點</label>
-					<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="clubid" required>
-						<option value="">-- 請選擇 --</option>
-					</select>
-				</div>
-				<div class="flex gap-4">
-					<div class="w-full">
-						<label for="gametype" class="block mb-2 text-zinc-300">遊戲類型</label>
-						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="gametype"></select>
+			</div>
+
+			<form method="POST" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8" id="form">
+				<div class="grid grid-cols-2 gap-4 md:grid-cols-2">
+					<div>
+						<label for="winprice" class="mb-2 block text-sm font-bold text-zinc-100">獲獎金額</label>
+						<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="winprice" min="0" inputmode="numeric" value="0">
 					</div>
-					<div class="w-full">
-						<label for="limittype" class="block mb-2 text-zinc-300">限注類型</label>
-						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="limittype"></select>
-					</div>
-				</div>
-				<div class="flex gap-4">
-					<div class="w-full">
-						<label for="stacktype" class="block mb-2 text-zinc-300">籌碼類型</label>
-						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="stacktype"></select>
-					</div>
-					<div class="w-full">
-						<label for="eventtype" class="block mb-2 text-zinc-300">賽事類型</label>
-						<select class="w-full bg-zinc-700 text-white rounded px-3 py-2 text-center" id="eventtype"></select>
+					<div>
+						<label for="winthing" class="mb-2 block text-sm font-bold text-zinc-100">獲獎獎品</label>
+						<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="winthing" value="N/A" placeholder="如無獎品可填 N/A">
 					</div>
 				</div>
-				<div class="flex items-center gap-3 bg-zinc-700/40 rounded px-3 py-3">
-					<input type="checkbox" id="owned" class="w-5 h-5 accent-emerald-500 cursor-pointer">
-					<label for="owned" class="text-zinc-200 cursor-pointer select-none">
-						是否為主辦牌局
-						<span class="block text-xs text-zinc-400 mt-0.5">勾選後切換為主辦設定模式 (不計入個人盈虧)</span>
+
+				<div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-2">
+					<div>
+						<label for="place" class="mb-2 block text-sm font-bold text-zinc-100">名次</label>
+						<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="place" min="0" inputmode="numeric" value="0">
+					</div>
+					<div>
+						<label for="totalbuyin" class="mb-2 block text-sm font-bold text-zinc-100">總買入</label>
+						<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="totalbuyin" min="0" inputmode="numeric" value="0">
+					</div>
+				</div>
+
+				<div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-2">
+					<label class="flex cursor-pointer items-center gap-3 rounded-[20px] border border-zinc-800 bg-zinc-950/70 p-4">
+						<input type="checkbox" class="h-[18px] w-[18px] cursor-pointer accent-emerald-500" id="inmoney">
+						<span class="select-none text-sm font-bold text-zinc-100">有進錢圈 (ITM)</span>
+					</label>
+					<label class="flex cursor-pointer items-center gap-3 rounded-[20px] border border-zinc-800 bg-zinc-950/70 p-4">
+						<input type="checkbox" class="h-[18px] w-[18px] cursor-pointer accent-emerald-500" id="inft">
+						<span class="select-none text-sm font-bold text-zinc-100">有進 Final Table</span>
 					</label>
 				</div>
-				<div>
-					<label for="date" class="block mb-2 text-zinc-300">開始日期</label>
-					<input type="date" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="date">
-				</div>
-				<div class="grid grid-cols-2 gap-4">
-					<div>
-						<label for="starttime" class="block mb-2 text-zinc-300">開始時間</label>
-						<input type="time" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="starttime" step="1" value="19:00">
-					</div>
-					<div>
-						<label for="endtime" class="block mb-2 text-zinc-300">結束時間</label>
-						<input type="time" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="endtime" step="1" value="23:30">
-					</div>
-				</div>
-				<div class="grid grid-cols-3 gap-4">
-					<div>
-						<label for="buyin" class="block mb-2 text-zinc-300"><span class="ownedlabel">買入費</span></label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="buyin" value="600">
-					</div>
-					<div>
-						<label for="buyinfee" class="block mb-2 text-zinc-300">買入服務費</label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="buyinfee" value="0">
-					</div>
-					<div>
-						<label for="chip" class="block mb-2 text-zinc-300"><span class="ownedlabel">買入籌碼</span></label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="chip" value="20000">
-					</div>
-				</div>
-				<div class="grid grid-cols-3 gap-4">
-					<div>
-						<label for="rebuycount" class="block mb-2 text-zinc-300"><span class="ownedlabel">重購次數</span></label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="rebuycount" value="0">
-					</div>
-					<div>
-						<label for="rebuybuyin" class="block mb-2 text-zinc-300"><span class="ownedlabel">重購費</span></label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="rebuybuyin" value="600">
-					</div>
-					<div>
-						<label for="rebuyfee" class="block mb-2 text-zinc-300">重購服務費</label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="rebuyfee" value="0">
-					</div>
-				</div>
 
-				<!-- 主辦設定區 (owned=true 才顯示) -->
-				<div id="ownedfields" class="hidden space-y-6 border-t border-zinc-700 pt-6">
-					<div class="text-emerald-400 text-sm font-semibold">主辦設定</div>
-					<div>
-						<label for="rebuychip" class="block mb-2 text-zinc-300">重購籌碼</label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="rebuychip" value="0">
-					</div>
-					<div class="grid grid-cols-3 gap-4">
-						<div>
-							<label for="reentrycount" class="block mb-2 text-zinc-300">再入次數</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="reentrycount" value="0">
-						</div>
-						<div>
-							<label for="reentrybuyin" class="block mb-2 text-zinc-300">再入費</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="reentrybuyin" value="0">
-						</div>
-						<div>
-							<label for="reentryfee" class="block mb-2 text-zinc-300">再入服務費</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="reentryfee" value="0">
-						</div>
-					</div>
-					<div>
-						<label for="reentrychip" class="block mb-2 text-zinc-300">再入籌碼</label>
-						<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="reentrychip" value="0">
-					</div>
-					<div class="grid grid-cols-3 gap-4">
-						<div>
-							<label for="addoncount" class="block mb-2 text-zinc-300">增購次數</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="addoncount" value="0">
-						</div>
-						<div>
-							<label for="addonbuyin" class="block mb-2 text-zinc-300">增購費</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="addonbuyin" value="0">
-						</div>
-						<div>
-							<label for="addonfee" class="block mb-2 text-zinc-300">增購服務費</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="addonfee" value="0">
-						</div>
-					</div>
-					<div class="grid grid-cols-2 gap-4">
-						<div>
-							<label for="addonchip" class="block mb-2 text-zinc-300">增購籌碼</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="addonchip" value="0">
-						</div>
-						<div>
-							<div class="flex items-center gap-3 bg-zinc-700/40 rounded px-3 py-2 h-full">
-								<input type="checkbox" id="linkuser" class="w-5 h-5 accent-emerald-500 cursor-pointer">
-								<label for="linkuser" class="text-zinc-200 cursor-pointer select-none text-sm">
-									關聯使用者 (開放報名)
-								</label>
-							</div>
-						</div>
-					</div>
-				</div>
+				<div class="mt-5 min-h-6 text-center text-sm font-bold leading-7 text-rose-300" id="error"></div>
 
-				<!-- 個人成績區 (owned=false 才顯示) -->
-				<div id="personalfields" class="space-y-6">
-					<div class="grid grid-cols-2 gap-4">
-						<div>
-							<label for="winprice" class="block mb-2 text-zinc-300">獲獎金額</label>
-							<input type="number" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="winprice" value="0">
-						</div>
-						<div>
-							<label for="winthing" class="block mb-2 text-zinc-300">獲獎獎品</label>
-							<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="winthing" value="N/A">
-						</div>
-					</div>
-					<div class="grid grid-cols-2 gap-4">
-						<div>
-							<label for="place" class="block mb-2 text-zinc-300">名次</label>
-							<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="place" value="0">
-						</div>
-						<div>
-							<label for="totalbuyin" class="block mb-2 text-zinc-300">總買入</label>
-							<input type="text" class="w-full bg-zinc-700 text-white rounded px-3 py-2" id="totalbuyin" value="0">
-						</div>
-					</div>
-					<div class="grid grid-cols-2 gap-4">
-						<div class="flex items-center gap-3 bg-zinc-700/40 rounded px-3 py-2">
-							<input type="checkbox" id="inmoney" class="w-5 h-5 accent-emerald-500 cursor-pointer">
-							<label for="inmoney" class="text-zinc-200 cursor-pointer select-none text-sm">
-								有進錢圈 (ITM)
-							</label>
-						</div>
-						<div class="flex items-center gap-3 bg-zinc-700/40 rounded px-3 py-2">
-							<input type="checkbox" id="inft" class="w-5 h-5 accent-emerald-500 cursor-pointer">
-							<label for="inft" class="text-zinc-200 cursor-pointer select-none text-sm">
-								有進 Final Table
-							</label>
-						</div>
-					</div>
-				</div>
-
-				<div>
-					<label for="description" class="block mb-2 text-zinc-300">備註</label>
-					<textarea class="w-full bg-zinc-700 text-white rounded px-3 py-2 resize-none" id="description" rows="2" placeholder="可填寫本場重點或心得"></textarea>
-				</div>
-				<div class="text-red-500 text-center font-bold my-1" id="error"></div>
-				<div class="flex justify-end">
-					<button type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded text-lg font-bold" id="submit">送出</button>
+				<div class="mt-4 flex justify-end">
+					<input type="submit" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-7 text-base font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="submit" value="送出">
 				</div>
 			</form>
 		</div>
+
 		<div id="footer"></div>
 
 		<script src="translate.js"></script>

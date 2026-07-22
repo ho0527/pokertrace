@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>現場轉播 - PokerTrace</title>
+		<link href="../material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+		<link href="../material/icon/icon.png" rel="apple-touch-icon">
+		<link rel="stylesheet" href="pokertable.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<style>
+			/* 牌桌/卡片/皮膚等視覺共用 pokertable.css; 此處僅放 broadcast 專屬 */
+			body{background:radial-gradient(120% 80% at 50% -10%,#0f1a15 0%,#0b0f0d 55%);}
+			.livedot{width:9px;height:9px;border-radius:50%;background:#f43f5e;box-shadow:0 0 0 4px rgba(244,63,94,.18)}
+			.livedot.on{background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.20);animation:pulse 1.6s ease-in-out infinite}
+			@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+			@media (prefers-reduced-motion:reduce){.livedot.on{animation:none}}
+		</style>
+	</head>
+	<body class="min-h-screen text-zinc-100">
+		<div class="mx-auto max-w-5xl px-4 py-6">
+			<header class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+				<div>
+					<div class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400" id="bckicker">現場轉播 · LIVE BROADCAST</div>
+					<h1 class="mt-1 text-2xl font-extrabold" id="bcname">—</h1>
+					<div class="mt-1 flex flex-wrap gap-2 text-xs" id="bcbadge"></div>
+				</div>
+				<div class="flex items-center gap-3">
+					<button type="button" id="bcbbtoggle" class="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold text-zinc-300 outline-none transition hover:bg-zinc-800" aria-label="切換大盲(BB)單位顯示">BB</button>
+						<select id="bcskin" class="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold text-zinc-200 outline-none" aria-label="選擇牌面牌背樣式">
+						<option value="classic" id="bcskinclassic">經典藍</option>
+						<option value="crimson" id="bcskincrimson">緋紅</option>
+						<option value="midnight" id="bcskinmidnight">午夜綠</option>
+					</select>
+					<span class="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold">
+						<span class="livedot" id="bcdot"></span><span id="bcstatus">連線中…</span>
+					</span>
+				</div>
+			</header>
+
+			<div id="bcnotice" class="mb-6 hidden rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm text-amber-200"></div>
+
+			<section id="bclatestwrap" class="mb-8 hidden">
+				<div class="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500" id="bclatesttitle">最新一手</div>
+				<div class="rounded-[22px] border border-zinc-800 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-5 md:p-6" id="bclatest"></div>
+			</section>
+
+			<section>
+				<div class="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500" id="bclisttitle">近期手牌</div>
+				<div class="flex flex-col gap-2" id="bclist"></div>
+			</section>
+
+			<footer class="mt-10 border-t border-zinc-800 pt-4 text-center text-xs text-zinc-600" id="bcfoot">
+				唯讀觀看 · 手牌紀錄同步自主辦端
+			</footer>
+		</div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="broadcast.js"></script>
+	</body>
+</html>

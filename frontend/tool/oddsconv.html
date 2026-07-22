@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="賠率換算：勝率、對賭與隱含勝率。免費線上撲克工具，不用登入、無廣告。Odds Converter: Equity, odds, and implied equity. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/oddsconv.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="賠率換算 / Odds Converter - PokerTrace">
+		<meta property="og:description" content="賠率換算：勝率、對賭與隱含勝率。免費線上撲克工具，不用登入、無廣告。Odds Converter: Equity, odds, and implied equity. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/oddsconv.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>賠率換算 (Odds Converter) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="octitle">賠率換算</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-3 text-lg font-extrabold" id="ocsec1">由勝率 → 賠率</div>
+				<div class="flex flex-wrap items-end gap-3">
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="ocpctlabel" for="ocpct">勝率 (%)</label>
+						<input type="number" class="min-h-12 w-32 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="ocpct" step="0.1" min="0" max="100" inputmode="decimal" value="25">
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center"><div class="text-xs text-zinc-400" id="ocagainstlabel">對賠（against）</div><div class="text-2xl font-extrabold text-emerald-400" id="ocagainst">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center"><div class="text-xs text-zinc-400" id="ocdecimallabel">歐式賠率</div><div class="text-2xl font-extrabold" id="ocdecimal">-</div></div>
+				</div>
+			</section>
+
+			<section class="mt-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-3 text-lg font-extrabold" id="ocsec2">由賠率 → 勝率</div>
+				<div class="flex flex-wrap items-end gap-3">
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="ocalabel" for="oca">賠率 A（贏）</label>
+						<input type="number" class="min-h-12 w-28 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="oca" step="0.1" min="0" inputmode="decimal" value="3">
+					</div>
+					<div class="self-end pb-3 text-xl font-bold text-zinc-500">:</div>
+					<div class="block">
+						<label class="mb-2 block text-sm font-bold text-zinc-100" id="ocblabel" for="ocb">賠率 B（賭注）</label>
+						<input type="number" class="min-h-12 w-28 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="ocb" step="0.1" min="0" inputmode="decimal" value="1">
+					</div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center"><div class="text-xs text-zinc-400" id="ocimpliedlabel">隱含勝率</div><div class="text-2xl font-extrabold text-emerald-400" id="ocimplied">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="ocnote">對賠 = (1 − 勝率) ÷ 勝率，寫成「X : 1」。隱含勝率 = B ÷ (A + B)。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">賠率與勝率換算</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">3:1 的賠率等於 25% 勝率，2.5 倍的歐式賠率等於 40%。這個工具在比例賠率、歐式賠率與勝率百分比之間即時換算，是理解底池賠率與期望值的基本功。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/oddsconv.js"></script>
+	</body>
+</html>

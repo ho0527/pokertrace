@@ -7,44 +7,50 @@
 	<meta name="theme-color" content="#0d0d0d">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<title>裁判控制台 — Poker Clock</title>
+	<title>Referee Control - Poker Clock</title>
 	<link href="../material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
 	<link href="../material/icon/icon.png" rel="apple-touch-icon">
+	<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 	<link rel="stylesheet" href="control.css">
+	<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+	<link rel="stylesheet" href="tailwind.css">
+	<script src="translate.js"></script>
 </head>
 
-<body>
-	<div class="layout">
+<body class="bg-neutral-950 text-neutral-100">
+	<div id="navigationbar"></div>
 
+	<div class="layout">
 		<div class="topbar">
 			<div class="title-row">
-				<div style="flex:1;min-width:0;cursor:pointer" id="titleBlock">
-					<div class="tname" id="tournName">公館萬能 2 錦標賽</div>
+				<input type="button" class="btn btn-ghost btn-sm shrink-0" data-backfallback="sessionlist.html" id="back" value="返回上頁">
+				<div class="flex-1 min-w-0 cursor-pointer" id="titleBlock">
+					<div class="tname" id="tournName">Event Control</div>
 					<div class="tname-sub"><span id="tournSub">REFEREE CONTROL</span> · LV <span id="hLv">1</span>/<span id="hLvMax">10</span></div>
 				</div>
-				<button id="btnEditTitle" class="btn btn-sm btn-ghost" style="min-height:34px;padding:0 10px;font-size:11px">✎ 標題</button>
-				<div id="regBadge" class="reg-badge reg-open" title="點擊切換">REG OPEN</div>
+				<input type="button" class="btn btn-sm btn-ghost min-h-[34px] px-2.5 text-[11px]" id="btnEditTitle" value="✎ Title">
+				<div id="regBadge" class="reg-badge reg-open" title="Click to toggle">REG OPEN</div>
 			</div>
 
-			<div class="timer-card" id="timerCard">
+			<div class="timer-card" id="timerCard" role="timer" aria-live="polite" aria-atomic="true">
 				<div class="timer-meta">
 					<span class="timer-meta-l" id="timerLabel">LEVEL TIME</span>
 					<span class="timer-meta-r" id="timerStatus">▶ RUNNING</span>
 				</div>
 				<div class="timer-display" id="timerDisp">20:00</div>
 				<div class="progress-track">
-					<div class="progress-fill" id="timerProg" style="width:100%"></div>
+					<div class="progress-fill w-full" id="timerProg"></div>
 				</div>
 				<div class="blinds-row">
 					<div>
 						<span class="lbl">Blinds</span>
 						<span class="v" id="curBlinds">100/200</span>
 					</div>
-					<div style="text-align:center">
+					<div class="text-center">
 						<span class="lbl">BB Ante</span>
 						<span class="v amber" id="curAnte">200</span>
 					</div>
-					<div style="text-align:right">
+					<div class="text-right">
 						<span class="lbl">Players</span>
 						<span class="v" id="curPlayers">52</span>
 					</div>
@@ -52,289 +58,327 @@
 				</div>
 		</div>
 
-		<div class="section" style="padding-bottom:6px">
-			<button class="btn btn-big btn-primary" id="btnMainToggle">⏸ 暫停計時</button>
+		<div class="section pb-1.5">
+			<input type="button" class="btn btn-big btn-primary" id="btnMainToggle" value="⏸ Pause Timer">
 		</div>
 
-		<div class="section">
-			<div class="section-title">時間微調 <span style="color:#444;font-weight:600;letter-spacing:1px;margin-left:auto">適合泡泡圈快速調整</span></div>
+		<div class="section" id="handControlSection" style="display:none">
+			<div class="section-title" id="handControlTitle">Hand Count</div>
 			<div class="card">
-				<div class="time-grid" style="margin-bottom:6px">
-					<button class="btn minus" data-time="-300">−5 分</button>
-					<button class="btn minus" data-time="-60">−1 分</button>
-					<button class="btn minus" data-time="-30">−30 秒</button>
-					<button class="btn minus" data-time="-10">−10 秒</button>
+				<div class="player-stepper">
+					<input type="button" class="step-btn minus" id="btnHandMinus" value="−">
+					<div class="step-num" id="handNum">0</div>
+					<input type="button" class="step-btn plus" id="btnHandPlus" value="+">
+				</div>
+				<div class="mt-2 flex gap-1.5">
+					<input type="button" class="btn btn-ghost btn-sm flex-1" id="btnHandReset" value="↺ Reset Hands">
+				</div>
+				<div class="mt-1.5 text-[11px] leading-normal text-neutral-600" id="handHint"></div>
+			</div>
+		</div>
+
+		<div class="section" id="timeAdjustSection">
+			<div class="section-title">
+				<span id="timeAdjustTitle">Time Adjust</span>
+				<!-- <span class="ml-auto font-semibold tracking-[1px] text-neutral-600" id="timeAdjustHint">Useful for quick bubble-time changes</span> -->
+			</div>
+			<div class="card">
+				<div class="time-grid mb-1.5">
+					<input type="button" class="btn minus" data-time="-300" value="−5 m">
+					<input type="button" class="btn minus" data-time="-180" value="−3 m">
+					<input type="button" class="btn minus" data-time="-150" value="−2.5 m">
+					<input type="button" class="btn minus" data-time="-60" value="−1 m">
 				</div>
 				<div class="time-grid">
-					<button class="btn plus" data-time="10">+10 秒</button>
-					<button class="btn plus" data-time="30">+30 秒</button>
-					<button class="btn plus" data-time="60">+1 分</button>
-					<button class="btn plus" data-time="300">+5 分</button>
+					<input type="button" class="btn minus" data-time="-30" value="−30 s">
+					<input type="button" class="btn minus" data-time="-10" value="−10 s">
+					<input type="button" class="btn plus" data-time="10" value="+10 s">
+					<input type="button" class="btn plus" data-time="60" value="+1 m">
 				</div>
 				<div class="input-row">
-					<label>設定為</label>
-					<input class="txt" id="timeSetInput" type="text" placeholder="MM:SS" inputmode="numeric">
-					<button class="btn btn-primary btn-sm" id="btnSetTime" style="min-width:64px">套用</button>
+					<label for="timeSetInput" id="timeSetLabel">Set To</label>
+					<input type="text" class="txt" id="timeSetInput" inputmode="numeric" placeholder="MM:SS">
+					<input type="button" class="btn btn-primary btn-sm min-w-16" id="btnSetTime" value="Apply">
 				</div>
-				<div style="display:flex;gap:6px;margin-top:8px">
-					<button class="btn btn-ghost btn-sm" style="flex:1" id="btnResetLv">↺ 重設本項時間</button>
-					<button class="btn btn-warn btn-sm" style="flex:1" id="btnEndLv">⏭ 立即結束本項</button>
+				<div class="mt-2 flex gap-1.5">
+					<input type="button" class="btn btn-ghost btn-sm flex-1" id="btnResetLv" value="↺ Reset Current Time">
+					<input type="button" class="btn btn-warn btn-sm flex-1" id="btnEndLv" value="⏭ End Current Item">
 				</div>
 			</div>
 		</div>
 
 		<div class="section">
-			<div class="section-title">關卡控制</div>
+			<div class="section-title" id="levelControlTitle">Level Control</div>
 			<div class="card">
-				<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-					<button class="btn" id="btnPrevLv">◀ 上一項</button>
-					<button class="btn" id="btnNextLv">下一項 ▶</button>
+				<div class="mb-2 grid grid-cols-2 gap-2">
+					<input type="button" class="btn" id="btnPrevLv" value="◀ Previous">
+					<input type="button" class="btn" id="btnNextLv" value="Next ▶">
 				</div>
 				<div class="input-row">
-					<label>跳到 L</label>
-					<input class="txt" id="jumpLvInput" type="number" min="1" inputmode="numeric" placeholder="關卡編號">
-					<button class="btn btn-primary btn-sm" id="btnJumpLv" style="min-width:64px">跳轉</button>
+					<label for="jumpLvInput" id="jumpLevelLabel">Jump to L</label>
+					<input type="number" class="txt" id="jumpLvInput" min="1" inputmode="numeric" placeholder="Level number">
+					<input type="button" class="btn btn-primary btn-sm min-w-16" id="btnJumpLv" value="Jump">
 				</div>
-				<div style="font-size:11px;color:#444;margin-top:6px;line-height:1.5">輸入「關卡編號」(只算 Level，跳過休息)</div>
+				<div class="mt-1.5 text-[11px] leading-normal text-neutral-600" id="jumpLevelHint">Enter a level number only. Breaks are skipped.</div>
 			</div>
 		</div>
 
 		<div class="section">
-			<div class="section-title">休息控制</div>
+			<div class="section-title" id="breakControlTitle">Break Control</div>
 			<div class="card">
-				<button class="btn btn-big btn-warn" id="btnBreakToggle" style="margin-bottom:10px">☕ 立即插入休息</button>
-				<div class="time-grid" style="margin-bottom:8px">
-					<button class="btn minus" data-break-time="-60">−1 分</button>
-					<button class="btn minus" data-break-time="-30">−30 秒</button>
-					<button class="btn plus" data-break-time="30">+30 秒</button>
-					<button class="btn plus" data-break-time="60">+1 分</button>
+				<input type="button" class="btn btn-big btn-warn mb-2.5" id="btnBreakToggle" value="☕ Insert Break Now">
+				<div class="time-grid mb-2">
+					<input type="button" class="btn minus" data-break-time="-60" value="−1 min">
+					<input type="button" class="btn minus" data-break-time="-30" value="−30 sec">
+					<input type="button" class="btn plus" data-break-time="30" value="+30 sec">
+					<input type="button" class="btn plus" data-break-time="60" value="+1 min">
 				</div>
 				<div class="input-row">
-					<label>預設時長</label>
-					<input class="txt" id="breakDurInput" type="number" min="1" inputmode="numeric" value="10">
-					<span style="color:#888;font-size:12px">分鐘</span>
+					<label for="breakDurInput" id="breakDurationLabel">Default Duration</label>
+					<input type="number" class="txt" id="breakDurInput" min="1" inputmode="numeric" value="10">
+					<span class="text-xs text-neutral-500" id="breakMinuteUnit">Minutes</span>
 				</div>
-				<div style="font-size:11px;color:#444;margin-top:6px;line-height:1.5">休息已是獨立項目 — 在「賽程結構」可任意位置加入或移除</div>
+				<div class="mt-1.5 text-[11px] leading-normal text-neutral-600" id="breakHint">Breaks are standalone items. You can insert or remove them anywhere in Structure.</div>
 			</div>
 		</div>
 
 		<div class="section">
-			<div class="section-title">人數管理</div>
+			<div class="section-title" id="playerManageTitle">Player Management</div>
 			<div class="player-card">
 				<div class="player-stepper">
-					<button class="step-btn minus" id="btnPMinus">−</button>
+					<input type="button" class="step-btn minus" id="btnPMinus" value="−">
 					<div class="step-num" id="playerNum">52</div>
-					<button class="step-btn plus" id="btnPPlus">+</button>
+					<input type="button" class="step-btn plus" id="btnPPlus" value="+">
 				</div>
 			</div>
 			<div class="player-meta">
 				<div class="meta-cell">
-					<div class="lbl">總入場</div>
+					<div class="lbl" id="totalEntriesLabel">Total Entries</div>
 					<div class="v" id="metaEntries">52</div>
 				</div>
 				<div class="meta-cell">
-					<div class="lbl">平均碼量</div>
+					<div class="lbl" id="avgChipsLabel">Average Stack</div>
 					<div class="v amber" id="metaAvg">40,000</div>
 				</div>
 			</div>
-				<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px" id="playerManualButtons">
-				<button class="btn btn-danger btn-sm" id="btnBust">— 淘汰</button>
-				<button class="btn btn-sm" id="btnAddEntry">+ 加入</button>
-				<button class="btn btn-ghost btn-sm" id="btnEditPlayers">手動編輯</button>
+			<div class="mt-2 grid grid-cols-3 gap-1.5" id="playerManualButtons">
+				<input type="button" class="btn btn-danger btn-sm" id="btnBust" value="— Bust">
+				<input type="button" class="btn btn-sm" id="btnAddEntry" value="+ Add Entry">
+				<input type="button" class="btn btn-ghost btn-sm" id="btnEditPlayers" value="Manual Edit">
 			</div>
 		</div>
 
 		<div class="section">
-			<div class="section-title">獎池 / ITM</div>
+			<div class="section-title" id="tableManageTitle">Table Management</div>
 			<div class="card">
-				<div class="lbl" style="margin-bottom:6px">獎池金額</div>
+				<div class="grid grid-cols-3 gap-1.5">
+					<div class="meta-cell">
+						<div class="lbl" id="tableCountLabel">Tables</div>
+						<div class="v" id="tableStatTables">—</div>
+					</div>
+					<div class="meta-cell">
+						<div class="lbl" id="tableSeatedLabel">Seated</div>
+						<div class="v" id="tableStatPlayers">—</div>
+					</div>
+					<div class="meta-cell">
+						<div class="lbl" id="tableAvgLabel">Avg / Table</div>
+						<div class="v amber" id="tableStatAvg">—</div>
+					</div>
+				</div>
+				<a href="tableboard.html" class="mt-2 block cursor-pointer rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 no-underline" id="tableMergeHint" style="display:none">
+					<div class="text-[12px] font-extrabold text-amber-300" id="tableMergeTitle">Merge Reminder</div>
+					<div class="mt-0.5 text-[11px] leading-normal text-amber-200" id="tableMergeBody"></div>
+					<div class="mt-0.5 text-[11px] leading-normal text-amber-200/80" id="tableMergeTables"></div>
+				</a>
+				<div class="mt-1.5 text-[11px] leading-normal text-neutral-600" id="tableStatusLine"></div>
+				<div class="mt-2 grid grid-cols-2 gap-1.5">
+					<a href="tableboard.html" class="btn btn-sm w-full" id="btnTableBoard">Table Board / Merge</a>
+					<a href="register.html" class="btn btn-ghost btn-sm w-full" id="btnRegList">Registration List</a>
+				</div>
+			</div>
+		</div>
+
+		<div class="section">
+			<div class="section-title" id="prizeItmTitle">Prize Pool / ITM</div>
+			<div class="card">
+				<div class="lbl mb-1.5" id="cashPrizeTitle">Cash Prize Pool</div>
 				<div class="prize-mode">
-					<div class="seg" id="prizeSegAuto" data-mode="auto">自動計算</div>
-					<div class="seg" id="prizeSegManual" data-mode="manual">手動修正</div>
+					<div class="seg" id="prizeSegAuto" data-mode="auto">Auto</div>
+					<div class="seg" id="prizeSegManual" data-mode="manual">Manual</div>
 				</div>
 				<div id="prizePoolBlock"></div>
-				<div class="input-row" id="prizeManualRow" style="display:none">
-					<label>手動金額</label>
-					<input class="txt" id="prizeManualIn" type="number" min="0" inputmode="numeric">
-					<button class="btn btn-primary btn-sm" id="btnSavePrize" style="min-width:64px">套用</button>
+				<div class="input-row hidden" id="prizeManualRow">
+					<label for="prizeManualIn" id="manualAmountLabel">Manual Amount</label>
+					<input type="number" class="txt" id="prizeManualIn" min="0" inputmode="numeric">
+					<input type="button" class="btn btn-primary btn-sm min-w-16" id="btnSavePrize" value="Apply">
 				</div>
 
-				<div style="border-top:1px solid #1e1e1e;margin-top:14px;padding-top:12px">
-					<div class="lbl" style="margin-bottom:6px">ITM 前圈設定</div>
+				<div class="mt-3.5 border-t border-neutral-800 pt-3">
+					<div class="lbl mb-1.5" id="itmSettingTitle">ITM Setting</div>
 					<div class="prize-mode">
-						<div class="seg" id="itmSegPct" data-itm-mode="pct">百分比</div>
-						<div class="seg" id="itmSegCount" data-itm-mode="count">直接指定人數</div>
+						<div class="seg" id="itmSegPct" data-itm-mode="pct">Percentage</div>
+						<div class="seg" id="itmSegCount" data-itm-mode="count">Direct Count</div>
 					</div>
 					<div class="input-row" id="itmPctRow">
 						<label>%</label>
-						<input class="txt" id="itmPctIn" type="number" min="0.5" max="100" step="0.5" inputmode="decimal">
-						<span style="color:#888;font-size:12px;white-space:nowrap">% → <span id="itmPctResult" style="color:#4ade80;font-weight:800">8</span> 人</span>
+						<input type="number" class="txt" id="itmPctIn" min="0.5" max="100" step="0.5" inputmode="decimal" aria-label="ITM percentage">
+						<span class="whitespace-nowrap text-xs text-neutral-500">% → <span class="font-extrabold text-green-400" id="itmPctResult">8</span> <span id="itmPctUnit">players</span></span>
 					</div>
-					<div class="input-row" id="itmCountRow" style="display:none">
-						<label>人數</label>
-						<input class="txt" id="itmCountIn" type="number" min="1" inputmode="numeric">
-						<span style="color:#888;font-size:12px;white-space:nowrap">人 (= <span id="itmCountResult" style="color:#4ade80;font-weight:800">15.4</span>%)</span>
+					<div class="input-row hidden" id="itmCountRow">
+						<label for="itmCountIn" id="itmCountLabel">Count</label>
+						<input type="number" class="txt" id="itmCountIn" min="1" inputmode="numeric">
+						<span class="whitespace-nowrap text-xs text-neutral-500"><span id="itmCountUnit">players</span> (= <span class="font-extrabold text-green-400" id="itmCountResult">15.4</span>%)</span>
 					</div>
-					<button class="btn btn-primary btn-sm" id="btnAutoITM" style="width:100%;margin-top:10px">✨ 智能分配獎金 (依 ITM 人數)</button>
-					<div style="font-size:11px;color:#666;margin-top:6px;line-height:1.5" id="itmHint"></div>
+					<input type="button" class="btn btn-primary btn-sm mt-2.5 w-full" id="btnAutoITM" value="✨ Smart Prize Split (by ITM count)">
+					<div class="mt-1.5 text-[11px] leading-normal text-neutral-500" id="itmHint"></div>
 				</div>
 
-				<div style="border-top:1px solid #1e1e1e;margin-top:14px;padding-top:12px">
-					<div class="lbl" style="margin-bottom:6px">獎金預覽</div>
+				<div class="mt-3.5 border-t border-neutral-800 pt-3">
+					<div class="lbl mb-1.5" id="rankPreviewTitle">Placement Preview</div>
 					<div id="payoutsList"></div>
-					<button class="btn btn-ghost btn-sm" id="btnEditPayouts" style="width:100%;margin-top:8px">⚙ 手動編輯名次/百分比/獎項</button>
+					<div class="mt-3.5 border-t border-neutral-800 pt-3 hidden" id="otherRewardBlock">
+						<div class="lbl mb-1.5" id="otherRewardTitle">Other Rewards</div>
+						<div id="otherRewardList"></div>
+					</div>
+					<a href="payoutedit.html" class="btn btn-ghost btn-sm mt-2 w-full" id="btnEditPayouts">⚙ Edit Places / Range / Prize</a>
 				</div>
 			</div>
 		</div>
 
 		<div class="section">
-			<div class="section-title">快速預設</div>
+			<div class="section-title" id="quickPresetTitle">Quick Presets</div>
 			<div class="card">
 				<div class="preset-grid">
-					<button class="btn btn-warn" id="btnBubble">🫧 泡泡圈模式</button>
-					<button class="btn btn-warn" id="btnHandForHand">🃏 同步發牌</button>
-					<button class="btn" id="btnFinalTable">⭐ Final Table</button>
-					<button class="btn" id="btnColorUp">🪙 籌碼汰換提示</button>
+					<input type="button" class="btn btn-warn" id="btnBubble" value="🫧 Bubble Mode">
+					<input type="button" class="btn btn-warn" id="btnHandForHand" value="🃏 Hand-for-Hand">
+					<!-- <input type="button" class="btn" id="btnFinalTable" value="⭐ Final Table">
+					<input type="button" class="btn" id="btnColorUp" value="🪙 Color-Up Notice"> -->
 				</div>
-				<div style="font-size:11px;color:#444;margin-top:8px;line-height:1.5">
-					泡泡圈：暫停計時 + 廣播訊息<br>
-					同步發牌：自動暫停並標記為 hand-for-hand
+				<div class="mt-2 text-[11px] leading-normal text-neutral-600">
+					<span id="presetHint1">Bubble mode: pauses the timer and broadcasts a message.</span><br>
+					<span id="presetHint2">Hand-for-hand: pauses automatically and marks the state as hand-for-hand.</span>
 				</div>
 			</div>
 		</div>
 
 		<div class="section">
-			<div class="section-title">賽程結構 <span style="color:#444;font-weight:600;letter-spacing:1px;margin-left:auto">點擊跳轉</span></div>
-			<div class="card" style="padding:0">
+			<div class="section-title"><span id="structureTitle">Structure</span> <span class="ml-auto font-semibold tracking-[1px] text-neutral-600" id="structureHint">Tap to jump</span></div>
+			<div class="card p-0">
 				<div class="lvl-list" id="lvlList"></div>
-				<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px">
-					<button class="btn btn-ghost btn-sm" id="btnViewStruct" style="width:100%">查看結構</button>
-					<button class="btn btn-ghost btn-sm" id="btnEditStruct" style="width:100%">編輯結構</button>
+				<div class="grid grid-cols-2 gap-2 p-2.5">
+					<a href="structure.html" class="btn btn-ghost btn-sm w-full" id="btnViewStruct">View Structure</a>
+					<a href="structureedit.html" class="btn btn-ghost btn-sm w-full" id="btnEditStruct">Edit Structure</a>
 				</div>
 			</div>
 		</div>
 
 		<div class="section">
-			<div class="section-title">跑馬燈訊息</div>
+			<div class="section-title" id="marqueeTitle">Marquee Message</div>
 			<div class="card">
-				<textarea class="txt txt-area" id="marqueeIn" placeholder="輸入跑馬燈內容，用 |  分隔多則訊息"></textarea>
-				<div style="display:flex;gap:6px;margin-top:8px">
-					<button class="btn btn-ghost btn-sm" id="btnMarqueeReset" style="flex:1">↺ 預設文字</button>
-					<button class="btn btn-primary btn-sm" id="btnMarqueeSave" style="flex:2">儲存並廣播</button>
+				<textarea class="txt txt-area" id="marqueeIn" placeholder="Enter marquee text. Use | to separate multiple messages." aria-label="Marquee message content"></textarea>
+				<div class="mt-2 flex gap-1.5">
+					<input type="button" class="btn btn-ghost btn-sm flex-1" id="btnMarqueeReset" value="↺ Default Text">
+					<input type="button" class="btn btn-primary btn-sm flex-[2]" id="btnMarqueeSave" value="Save and Broadcast">
 				</div>
 			</div>
 		</div>
 
-		<div class="section" style="margin-bottom:60px">
-			<div class="section-title">報名關閉設定</div>
-			<div class="card">
-				<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-					<button class="btn btn-sm" id="btnRegToggle">手動切換 REG</button>
-					<button class="btn btn-ghost btn-sm" id="btnRegEdit">設定觸發點</button>
-				</div>
-				<div style="font-size:11px;color:#666;margin-top:8px;line-height:1.5" id="regHint"></div>
-			</div>
-		</div>
 	</div>
 
 	<div class="status-bar">
-		<div><span class="sync-dot" id="syncDot"></span><span id="syncText">前台同步中</span></div>
-		<div id="lastAction">就緒</div>
-		<div style="cursor:pointer" id="btnSettings">⚙ 設定</div>
+		<div><span class="sync-dot" id="syncDot"></span><span id="syncText">Display synced</span></div>
+		<div id="lastAction">Ready</div>
+		<div class="cursor-pointer" id="btnSettings">⚙ Settings</div>
 	</div>
 
 	<div class="toast" id="toast"></div>
 
-	<!-- Title Modal -->
 	<div class="modal-bg" id="modalTitle">
 		<div class="modal">
-			<div class="modal-title"><span>編輯標題</span><button class="modal-close" data-close="modalTitle">×</button></div>
-			<div class="input-row"><label>主標題</label><input class="txt" id="editTname" type="text"></div>
-			<div class="input-row"><label>副標題</label><input class="txt" id="editTsub" type="text" placeholder="例：04/10 主賽事"></div>
-			<button class="btn btn-big btn-primary" id="btnSaveTitle" style="margin-top:14px">儲存</button>
+			<div class="modal-title"><span id="modalTitleLabel">Edit Title</span><input type="button" class="modal-close" data-close="modalTitle" value="×"></div>
+			<div class="input-row"><label for="editTname" id="mainTitleLabel">Main Title</label><input type="text" class="txt" id="editTname"></div>
+			<div class="input-row"><label for="editTsub" id="subTitleLabel">Subtitle</label><input type="text" class="txt" id="editTsub" placeholder="Example: Main Event"></div>
+			<input type="button" class="btn btn-big btn-primary mt-3.5" id="btnSaveTitle" value="Save">
 		</div>
 	</div>
 
-	<!-- Players Modal -->
 	<div class="modal-bg" id="modalPlayers">
 		<div class="modal">
-			<div class="modal-title"><span>編輯人數</span><button class="modal-close" data-close="modalPlayers">×</button></div>
-			<div class="input-row"><label>剩餘人數</label><input class="txt" id="editPlayersIn" type="number" min="0" inputmode="numeric"></div>
-			<div class="input-row"><label>總入場數</label><input class="txt" id="editEntriesIn" type="number" min="0" inputmode="numeric"></div>
-			<div class="input-row"><label>起始籌碼</label><input class="txt" id="editChipsIn" type="number" min="100" step="100" inputmode="numeric"></div>
-			<button class="btn btn-big btn-primary" id="btnSavePlayers" style="margin-top:14px">儲存</button>
+			<div class="modal-title"><span id="modalPlayersLabel">Edit Players</span><input type="button" class="modal-close" data-close="modalPlayers" value="×"></div>
+			<div class="input-row"><label for="editPlayersIn" id="remainingPlayersLabel">Remaining Players</label><input type="number" class="txt" id="editPlayersIn" min="0" inputmode="numeric"></div>
+			<div class="input-row"><label for="editEntriesIn" id="modalTotalEntriesLabel">Total Entries</label><input type="number" class="txt" id="editEntriesIn" min="0" inputmode="numeric"></div>
+			<div class="input-row"><label for="editChipsIn" id="startingChipsLabel">Starting Chips</label><input type="number" class="txt" id="editChipsIn" min="100" step="100" inputmode="numeric"></div>
+			<input type="button" class="btn btn-big btn-primary mt-3.5" id="btnSavePlayers" value="Save">
 		</div>
 	</div>
 
 	<div class="modal-bg" id="modalLinkedPlayers">
 		<div class="modal">
-			<div class="modal-title"><span>關聯玩家淘汰</span><button class="modal-close" data-close="modalLinkedPlayers">×</button></div>
+			<div class="modal-title"><span id="modalLinkedPlayersLabel">Linked Player Elimination</span><input type="button" class="modal-close" data-sync-free="1" data-close="modalLinkedPlayers" value="×"></div>
 			<div class="input-row">
-				<label>搜尋</label>
-				<input class="txt" id="linkedPlayerSearch" type="text" placeholder="玩家名稱 / ID">
+				<label for="linkedPlayerSearch" id="linkedPlayerSearchLabel">Search</label>
+				<input type="text" class="txt" id="linkedPlayerSearch" data-sync-free="1" placeholder="Player name / ID">
 			</div>
-			<div class="input-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+			<div class="input-row grid grid-cols-2 gap-2">
 				<div>
-					<label>桌號</label>
-					<input class="txt" id="linkedTableSearch" type="text" placeholder="桌名 / 桌號">
+					<label for="linkedTableSearch" id="linkedTableSearchLabel">Table</label>
+					<input type="text" class="txt" id="linkedTableSearch" data-sync-free="1" placeholder="Table name / number">
 				</div>
 				<div>
-					<label>座位</label>
-					<input class="txt" id="linkedSeatSearch" type="number" min="1" inputmode="numeric" placeholder="Seat">
+					<label for="linkedSeatSearch" id="linkedSeatSearchLabel">Seat</label>
+					<input type="number" class="txt" id="linkedSeatSearch" data-sync-free="1" min="1" inputmode="numeric" placeholder="Seat">
 				</div>
 			</div>
-			<div id="linkedPlayerList" style="max-height:55vh;overflow-y:auto;border:1px solid #1e1e1e;border-radius:8px"></div>
+			<div class="max-h-[55vh] overflow-y-auto rounded-lg border border-neutral-800" id="linkedPlayerList"></div>
 		</div>
 	</div>
 
-	<!-- Reg Close Modal -->
-	<div class="modal-bg" id="modalReg">
-		<div class="modal">
-			<div class="modal-title"><span>報名關閉觸發點</span><button class="modal-close" data-close="modalReg">×</button></div>
-			<div style="font-size:13px;color:#888;margin-bottom:10px;line-height:1.5">
-				在「賽程結構」中，將任一項目標記為「REG CLOSE 點」<br>
-				該項目結束時系統自動關閉報名。
-			</div>
-			<div id="regPickList" style="max-height:50vh;overflow-y:auto;border:1px solid #1e1e1e;border-radius:8px"></div>
-			<div style="display:flex;gap:6px;margin-top:14px">
-				<button class="btn btn-ghost btn-sm" id="btnRegClear" style="flex:1">清除所有觸發</button>
-				<button class="btn btn-primary btn-sm" id="btnRegDone" style="flex:1">完成</button>
-			</div>
-		</div>
-	</div>
-
-	<!-- Payouts Modal -->
-	<div class="modal-bg" id="modalPayouts">
-		<div class="modal">
-			<div class="modal-title"><span>編輯獎金與獎項分配</span><button class="modal-close" data-close="modalPayouts">×</button></div>
-			<div id="payoutsEditList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
-			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-				<button class="btn btn-sm" id="btnAddPayout">+ 新增名次</button>
-				<button class="btn btn-sm btn-danger" id="btnRemovePayout">− 移除最後</button>
-			</div>
-			<div style="font-size:11px;color:#666;margin-bottom:10px" id="payoutsSum">總和：100%</div>
-			<button class="btn btn-big btn-primary" id="btnSavePayouts">儲存</button>
-		</div>
-	</div>
-
-	<!-- Settings Modal -->
 	<div class="modal-bg" id="modalSettings">
 		<div class="modal">
-			<div class="modal-title"><span>設定</span><button class="modal-close" data-close="modalSettings">×</button></div>
-			<div class="input-row"><label>報名費</label><input class="txt" id="setBuyin" type="text" readonly></div>
-			<div class="input-row"><label>服務費</label><input class="txt" id="setFee" type="text" readonly></div>
-			<div style="font-size:11px;color:#666;margin-top:6px;line-height:1.5">報名費與服務費綁定場次資料，請到編輯場次調整。</div>
-			<div class="input-row"><label>音效</label><select class="txt" id="setSound"><option value="1">開啟</option><option value="0">關閉</option></select></div>
-			<div class="input-row"><label>震動</label><select class="txt" id="setVibe"><option value="1">開啟</option><option value="0">關閉</option></select></div>
-			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
-				<button class="btn btn-danger" id="btnReset">⚠ 完全重置</button>
-				<button class="btn btn-big btn-primary" id="btnSaveSettings" style="min-height:48px;font-size:14px">儲存</button>
+			<div class="modal-title"><span id="modalSettingsLabel">Settings</span><input type="button" class="modal-close" data-close="modalSettings" value="×"></div>
+			<div class="input-row"><label for="setBuyin" id="buyinLabel">Buy-in</label><input type="text" class="txt" id="setBuyin" readonly></div>
+			<div class="input-row"><label for="setFee" id="feeLabel">Fee</label><input type="text" class="txt" id="setFee" readonly></div>
+			<div class="mt-1.5 text-[11px] leading-normal text-neutral-500" id="sessionFeeHint">Buy-in and fee come from the session. Edit them from the session page.</div>
+			<div class="input-row">
+				<label for="setSound" id="soundLabel">Sound</label>
+				<select class="txt" id="setSound">
+					<option value="1">On</option>
+					<option value="0">Off</option>
+				</select>
+			</div>
+			<div class="input-row">
+				<label for="setVibe" id="vibrationLabel">Vibration</label>
+				<select class="txt" id="setVibe">
+					<option value="1">On</option>
+					<option value="0">Off</option>
+				</select>
+			</div>
+			<div class="input-row">
+				<label for="setAutoStart" id="autoStartLabel">Auto-start by time</label>
+				<select class="txt" id="setAutoStart">
+					<option value="0">Off</option>
+					<option value="1">On</option>
+				</select>
+			</div>
+			<div class="input-row">
+				<label for="setDefaultTimebank" id="timebankDefaultLabel">Default Timebank Seconds</label>
+				<input type="number" class="txt" id="setDefaultTimebank" min="1" inputmode="numeric" value="15">
+			</div>
+			<div class="input-row">
+				<label for="setTimebankSound" id="timebankSoundLabel">Timebank Sound</label>
+				<select class="txt" id="setTimebankSound">
+					<option value="1">On</option>
+					<option value="0">Off</option>
+				</select>
+			</div>
+			<div class="mt-3.5 grid grid-cols-2 gap-2">
+				<input type="button" class="btn btn-danger" id="btnReset" value="⚠ Full Reset">
+				<input type="button" class="btn btn-big btn-primary min-h-12 text-sm" id="btnSaveSettings" value="Save">
 			</div>
 		</div>
 	</div>
 
-	<script src="timerconfig.js"></script>
-
+	<script src="initialize.js"></script>
 	<script src="control.js"></script>
 </body>
 

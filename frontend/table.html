@@ -3,125 +3,183 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>場次詳情 - Session Detail</title>
+		<title>牌桌詳情 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<link rel="stylesheet" href="carddisplay.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-		<script src="https://cdn.tailwindcss.com"></script>
+		<link rel="stylesheet" href="tailwind.css">
 		<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 	</head>
-	<body class="bg-zinc-900 text-white min-h-screen">
+	<body class="min-h-screen bg-zinc-950 text-white">
 		<div id="navigationbar"></div>
 
-		<div class="flex justify-between items-center max-w-6xl mx-auto py-4 px-2 sm:px-4 my-2">
-			<input type="button" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded text-sm font-bold cursor-pointer" id="back" value="上一頁">
-		</div>
-
-		<div class="max-w-6xl mx-auto py-4 px-2 sm:px-4 min-h-[70vh]">
-			<h1 class="text-2xl font-bold mb-4">桌次詳情 #<span id="tabletoken"></span></h1>
-			<!-- Tabs -->
-			<div class="mb-6 border-b border-zinc-700 flex flex-wrap">
-				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="overview" data-id="0">總覽</button>
-				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="players" data-id="1">玩家</button>
-				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="hands" data-id="2">手牌</button>
-				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="stats" data-id="3">統計</button>
-				<button class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="ev" data-id="4">EV圖</button>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8 min-h-[70vh]">
+			<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Table</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="tableheading">桌次詳情</h1>
+				</div>
+				<a href="sessionlist.html" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">上一頁</a>
 			</div>
+			<section class="mb-6 rounded-[24px] border border-emerald-500/20 bg-emerald-500/10 px-5 py-4">
+				<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+					<div>
+						<div class="text-sm font-bold text-emerald-200" id="tableguidekicker">對應操作說明</div>
+						<div class="mt-1 text-sm leading-7 text-emerald-100/80" id="tableguidedesc">牌桌頁最常處理座位事件流、手牌與統計，可直接跳回座位與手牌說明段落。</div>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						<a href="guide.html#players-seating" class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-emerald-500 px-4 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400" id="tableguideseat">座位流程說明</a>
+						<a href="guide.html#hands-new-hand" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-emerald-400/30 bg-zinc-950/40 px-4 text-sm font-bold text-emerald-100 transition hover:bg-zinc-900" id="tableguidehand">手牌紀錄說明</a>
+					</div>
+				</div>
+			</section>
+
+			<!-- Tabs -->
+			<div class="mb-6 flex flex-wrap border-b border-zinc-800">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="overview" data-id="0" id="tabletaboverview" value="總覽">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="players" data-id="1" id="tabletabplayers" value="選手">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="hands" data-id="2" id="tabletabhands" value="手牌">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="stats" data-id="3" id="tabletabstats" value="統計">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="ev" data-id="4" id="tabletabev" value="EV圖">
+			</div>
+
 			<!-- Tab Contents -->
 			<div id="tab-overview" class="tab-content">
-				<div class="bg-zinc-800 rounded-lg p-6 mb-4">
-					<div class="text-lg font-semibold mb-2">
-						場次資訊
-						<span class="text-zinc-500 my-2 font-normal text-sm" id="date"></span>
+				<section class="mb-4 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+						<div>
+							<div class="text-3xl font-extrabold tracking-tight text-white" id="overviewtitle">Table </div>
+						</div>
+						<div class="w-fit rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-2 text-sm text-zinc-400" id="date"></div>
 					</div>
-					<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm" id="info"></div>
-				</div>
-				<div class="bg-zinc-800 rounded-lg p-6">
-					<div class="text-lg font-semibold mb-2">備註</div>
-					<div id="description">今晚狀態佳，策略執行順利。</div>
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" id="overviewcards"></div>
+				</section>
+				<div class="grid gap-4 md:grid-cols-[1fr_1fr]">
+					<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+						<div class="mb-3 text-lg font-extrabold text-white" id="tableoverviewhandsummary">手牌摘要</div>
+						<div class="grid grid-cols-2 gap-3 text-sm" id="overviewhandcards"></div>
+					</div>
+					<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)]" id="descriptioncard">
+						<div class="mb-3 text-lg font-extrabold text-white" id="tabledescriptiontitle">備註</div>
+						<div class="whitespace-pre-wrap leading-7 text-zinc-300" id="description"></div>
+					</div>
 				</div>
 			</div>
+
 			<div id="tab-players" class="tab-content hidden">
-				<div class="bg-zinc-800 rounded-lg p-6">
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
 					<form method="POST" id="settingform">
-						<div class="flex flex-col justify-between sm:flex-row sm:items-center gap-4 mb-6">
-							<div class="flex gap-4">
+						<div class="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+							<div class="flex flex-wrap gap-4">
 								<div>
-									<label class="text-zinc-300 mr-2">最大座位數：</label>
-									<select class="bg-zinc-700 text-white rounded px-2 py-1 cursor-pointer" id="maxseat">
-										<option value="6">6人桌</option>
-										<option value="8">8人桌</option>
-										<option value="9" selected>9人桌</option>
-										<option value="10">10人桌</option>
+									<label class="mb-2 mr-2 block text-sm font-bold text-zinc-100" for="maxseat" id="tablemaxseatlabel">最大座位數：</label>
+									<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="maxseat">
+										<option value="6" id="tablemaxseat6">6人桌</option>
+										<option value="8" id="tablemaxseat8">8人桌</option>
+										<option value="9" selected id="tablemaxseat9">9人桌</option>
+										<option value="10" id="tablemaxseat10">10人桌</option>
 									</select>
 								</div>
 								<div>
-									<label class="text-zinc-300 mr-2">第一莊家：</label>
-									<select class="bg-zinc-700 text-white rounded px-2 py-1 cursor-pointer" id="firstdealerplace"></select>
+									<label class="mb-2 mr-2 block text-sm font-bold text-zinc-100" for="firstdealerplace" id="tablefirstdealerlabel">第一莊家：</label>
+									<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="firstdealerplace"></select>
 								</div>
 								<div>
-									<label class="text-zinc-300 mr-2">本人座位：</label>
-									<select class="bg-zinc-700 text-white rounded px-2 py-1 cursor-pointer" id="selfseating"></select>
+									<label class="mb-2 mr-2 block text-sm font-bold text-zinc-100" for="selfseating" id="tableselfseatlabel">本人座位：</label>
+									<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="selfseating"></select>
 								</div>
 							</div>
-							<input type="submit" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded font-bold cursor-pointer" id="save" value="儲存">
+							<input type="submit" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="save" value="儲存">
 						</div>
 					</form>
-					<div class="overflow-x-auto">
-						<table class="w-full text-sm bg-zinc-900 rounded-lg overflow-hidden">
+					<div class="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+						<div>
+							<div class="text-lg font-extrabold text-white" id="playerpaneltitle">目前座位</div>
+							<div class="mt-1 text-sm text-zinc-400" id="playerpanelnote"></div>
+						</div>
+						<div class="flex flex-wrap items-center gap-2">
+							<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="mergetabletarget" aria-label="選擇要併入的目標牌桌"></select>
+							<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="mergetablebutton" value="併到指定桌">
+							<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="saveplayers" value="儲存座位">
+						</div>
+					</div>
+					<div class="overflow-x-auto rounded-2xl border border-zinc-800">
+						<table class="w-full text-sm">
 							<thead>
-								<tr class="bg-zinc-700 text-zinc-300">
-									<th class="py-2 px-2">座位</th>
-									<th class="py-2 px-2">事件流</th>
-									<!-- <th class="py-2 px-2">操作</th> -->
+								<tr class="border-b border-zinc-800 text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
+									<th class="px-4 py-3" id="tableseathead">座位</th>
+									<th class="px-4 py-3" id="tablehistoryhead">事件流</th>
+									<!-- <th class="px-4 py-3">操作</th> -->
 								</tr>
 							</thead>
-							<tbody id="seat-event-table-body">
+							<tbody id="seat-player-table-body">
 								<!-- 動態產生座位事件流 -->
 							</tbody>
 						</table>
 					</div>
-					<div class="text-xs text-zinc-400 mt-4">
-						* 每個座位可多次入座/換人/重新買入/離席，完整記錄事件歷史，支援錦標賽換桌與補位。
+					<div class="mt-4 text-xs text-zinc-500">
+						<span id="tableseatnote">* 每個座位可多次入座/換人/重新買入/離席，完整記錄事件歷史，支援錦標賽換桌與補位。</span>
+					</div>
+				</section>
+			</div>
+
+			<div id="tab-hands" class="tab-content hidden">
+				<div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+					<div>
+						<div class="text-lg font-extrabold text-white" id="tablehandrecordtitle">手牌紀錄</div>
+						<div class="mt-1 text-sm text-zinc-400" id="tablehandrecordnote">可用下方條件篩選紀錄；新增手牌會承接目前碼量，計分牌校正用於現場點數修正。</div>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="newhand">新增手牌</a>
+						<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-emerald-400/40 bg-zinc-900 px-6 text-sm font-bold text-emerald-100 transition hover:bg-zinc-800" id="quickhand">快速手牌紀錄</a>
+						<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="stackadjust">計分牌校正</a>
+						<a href="" target="_blank" rel="noopener" class="hidden inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-zinc-950/40 px-6 text-sm font-bold text-emerald-100 transition hover:bg-zinc-900" id="tablebroadcast"><span class="h-2 w-2 rounded-full bg-emerald-400"></span>現場轉播</a>
+						<input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="tablehandsort" value="時間 ↓">
 					</div>
 				</div>
-			</div>
-			<div id="tab-hands" class="tab-content hidden">
-				<div class="flex justify-between items-center mb-4">
-					<div class="text-lg font-semibold">手牌紀錄</div>
-					<a href="" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded text-white font-bold" id="newhead">新增手牌</a>
+				<div class="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
+					<input type="text" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterplayer" aria-label="依選手 ID 篩選手牌" placeholder="選手 ID">
+					<input type="number" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterseat" inputmode="numeric" aria-label="依座位篩選手牌" placeholder="座位">
+					<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterfrom" aria-label="篩選起始日期">
+					<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterto" aria-label="篩選結束日期">
+					<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="handfilterclear" value="清除">
 				</div>
-				<div class="overflow-x-auto">
-					<table class="w-full text-sm bg-zinc-800 rounded-lg overflow-hidden">
+				<div class="overflow-x-auto rounded-2xl border border-zinc-800">
+					<table class="w-full text-sm">
 						<thead>
-							<tr class="bg-zinc-700 text-zinc-300">
-								<th class="py-2 px-2">#</th>
-								<th class="py-2 px-2">位置</th>
-								<th class="py-2 px-2">起手牌</th>
-								<!-- <th class="py-2 px-2">行動</th> -->
-								<th class="py-2 px-2">結果</th>
-								<!-- <th class="py-2 px-2">重要性</th> -->
+							<tr class="border-b border-zinc-800 text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
+								<th class="px-4 py-3">#</th>
+								<th class="px-4 py-3" id="tablehandheadtable">牌桌</th>
+								<th class="px-4 py-3" id="tablehandheadseat">座位</th>
+								<th class="px-4 py-3" id="tablehandheadplayer">選手</th>
+								<th class="px-4 py-3" id="tablehandheadblind">盲注</th>
+								<th class="px-4 py-3" id="tablehandheadhand">手牌</th>
+								<th class="px-4 py-3" id="tablehandheadresult">結果</th>
+								<th class="px-4 py-3" id="tablehandheadcreate">建立資訊</th>
+								<th class="px-4 py-3" id="tablehandheadaction">操作</th>
 							</tr>
 						</thead>
 						<tbody class="text-center" id="handtable"></tbody>
 					</table>
 				</div>
+				<div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm" id="handpager"></div>
 			</div>
+
 			<div id="tab-stats" class="tab-content hidden">
-				<div class="bg-zinc-800 rounded-lg p-6">
-					<div class="text-lg font-semibold mb-4">統計數據</div>
-					<ul class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-						<li>總手牌數：12</li>
-						<li>勝率：41.7%</li>
-						<li>平均盈虧：+120</li>
-						<li>最大單手盈虧：+600</li>
-					</ul>
-				</div>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<div class="mb-1 text-lg font-extrabold text-white" id="tablestatstitle">統計數據</div>
+					<div class="mb-4 text-sm text-zinc-400" id="tablestatsnote">彙整本桌手牌的勝負、買入與淨額，數字會隨手牌紀錄即時更新。</div>
+					<div class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4" id="tablestatscards"></div>
+				</section>
 			</div>
+
 			<div id="tab-ev" class="tab-content hidden">
-				<div class="bg-zinc-800 rounded-lg p-6">
-					<div class="text-lg font-semibold mb-4">EV圖</div>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<div class="mb-1 text-lg font-extrabold text-white" id="tableevtitle">計分牌變化圖</div>
+					<div class="mb-4 text-sm text-zinc-400" id="tableevdesc">目前以實際手牌結果累積，左側為最舊手牌、右側為最新手牌。</div>
 					<div id="evChart" style="height: 300px;"></div>
-				</div>
+				</section>
 			</div>
 		</div>
 

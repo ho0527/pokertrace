@@ -7,3 +7,8 @@ upload/
 /**/.pytest_cache
 introduction copy.md
 pokertrace-firebase-adminsdk-fbsvc-bdb33658a6.json
+localenv.cmd
+localtoken.md
+log/
+db.sqlite3
+backup/dumps/

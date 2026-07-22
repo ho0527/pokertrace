@@ -371,8 +371,8 @@ try:
 						return errorresponse("ERROR_session_not_found")
 					sessionrow=sessionrow[0]
 
-					# 只有場次主人能加
-					if sessionrow["userid"]!=tokenuserrow["id"]:
+					# 只有場次主人 (或 4+ 權限) 能加
+					if sessionrow["userid"]!=tokenuserrow["id"] and 4>int(tokenuserrow["permission"]):
 						return errorresponse("ERROR_no_permission")
 
 					requestdata=validate(json.loads(request.body),{
@@ -475,7 +475,8 @@ try:
 						return errorresponse("ERROR_session_not_found")
 					sessionrow=sessionrow[0]
 
-					if sessionrow["userid"]!=tokenuserrow["id"]:
+					# 只有場次主人 (或 4+ 權限) 能移除
+					if sessionrow["userid"]!=tokenuserrow["id"] and 4>int(tokenuserrow["permission"]):
 						return errorresponse("ERROR_no_permission")
 
 					query(SETTING["dbname"],f"""UPDATE "sessionstaff" SET "deletetime"=NOW() WHERE "id"=%s""",[sessionstaffid],SETTING["dbsetting"])

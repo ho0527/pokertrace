@@ -4,38 +4,103 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>隱私權政策 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
-		<script src="https://cdn.tailwindcss.com"></script>
+		<link rel="stylesheet" href="tailwind.css">
 	</head>
-	<body class="bg-zinc-950 text-white min-h-screen">
+	<body class="min-h-screen bg-zinc-950 text-white">
 		<div id="navigationbar"></div>
-		<main class="max-w-4xl mx-auto px-4 py-10">
-			<a href="./" class="text-emerald-300 hover:text-emerald-200 text-sm">返回首頁</a>
-			<h1 class="text-3xl font-black mt-5">隱私權政策</h1>
-			<p class="text-zinc-400 mt-3 leading-7">PokerTrace 重視使用者資料與賽事資料的保護。本頁說明本服務會如何收集、使用與保存資料。</p>
 
-			<div class="space-y-6 mt-8 text-zinc-300 leading-7">
-				<section class="bg-zinc-900 border border-zinc-800 rounded p-5">
-					<h2 class="text-xl font-bold text-white">我們收集的資料</h2>
-					<p class="mt-3">當你登入或使用 PokerTrace 時，系統可能會保存帳號資訊、顯示名稱、email、玩家 ID、頭像、賽事、報名、座位、計時器、收益與操作紀錄等必要資料。</p>
+		<div class="mx-auto w-full max-w-4xl px-4 py-6 md:py-8">
+			<div class="mb-6">
+				<a id="backtomain" href="index.html" class="mb-4 inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700">
+					<span aria-hidden="true">←</span>
+					<span id="backtomaintext">返回首頁</span>
+				</a>
+				<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Privacy</p>
+				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl">隱私權政策</h1>
+				<p class="mt-3 text-sm leading-7 text-zinc-400">PokerTrace 重視使用者資料、場次資料與賽事管理資料的保護。本政策說明我們在提供帳號、場次、報名、聘用人員、牌桌、計時器與統計等功能時，可能如何收集、使用、保存與保護相關資料。</p>
+			</div>
+
+			<div class="space-y-5 text-zinc-300 leading-7">
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">一、適用範圍</h2>
+					<p class="mt-3">本政策適用於你使用 PokerTrace 網站、系統功能、API、計時器與相關頁面時所產生或提供的資料。若你使用的是自行部署版本，資料保存位置、管理方式與權限設定可能由該部署者決定，請同時參考部署者提供的說明。</p>
 				</section>
-				<section class="bg-zinc-900 border border-zinc-800 rounded p-5">
-					<h2 class="text-xl font-bold text-white">資料用途</h2>
-					<p class="mt-3">資料只用於提供賽事管理、報名、權限判斷、收益統計、問題排查與使用者支援。我們不會把你的資料拿去投放廣告。</p>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">二、我們可能收集的資料</h2>
+					<p class="mt-3">當你註冊、登入或使用 PokerTrace 時，系統可能會保存帳號資訊、顯示名稱、email、選手 ID、頭像、權限角色、場次資料、報名資料、座位資料、牌桌與手牌紀錄、買入與收益統計、受聘人員資料、計時器設定、操作紀錄、登入狀態、裝置與瀏覽器資訊等提供服務所需資料。</p>
 				</section>
-				<section class="bg-zinc-900 border border-zinc-800 rounded p-5">
-					<h2 class="text-xl font-bold text-white">開源與自架</h2>
-					<p class="mt-3">PokerTrace 主打開源。若你自行部署，資料保存位置與管理方式會由部署者負責，請依自己的營運場景設定資料庫與權限。</p>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">三、資料使用目的</h2>
+					<p class="mt-3">我們使用資料的目的包含提供帳號登入、身分驗證、場次建立與管理、報名與座位安排、權限判斷、受聘人員管理、計時器同步、個人與場次統計、問題排查、安全維護、客服回覆、系統改善及必要的紀錄保存。我們不會將你的個人資料出售給第三方，也不會將資料用於與 PokerTrace 無關的廣告投放。</p>
 				</section>
-				<section class="bg-zinc-900 border border-zinc-800 rounded p-5">
-					<h2 class="text-xl font-bold text-white">聯絡與刪除請求</h2>
-					<p class="mt-3">如果你希望查詢、更正或刪除資料，可以透過聯絡我們頁面提出請求。我們會依實際系統資料與權限協助處理。</p>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">四、資料分享與揭露</h2>
+					<p class="mt-3">在提供服務所需範圍內，部分資料可能會依照你的角色與權限顯示給場次擁有者、已報名選手、受聘人員或管理員。例如場次名單、座位安排、聘用關係與必要的統計資訊。除法律要求、維護系統安全、處理爭議、保護使用者權益或取得你的同意外，我們不會任意公開或提供你的個人資料。</p>
+				</section>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">五、資料保存與刪除</h2>
+					<p class="mt-3">資料會依服務運作、備份、稽核、安全維護與爭議處理所需期間保存。當資料已無保存必要，或使用者提出合理的刪除請求並經確認權限後，我們會依實際系統狀態協助刪除或匿名化資料。部分資料可能因備份、法律義務、帳務紀錄或防止濫用需求而需保留一段時間。</p>
+				</section>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">六、資料安全</h2>
+					<p class="mt-3">我們會採取合理方式保護資料安全，例如權限控管、登入驗證、資料庫管理、系統維護與必要的安全檢查。然而網路傳輸與資訊系統無法保證絕對安全，使用者也應妥善保管帳號、密碼與登入憑證，避免將帳號提供給他人使用。</p>
+				</section>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">七、Cookie 與本機儲存</h2>
+					<p class="mt-3">PokerTrace 可能使用瀏覽器本機儲存、token 或類似技術保存登入狀態、語言偏好、介面設定與必要的使用狀態。這些資料主要用於維持服務功能與改善使用體驗。若你清除瀏覽器資料，部分登入狀態或設定可能會被重置。</p>
+				</section>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">八、第三方服務</h2>
+					<p class="mt-3">本服務可能引用第三方資源或工具，例如前端樣式、JavaScript 函式庫、伺服器、資料庫、郵件服務或部署平台。第三方服務可能依其自身政策處理必要的連線、技術或紀錄資料。若你自行部署 PokerTrace，請自行確認所使用第三方服務的資料處理方式。</p>
+				</section>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">九、開源與自架責任</h2>
+					<p class="mt-3">PokerTrace 支援開源與自行部署。自行部署者應自行負責資料庫位置、備份政策、管理員權限、伺服器安全、存取控制、日誌保存與使用者告知義務。若你使用非官方部署版本，請向該部署者確認你的資料如何被保存、使用與刪除。</p>
+				</section>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">十、使用者權利</h2>
+					<p class="mt-3">你可以依實際情況請求查詢、更正、刪除或停止使用你的個人資料。為保護資料安全，我們可能需要確認你的身分、帳號權限與請求範圍後才會處理。若資料涉及其他使用者、場次紀錄、法定保存義務或系統安全需求，請求可能無法立即或完整執行。</p>
+				</section>
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
+					<h2 class="text-xl font-bold text-white">十一、政策更新與聯絡方式</h2>
+					<p class="mt-3">我們可能因功能調整、法規變動、資安需求或服務政策更新而修訂本隱私權政策。更新後的內容會公布於本頁，並自公布時起生效。如果你希望查詢、更正或刪除資料，或對本政策有任何疑問，可以透過聯絡我們頁面提出請求。</p>
 				</section>
 			</div>
-		</main>
+		</div>
+
 		<div id="footer"></div>
 		<script src="translate.js"></script>
 		<script src="initialize.js"></script>
+		<script>
+			(function(){
+				var link=document.getElementById("backtomain")
+				var label=document.getElementById("backtomaintext")
+				if(link&&label){
+					var signed=weblsget(WEBLSNAME+"signin")
+					var lang="zhtw"
+					if(typeof LANGUAGE!="undefined"){
+						lang=LANGUAGE
+					}
+					if(signed){
+						link.href="main.html"
+						if(lang=="en"){
+							label.textContent="Back to Dashboard"
+						}else{
+							label.textContent="返回主頁"
+						}
+					}else{
+						link.href="index.html"
+						if(lang=="en"){
+							label.textContent="Back to Home"
+						}else{
+							label.textContent="返回首頁"
+						}
+					}
+				}
+			})()
+		</script>
 	</body>
 </html>

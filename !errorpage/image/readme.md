@@ -6,14 +6,14 @@
 
 ## 主要檔案
 
-- `404-dark.svg`
-- `404-light.svg`
-- `500-dark.svg`
-- `500-light.svg`
-- `503-dark.svg`
-- `503-light.svg`
-- `maintenence-dark.svg`
-- `maintenence-light.svg`
+- `404-dark.svg`（`404/mod1.html`）
+- `500-dark.svg`（`500/index.html`、`502/index.html`）
+- `503-dark.svg`（`503/index.html`）
+- `maintenence-dark.svg`（`423/index.html`；檔名 `maintenence` 是既有錯字，HTML 與檔名一致，要改必須兩邊一起改）
+
+已於 2026-07-17 移除的檔案（備份保留為 `*-light_old_t1.svg`）：
+
+- `404-light.svg`／`500-light.svg`／`503-light.svg`／`maintenence-light.svg`：共約 360KB，完全沒有頁面引用。`index.css` 沒有 `prefers-color-scheme`，錯誤頁固定深色，因此淺色版素材是死檔。若日後要補淺色模式，從備份或 git 歷史取回即可。
 
 ## 子資料夾
 

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="結構產生器：即時盲注結構與匯出 JSON。免費線上撲克工具，不用登入、無廣告。Structure Generator: Build blind structures and export JSON. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/structuregen.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="結構產生器 / Structure Generator - PokerTrace">
+		<meta property="og:description" content="結構產生器：即時盲注結構與匯出 JSON。免費線上撲克工具，不用登入、無廣告。Structure Generator: Build blind structures and export JSON. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/structuregen.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>結構產生器 (Structure Generator) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="sgtitle">結構產生器</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<!-- 選計分牌 -->
+			<section class="mb-5 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-3 flex items-center gap-2">
+					<span class="inline-block h-4 w-1.5 rounded bg-emerald-400"></span>
+					<h2 class="text-lg font-bold text-white" id="sgchipslabel">桌上使用的計分牌面額</h2>
+				</div>
+				<div id="sgchips" class="flex flex-wrap gap-2"></div>
+				<div class="mt-4 flex flex-wrap items-center gap-2">
+					<input type="number" class="min-h-11 w-40 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sgchipadd" min="1" inputmode="numeric" placeholder="自訂面額">
+					<input type="button" class="min-h-11 rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="sgchipaddbtn" value="新增面額">
+					<input type="button" class="min-h-11 rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="sgchipselectall" value="全選">
+					<input type="button" class="min-h-11 rounded-2xl border border-emerald-600/60 bg-emerald-600/10 px-4 text-sm font-bold text-emerald-300 transition hover:bg-emerald-600/20" id="sgchipfromprofile" value="從個人資料載入面額">
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="sgchipshint">點擊切換哪些面額在桌上。最小的可用面額用來判斷何時需要換籌（chip race）。</div>
+			</section>
+
+			<!-- 結構產生器 -->
+			<section class="mb-5 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-4 flex items-center gap-2">
+					<span class="inline-block h-4 w-1.5 rounded bg-emerald-400"></span>
+					<h2 class="text-lg font-bold text-white" id="sggenlabel">結構產生器</h2>
+				</div>
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-2">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sgstartsblabel" for="sgstartsb">起始小盲</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sgstartsb" min="1" inputmode="numeric" value="100"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sgmultlabel" for="sgmult">升盲倍數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sgmult" step="0.05" min="1" inputmode="decimal" value="1.5"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sgleveldurlabel" for="sgleveldur">每級分鐘</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sgleveldur" min="1" inputmode="numeric" value="20"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sglevelslabel" for="sglevels">級數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sglevels" min="1" max="60" inputmode="numeric" value="15"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sgbreakeverylabel" for="sgbreakevery">每幾級休息（0=不插）</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sgbreakevery" min="0" inputmode="numeric" value="4"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sgbreakdurlabel" for="sgbreakdur">休息分鐘</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sgbreakdur" min="1" inputmode="numeric" value="10"></div>
+					<label class="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-zinc-700 bg-zinc-800 px-4" for="sgante">
+						<input type="checkbox" class="h-5 w-5 accent-emerald-500" id="sgante" checked>
+						<span class="text-[15px] font-bold text-zinc-100" id="sgantelabel">BB ante</span>
+					</label>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="sggenhint">依起始小盲逐級乘上倍數產生盲注，數值會自動取整成漂亮的計分牌，並對齊最小可用面額。底下結構會即時更新。</div>
+			</section>
+
+			<!-- 貼上解析 -->
+			<section class="mb-5 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-3 flex items-center gap-2">
+					<span class="inline-block h-4 w-1.5 rounded bg-emerald-400"></span>
+					<h2 class="text-lg font-bold text-white" id="sgparsetitle">貼上解析</h2>
+				</div>
+				<div class="mb-3 text-xs text-zinc-500" id="sgparsehint">把從別的網站複製下來的賽程文字貼上後按「解析」，結果會自動填進下方結構表，確認無誤再使用。</div>
+				<textarea id="sgparsetext" class="min-h-[120px] w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white outline-none focus:border-emerald-400" placeholder="在這裡貼上比賽的結構文字…"></textarea>
+				<input type="button" class="mt-3 min-h-11 w-full rounded-2xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-500" id="sgparsebtn" value="解析">
+				<label for="sgparseimagein" class="mt-2 flex min-h-11 cursor-pointer items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="sgparseimagebtn">從圖片解析（AI）</label>
+				<input type="file" id="sgparseimagein" accept="image/*" class="hidden">
+				<img id="sgparseimagepreview" alt="" class="mt-2 hidden max-w-full rounded-xl border border-zinc-800">
+				<div id="sgparsestatus" class="mt-2 text-xs text-zinc-500"></div>
+				<div class="mt-3 border-t border-zinc-800 pt-3">
+					<input type="button" class="min-h-11 w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 text-sm font-bold text-zinc-300 transition hover:bg-zinc-800" id="sgshowaiprompt" value="解析不出來？用外部 AI 手動解析">
+					<div id="sgaipromptbox" class="mt-3 hidden">
+						<div id="sgaiprompthint" class="mb-2 text-xs leading-relaxed text-zinc-500">如果內建解析吃不下你的結構，請複製下方提示詞，貼到任一個 AI（ChatGPT / Gemini / Claude）讓它轉成 JSON，再把得到的 JSON 貼進下方「匯入 JSON」框並按匯入。</div>
+						<textarea id="sgaiprompttext" readonly aria-label="AI prompt" class="min-h-[140px] w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 font-mono text-xs text-zinc-200 outline-none"></textarea>
+						<input type="button" class="mt-2 min-h-11 w-full rounded-2xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-500" id="sgcopyaiprompt" value="複製提示詞">
+					</div>
+				</div>
+			</section>
+
+			<!-- 結構（可編輯） -->
+			<section class="mb-5 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+					<div class="flex items-center gap-2">
+						<span class="inline-block h-4 w-1.5 rounded bg-emerald-400"></span>
+						<h2 class="text-lg font-bold text-white" id="sgstructlabel">結構（可編輯）</h2>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						<input type="button" class="min-h-11 rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="sgaddlevel" value="+ 級">
+						<input type="button" class="min-h-11 rounded-2xl bg-amber-600/80 px-4 text-sm font-bold text-white transition hover:bg-amber-600" id="sgaddbreak" value="+ 休息">
+						<input type="button" class="min-h-11 rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="sgregen" value="重新產生">
+						<input type="button" class="min-h-11 rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="sgcopy" value="複製 JSON">
+						<input type="button" class="min-h-11 rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="sgimport" value="匯入 JSON">
+						<input type="file" accept="application/json,.json" id="sgimportfile" class="hidden">
+						<input type="button" class="min-h-11 rounded-2xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-500" id="sgexport" value="匯出 JSON">
+					</div>
+				</div>
+
+				<div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center"><div class="text-xs text-zinc-400" id="sgsumlevelslabel">級數</div><div class="mt-1 text-2xl font-extrabold text-zinc-100" id="sgsumlevels">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center"><div class="text-xs text-zinc-400" id="sgsumtimelabel">總時長</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="sgsumtime">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center"><div class="text-xs text-zinc-400" id="sgsumbreakslabel">休息次數</div><div class="mt-1 text-2xl font-extrabold text-zinc-100" id="sgsumbreaks">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-center"><div class="text-xs text-zinc-400" id="sgsumraceslabel">換籌次數</div><div class="mt-1 text-2xl font-extrabold text-amber-400" id="sgsumraces">-</div></div>
+				</div>
+
+				<div class="overflow-x-auto">
+					<table class="w-full min-w-[640px] border-collapse text-sm">
+						<thead>
+							<tr class="border-b border-zinc-800 text-left text-zinc-400">
+								<th class="py-2 pr-3 font-semibold" id="sgthlevel">級</th>
+								<th class="py-2 pr-3 font-semibold" id="sgthsb">小盲</th>
+								<th class="py-2 pr-3 font-semibold" id="sgthbb">大盲</th>
+								<th class="py-2 pr-3 font-semibold" id="sgthante">Ante</th>
+								<th class="py-2 pr-3 font-semibold" id="sgthdur">分鐘</th>
+								<th class="py-2 pr-3 font-semibold" id="sgthreg">截買</th>
+								<th class="py-2 font-semibold" id="sgthaction">操作</th>
+							</tr>
+						</thead>
+						<tbody id="sgtable"></tbody>
+					</table>
+				</div>
+
+				<div class="mt-3 text-xs text-zinc-500" id="sgedithint">每一級的盲注與分鐘都可直接修改（FT 各級分鐘可不同）。勾「截買」表示報名在該級之後截止，之後的級數會標為「截買後」。修改生成器參數或計分牌會重新產生並覆蓋手動編輯。</div>
+
+				<textarea id="sgjson" readonly aria-label="structure JSON" class="mt-4 hidden min-h-[140px] w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 font-mono text-xs text-zinc-200 outline-none"></textarea>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">盲注結構產生器</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入起始計分牌、目標時長、每級分鐘數與人數，工具自動產生一份成長平滑的盲注結構表，可以直接匯出 JSON 給 PokerTrace 計時器使用，也能微調後再輸出，幾分鐘完成過去要調半天的結構設計。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/structuregen.js"></script>
+	</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="泡沫壓力指數：接近獎圈的 ICM 壓力提示。免費線上撲克工具，不用登入、無廣告。Bubble Pressure: ICM pressure near the money. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/bubblepressure.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="泡沫壓力指數 / Bubble Pressure - PokerTrace">
+		<meta property="og:description" content="泡沫壓力指數：接近獎圈的 ICM 壓力提示。免費線上撲克工具，不用登入、無廣告。Bubble Pressure: ICM pressure near the money. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/bubblepressure.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<base href="../">
+		<title>泡沫壓力指數 (Bubble Pressure) - PokerTrace 免費撲克工具</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="bztitle">泡沫壓力指數</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bzremainlabel" for="bzremain">剩餘人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bzremain" min="1" inputmode="numeric" value="20"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bzpaidlabel" for="bzpaid">獎圈名次</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bzpaid" min="1" inputmode="numeric" value="18"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bzstacklabel" for="bzstack">你的計分牌</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bzstack" min="0" inputmode="numeric" value="12000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bzavglabel" for="bzavg">平均計分牌</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bzavg" min="1" inputmode="numeric" value="25000"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bzdistlabel">距離獎圈</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="bzdist">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bzrellabel">相對碼量</div><div class="mt-1 text-2xl font-extrabold" id="bzrel">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bzlevellabel">壓力等級</div><div class="mt-1 text-2xl font-extrabold" id="bzlevel">-</div></div>
+				</div>
+				<div class="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm leading-7 text-zinc-300" id="bzadvice">-</div>
+				<div class="mt-3 text-xs text-zinc-500" id="bznote">越接近獎圈、計分牌越短，ICM 壓力越大（保命優先）；大碼則可施壓中短碼。為概略提示，非精算 ICM。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">泡沫期的 ICM 壓力有多大？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">接近獎圈時，計分牌的現金價值不再線性：短碼多活一名就多一份獎金，大碼則可以利用這一點大量施壓。這個工具依剩餘人數、獎勵名額與你的計分牌相對位置，給出目前 ICM 壓力的量化提示，幫你判斷該收緊還是該加壓。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/bubblepressure.js"></script>
+	</body>
+</html>

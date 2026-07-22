@@ -1,0 +1,14 @@
+# GitHub Sponsor 按鈕設定（.github/FUNDING.yml）
+#
+# 現況：Stripe 不支援台灣、PayPal 帳號已被限制，
+# 所以 github_sponsors / ko_fi / buy_me_a_coffee / liberapay 這些
+# 依賴 Stripe 或 PayPal 的方式目前都用不了，先全部註解掉。
+#
+# 等本地金流（綠界 ECPay）或國際（Patreon + Payoneer）就緒後，
+# 把對應行取消註解、填上你的名稱／連結，GitHub 就會長出 Sponsor 按鈕。
+
+# patreon: 你的Patreon名稱
+# custom:
+#   - "https://你的綠界ECPay收款頁"
+#   - "https://patreon.com/你的名稱"
+#   - "https://你的LINEPay或街口收款連結"

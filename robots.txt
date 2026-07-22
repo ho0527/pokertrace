@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /backendapi/
+Disallow: /!errorpage/
+
+Sitemap: https://pokertrace.net/sitemap.xml

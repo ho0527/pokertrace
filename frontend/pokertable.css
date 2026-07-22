@@ -1,0 +1,162 @@
+/* pokertable.css
+   撲克橢圓牌桌視覺(現場轉播 broadcast 與手牌回放 handreplay 共用)
+   + 手牌回放覆蓋層與播放控制 UI */
+
+.bc-card{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:46px;border-radius:6px;background:#f7f7f2;color:#16110c;font-weight:800;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.4);border:1px solid #d8d8cf}
+.bc-card.red{color:#c0392b}
+.bc-card.unknown{background:linear-gradient(135deg,#1f6f52,#123b2c);color:#8fd8bd;border-color:#0f5d43}
+.bc-card .r{font-size:15px}
+.bc-card .s{font-size:13px;margin-top:1px}
+.bc-card.sm{width:21px;height:29px;border-radius:4px}
+.bc-card.sm .r{font-size:11px}
+.bc-card.sm .s{font-size:9px;margin-top:0}
+
+/* 橢圓牌桌 */
+.bc-tablewrap{position:relative;width:100%;max-width:760px;margin:40px auto;aspect-ratio:16/10}
+.bc-felt{position:absolute;inset:9% 5%;border-radius:50%;background:radial-gradient(120% 120% at 50% 32%,#1c8a63,#0f5d43 58%,#0b3f2e);border:9px solid #5a3a22;box-shadow:inset 0 0 55px rgba(0,0,0,.45),0 18px 44px rgba(0,0,0,.5)}
+.bc-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76%;text-align:center}
+.bc-board{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;min-height:46px}
+.bc-pot{display:inline-block;font-size:12px;font-weight:800;color:#ffe9a8;letter-spacing:.04em;background:rgba(0,0,0,.28);border-radius:999px;padding:3px 12px}
+.bc-seatpos{position:absolute;transform:translate(-50%,-50%);width:118px;z-index:2}
+.bc-seatbox{position:relative;border:1px solid #2a352f;border-radius:12px;background:rgba(15,20,17,.94);padding:6px 8px 7px;text-align:center;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.bc-seatbox.win{border-color:#facc15;box-shadow:0 0 0 2px rgba(250,204,21,.4),0 6px 16px rgba(0,0,0,.4)}
+.bc-seatbox.empty{opacity:.4}
+.bc-seatbox.acting{border-color:#5eead4;box-shadow:0 0 0 2px rgba(94,234,212,.45),0 6px 16px rgba(0,0,0,.4)}
+.bc-avatar{width:34px;height:34px;border-radius:50%;margin:0 auto 3px;display:grid;place-items:center;font-weight:800;color:#08110c;background:linear-gradient(135deg,#5eead4,#34d399);font-size:15px;line-height:1}
+.bc-seatbox.empty .bc-avatar{background:#33403a;color:#9fb0a6}
+.bc-name{font-size:11px;font-weight:700;color:#e7efe9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-chip{font-size:11px;color:#ffe9a8;font-weight:700;font-variant-numeric:tabular-nums}
+.bc-seatcards{display:flex;gap:2px;justify-content:center;margin-top:3px;min-height:30px}
+.bc-dealer{position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:50%;background:#f7f7f2;color:#111;font-size:10px;font-weight:800;display:grid;place-items:center;border:1px solid #b9985a;z-index:3}
+
+/* 牌背 + 牌面皮膚 */
+.bc-card.back{background:#1e3a8a;border-color:#16296b;position:relative;overflow:hidden}
+.bc-card.back .bc-emblem{position:absolute;inset:3px;border-radius:3px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.16) 0 5px,transparent 5px 10px),repeating-linear-gradient(-45deg,rgba(255,255,255,.10) 0 5px,transparent 5px 10px)}
+.bc-card.back .r,.bc-card.back .s{display:none}
+.deck-crimson .bc-card.back{background:#7f1d1d;border-color:#5c1414}
+.deck-midnight .bc-card{background:#20262e;color:#e9eef2;border-color:#39424d}
+.deck-midnight .bc-card.red{color:#ff9a9a}
+.deck-midnight .bc-card.back{background:#0f5d43;border-color:#0a4231}
+.deck-midnight .bc-card.unknown{background:linear-gradient(135deg,#28323b,#1a2129)}
+
+/* 蓋牌暗化 */
+.bc-seatbox.folded{opacity:.42;filter:grayscale(.4)}
+
+/* 動作標示 */
+.bc-action{margin-top:3px;font-size:10px;font-weight:800;letter-spacing:.03em;border-radius:999px;padding:1px 7px;display:inline-block}
+.bc-action.neutral{background:rgba(148,163,184,.16);color:#cbd5e1}
+.bc-action.aggressive{background:rgba(52,211,153,.18);color:#6ee7b7}
+.bc-action.danger{background:rgba(244,63,94,.18);color:#fca5b0}
+
+/* 下注計分牌(桌上, 座位前方) */
+.bc-bet{position:absolute;transform:translate(-50%,-50%);z-index:1;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
+.bc-betchips{display:flex}
+.bc-chipdisc{width:15px;height:15px;border-radius:50%;border:1px solid rgba(0,0,0,.5);box-shadow:0 1px 2px rgba(0,0,0,.4);margin-left:-6px;background-clip:padding-box}
+.bc-chipdisc:first-child{margin-left:0}
+.bc-chipdisc.square{border-radius:3px}
+.bc-betamt{font-size:11px;font-weight:800;color:#ffe9a8;background:rgba(0,0,0,.42);border-radius:999px;padding:0 7px;font-variant-numeric:tabular-nums}
+.bc-betwon .bc-betamt{color:#1a1206;background:linear-gradient(90deg,#fbbf24,#f59e0b);box-shadow:0 0 0 1px rgba(250,204,21,.55),0 2px 6px rgba(0,0,0,.4)}
+.bc-betwon .bc-chipdisc{box-shadow:0 0 6px rgba(250,204,21,.65),0 1px 2px rgba(0,0,0,.4)}
+
+@media (max-width:640px){
+	.bc-tablewrap{aspect-ratio:8/13;margin:6px auto;max-height:100%}
+	.bc-felt{inset:5% 4%}
+	.bc-seatpos{width:74px}
+	.bc-seatbox{padding:5px 5px 6px;border-radius:10px}
+	.bc-avatar{width:26px;height:26px;font-size:12px}
+	.bc-name{font-size:10px}
+	.bc-chip{font-size:10px}
+	.bc-card{width:24px;height:33px}
+	.bc-card.sm{width:16px;height:23px}
+	.bc-card.sm .r{font-size:9px}
+	.bc-card.sm .s{font-size:8px}
+	.bc-chipdisc{width:12px;height:12px;margin-left:-5px}
+	.bc-betamt{font-size:9px;padding:0 5px}
+	.bc-action{font-size:9px;padding:1px 5px}
+}
+
+/* all-in 標誌 / all-in 勝率 */
+.bc-allin{position:absolute;top:-8px;left:-6px;z-index:3;font-size:9px;font-weight:900;letter-spacing:.06em;color:#fff;background:linear-gradient(90deg,#e11d48,#b91c1c);border:1px solid #7f1d1d;border-radius:999px;padding:1px 6px;box-shadow:0 2px 5px rgba(0,0,0,.4)}
+.bc-equity{position:absolute;bottom:-11px;left:50%;transform:translateX(-50%);z-index:3;font-size:10px;font-weight:800;color:#0b0f0d;background:#67e8f9;border-radius:999px;padding:1px 8px;box-shadow:0 2px 5px rgba(0,0,0,.4);white-space:nowrap;display:inline-flex;align-items:center}
+.bc-outs{margin-left:4px;padding-left:4px;border-left:1px solid rgba(0,0,0,.28)}
+.bc-outs span{margin-right:2px}
+.bc-outs .r{color:#b91c1c}
+.bc-outs .mo{opacity:.7;font-weight:700}
+
+/* 底池計分牌 / 邊池 / 燒牌 */
+.bc-potchips{display:flex;justify-content:center;margin-top:5px}
+.bc-sidepots{position:absolute;left:14%;top:48%;transform:translate(-50%,-50%);z-index:1;display:flex;flex-direction:column;gap:3px;text-align:center}
+.bc-potrow{background:rgba(0,0,0,.4);border-radius:8px;padding:2px 8px;font-size:10px;line-height:1.3}
+.bc-potlabel{display:block;color:#9fb0a6;font-weight:700}
+.bc-potval{display:block;color:#ffe9a8;font-weight:800;font-variant-numeric:tabular-nums}
+.bc-burns{position:absolute;left:86%;top:48%;transform:translate(-50%,-50%);z-index:1;text-align:center}
+.bc-sidelabel{font-size:9px;font-weight:800;letter-spacing:.08em;color:#f0b37e;margin-bottom:3px;text-transform:uppercase}
+.bc-burnrow{display:flex;gap:2px;justify-content:center;opacity:.85}
+.bc-burnrow .bc-card{filter:brightness(.82)}
+@media (max-width:640px){
+	/* 手機版把邊池/燒牌移到板面內側(介於公共牌與座位之間), 避免卡到側邊座位文字 */
+	.bc-sidepots{left:23%;top:52%}
+	.bc-burns{left:77%;top:52%}
+	.bc-potrow{font-size:8px;padding:1px 4px;background:rgba(0,0,0,.55)}
+	.bc-sidelabel{font-size:8px}
+	.bc-burnrow{background:rgba(0,0,0,.35);border-radius:6px;padding:2px}
+	.bc-allin{font-size:7px;padding:0 3px;top:-6px;left:-4px}
+	.bc-equity{font-size:8px;padding:0 5px;bottom:-8px}
+	.bc-outs{margin-left:3px;padding-left:3px}
+	.bc-outs span{margin-right:1px}
+}
+
+/* 皮膚燈箱(長按牌桌開啟) */
+.hr-lightbox{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(3,10,7,.72);backdrop-filter:blur(2px)}
+.hr-lightbox[hidden]{display:none}
+.hr-lbpanel{background:#111714;border:1px solid #2a352f;border-radius:18px;padding:18px 20px 20px;max-width:420px;width:88%;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.hr-lbtitle{font-size:14px;font-weight:800;color:#e7efe9;margin-bottom:14px;text-align:center}
+.hr-lbgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.hr-lbopt{border:2px solid #2a352f;border-radius:12px;padding:10px 6px;background:#0d130f;cursor:pointer;text-align:center;transition:border-color .15s}
+.hr-lbopt.sel{border-color:#34d399}
+.hr-lbopt:hover{border-color:#5eead4}
+.hr-lbswatch{display:flex;gap:3px;justify-content:center;margin-bottom:7px}
+.hr-lbname{font-size:12px;font-weight:700;color:#cbd5e1}
+
+/* ===== 手牌回放覆蓋層 ===== */
+.hr-overlay{position:fixed;inset:0;z-index:1000;background:radial-gradient(120% 80% at 50% -10%,#0f1a15 0%,#07100c 60%);display:flex;flex-direction:column;overscroll-behavior:contain}
+.hr-overlay[hidden]{display:none}
+.hr-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #1c2620}
+.hr-title{font-weight:800;font-size:16px;color:#e7efe9}
+.hr-phase{font-size:12px;font-weight:800;color:#0b0f0d;background:#34d399;border-radius:999px;padding:3px 12px;letter-spacing:.05em}
+.hr-close{background:#1b2420;color:#cbd5e1;border:1px solid #2a352f;border-radius:999px;width:38px;height:38px;font-size:18px;font-weight:800;cursor:pointer;line-height:1}
+.hr-close:hover{background:#25302b}
+.hr-stage{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:8px 12px}
+.hr-stage .bc-tablewrap{margin:12px auto}
+.hr-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:14px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #1c2620;background:rgba(7,16,12,.85)}
+.hr-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:14px;background:#1b2420;color:#e7efe9;border:1px solid #2a352f;font-weight:700;font-size:14px;cursor:pointer;transition:background .15s}
+.hr-btn:hover:not(:disabled){background:#25302b}
+.hr-btn:disabled{opacity:.4;cursor:default}
+.hr-btn.play{background:linear-gradient(90deg,#10b981,#059669);border-color:transparent;color:#fff;min-width:110px}
+.hr-btn.play:hover{background:linear-gradient(90deg,#34d399,#10b981)}
+.hr-progress{font-size:12px;color:#9fb0a6;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+.hr-select{min-height:44px;border-radius:14px;background:#1b2420;color:#e7efe9;border:1px solid #2a352f;font-weight:700;font-size:13px;padding:0 10px;outline:none}
+.hr-toggle{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#cbd5e1;cursor:pointer;user-select:none}
+.hr-toggle input{width:16px;height:16px;accent-color:#34d399}
+.hr-seek{-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:#243029;flex:1;min-width:120px;max-width:340px;cursor:pointer;outline:none}
+.hr-seek::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#34d399;border:2px solid #07100c;cursor:pointer}
+.hr-seek::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#34d399;border:2px solid #07100c;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.hr-overlay *{transition:none!important}}
+
+/* 手機回放控制列: 放在最後以蓋過上面的基準規則。seek 獨佔一列、皮膚選單隱藏(改長按牌桌燈箱)、其餘緊湊 */
+@media (max-width:640px){
+	.hr-top{padding:10px 14px}
+	.hr-title{font-size:15px}
+	.hr-stage{padding:4px 8px}
+	.hr-stage .bc-tablewrap{margin:6px auto}
+	.hr-controls{gap:6px 7px;padding:9px 10px calc(9px + env(safe-area-inset-bottom))}
+	.hr-seek{flex:0 0 100%;max-width:none;order:-1;height:9px}
+	.hr-seek::-webkit-slider-thumb{width:20px;height:20px}
+	.hr-seek::-moz-range-thumb{width:20px;height:20px}
+	#hrskin{display:none}
+	.hr-btn{min-height:38px;padding:0 12px;font-size:13px;border-radius:11px}
+	.hr-btn.play{min-width:96px}
+	.hr-select{min-height:38px;font-size:12px;padding:0 8px}
+	.hr-toggle{font-size:12px;gap:5px}
+	.hr-progress{min-width:42px}
+}

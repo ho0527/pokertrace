@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>系列賽 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="serieslist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 pb-10 min-h-[70vh]">
+			<div class="py-5">
+				<a href="serieslist.html" class="text-sm text-zinc-400 hover:text-emerald-300" id="backlink">← 返回系列賽列表</a>
+			</div>
+
+			<!-- 標題列 -->
+			<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+				<div class="min-w-0">
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400" id="eyebrow">Series</p>
+					<h1 class="text-3xl font-extrabold tracking-tight text-white md:text-4xl truncate" id="seriesname">—</h1>
+					<div class="text-xs text-zinc-500 mt-2" id="seriesmeta"></div>
+				</div>
+				<div class="flex flex-wrap gap-2 hidden" id="owneractions">
+					<a class="inline-flex items-center justify-center cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-2 text-sm font-bold text-white transition" id="batchbtn" href="#">批量建立多日賽</a>
+					<input type="button" class="cursor-pointer rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" id="editbtn" value="編輯">
+					<input type="button" class="cursor-pointer rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-red-400 transition" id="deletebtn" value="刪除">
+				</div>
+			</div>
+
+			<!-- 編輯面板 -->
+			<section class="mb-6 hidden rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-6" id="editpanel">
+				<form id="editform" class="flex flex-col gap-4">
+					<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+						<label class="flex flex-col gap-1">
+							<span class="text-sm text-zinc-400" data-label="name">系列賽名稱</span>
+							<input type="text" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="e-name" maxlength="100">
+						</label>
+						<label class="flex flex-col gap-1">
+							<span class="text-sm text-zinc-400" data-label="scoringtype">排名依據</span>
+							<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="e-scoringtype">
+								<option value="profit" data-opt="scoring_profit">盈虧</option>
+								<option value="place" data-opt="scoring_place">名次</option>
+								<option value="points" data-opt="scoring_points">積分</option>
+							</select>
+						</label>
+						<label class="flex flex-col gap-1">
+							<span class="text-sm text-zinc-400" data-label="starttime">開始日期</span>
+							<input type="date" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="e-starttime">
+						</label>
+						<label class="flex flex-col gap-1">
+							<span class="text-sm text-zinc-400" data-label="endtime">結束日期</span>
+							<input type="date" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="e-endtime">
+						</label>
+					</div>
+					<label class="flex flex-col gap-1">
+						<span class="text-sm text-zinc-400" data-label="description">說明</span>
+						<textarea class="min-h-[64px] rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="e-description"></textarea>
+					</label>
+					<label class="flex items-center gap-2">
+						<input type="checkbox" class="h-5 w-5 accent-emerald-500" id="e-private">
+						<span class="text-sm text-zinc-300" data-label="private">私人系列賽</span>
+					</label>
+					<div class="flex justify-end gap-2">
+						<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-6 py-2 text-sm font-bold text-white transition" id="editcancel" value="取消">
+						<input type="submit" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 py-2 text-sm font-bold text-white transition" id="editsubmit" value="儲存">
+					</div>
+				</form>
+			</section>
+
+			<!-- 分頁 -->
+			<div class="mb-6 border-b border-zinc-800 flex justify-around md:justify-start">
+				<input type="button" class="cursor-pointer tab-btn px-4 py-2 text-emerald-400 border-b-2 border-emerald-400 font-bold" data-tab="overview" value="總覽">
+				<input type="button" class="cursor-pointer tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="sessions" value="場次">
+				<input type="button" class="cursor-pointer tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="leaderboard" value="排行榜">
+			</div>
+
+			<div id="tab-overview" class="tab-content"></div>
+			<div id="tab-sessions" class="tab-content hidden"></div>
+			<div id="tab-leaderboard" class="tab-content hidden"></div>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="series.js"></script>
+	</body>
+</html>

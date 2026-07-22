@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>報名清單 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="print.css">
+		<link rel="stylesheet" href="receipt.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Registrations</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl">報名清單</h1>
+					<div class="mt-3 text-sm leading-7 text-zinc-400" id="sessionname"></div>
+				</div>
+				<div class="flex gap-2">
+					<a href="scan.html" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-emerald-600 px-6 text-sm font-bold text-white transition hover:bg-emerald-700">掃描 QR</a>
+					<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">返回場次</a>
+				</div>
+			</div>
+
+			<div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+				<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+					<div class="text-sm text-zinc-400">已報名</div>
+					<div class="mt-1 text-2xl font-extrabold text-yellow-400" id="statregistered">0</div>
+				</div>
+				<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+					<div class="text-sm text-zinc-400">已確認</div>
+					<div class="mt-1 text-2xl font-extrabold text-green-400" id="statconfirmed">0</div>
+				</div>
+				<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+					<div class="text-sm text-zinc-400">已取消</div>
+					<div class="mt-1 text-2xl font-extrabold text-zinc-500" id="statcancelled">0</div>
+				</div>
+				<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+					<div class="text-sm text-zinc-400">總計分牌數</div>
+					<div class="mt-1 text-2xl font-extrabold text-sky-400" id="stattotalchip">0</div>
+				</div>
+			</div>
+
+			<div class="mb-6 hidden" id="registrationresultsummary"></div>
+
+			<details class="mb-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+				<summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-left">
+					<div>
+						<div class="text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Guide</div>
+						<div class="mt-1 text-lg font-extrabold text-white">操作說明 / 狀態說明 / 新手引導</div>
+					</div>
+					<div class="rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-200">展開 / 收合</div>
+				</summary>
+				<div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+					<div class="rounded-[24px] border border-zinc-800 bg-zinc-950/70 p-6">
+						<div class="text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">操作說明</div>
+						<div class="mt-3 space-y-3 text-sm leading-7 text-zinc-300" id="registrationguideactions"></div>
+					</div>
+					<div class="rounded-[24px] border border-zinc-800 bg-zinc-950/70 p-6">
+						<div class="text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">狀態說明</div>
+						<div class="mt-3 space-y-3 text-sm leading-7 text-zinc-300" id="registrationguidestatus"></div>
+					</div>
+					<div class="rounded-[24px] border border-zinc-800 bg-zinc-950/70 p-6">
+						<div class="text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">新手引導</div>
+						<div class="mt-3 space-y-3 text-sm leading-7 text-zinc-300" id="registrationguideflow"></div>
+					</div>
+				</div>
+			</details>
+
+			<div class="mb-4 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8" id="registrationtoolbar"></div>
+
+				<div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+					<div>
+						<div class="text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400" id="registrationlisteyebrow">List</div>
+						<div class="mt-1 text-lg font-extrabold text-white" id="registrationlistheading">報名名單</div>
+						<div class="mt-1 text-sm text-zinc-400" id="registrationlistnote">點欄位排序、勾選後可批次操作；右側可匯出目前篩選結果。</div>
+					</div>
+					<div class="flex gap-2">
+						<input type="button" class="cursor-pointer rounded-2xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" id="printregister" value="列印名單">
+						<input type="button" class="cursor-pointer rounded-2xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" id="exportregistercsv" value="匯出 CSV">
+					</div>
+				</div>
+
+			<div class="hidden overflow-x-auto rounded-2xl border border-zinc-800 md:block">
+				<table class="w-full text-sm">
+					<thead class="text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
+						<tr class="border-b border-zinc-800">
+							<th class="px-4 py-3 text-left">選取</th>
+							<th class="px-4 py-3 text-left">選手</th>
+							<th class="px-4 py-3 text-left">報名時間</th>
+							<th class="px-4 py-3 text-left">狀態</th>
+							<th class="px-4 py-3 text-left">座位</th>
+							<th class="px-4 py-3 text-left">收益</th>
+							<th class="px-4 py-3 text-left">修正</th>
+							<th class="px-4 py-3 text-right">操作</th>
+						</tr>
+					</thead>
+					<tbody id="reglist"></tbody>
+				</table>
+				<div id="empty" class="hidden py-10 text-center text-zinc-500">尚無報名紀錄</div>
+			</div>
+			<div class="space-y-3 md:hidden" id="regcards"></div>
+			<div id="emptymobile" class="hidden py-10 text-center text-zinc-500 md:hidden">尚無報名紀錄</div>
+		</div>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="print.js"></script>
+		<script src="qrcode.js"></script>
+		<script src="receipt.js"></script>
+		<script src="register.js"></script>
+	</body>
+</html>

@@ -1,35 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
     <head>
-        <meta charset="utf-8">
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>500</title>
-        <link rel="stylesheet" href="../index.css">
-        <link rel="stylesheet" href="../style.css">
+        <title>500 伺服器發生錯誤 - PokerTrace</title>
+        <link href="/material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+        <link href="/material/icon/icon.png" rel="apple-touch-icon">
+        <link rel="stylesheet" href="/!errorpage/index.css">
     </head>
-    <body x-data="main" class="relative overflow-x-hidden font-nunito text-sm font-normal antialiased" :class="[ $store.app.sidebar ? 'toggle-sidebar' : '', window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ?  'dark' : '', $store.app.menu, $store.app.layout,$store.app.rtlClass]">
-        <div class="main-container min-h-screen text-black dark:text-white-dark">
-            <div class="relative flex min-h-screen items-center justify-center overflow-hidden">
-                <divclass="ppx-6 py-16 text-center font-semibold before:container before:absolute before:left-1/2 before:aspect-square before:-translate-x-1/2 before:rounded-full before:bg-[linear-gradient(180deg,#4361EE_0%,rgba(67,97,238,0)_50.73%)] before:opacity-10 md:py-20">
-                    <div class="relative">
-                        <img :src="$store.app.theme === 'dark' || $store.app.isDarkMode ? '../image/500-dark.svg' : '../image/500-light.svg'" alt="500" class="mx-auto -mt-10 w-full max-w-xs object-cover md:-mt-14 md:max-w-xl" draggable="false">
-                        <p class="mt-5 text-base dark:text-white text-center">INTERNAL SEVER ERROR</p>
-                        <a href="/" class="btn btn-gradient mx-auto !mt-7 w-max border-0 uppercase shadow-none">回到首頁</a>
-                    </div>
-                </div>
+    <body>
+        <main class="errorcard">
+            <img src="/!errorpage/image/500-dark.svg" alt="500" class="errorart">
+            <p class="errorcode">500</p>
+            <h1 class="errortitle">伺服器發生錯誤</h1>
+            <p class="errordesc">伺服器目前發生非預期的錯誤，與您的裝置無關，請稍後再試。</p>
+            <div class="erroractions">
+                <input type="button" class="btn btn-outline" value="回上一頁" data-error-back>
+                <a href="/frontend/" class="btn btn-primary">回首頁</a>
+                <a href="/frontend/contact.html" class="btn btn-ghost">聯絡我們</a>
             </div>
-        </div>
-        <div class="footer">
-            如果您認為此錯誤有誤請用DC找 chris0527 或 <a href="/website/anther/respond" class="a">填寫此表單</a> 回報<br>
-            此錯誤常見原因為: 伺服器問題與用戶端無關
-        </div>
-        <script src="custom.js"></script>
-        <script>document.addEventListener('alpine:init', () => {
-                Alpine.data('scrollToTop', () => ({
-                    showTopButton: false, init() { window.onscroll = () => { this.scrollFunction(); }; }, scrollFunction() {
-                        if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) { this.showTopButton = true; } else { this.showTopButton = false; }
-                    }, goToTop() { document.body.scrollTop = 0; document.documentElement.scrollTop = 0; },
-                }));
-            });</script>
+            <p class="errornote">如果您認為此錯誤有誤，歡迎<a href="/frontend/contact.html">聯絡我們</a>回報，或透過 Discord 聯繫 chris0527。</p>
+        </main>
+        <script src="/!errorpage/errorpage.js"></script>
     </body>
 </html>

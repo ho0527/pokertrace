@@ -20,30 +20,13 @@ from function.sql import *
 from function.thing import *
 from function.function import *
 from .initialize import *
+from .authhelper import gettokenuser as commonauthuser
+from .timer import synctimerplayers,linkedcounts,buildtimerstate,broadcasttimerupdate,latestsessionchips,intval
+from .notification import notifyevent
 
 
 def _gettokenuser(request):
-	# 取得 token 對應的 user; 失敗回傳 (None, errorresponse)
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return (None,errorresponse("ERROR_token_not_found"))
-
-	if not token:
-		return (None,errorresponse("ERROR_token_not_found"))
-
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return (None,errorresponse("ERROR_token_error"))
-
-	userrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-	if not userrow:
-		return (None,errorresponse("ERROR_user_not_found"))
-
-	return (userrow[0],None)
+	return commonauthuser(request)
 
 def _num(value,defaultvalue=0):
 	try:
@@ -71,6 +54,151 @@ def _requireowner(sessionrow,user):
 		return True
 	return False
 
+def _sessionstaffed(sessionrow,user):
+	sessionstaffrow=query(SETTING["dbname"],f"""SELECT*FROM "sessionstaff" WHERE "sessionid"=%s AND "staffuserid"=%s AND "status"='active' AND "deletetime" IS NULL""",[sessionrow["id"],user["id"]],SETTING["dbsetting"])
+	if sessionstaffrow:
+		return True
+	userstaffrow=query(SETTING["dbname"],f"""SELECT*FROM "userstaff" WHERE "userid"=%s AND "staffuserid"=%s AND "status"='active' AND "deletetime" IS NULL""",[sessionrow["userid"],user["id"]],SETTING["dbsetting"])
+	if userstaffrow:
+		return True
+	return False
+
+def _caneditsession(sessionrow,user):
+	# 編輯類操作 (報名/確認/取消/晉級/財務/座位): 擁有者、管理員或該場次聘用人員 (sessionstaff/userstaff) 皆可操作。
+	# 刪除/複製類操作不適用本函式, 仍限擁有者/管理員 (_requireowner)。
+	if _requireowner(sessionrow,user):
+		return True
+	return _sessionstaffed(sessionrow,user)
+
+def _sessionended(sessionrow):
+	if not _bool(sessionrow.get("linkuser")):
+		return False
+	state=buildtimerstate(sessionrow["id"])
+	if not state:
+		return False
+	players=state.get("linkedPlayers") or []
+	if players:
+		ended=True
+		for i in range(len(players)):
+			if players[i].get("registrationstatus")!="advanced" and _int(players[i].get("place"),0)<=0:
+				ended=False
+		if ended:
+			return True
+	if not _bool(state.get("regClosed")):
+		return False
+	synctimerplayers(sessionrow)
+	counts=linkedcounts(sessionrow["id"])
+	if _int(counts[1],0)<=0:
+		return False
+	if _int(counts[0],0)<=1:
+		return True
+	return False
+
+def _sessionregistrationclosed(sessionrow):
+	if not _bool(sessionrow.get("linkuser")):
+		return True
+	state=buildtimerstate(sessionrow["id"])
+	if state and _bool(state.get("regClosed")):
+		return True
+	return False
+
+def _deleteregistration(sessionrow,sessionplayerid):
+	# 取消報名採全站慣例的軟刪 (deletetime); 重新報名時由 _reviveregistration 復活同一列 (sessionplayer 有 (sessionid,userid) 唯一鍵, 不能新增第二列)。
+	query(SETTING["dbname"],f"""UPDATE "sessiontimerplayer" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionplayerid"=%s AND "deletetime" IS NULL""",[sessionplayerid],SETTING["dbsetting"])
+	query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "canceltime"=NOW(),"deletetime"=NOW(),"updatetime"=NOW() WHERE "id"=%s AND "deletetime" IS NULL""",[sessionplayerid],SETTING["dbsetting"])
+	_broadcastsessiontimer(sessionrow)
+
+def _reviveregistration(sessionrow,sessionplayerrow,newstatus):
+	# 復活先前取消 (軟刪) 的報名列: 重設為全新報名的狀態; 確認報名 (confirmed) 時直接配發新序號。
+	serialno=None
+	confirmtime=None
+	if newstatus=="confirmed":
+		serialno=_nextserialno(sessionrow["id"])
+		confirmtime=nowtime()
+	query(SETTING["dbname"],
+		f"""UPDATE "sessionplayer" SET "status"=%s,"buyin"=%s,"fee"=%s,"paymenttype"=%s,"ticketvalue"=%s,"startchip"=%s,"serialno"=%s,"tableid"=NULL,"seatno"=NULL,"rebuycount"=0,"reentrycount"=0,"addoncount"=0,"prize"=0,"prizeoverride"=NULL,"place"=NULL,"note"='',"advancechip"=NULL,"advancetargetid"=NULL,"advancesourceid"=NULL,"advancetime"=NULL,"registertime"=NOW(),"confirmtime"=%s,"canceltime"=NULL,"deletetime"=NULL,"updatetime"=NOW() WHERE "id"=%s""",
+		[newstatus,sessionrow.get("buyin") or 0,sessionrow.get("buyinfee") or 0,"ticket" if sessionrow.get("ticketenabled") else "cash",sessionrow.get("ticketvalue") or 0,_sessionplayerstartchip(sessionrow),serialno,confirmtime,sessionplayerrow["id"]],
+		SETTING["dbsetting"]
+	)
+	# 舊的 sessiontimerplayer 列是軟刪的, 但仍留著上次的 eliminated/place; synctimerplayers 復活該列時只清 deletetime, 不會重設狀態,
+	# 會讓「淘汰 → 取消報名 → 重新報名」的玩家一進來就顯示為上次的淘汰名次。這裡一併重設成 synctimerplayers 新增新玩家時的初始值。
+	# deletetime 不在這裡動: 交給 synctimerplayers 依 sessionplayer 狀態決定 (registered 尚未確認時不該有生效中的計時器列)。
+	query(SETTING["dbname"],
+		f"""UPDATE "sessiontimerplayer" SET "status"='active',"eliminatedtime"=NULL,"place"=NULL,"updatetime"=NOW() WHERE "sessionid"=%s AND "sessionplayerid"=%s""",
+		[sessionrow["id"],sessionplayerrow["id"]],
+		SETTING["dbsetting"]
+	)
+	return sessionplayerrow["id"]
+
+def _eliminatedtimerplayer(sessionid,sessionplayerid):
+	row=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerplayer" WHERE "sessionid"=%s AND "sessionplayerid"=%s AND "status"='eliminated' AND "deletetime" IS NULL""",[sessionid,sessionplayerid],SETTING["dbsetting"])
+	if row:
+		return row[0]
+	return None
+
+def _featureallowed(sessionrow,prefix):
+	# 場次是否有開放某項加購功能 (rebuy / addon)：次數、買入或計分牌任一大於 0 即視為開放
+	count=_num(sessionrow.get(prefix+"count"),0)
+	buyin=_num(sessionrow.get(prefix+"buyin"),0)
+	chip=_num(sessionrow.get(prefix+"chip"),0)
+	return 0<count or 0<buyin or 0<chip
+
+def _canreentry(sessionrow,sessionplayerrow):
+	if not _eliminatedtimerplayer(sessionrow["id"],sessionplayerrow["id"]):
+		return False
+	maxreentry=_int(sessionrow.get("reentrycount"),0)
+	if maxreentry<=0:
+		return False
+	if maxreentry<=_int(sessionplayerrow.get("reentrycount"),0):
+		return False
+	return True
+
+def _sessionplayerstartchip(sessionrow,sessionplayerrow=None):
+	if sessionplayerrow:
+		startchip=_num(sessionplayerrow.get("startchip"),0)
+		if 0<startchip:
+			return startchip
+		advancechip=_num(sessionplayerrow.get("advancechip"),0)
+		if 0<advancechip:
+			return advancechip
+	return _num(sessionrow.get("chip"),0)
+
+def _reentrychip(sessionrow,sessionplayerrow=None):
+	chip=_num(sessionrow.get("reentrychip"),0)
+	if chip<=0:
+		chip=_sessionplayerstartchip(sessionrow,sessionplayerrow)
+	return chip
+
+def _restorereentry(sessionrow,sessionplayerrow):
+	# Reentry 是一次新的 entry：配發新的入場編號（累計 +1），不沿用原本的舊號。
+	query(SETTING["dbname"],
+		f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=NOW(),"canceltime"=NULL,"updatetime"=NOW(),"deletetime"=NULL,"reentrycount"=COALESCE("reentrycount",0)+1,"startchip"=%s,"tableid"=NULL,"seatno"=NULL WHERE "id"=%s""",
+		[_nextserialno(sessionrow["id"]),_reentrychip(sessionrow,sessionplayerrow),sessionplayerrow["id"]],
+		SETTING["dbsetting"]
+	)
+	query(SETTING["dbname"],
+		f"""UPDATE "sessiontimerplayer" SET "status"='active',"eliminatedtime"=NULL,"place"=NULL,"deletetime"=NULL,"updatetime"=NOW() WHERE "sessionid"=%s AND "sessionplayerid"=%s""",
+		[sessionrow["id"],sessionplayerrow["id"]],
+		SETTING["dbsetting"]
+	)
+	state=buildtimerstate(sessionrow["id"])
+	if state is not None:
+		broadcasttimerupdate(sessionrow["id"],state)
+	return Response({
+		"success": True,
+		"data": {
+			"id": sessionplayerrow["id"],
+			"reentry": True
+		}
+	},status.HTTP_200_OK)
+
+def _broadcastsessiontimer(sessionrow):
+	if not sessionrow or not _bool(sessionrow.get("linkuser")):
+		return
+	state=buildtimerstate(sessionrow["id"])
+	if state is not None:
+		broadcasttimerupdate(sessionrow["id"],state)
+
 def _ranknumber(value):
 	try:
 		if value is None or value=="":
@@ -88,11 +216,93 @@ def _ranknumber(value):
 		return None
 	return None
 
-def _timerprizepool(sessionrow,totalentries):
+def _rankrange(value,fallback):
+	try:
+		if value is None or value=="":
+			return fallback,fallback
+		text=str(value).replace("－","-").replace("–","-").replace("—","-")
+		parts=text.split("-")
+		if 2<=len(parts):
+			start=_ranknumber(parts[0])
+			end=_ranknumber(parts[1])
+			if start is not None and end is not None:
+				if end<start:
+					temp=start
+					start=end
+					end=temp
+				return start,end
+		rank=_ranknumber(text)
+		if rank is not None:
+			return rank,rank
+	except Exception as error:
+		return fallback,fallback
+	return fallback,fallback
+
+def _payoutcashtotal(sessionrow,pool):
+	payoutrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerpayout" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC""",[sessionrow["id"]],SETTING["dbsetting"])
+	totalpct=0
+	total=0
+	for item in payoutrow or []:
+		totalpct=totalpct+_num(item.get("pct"),0)
+	for item in payoutrow or []:
+		# cash 制優先：payoutedit 現金獎金直接是絕對金額，不乘獎池 (對齊前端 payoutCashAmount)
+		cash=_num(item.get("cash"),0)
+		if 0<cash:
+			total=total+round(cash)
+		else:
+			reward=item.get("reward") or ""
+			if reward!="":
+				rewardtext=str(reward).replace(",","").replace("$","").strip()
+				try:
+					total=total+round(float(rewardtext))
+				except Exception as error:
+					total=total+0
+			else:
+				pct=_num(item.get("pct"),0)
+				if totalpct<=1.5:
+					total=total+round(pool*pct)
+				else:
+					total=total+round(pool*pct/100)
+	return total
+
+def _sessiontotalentries(sessionid):
+	countrow=query(SETTING["dbname"],f"""SELECT SUM(1+COALESCE("rebuycount",0)+COALESCE("reentrycount",0)) AS count FROM "sessionplayer" WHERE "sessionid"=%s AND "status" IN ('confirmed','advanced') AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+	if countrow and countrow[0]["count"]:
+		return _int(countrow[0]["count"],0)
+	return 0
+
+def _multidaycarryover(sessionid,visited=None):
+	if visited is None:
+		visited=[]
+	if str(sessionid) in visited:
+		return 0
+	nextvisited=visited+[str(sessionid)]
+	rows=query(SETTING["dbname"],f"""
+		SELECT s.*
+		FROM "sessionrelation" sr
+		JOIN "session" s ON s."id"=sr."sourceid" AND s."deletetime" IS NULL
+		WHERE sr."targetid"=%s AND sr."relationtype"='multiday' AND sr."deletetime" IS NULL
+		ORDER BY s."starttime" ASC,s."id" ASC
+	""",[sessionid],SETTING["dbsetting"])
+	total=0
+	for row in rows or []:
+		sourceentries=_sessiontotalentries(row["id"])
+		sourcepool=_timerprizepool(row,sourceentries,nextvisited)
+		paid=_payoutcashtotal(row,sourcepool)
+		left=sourcepool-paid
+		if 0<left:
+			total=total+left
+	return total
+
+def _timerprizepool(sessionrow,totalentries,visited=None):
 	configrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerconfig" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionrow["id"]],SETTING["dbsetting"])
 	if configrow and configrow[0].get("prizepoolmode")=="manual":
 		return _num(configrow[0].get("prizepoolmanual"),0)
-	return _num(sessionrow.get("buyin"),0)*totalentries
+	pool=_num(sessionrow.get("buyin"),0)*totalentries+_multidaycarryover(sessionrow["id"],visited)
+	guaranteedprize=_num(sessionrow.get("guaranteedprize"),0)
+	if pool<guaranteedprize:
+		pool=guaranteedprize
+	return pool
 
 def _payoutamount(sessionrow,place,totalentries):
 	if place is None:
@@ -104,15 +314,21 @@ def _payoutamount(sessionrow,place,totalentries):
 	totalpct=0
 	for item in payoutrow:
 		totalpct=totalpct+_num(item.get("pct"),0)
-	for item in payoutrow:
-		rank=_ranknumber(item.get("rank"))
-		if rank==place:
+	for i in range(len(payoutrow)):
+		item=payoutrow[i]
+		rankstart,rankend=_rankrange(item.get("rank"),i+1)
+		if rankstart<=place and place<=rankend:
+			# cash 制優先：payoutedit 現金獎金直接是該名次的絕對金額，不乘獎池 (對齊前端 payoutCashAmount)
+			cash=_num(item.get("cash"),0)
+			if 0<cash:
+				return round(cash)
 			reward=item.get("reward") or ""
-			try:
-				if reward!="":
-					return float(reward)
-			except Exception as error:
-				pass
+			if reward!="":
+				try:
+					rewardtext=str(reward).replace(",","").replace("$","").strip()
+					return float(rewardtext)
+				except Exception as error:
+					return 0
 			pct=_num(item.get("pct"),0)
 			if totalpct<=1.5:
 				return round(pool*pct)
@@ -120,32 +336,55 @@ def _payoutamount(sessionrow,place,totalentries):
 	return 0
 
 def _cost(sessionrow,row):
+	buyin=_num(sessionrow.get("buyin"),0)
+	fee=_num(sessionrow.get("buyinfee"),0)
+	reentrycount=_int(row.get("reentrycount"),0)
 	if row.get("paymenttype")=="ticket":
-		base=_num(row.get("ticketvalue"),0)
-		if base<=0:
-			base=_num(sessionrow.get("ticketvalue"),0)
+		ticketvalue=_num(sessionrow.get("ticketvalue"),0)
+		base=ticketvalue*(1+reentrycount)
 	else:
-		buyin=_num(row.get("buyin"),0)
-		fee=_num(row.get("fee"),0)
-		if buyin<=0:
-			buyin=_num(sessionrow.get("buyin"),0)
-		if fee<=0:
-			fee=_num(sessionrow.get("buyinfee"),0)
-		base=buyin+fee
-	base=base+(_num(sessionrow.get("rebuybuyin"),0)+_num(sessionrow.get("rebuyfee"),0))*_int(row.get("rebuycount"),0)
-	base=base+(_num(sessionrow.get("reentrybuyin"),0)+_num(sessionrow.get("reentryfee"),0))*_int(row.get("reentrycount"),0)
+		reentrybuyin=_num(sessionrow.get("reentrybuyin"),0)
+		reentryfee=_num(sessionrow.get("reentryfee"),0)
+		if reentrybuyin<=0:
+			reentrybuyin=buyin
+		if reentryfee<=0:
+			reentryfee=fee
+		base=buyin+fee+(reentrybuyin+reentryfee)*reentrycount
+	# rebuy 比照 reentry 補 fallback：欄位未設(<=0)時退回基本買入 / 服務費，避免 rebuy 後費用沒累加。
+	rebuybuyin=_num(sessionrow.get("rebuybuyin"),0)
+	rebuyfee=_num(sessionrow.get("rebuyfee"),0)
+	if rebuybuyin<=0:
+		rebuybuyin=buyin
+	if rebuyfee<=0:
+		rebuyfee=fee
+	base=base+(rebuybuyin+rebuyfee)*_int(row.get("rebuycount"),0)
+	# addon 維持用自己設定的價格，不 fallback（addon 通常另有價格）。
 	base=base+(_num(sessionrow.get("addonbuyin"),0)+_num(sessionrow.get("addonfee"),0))*_int(row.get("addoncount"),0)
 	return base
 
-def _attachfinance(sessionrow,rows):
-	totalentries=0
-	if sessionrow and sessionrow.get("id"):
-		countrow=query(SETTING["dbname"],f"""SELECT COUNT(*) AS count FROM "sessionplayer" WHERE "sessionid"=%s AND "status" IN ('confirmed','advanced') AND "deletetime" IS NULL""",[sessionrow["id"]],SETTING["dbsetting"])
-		if countrow and countrow[0]["count"]:
-			totalentries=_int(countrow[0]["count"],0)
+def _sessiontotalentriesmapping(sessionidlist):
+	# 批次版總入場次數: 以 IN (...) 一次查多個場次的 entry 數 (1+rebuy+reentry), 回傳 {sessionid: count}。
+	# 迴圈對多場呼叫 _attachfinance 前先用這個算好, 再以 totalentries 參數傳入, 避免每場各跑一次 COUNT (N+1)。
+	mapping={}
+	if not sessionidlist:
+		return mapping
+	placeholders=",".join(["%s"]*len(sessionidlist))
+	countrow=query(SETTING["dbname"],f"""SELECT "sessionid",SUM(1+COALESCE("rebuycount",0)+COALESCE("reentrycount",0)) AS count FROM "sessionplayer" WHERE "sessionid" IN ({placeholders}) AND "status" IN ('confirmed','advanced') AND "deletetime" IS NULL GROUP BY "sessionid" """,sessionidlist,SETTING["dbsetting"])
+	for item in countrow or []:
+		mapping[item["sessionid"]]=_int(item["count"],0)
+	return mapping
+
+def _attachfinance(sessionrow,rows,totalentries=None):
+	# totalentries 可由批次呼叫端 (_sessiontotalentriesmapping) 預先算好傳入; 單筆呼叫不帶參數時維持原本自查。
+	if totalentries is None:
+		totalentries=0
+		if sessionrow and sessionrow.get("id"):
+			countrow=query(SETTING["dbname"],f"""SELECT SUM(1+COALESCE("rebuycount",0)+COALESCE("reentrycount",0)) AS count FROM "sessionplayer" WHERE "sessionid"=%s AND "status" IN ('confirmed','advanced') AND "deletetime" IS NULL""",[sessionrow["id"]],SETTING["dbsetting"])
+			if countrow and countrow[0]["count"]:
+				totalentries=_int(countrow[0]["count"],0)
 	for row in rows or []:
 		if totalentries==0 and (row["status"]=="confirmed" or row["status"]=="advanced"):
-			totalentries=totalentries+1
+			totalentries=totalentries+1+_int(row.get("rebuycount"),0)+_int(row.get("reentrycount"),0)
 	if totalentries==0:
 		totalentries=len(rows or [])
 	for row in rows or []:
@@ -194,7 +433,7 @@ def _upsertadvancetarget(sourceplayer,source,targets,chip):
 		existing=existing[0]
 		currentchip=_num(existing.get("startchip"),0)
 		update={
-			"status": existing["status"] if existing["status"] in ["registered","confirmed"] else "registered",
+			"status": "confirmed",
 			"deletetime": None,
 			"updatetime": nowtime(),
 			"advancesourceid": source["id"]
@@ -209,7 +448,7 @@ def _upsertadvancetarget(sourceplayer,source,targets,chip):
 		targetplayerid=queryinsert(SETTING["dbname"],"sessionplayer",{
 			"sessionid": target["id"],
 			"userid": sourceplayer["userid"],
-			"status": "registered",
+			"status": "confirmed",
 			"buyin": target.get("buyin") or 0,
 			"fee": target.get("buyinfee") or 0,
 			"paymenttype": "ticket" if target.get("ticketenabled") else "cash",
@@ -250,43 +489,59 @@ try:
 		# 必須是主辦場次且開放報名
 		if not sessionrow["owned"] or not sessionrow.get("linkuser") or not sessionrow.get("openregistration"):
 			return errorresponse("ERROR_session_not_open_for_registration")
+		if _sessionregistrationclosed(sessionrow):
+			return errorresponse("ERROR_session_not_open_for_registration")
 
 		# 不能報名自己主辦的場次
 		if sessionrow["userid"]==user["id"]:
 			return errorresponse("ERROR_cannot_register_own_session")
 
+		if _sessionstaffed(sessionrow,user):
+			return errorresponse("ERROR_staff_cannot_register")
+
+
 		# 看是否已有報名紀錄
-		existing=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "userid"=%s""",[sessionid,user["id"]],SETTING["dbsetting"])
+		existing=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "userid"=%s AND "deletetime" IS NULL""",[sessionid,user["id"]],SETTING["dbsetting"])
 
 		if existing:
 			existing=existing[0]
 			if existing["status"]=="registered" or existing["status"]=="confirmed":
+				if existing["status"]=="confirmed" and _eliminatedtimerplayer(sessionrow["id"],existing["id"]):
+					if _canreentry(sessionrow,existing):
+						return _restorereentry(sessionrow,existing)
+					return errorresponse("WARNING_rebuycount_exceeded")
 				return errorresponse("ERROR_already_registered")
-			# 之前取消過, 重新報名 → 改 status 回 registered
-			query(SETTING["dbname"],
-				f"""UPDATE "sessionplayer" SET "status"='registered',"registertime"=NOW(),"canceltime"=NULL,"updatetime"=NOW(),"deletetime"=NULL,"buyin"=%s,"fee"=%s,"paymenttype"=%s,"ticketvalue"=%s,"startchip"=%s,"serialno"=COALESCE("serialno",%s),"tableid"=NULL,"seatno"=NULL WHERE "id"=%s""",
-				[sessionrow.get("buyin") or 0,sessionrow.get("buyinfee") or 0,"ticket" if sessionrow.get("ticketenabled") else "cash",sessionrow.get("ticketvalue") or 0,sessionrow.get("chip") or 0,_nextserialno(sessionid),existing["id"]],
-				SETTING["dbsetting"]
-			)
-			return Response({
-				"success": True,
-				"data": {
-					"id": existing["id"]
-				}
-			},status.HTTP_200_OK)
+			if _sessionended(sessionrow):
+				return errorresponse("ERROR_session_ended")
+			# 其他啟用中狀態 (如已晉級 advanced) 一律視為已有報名, 不能重複報名; 之前取消的報名是軟刪列, 由下方復活流程處理
+			return errorresponse("ERROR_already_registered")
 
-		newid=queryinsert(SETTING["dbname"],"sessionplayer",{
-			"sessionid": sessionid,
-			"userid": user["id"],
-			"status": "registered",
-			"buyin": sessionrow.get("buyin") or 0,
-			"fee": sessionrow.get("buyinfee") or 0,
-			"paymenttype": "ticket" if sessionrow.get("ticketenabled") else "cash",
-			"ticketvalue": sessionrow.get("ticketvalue") or 0,
-			"startchip": sessionrow.get("chip") or 0,
-			"serialno": _nextserialno(sessionid),
-			"registertime": nowtime()
-		},SETTING["dbsetting"])
+		if _sessionended(sessionrow):
+			return errorresponse("ERROR_session_ended")
+
+		# 之前取消過 (軟刪) 的報名: 復活同一列並重設為全新報名, 不新增第二列 ((sessionid,userid) 有唯一鍵)
+		deletedrow=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "userid"=%s AND "deletetime" IS NOT NULL""",[sessionid,user["id"]],SETTING["dbsetting"])
+		if deletedrow:
+			newid=_reviveregistration(sessionrow,deletedrow[0],"registered")
+		else:
+			# 自己報名時先不配序號；序號在主辦「確認 / 報到」時才依報到順序配發。
+			newid=queryinsert(SETTING["dbname"],"sessionplayer",{
+				"sessionid": sessionid,
+				"userid": user["id"],
+				"status": "registered",
+				"buyin": sessionrow.get("buyin") or 0,
+				"fee": sessionrow.get("buyinfee") or 0,
+				"paymenttype": "ticket" if sessionrow.get("ticketenabled") else "cash",
+				"ticketvalue": sessionrow.get("ticketvalue") or 0,
+				"startchip": _sessionplayerstartchip(sessionrow),
+				"registertime": nowtime()
+			},SETTING["dbsetting"])
+		_broadcastsessiontimer(sessionrow)
+
+		notifyevent(user["id"],sessionid,"registration",
+			"報名確認 Registration confirmed",
+			"你已成功報名「"+str(sessionrow.get("name") or "")+"」。You have registered for \""+str(sessionrow.get("name") or "")+"\".",
+			email=True)
 
 		return Response({
 			"success": True,
@@ -305,7 +560,7 @@ try:
 		if not sessionrow:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
-		if not _requireowner(sessionrow,user):
+		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 		if not sessionrow["owned"] or not sessionrow.get("linkuser"):
 			return errorresponse("ERROR_session_not_open_for_registration")
@@ -326,32 +581,39 @@ try:
 		playerrow=playerrow[0]
 		if playerrow["id"]==sessionrow["userid"]:
 			return errorresponse("ERROR_cannot_register_own_session")
+		if _sessionstaffed(sessionrow,playerrow):
+			return errorresponse("ERROR_staff_cannot_register")
 
-		existing=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "userid"=%s""",[sessionid,playerrow["id"]],SETTING["dbsetting"])
+		existing=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "userid"=%s AND "deletetime" IS NULL""",[sessionid,playerrow["id"]],SETTING["dbsetting"])
 		if existing:
 			existing=existing[0]
 			if existing["status"]=="registered" or existing["status"]=="confirmed":
+				if existing["status"]=="confirmed" and _eliminatedtimerplayer(sessionrow["id"],existing["id"]):
+					if _canreentry(sessionrow,existing):
+						return _restorereentry(sessionrow,existing)
+					return errorresponse("WARNING_rebuycount_exceeded")
 				return errorresponse("ERROR_already_registered")
-			query(SETTING["dbname"],
-				f"""UPDATE "sessionplayer" SET "status"='confirmed',"registertime"=NOW(),"confirmtime"=NOW(),"canceltime"=NULL,"updatetime"=NOW(),"deletetime"=NULL,"buyin"=%s,"fee"=%s,"paymenttype"=%s,"ticketvalue"=%s,"startchip"=%s,"serialno"=COALESCE("serialno",%s),"tableid"=NULL,"seatno"=NULL WHERE "id"=%s""",
-				[sessionrow.get("buyin") or 0,sessionrow.get("buyinfee") or 0,"ticket" if sessionrow.get("ticketenabled") else "cash",sessionrow.get("ticketvalue") or 0,sessionrow.get("chip") or 0,_nextserialno(sessionid),existing["id"]],
-				SETTING["dbsetting"]
-			)
-			return Response({"success": True,"data": {"id": existing["id"]}},status.HTTP_200_OK)
+			return errorresponse("ERROR_already_registered")
 
-		newid=queryinsert(SETTING["dbname"],"sessionplayer",{
-			"sessionid": sessionid,
-			"userid": playerrow["id"],
-			"status": "confirmed",
-			"buyin": sessionrow.get("buyin") or 0,
-			"fee": sessionrow.get("buyinfee") or 0,
-			"paymenttype": "ticket" if sessionrow.get("ticketenabled") else "cash",
-			"ticketvalue": sessionrow.get("ticketvalue") or 0,
-			"startchip": sessionrow.get("chip") or 0,
-			"serialno": _nextserialno(sessionid),
-			"registertime": nowtime(),
-			"confirmtime": nowtime()
-		},SETTING["dbsetting"])
+		# 之前取消過 (軟刪) 的報名: 復活同一列並重設為全新報名, 不新增第二列 ((sessionid,userid) 有唯一鍵)
+		deletedrow=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "userid"=%s AND "deletetime" IS NOT NULL""",[sessionid,playerrow["id"]],SETTING["dbsetting"])
+		if deletedrow:
+			newid=_reviveregistration(sessionrow,deletedrow[0],"confirmed")
+		else:
+			newid=queryinsert(SETTING["dbname"],"sessionplayer",{
+				"sessionid": sessionid,
+				"userid": playerrow["id"],
+				"status": "confirmed",
+				"buyin": sessionrow.get("buyin") or 0,
+				"fee": sessionrow.get("buyinfee") or 0,
+				"paymenttype": "ticket" if sessionrow.get("ticketenabled") else "cash",
+				"ticketvalue": sessionrow.get("ticketvalue") or 0,
+				"startchip": _sessionplayerstartchip(sessionrow),
+				"serialno": _nextserialno(sessionid),
+				"registertime": nowtime(),
+				"confirmtime": nowtime()
+			},SETTING["dbsetting"])
+		_broadcastsessiontimer(sessionrow)
 
 		return Response({"success": True,"data": {"id": newid}},status.HTTP_200_OK)
 
@@ -371,14 +633,14 @@ try:
 			return errorresponse("ERROR_registration_not_found")
 		row=row[0]
 
-		if row["status"]=="cancelled":
-			return errorresponse("ERROR_registration_not_found")
-
-		query(SETTING["dbname"],
-			f"""UPDATE "sessionplayer" SET "status"='cancelled',"canceltime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",
-			[row["id"]],
-			SETTING["dbsetting"]
-		)
+		if row.get("tableid") and row.get("seatno"):
+			return errorresponse("ERROR_no_permission")
+		if _eliminatedtimerplayer(sessionid,row["id"]):
+			return errorresponse("ERROR_no_permission")
+		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+		if not sessionrow:
+			return errorresponse("ERROR_session_not_found")
+		_deleteregistration(sessionrow[0],row["id"])
 
 		return Response({
 			"success": True,
@@ -424,8 +686,8 @@ try:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
 
-		# 必須是場次擁有人或管理員
-		if sessionrow["userid"]!=user["id"] and 4>int(user["permission"]):
+		# 擁有者、管理員或該場次聘用人員皆可檢視報名清單 (與 confirm/cancel/rebuy/finance/seat/randomize 等編輯端點一致)
+		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 
 		rows=query(SETTING["dbname"],
@@ -452,8 +714,30 @@ try:
 			SETTING["dbsetting"]
 		)
 		rows=_attachfinance(sessionrow,rows or [])
-		tablerows=query(SETTING["dbname"],f"""SELECT "id","name","token" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "name" ASC""",[sessionid],SETTING["dbsetting"])
+		# 每位玩家最新一手的紀錄計分牌(endchip), 供「總計分牌數」與統一紀錄手牌的晉級預設計分牌帶入
+		latestchips=latestsessionchips(sessionid)
+		unifiedhandrecord=bool(sessionrow.get("unifiedhandrecord"))
+		totalchipcount=0
+		for r in rows:
+			latestchip=intval(latestchips.get("sp:"+str(r["id"])),0)
+			r["latestchip"]=latestchip
+			if r["status"]=="advanced":
+				totalchipcount=totalchipcount+intval(r.get("advancechip"),0)
+			elif r["status"]=="confirmed" and r.get("timerstatus")!="eliminated":
+				totalchipcount=totalchipcount+(latestchip if latestchip>0 else intval(r.get("startchip"),0))
+		tablerows=query(SETTING["dbname"],f"""SELECT "id","no","token" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
 		advancetargets=_multidaytargets(sessionid)
+
+		# 收據抬頭用：場地名稱、系列賽名稱（若此場次被系列賽包住）、開賽時間
+		clubname=""
+		if sessionrow.get("clubid"):
+			clubrow=query(SETTING["dbname"],f"""SELECT "name" FROM "club" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionrow["clubid"]],SETTING["dbsetting"])
+			if clubrow:
+				clubname=clubrow[0].get("name") or ""
+		seriestitle=""
+		seriesrow=query(SETTING["dbname"],f"""SELECT se."name" AS name FROM "seriessession" ss JOIN "series" se ON se."id"=ss."seriesid" AND se."deletetime" IS NULL WHERE ss."sessionid"=%s AND ss."deletetime" IS NULL ORDER BY ss."id" ASC LIMIT 1""",[sessionid],SETTING["dbsetting"])
+		if seriesrow:
+			seriestitle=seriesrow[0].get("name") or ""
 
 		# 順便統計各狀態人數
 		stats={
@@ -471,10 +755,20 @@ try:
 			"data": {
 				"sessionid": sessionid,
 				"sessionname": sessionrow["name"],
+				"seriestitle": seriestitle,
+				"clubname": clubname,
+				"starttime": sessionrow.get("starttime"),
 				"linkuser": sessionrow.get("linkuser") or False,
 				"startchip": sessionrow.get("chip") or 0,
 				"maxseat": sessionrow.get("maxseat") or 9,
+				"reentrycount": sessionrow.get("reentrycount") or 0,
+				"rebuycount": sessionrow.get("rebuycount") or 0,
+				"addoncount": sessionrow.get("addoncount") or 0,
+				"rebuyallowed": _featureallowed(sessionrow,"rebuy"),
+				"addonallowed": _featureallowed(sessionrow,"addon"),
 				"advancetargets": advancetargets,
+				"unifiedhandrecord": unifiedhandrecord,
+				"totalchipcount": totalchipcount,
 				"tables": tablerows or [],
 				"stats": stats,
 				"registrations": rows
@@ -484,6 +778,80 @@ try:
 	# @api_view(["GET"])
 	# def getsessionregistrationlist(request,sessionid):
 	# 	return getsessionregistrations(request,sessionid)
+
+	@api_view(["GET"])
+	def getcheckininfo(request,sessionplayerid):
+		# 報到核對頁用：查單筆報名的顯示資訊。允許本人、場次擁有者 / 管理員、該場員工查看（玩家掃自己的收據不會被權限擋）。
+		user,errresp=_gettokenuser(request)
+		if errresp:
+			return errresp
+
+		row=query(SETTING["dbname"],
+			f"""SELECT sp.*,
+			       u."name" AS playername, u."playerid" AS playerplayerid,
+			       tp."place" AS timerplace, tp."status" AS timerstatus,
+			       t."no" AS tableno, t."token" AS tabletoken
+			    FROM "sessionplayer" sp
+			    JOIN "user" u ON u."id"=sp."userid"
+			    LEFT JOIN "sessiontimerplayer" tp ON tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."deletetime" IS NULL
+			    LEFT JOIN "table" t ON t."id"=sp."tableid" AND t."deletetime" IS NULL
+			    WHERE sp."id"=%s AND sp."deletetime" IS NULL""",
+			[sessionplayerid],
+			SETTING["dbsetting"]
+		)
+		if not row:
+			return errorresponse("ERROR_registration_not_found")
+		row=row[0]
+
+		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[row["sessionid"]],SETTING["dbsetting"])
+		if not sessionrow:
+			return errorresponse("ERROR_session_not_found")
+		sessionrow=sessionrow[0]
+
+		isstaffview=_requireowner(sessionrow,user) or _sessionstaffed(sessionrow,user)
+		allowed=isstaffview or row["userid"]==user["id"]
+		if not allowed:
+			return errorresponse("ERROR_no_permission")
+
+		# 算名次 / 獎金（供列印獎金收據）
+		_attachfinance(sessionrow,[row])
+
+		clubname=""
+		if sessionrow.get("clubid"):
+			clubrow=query(SETTING["dbname"],f"""SELECT "name" FROM "club" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionrow["clubid"]],SETTING["dbsetting"])
+			if clubrow:
+				clubname=clubrow[0].get("name") or ""
+		seriestitle=""
+		seriesrow=query(SETTING["dbname"],f"""SELECT se."name" AS name FROM "seriessession" ss JOIN "series" se ON se."id"=ss."seriesid" AND se."deletetime" IS NULL WHERE ss."sessionid"=%s AND ss."deletetime" IS NULL ORDER BY ss."id" ASC LIMIT 1""",[row["sessionid"]],SETTING["dbsetting"])
+		if seriesrow:
+			seriestitle=seriesrow[0].get("name") or ""
+
+		tablename=row.get("tableno")
+		if tablename is None or tablename=="":
+			tablename=row.get("tabletoken") or ""
+
+		return Response({
+			"success": True,
+			"data": {
+				"playername": row.get("playername"),
+				"playerplayerid": row.get("playerplayerid"),
+				"sessionname": sessionrow["name"],
+				"seriestitle": seriestitle,
+				"clubname": clubname,
+				"starttime": sessionrow.get("starttime"),
+				"serialno": row.get("serialno"),
+				"status": row.get("status"),
+				"place": row.get("timerplace"),
+				"finalprize": row.get("finalprize"),
+				"autoprize": row.get("autoprize"),
+				"canissue": isstaffview,
+				"tablename": tablename,
+				"seatno": row.get("seatno"),
+				"buyin": (row.get("buyin") or 0)+(row.get("fee") or 0),
+				"paymenttype": row.get("paymenttype"),
+				"reentrycount": row.get("reentrycount") or 0
+			}
+		},status.HTTP_200_OK)
 
 	@api_view(["PUT"])
 	def advancesessionplayer(request,sessionplayerid):
@@ -501,7 +869,7 @@ try:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
 
-		if sessionrow["userid"]!=user["id"] and 4>int(user["permission"]):
+		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 		if row["status"]!="confirmed" and row["status"]!="advanced":
 			return errorresponse("ERROR_registration_not_found")
@@ -517,6 +885,8 @@ try:
 		targets=_multidaytargets(sessionrow["id"])
 		if not targets:
 			return errorresponse("ERROR_session_relation_not_found")
+		if 1<len(targets):
+			return errorresponse("此賽事有多個晉級目標，請先整理關聯設定")
 
 		advancechip=_num(requestdata["data"].get("advancechip"),0)
 		if advancechip<=0:
@@ -533,6 +903,12 @@ try:
 		},{"id": sessionplayerid},SETTING["dbsetting"])
 
 		target,summary=_upsertadvancetarget(row,sessionrow,targets,advancechip)
+		_broadcastsessiontimer(sessionrow)
+
+		notifyevent(row["userid"],sessionrow["id"],"advancement",
+			"晉級通知 Advanced",
+			"恭喜！你在「"+str(sessionrow.get("name") or "")+"」已晉級至「"+str(target.get("name") or "")+"」。You advanced to \""+str(target.get("name") or "")+"\".",
+			email=True)
 
 		return Response({
 			"success": True,
@@ -561,23 +937,75 @@ try:
 			return errorresponse("ERROR_registration_not_found")
 		row=row[0]
 
-		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s""",[row["sessionid"]],SETTING["dbsetting"])
+		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[row["sessionid"]],SETTING["dbsetting"])
 		if not sessionrow:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
 
-		if sessionrow["userid"]!=user["id"] and 4>int(user["permission"]):
+		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 
+		# 序號在確認 / 報到時才配發，依報到順序；若這筆已有序號則沿用。
+		serialno=row.get("serialno")
+		if serialno is None:
+			serialno=_nextserialno(row["sessionid"])
 		query(SETTING["dbname"],
-			f"""UPDATE "sessionplayer" SET "status"='confirmed',"confirmtime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",
-			[sessionplayerid],
+			f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",
+			[serialno,sessionplayerid],
 			SETTING["dbsetting"]
 		)
+		_broadcastsessiontimer(sessionrow)
+
+		notifyevent(row["userid"],sessionrow["id"],"confirmation",
+			"已報到 Checked in",
+			"你在「"+str(sessionrow.get("name") or "")+"」的報名已被確認報到。Your entry to \""+str(sessionrow.get("name") or "")+"\" has been confirmed.",
+			email=False)
 
 		return Response({
 			"success": True,
 			"data": ""
+		},status.HTTP_200_OK)
+
+	@api_view(["PUT"])
+	def rebuysessionplayer(request,sessionplayerid):
+		# Rebuy：把一次 rebuy 當成新的 entry。rebuycount+1、配新入場序號，費用由 _cost 自動累加。
+		user,errresp=_gettokenuser(request)
+		if errresp:
+			return errresp
+
+		row=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionplayerid],SETTING["dbsetting"])
+		if not row:
+			return errorresponse("ERROR_registration_not_found")
+		row=row[0]
+
+		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[row["sessionid"]],SETTING["dbsetting"])
+		if not sessionrow:
+			return errorresponse("ERROR_session_not_found")
+		sessionrow=sessionrow[0]
+
+		if not _caneditsession(sessionrow,user):
+			return errorresponse("ERROR_no_permission")
+		if not _featureallowed(sessionrow,"rebuy"):
+			return errorresponse("ERROR_no_permission")
+		if row["status"]!="confirmed":
+			return errorresponse("ERROR_already_registered")
+		maxrebuy=_int(sessionrow.get("rebuycount"),0)
+		if 0<maxrebuy and _int(row.get("rebuycount"),0)>=maxrebuy:
+			return errorresponse("WARNING_rebuycount_exceeded")
+
+		query(SETTING["dbname"],
+			f"""UPDATE "sessionplayer" SET "rebuycount"=COALESCE("rebuycount",0)+1,"serialno"=%s,"updatetime"=NOW() WHERE "id"=%s""",
+			[_nextserialno(row["sessionid"]),sessionplayerid],
+			SETTING["dbsetting"]
+		)
+		_broadcastsessiontimer(sessionrow)
+
+		return Response({
+			"success": True,
+			"data": {
+				"id": sessionplayerid,
+				"rebuy": True
+			}
 		},status.HTTP_200_OK)
 
 	@api_view(["PUT"])
@@ -592,24 +1020,19 @@ try:
 			return errorresponse("ERROR_registration_not_found")
 		row=row[0]
 
-		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s""",[row["sessionid"]],SETTING["dbsetting"])
+		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[row["sessionid"]],SETTING["dbsetting"])
 		if not sessionrow:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
 
-		if sessionrow["userid"]!=user["id"] and 4>int(user["permission"]):
+		if not _caneditsession(sessionrow,user):
+			return errorresponse("ERROR_no_permission")
+		if row.get("tableid") and row.get("seatno"):
+			return errorresponse("ERROR_no_permission")
+		if _eliminatedtimerplayer(sessionrow["id"],sessionplayerid):
 			return errorresponse("ERROR_no_permission")
 
-		query(SETTING["dbname"],
-			f"""UPDATE "sessionplayer" SET "status"='cancelled',"canceltime"=NOW(),"tableid"=NULL,"seatno"=NULL,"updatetime"=NOW() WHERE "id"=%s""",
-			[sessionplayerid],
-			SETTING["dbsetting"]
-		)
-		query(SETTING["dbname"],
-			f"""UPDATE "sessiontimerplayer" SET "status"='active',"eliminatedtime"=NULL,"place"=NULL,"deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionplayerid"=%s""",
-			[sessionplayerid],
-			SETTING["dbsetting"]
-		)
+		_deleteregistration(sessionrow,sessionplayerid)
 
 		return Response({
 			"success": True,
@@ -632,18 +1055,18 @@ try:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
 
-		if sessionrow["userid"]!=user["id"] and 4>int(user["permission"]):
+		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 
 		requestdata=validate(json.loads(request.body),{
-			"buyin": "integer",
-			"fee": "integer",
-			"rebuycount": "integer",
-			"reentrycount": "integer",
-			"addoncount": "integer",
-			"prize": "integer",
-			"prizeoverride": "integer",
-			"ticketvalue": "integer",
+			"buyin": "integer|min:0",
+			"fee": "integer|min:0",
+			"rebuycount": "integer|min:0",
+			"reentrycount": "integer|min:0",
+			"addoncount": "integer|min:0",
+			"prize": "integer|min:0",
+			"prizeoverride": "integer|min:0",
+			"ticketvalue": "integer|min:0",
 			"paymenttype": "string",
 			"place": "string"
 		},{
@@ -655,20 +1078,37 @@ try:
 			return errorresponse(requestdata["error"])
 
 		data=requestdata["data"]
+		# prizeoverride 是「可清空」欄位：前端清空時會明確送 null，代表改回自動獎金。
+		# 這裡必須用 key 有沒有送來判斷，不能用 is not None ——
+		# 否則送 null（清空）會跟沒送這個欄位混為一談，把舊值原樣寫回，變成靜默的假成功。
+		# validate() 會保留送來的 null key、並省略未送的 key，所以 in 判斷是可靠的。
+		if "prizeoverride" in data:
+			newprizeoverride=data["prizeoverride"]
+		else:
+			newprizeoverride=row.get("prizeoverride")
 		paymenttype=data.get("paymenttype") or row.get("paymenttype") or "cash"
 		if paymenttype!="ticket":
 			paymenttype="cash"
 
 		newrebuycount=data.get("rebuycount") if data.get("rebuycount") is not None else row.get("rebuycount") or 0
+		newaddoncount=data.get("addoncount") if data.get("addoncount") is not None else row.get("addoncount") or 0
 		warnings=[]
 		if _int(newrebuycount,0)>_int(sessionrow.get("rebuycount"),0):
 			warnings.append("WARNING_rebuycount_exceeded")
+		if _int(newaddoncount,0)>_int(sessionrow.get("addoncount"),0):
+			warnings.append("WARNING_addoncount_exceeded")
 
 		query(SETTING["dbname"],
 			f"""UPDATE "sessionplayer" SET "buyin"=%s,"fee"=%s,"rebuycount"=%s,"reentrycount"=%s,"addoncount"=%s,"prize"=%s,"prizeoverride"=%s,"ticketvalue"=%s,"paymenttype"=%s,"place"=%s,"updatetime"=NOW() WHERE "id"=%s""",
-			[data.get("buyin") if data.get("buyin") is not None else row.get("buyin") or 0,data.get("fee") if data.get("fee") is not None else row.get("fee") or 0,newrebuycount,data.get("reentrycount") if data.get("reentrycount") is not None else row.get("reentrycount") or 0,data.get("addoncount") if data.get("addoncount") is not None else row.get("addoncount") or 0,data.get("prize") if data.get("prize") is not None else row.get("prize") or 0,data.get("prizeoverride") if data.get("prizeoverride") is not None else row.get("prizeoverride"),data.get("ticketvalue") if data.get("ticketvalue") is not None else row.get("ticketvalue") or 0,paymenttype,data.get("place") if data.get("place") is not None else row.get("place") or "",sessionplayerid],
+			[data.get("buyin") if data.get("buyin") is not None else row.get("buyin") or 0,data.get("fee") if data.get("fee") is not None else row.get("fee") or 0,newrebuycount,data.get("reentrycount") if data.get("reentrycount") is not None else row.get("reentrycount") or 0,newaddoncount,data.get("prize") if data.get("prize") is not None else row.get("prize") or 0,newprizeoverride,data.get("ticketvalue") if data.get("ticketvalue") is not None else row.get("ticketvalue") or 0,paymenttype,data.get("place") if data.get("place") is not None else row.get("place") or "",sessionplayerid],
 			SETTING["dbsetting"]
 		)
+
+		# 稽核：記錄金額／名次異動的前後值（檢查表 1.7）
+		writeauditlog(SETTING["dbname"],SETTING["dbsetting"],user["id"],"sessionplayer","editfinance",sessionplayerid,
+			{"buyin": row.get("buyin"),"fee": row.get("fee"),"prize": row.get("prize"),"place": row.get("place")},
+			{"buyin": data.get("buyin"),"fee": data.get("fee"),"prize": data.get("prize"),"place": data.get("place")},
+			request)
 
 		return Response({
 			"success": True,
@@ -693,16 +1133,16 @@ try:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
 
-		if not _requireowner(sessionrow,user):
+		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 
 		requestdata=validate(json.loads(request.body),{
 			"tableid": "integer",
 			"seatno": "integer",
-			"startchip": "integer",
-			"prizeoverride": "integer",
+			"startchip": "integer|min:0",
+			"prizeoverride": "integer|min:0",
 			"paymenttype": "string",
-			"ticketvalue": "integer"
+			"ticketvalue": "integer|min:0"
 		},{
 			"integer": "ERROR_request_data_type_error",
 			"string": "ERROR_request_data_type_error"
@@ -721,7 +1161,9 @@ try:
 		if tableid and seatno:
 			if _int(sessionrow.get("maxseat"),9)<_int(seatno,0):
 				return errorresponse("ERROR_request_data_type_error")
-			dupe=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "tableid"=%s AND "seatno"=%s AND "id"<>%s AND "status"='confirmed' AND "deletetime" IS NULL""",[row["sessionid"],tableid,seatno,sessionplayerid],SETTING["dbsetting"])
+			if _eliminatedtimerplayer(sessionrow["id"],sessionplayerid):
+				return errorresponse("ERROR_player_eliminated")
+			dupe=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."seatno"=%s AND sp."id"<>%s AND sp."status"='confirmed' AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[row["sessionid"],tableid,seatno,sessionplayerid],SETTING["dbsetting"])
 			if dupe:
 				return errorresponse("ERROR_already_registered")
 
@@ -740,8 +1182,7 @@ try:
 			[tableid,seatno,data.get("startchip") or row.get("startchip") or sessionrow.get("chip") or 0,prizeoverride,paymenttype,ticketvalue,sessionplayerid],
 			SETTING["dbsetting"]
 		)
-		if data.get("startchip") is not None:
-			query(SETTING["dbname"],f"""UPDATE "sessiontimerconfig" SET "startingchips"=%s,"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[data.get("startchip"),sessionrow["id"]],SETTING["dbsetting"])
+		_broadcastsessiontimer(sessionrow)
 
 		return Response({
 			"success": True,
@@ -759,14 +1200,14 @@ try:
 			return errorresponse("ERROR_session_not_found")
 		sessionrow=sessionrow[0]
 
-		if not _requireowner(sessionrow,user):
+		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 
 		requestdata=validate(json.loads(request.body),{
 			"tableid": "integer",
 			"tableids": "array",
 			"tableids.*": "integer",
-			"startchip": "integer",
+			"startchip": "integer|min:0",
 			"mode": "string",
 			"playerids": "array",
 			"playerids.*": "integer"
@@ -793,12 +1234,13 @@ try:
 		if mode=="selected":
 			rows=[]
 			for i in range(len(playerids)):
-				itemrow=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "id"=%s AND "sessionid"=%s AND "status"='confirmed' AND "deletetime" IS NULL""",[playerids[i],sessionid],SETTING["dbsetting"])
+				itemrow=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" sp WHERE sp."id"=%s AND sp."sessionid"=%s AND sp."status"='confirmed' AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[playerids[i],sessionid],SETTING["dbsetting"])
 				if itemrow:
 					rows.append(itemrow[0])
 		else:
-			rows=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "status"='confirmed' AND ("tableid" IS NULL OR "seatno" IS NULL) AND "deletetime" IS NULL ORDER BY "confirmtime" ASC,"registertime" ASC,"id" ASC""",[sessionid],SETTING["dbsetting"])
+			rows=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."status"='confirmed' AND (sp."tableid" IS NULL OR sp."seatno" IS NULL) AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL) ORDER BY sp."confirmtime" ASC,sp."registertime" ASC,sp."id" ASC""",[sessionid],SETTING["dbsetting"])
 		if not rows:
+			_broadcastsessiontimer(sessionrow)
 			return Response({
 				"success": True,
 				"data": ""
@@ -806,7 +1248,7 @@ try:
 		if mode=="balanced":
 			tableids=requestdata["data"].get("tableids") or []
 			if len(tableids)==0:
-				tablerows=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "name" ASC""",[sessionid],SETTING["dbsetting"])
+				tablerows=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
 			else:
 				tablerows=[]
 				for i in range(len(tableids)):
@@ -818,7 +1260,7 @@ try:
 			tabledata=[]
 			for i in range(len(tablerows)):
 				table=tablerows[i]
-				usedrow=query(SETTING["dbname"],f"""SELECT "seatno" FROM "sessionplayer" WHERE "sessionid"=%s AND "tableid"=%s AND "seatno" IS NOT NULL AND "status"='confirmed' AND "deletetime" IS NULL""",[sessionid,table["id"]],SETTING["dbsetting"])
+				usedrow=query(SETTING["dbname"],f"""SELECT sp."seatno" FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."seatno" IS NOT NULL AND sp."status"='confirmed' AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[sessionid,table["id"]],SETTING["dbsetting"])
 				used=[]
 				for j in range(len(usedrow or [])):
 					used.append(usedrow[j]["seatno"])
@@ -846,6 +1288,7 @@ try:
 				tabledata[best]["count"]=tabledata[best]["count"]+1
 				query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"startchip"=%s,"updatetime"=NOW() WHERE "id"=%s""",[tabledata[best]["table"]["id"],seatno,startchip,rows[i]["id"]],SETTING["dbsetting"])
 			query(SETTING["dbname"],f"""UPDATE "sessiontimerconfig" SET "startingchips"=%s,"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[startchip,sessionrow["id"]],SETTING["dbsetting"])
+			_broadcastsessiontimer(sessionrow)
 			return Response({"success": True,"data": ""},status.HTTP_200_OK)
 
 		tableid=requestdata["data"].get("tableid")
@@ -858,7 +1301,7 @@ try:
 		seats=[]
 		for i in range(1,maxseat+1):
 			seats.append(i)
-		usedrow=query(SETTING["dbname"],f"""SELECT "seatno" FROM "sessionplayer" WHERE "sessionid"=%s AND "tableid"=%s AND "seatno" IS NOT NULL AND "status"='confirmed' AND "deletetime" IS NULL""",[sessionid,tableid],SETTING["dbsetting"])
+		usedrow=query(SETTING["dbname"],f"""SELECT sp."seatno" FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."seatno" IS NOT NULL AND sp."status"='confirmed' AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[sessionid,tableid],SETTING["dbsetting"])
 		for i in range(len(usedrow or [])):
 			for j in range(len(rows or [])):
 				if usedrow[i]["seatno"]==rows[j].get("seatno") and rows[j].get("tableid")==tableid:
@@ -874,6 +1317,7 @@ try:
 			seatno=seats[i]
 			query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"startchip"=%s,"updatetime"=NOW() WHERE "id"=%s""",[tableid,seatno,startchip,rows[i]["id"]],SETTING["dbsetting"])
 		query(SETTING["dbname"],f"""UPDATE "sessiontimerconfig" SET "startingchips"=%s,"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[startchip,sessionrow["id"]],SETTING["dbsetting"])
+		_broadcastsessiontimer(sessionrow)
 
 		return Response({
 			"success": True,

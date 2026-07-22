@@ -1,14 +1,86 @@
 let signedin=weblsget(WEBLSNAME+"signin")
-let githuburl="https://github.com/"
+let githuburl="https://github.com/ho0527/pokertrace"
+let introdownloadurl="pokertraceintro.pdf"
+let guideurl="guide.html"
+
+function indextext(key){
+	return (TRANSLATE[LANGUAGE]["indexpage"]||{})[key]||key
+}
+
+let TOOLLIST=[
+	["tool/equity.html","toolequity"],
+	["tool/range.html","toolgto"],
+	["tool/tdarules.html","tooltdarule"],
+	["tool/timebankdrill.html","tooltb"],
+	["tool/potodds.html","toolpo"],
+	["tool/apidoc.html","toolapidoc"]
+]
 
 function actionhtml(){
-	let primary=signedin?["場次列表","sessionlist.html"]:["登入","signin.html"]
-	let secondary=signedin?["新增賽事","newsession.html"]:["註冊","signup.html"]
+	let primary=signedin?[indextext("actionsessionlist"),"sessionlist.html"]:[indextext("actionsignin"),"signin.html"]
 	return `
-		<a href="${primary[1]}" class="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold px-5 py-3 rounded">${primary[0]}</a>
-		<a href="${githuburl}" target="_blank" rel="noopener" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-bold px-5 py-3 rounded">GitHub</a>
-		<a href="${secondary[1]}" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-bold px-5 py-3 rounded">${secondary[0]}</a>
+		<a href="${primary[1]}" class="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold px-5 py-3 rounded-lg transition">${primary[0]}</a>
+		<a href="${guideurl}" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-bold px-5 py-3 rounded-lg transition">${indextext("actionguide")}</a>
+		<a href="${githuburl}" target="_blank" rel="noopener" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-bold px-5 py-3 rounded-lg transition">${indextext("actiongithub")}</a>
+		<a href="${introdownloadurl}" download class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-bold px-5 py-3 rounded-lg transition">${indextext("actiondownloadpdf")}</a>
 	`
+}
+
+function rendertexts(){
+	document.title=indextext("title")
+	innertext("#indexbadge",indextext("badge"),false)
+	innertext("#heroname",indextext("heroname"),false)
+	innertext("#herotagline",indextext("herotagline"),false)
+	innertext("#herodesc",indextext("herodesc"),false)
+	innertext("#step1title",indextext("step1title"),false)
+	innertext("#step1desc",indextext("step1desc"),false)
+	innertext("#step2title",indextext("step2title"),false)
+	innertext("#step2desc",indextext("step2desc"),false)
+	innertext("#step3title",indextext("step3title"),false)
+	innertext("#step3desc",indextext("step3desc"),false)
+	innertext("#problemtitle",indextext("problemtitle"),false)
+	innertext("#problemdesc",indextext("problemdesc"),false)
+	innertext("#shot1title",indextext("shot1title"),false)
+	innertext("#shot1desc",indextext("shot1desc"),false)
+	innertext("#shot2title",indextext("shot2title"),false)
+	innertext("#shot2desc",indextext("shot2desc"),false)
+	innertext("#contactkicker",indextext("contactkicker"),false)
+	innertext("#contacttitle",indextext("contacttitle"),false)
+	innertext("#contactdesc",indextext("contactdesc"),false)
+	innertext("#contactbtn",indextext("contactbtn"),false)
+	innertext("#bottomtitle",indextext("bottomtitle"),false)
+	innertext("#bottomdesc",indextext("bottomdesc"),false)
+	innertext("#toolstitle",indextext("toolstitle"),false)
+	innertext("#toolssubtitle",indextext("toolssubtitle"),false)
+}
+
+function rendertools(){
+	let html=""
+	let count=0
+	for(let i=0;i<TOOLLIST.length;i=i+1){
+		let href=TOOLLIST[i][0]
+		let key=TOOLLIST[i][1]
+		// 正式區（pokertrace.net）隱藏還沒通過的維護中工具；測試機 / 本機照常全顯示。
+		if(typeof pttoolitemvisible=="function"&&!pttoolitemvisible(href)){
+			continue
+		}
+		count=count+1
+		html=html+`
+			<a href="${href}" class="block rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition hover:border-emerald-500">
+				<div class="text-lg font-bold text-white">${indextext(key+"title")}</div>
+				<div class="mt-1 text-sm text-zinc-400 leading-6">${indextext(key+"desc")}</div>
+			</a>
+		`
+	}
+	innerhtml("#indextools",html,false)
+	let section=domgetid("indextoolsection")
+	if(section){
+		if(count<1){
+			section.classList.add("hidden")
+		}else{
+			section.classList.remove("hidden")
+		}
+	}
 }
 
 function renderhomeactions(){
@@ -17,27 +89,34 @@ function renderhomeactions(){
 }
 
 function renderfeatures(){
-	let features=[
-		["完全免費","核心功能不收費，適合社群、朋友局、小型錦標賽與想自己管理資料的主辦。"],
-		["無廣告干擾","頁面專注在報名、座位、計時器與結果紀錄，不用在操作中被廣告打斷。"],
-		["開源透明","可以從 GitHub 查看原始碼，自行部署，也能依照自己的賽事流程調整。"],
-		["賽事設定","主辦牌局、使用者連結、開放報名、買入與重購設定集中管理。"],
-		["報名清單","8 格玩家 ID 搜尋、模糊查詢、直接報名、序號與狀態追蹤。"],
-		["座位安排","支援未入座補位、選取玩家重排，以及全部桌平均排座。"],
-		["多日賽晉級","Day1 到 Day2/Day3 的關聯、晉級籌碼與重複晉級次數。"],
-		["計時器","盲注級別、休息、chip raise、報名截止與顯示端同步。"]
-	]
 	let html=""
-	for(let i=0;i<features.length;i=i+1){
+	for(let i=1;i<=12;i=i+1){
 		html=html+`
-			<div class="border border-zinc-800 bg-zinc-900 rounded p-4">
-				<div class="font-bold">${features[i][0]}</div>
-				<div class="text-sm text-zinc-400 mt-2 leading-6">${features[i][1]}</div>
+			<div class="indexfeature">
+				<div class="font-bold">${indextext("feat"+i+"title")}</div>
+				<div class="text-sm text-zinc-400 mt-2 leading-6">${indextext("feat"+i+"desc")}</div>
 			</div>
 		`
 	}
 	innerhtml("#featurelist",html,false)
 }
 
+function rendermobilenavcta(){
+	let node=domgetid("mobilepagetitle")
+	if(!node){
+		return
+	}
+	let label=signedin?indextext("navmobilehome"):indextext("navmobilesignin")
+	let target=signedin?"main.html":"signin.html"
+	// 拔掉 id，讓 initialize.js 的 syncmobilepagetitle() 不再覆寫此節點
+	node.removeAttribute("id")
+	node.classList.remove("mobilepagetitle")
+	node.classList.add("indexmobilenavcta")
+	node.innerHTML=`<a href="${target}" class="inline-flex items-center justify-center rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold px-4 py-1.5 text-sm transition">${label}</a>`
+}
+
+rendertexts()
 renderhomeactions()
 renderfeatures()
+rendertools()
+rendermobilenavcta()

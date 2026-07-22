@@ -1,17 +1,269 @@
+/* ===== index landing page ===== */
+.indexhero {
+	position: relative;
+	overflow: hidden;
+}
+
+.indexheroglow {
+	position: absolute;
+	top: -160px;
+	left: 50%;
+	width: 720px;
+	height: 720px;
+	max-width: 130%;
+	transform: translateX(-50%);
+	background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.08) 38%, transparent 70%);
+	pointer-events: none;
+	z-index: 0;
+}
+
+.indexherotitle {
+	background: linear-gradient(90deg, #ffffff 0%, #6ee7b7 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	color: transparent;
+}
+
+.indexpulse {
+	animation: indexpulse 1.8s ease-in-out infinite;
+}
+
+@keyframes indexpulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.indexstep {
+	transition: transform 0.2s ease;
+}
+
+.indexstep:hover {
+	transform: translateY(-3px);
+}
+
+.indexfeature {
+	border: 1px solid var(--color-border);
+	background: var(--color-surface);
+	border-radius: 12px;
+	padding: 16px;
+	transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.indexfeature:hover {
+	border-color: rgba(16, 185, 129, 0.5);
+	transform: translateY(-3px);
+}
+
+.indexshotcard {
+	border: 1px solid var(--color-border);
+	background: var(--color-surface);
+	border-radius: 16px;
+	padding: 20px;
+	transition: border-color 0.2s ease;
+}
+
+.indexshotcard:hover {
+	border-color: rgba(16, 185, 129, 0.4);
+}
+
+.indexshotframe {
+	border: 1px solid #3f3f46;
+	border-radius: 12px;
+	overflow: hidden;
+	aspect-ratio: 16 / 9;
+	background: var(--color-bg);
+}
+
+.indexshotimg {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.indexshotph {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 20 / 9;
+	border: 1.5px dashed #3f3f46;
+	border-radius: 12px;
+	color: #52525b;
+	background: repeating-linear-gradient(45deg, #141416, #141416 12px, var(--color-surface) 12px, var(--color-surface) 24px);
+}
+
+.indexmobilenavcta {
+	margin-left: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+}
+
 #imagePreview.dragover {
 	border-color: #2563eb;
 	background-color: #e0e7ff;
 }
 
-#card-picker, #board-cards-area {
+/* #card-picker, #board-cards-area {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
 	max-width: 600px;
 	margin: 2rem auto;
+} */
+
+.card {
+	background: var(--color-surface);
+	border: 1px solid #3f3f46;
+	color: #ffffff;
+	font-size: 17px;
+	font-weight: 900;
+	border-radius: 8px;
+	width: 45px;
+	height: 50px;
+	overflow: hidden;
+	position: relative;
 }
 
-.card-row {
+.card-rank {
+	font-size: 25px;
+	z-index: 1;
+}
+
+.card-sym {
+	bottom: -11px;
+	font-size: 40px;
+	opacity: .55;
+	position: absolute;
+	right: -13px;
+	z-index: 0;
+}
+
+#chiprows{
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.pt-hiddenfield {
+	display: none !important;
+}
+
+.pagebackwrap {
+	margin: 8px auto 0;
+	max-width: 72rem;
+	padding: 0 16px;
+	width: 100%;
+}
+
+.pagebackinner {
+	align-items: center;
+	display: flex;
+	justify-content: flex-start;
+}
+
+.pagebackbtn {
+	background: var(--color-primary);
+	border: 0;
+	border-radius: 8px;
+	color: #ffffff;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 700;
+	min-height: 40px;
+	padding: 8px 16px;
+}
+
+.pagebackbtn:hover {
+	background: var(--color-primary-hover);
+}
+
+/* 中鍵拖曳捲動時暫停子元素的過場動畫，避免游標掃過列時的 hover 重繪疊加卡頓 */
+.middledragging * {
+	transition: none !important;
+}
+
+.sessionevchart {
+	height: 300px;
+}
+
+.sessionform {
+	align-items: end;
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.sessionfield {
+	grid-column: span 4;
+	min-width: 0;
+}
+
+.sessionfield-wide {
+	grid-column: span 6;
+}
+
+.sessionfield-full {
+	grid-column: 1 / -1;
+}
+
+.sessionsection {
+	align-items: end;
+	display: grid;
+	gap: 16px;
+	grid-column: 1 / -1;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.sessionsection-half {
+	grid-column: span 8;
+}
+
+.sessionfield label {
+	min-height: 24px;
+}
+
+.sessioncheck {
+	min-height: 42px;
+}
+
+@media (max-width: 860px) {
+	.sessionfield,
+	.sessionfield-wide,
+	.sessionsection-half,
+	.sessionsection {
+		grid-column: 1 / -1;
+	}
+
+	.sessionsection {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.sessionsection .sessionfield,
+	.sessionsection .sessionfield-wide,
+	.sessionsection .sessionfield-full {
+		grid-column: span 1;
+	}
+}
+
+@media (max-width: 560px) {
+	.sessionform,
+	.sessionsection {
+		grid-template-columns: 1fr;
+	}
+
+	.sessionfield,
+	.sessionfield-wide,
+	.sessionfield-full,
+	.sessionsection .sessionfield,
+	.sessionsection .sessionfield-wide,
+	.sessionsection .sessionfield-full {
+		grid-column: 1 / -1;
+	}
+}
+
+/* .card-row {
 	display: flex;
 	gap: 4px;
 	justify-content: center;
@@ -65,4 +317,134 @@ button.action {
 
 button.action:active {
 	background: #00c853;
+} */
+/* ===== 全站表單控制項（iOS Safari 修正） =====
+   iOS Safari 有個已知 bug：<input> 沒有 -webkit-appearance: none 時會忽略
+   min-height，導致各頁用的 min-h-12 失效、欄位塌成字體行高的高度，在 iPhone 上
+   看起來「扁扁的」。重設原生外觀後 min-height 才會生效，欄位回到該有的高度。
+   只套用在文字類控制項，不碰 type=button/checkbox/radio/range/file（那些另有樣式）。 */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input:not([type]),
+textarea {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	box-sizing: border-box;
+	line-height: normal;
+}
+
+/* date/time 在 iOS 上的固有寬度會無視 w-full / box-sizing 而撐破容器，
+   值預設又置中，重設外觀並靠左對齊讓它跟其他欄位一樣寬。 */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+	text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value {
+	text-align: left;
+	margin: 0;
+}
+
+/* select 同樣會忽略 min-height；重設外觀後補回一個自訂下拉箭頭，
+   不然原生箭頭會被 appearance:none 一起拿掉。
+   用 :not([multiple]) 把 specificity 提到 0,1,1，確保 padding-right 蓋得過
+   各頁的 Tailwind .px-4（否則箭頭會壓到選項文字）。 */
+select:not([multiple]) {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	box-sizing: border-box;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 14px center;
+	background-size: 16px;
+	padding-right: 40px;
+}
+
+/* iOS Safari 會在欄位字級 < 16px 時自動 zoom，造成版面跳動、欄位像溢出。
+   手機尺寸統一拉到 16px，避免聚焦時放大。 */
+@media (max-width: 767px) {
+	input[type="text"],
+	input[type="number"],
+	input[type="email"],
+	input[type="password"],
+	input[type="search"],
+	input[type="tel"],
+	input[type="url"],
+	input[type="date"],
+	input[type="time"],
+	input[type="datetime-local"],
+	input[type="month"],
+	input[type="week"],
+	input:not([type]),
+	textarea,
+	select {
+		font-size: 16px;
+	}
+}
+
+.textmarquee {
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	position: relative;
+}
+
+/* 超出時，隱藏原本文字 */
+.textmarquee.overflowed {
+	color: transparent;
+}
+
+/* 用偽元素產生跑馬燈文字 */
+.textmarquee.overflowed::before {
+	content: attr(data-marqueetext);
+	display: inline-block;
+	position: absolute;
+	left: 0;
+	top: 0;
+
+	color: var(--marquee-color);
+	white-space: nowrap;
+
+	animation: marqueescroll 4.5s linear infinite;
+}
+
+.textmarquee.overflowed:hover::before {
+	animation-play-state: paused;
+}
+
+@keyframes marqueescroll {
+	0% {
+		transform: translateX(0);
+	}
+
+	5.5556% {
+		transform: translateX(0);
+	}
+
+	72.2222% {
+		transform: translateX(var(--marquee-distance));
+	}
+
+	77.7778% {
+		transform: translateX(var(--marquee-distance));
+	}
+
+	100% {
+		transform: translateX(0);
+	}
 }

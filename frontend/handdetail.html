@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>手牌詳情 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="carddisplay.css">
+		<link rel="stylesheet" href="handdetail.css">
+		<link rel="stylesheet" href="pokertable.css">
+		<link rel="stylesheet" href="print.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white">
+		<div id="navigationbar"></div>
+
+		<main class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8 min-h-[70vh]">
+			<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">PokerTrace</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl">手牌詳情</h1>
+				</div>
+				<div class="flex gap-2">
+					<a href="sessionlist.html" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">上一頁</a>
+					<a href="" class="hidden inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="prevhand">◀ 上一手</a>
+					<a href="" class="hidden inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="nexthand">下一手 ▶</a>
+					<input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-zinc-950/40 px-6 text-sm font-bold text-emerald-100 transition hover:bg-zinc-900 hidden" id="replaybtn" value="▶ 動畫回放">
+				<input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="exporthandjson" value="匯出 JSON">
+					<input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="printhand" value="列印">
+					<a class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="editlink">編輯</a>
+				</div>
+			</div>
+
+			<section class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5" id="summary"></section>
+
+			<section class="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_2fr]">
+				<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+					<h2 class="mb-3 text-lg font-extrabold text-white" id="cardstitle">牌面</h2>
+					<div class="text-sm leading-8" id="cards"></div>
+					<a class="mt-2 inline-flex min-h-10 items-center justify-center rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-emerald-300 transition hover:bg-zinc-700 hidden" id="gtoreflink">GTO 參考</a>
+				</div>
+				<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)]" id="myhandcardbox">
+					<h2 class="mb-3 text-lg font-extrabold text-white" id="myhandtitle">我的底牌</h2>
+					<div id="myhandcardcontent" class="text-sm"></div>
+				</div>
+				<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+					<h2 class="mb-3 text-lg font-extrabold text-white" id="seatingtitle">座位與結果</h2>
+					<!-- 桌面：表格 -->
+					<div class="hidden md:block overflow-x-auto rounded-2xl border border-zinc-800">
+						<table class="w-full text-sm">
+							<thead class="text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
+								<tr class="border-b border-zinc-800">
+									<th class="px-4 py-3" id="colseat">座位</th>
+									<th class="px-4 py-3" id="colplayer">選手</th>
+									<th class="px-4 py-3" id="colhand">手牌</th>
+									<th class="px-4 py-3" id="colstart">起始</th>
+									<th class="px-4 py-3" id="colend">結束</th>
+									<th class="px-4 py-3" id="colresult">結果</th>
+								</tr>
+							</thead>
+							<tbody id="seating"></tbody>
+						</table>
+					</div>
+					<!-- 手機：卡片列表 -->
+					<div class="md:hidden flex flex-col gap-3" id="seatingcards"></div>
+				</div>
+				<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] lg:col-span-2">
+					<h2 class="mb-3 text-lg font-extrabold text-white" id="actionstitle">下注歷程</h2>
+					<div class="grid grid-cols-1 gap-3 md:grid-cols-4" id="actions"></div>
+				</div>
+				<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] lg:col-span-2">
+					<h2 class="mb-3 text-lg font-extrabold text-white" id="notetitle">備註</h2>
+					<div class="whitespace-pre-wrap leading-7 text-zinc-300" id="note">-</div>
+				</div>
+			</section>
+		</main>
+
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="print.js"></script>
+		<script src="handreplay.js"></script>
+		<script src="handdetail.js"></script>
+	</body>
+</html>

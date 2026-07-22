@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>操作說明 - PokerTrace</title>
+		<meta name="description" content="PokerTrace 操作說明，涵蓋場次、報名座位、計時器、手牌紀錄、統計名次、系列賽、轉播回放、聘用人員、現場報到與工具中心。" id="guidedescriptionmeta">
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6">
+				<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">PokerTrace Guide</p>
+				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="guideheading">操作說明</h1>
+				<p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-400" id="guidelead">
+					這裡整理 PokerTrace 的完整操作流程。你可以依照現場角色與需求直接跳到對應段落：從建場、報名座位、計時器、手牌紀錄、統計名次，到系列賽、轉播回放、聘用人員、現場報到收據與工具中心，都能快速找到操作重點。
+				</p>
+				<div class="mt-4 flex flex-wrap gap-2">
+					<input type="button" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="guideexpandall" value="全部展開">
+					<input type="button" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="guidecollapseall" value="全部收合">
+				</div>
+			</div>
+
+			<div class="grid items-start gap-5 lg:grid-cols-[240px_1fr]">
+				<nav class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] lg:sticky lg:top-4">
+					<div class="mb-3 px-2 text-[12px] font-bold uppercase tracking-[0.14em] text-zinc-500" id="guidechapterlabel">章節</div>
+					<div class="flex gap-2 overflow-x-auto lg:block" id="guidebuttons">
+					</div>
+				</nav>
+				<div class="space-y-5" id="guidesections"></div>
+			</div>
+		</div>
+
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="guide.js"></script>
+	</body>
+</html>

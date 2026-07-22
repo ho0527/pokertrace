@@ -1,0 +1,43 @@
+building equity matrix...
+  loading cached equity matrix...
+matrix done.
+9MAX OPEN S=10 UTG  -> 8.6% (22)
+9MAX OPEN S=10 UTG1 -> 12.0% (22)
+9MAX OPEN S=10 MP   -> 12.1% (27)
+9MAX OPEN S=10 LJ   -> 16.2% (32)
+9MAX OPEN S=10 HJ   -> 19.7% (46)
+9MAX OPEN S=10 CO   -> 25.8% (62)
+9MAX OPEN S=10 BTN  -> 38.2% (82)
+9MAX OPEN S=10 SB   -> 58.1% (HU Nash);  BB call 39.1%
+9MAX OPEN S=15 UTG  -> 6.1% (7)
+9MAX OPEN S=15 UTG1 -> 9.6% (10)
+9MAX OPEN S=15 MP   -> 7.7% (24)
+9MAX OPEN S=15 LJ   -> 11.2% (31)
+9MAX OPEN S=15 HJ   -> 14.7% (30)
+9MAX OPEN S=15 CO   -> 18.4% (39)
+9MAX OPEN S=15 BTN  -> 27.9% (67)
+9MAX OPEN S=15 SB   -> 47.1% (HU Nash);  BB call 27.8%
+9MAX OPEN S=20 UTG  -> 11.5% (11)
+9MAX OPEN S=20 UTG1 -> 5.0% (7)
+9MAX OPEN S=20 MP   -> 6.1% (8)
+9MAX OPEN S=20 LJ   -> 6.8% (10)
+9MAX OPEN S=20 HJ   -> 10.1% (22)
+9MAX OPEN S=20 CO   -> 13.8% (31)
+9MAX OPEN S=20 BTN  -> 22.1% (54)
+9MAX OPEN S=20 SB   -> 40.0% (HU Nash);  BB call 21.7%
+6MAX OPEN S=10 UTG  -> 16.2% (32)
+6MAX OPEN S=10 MP   -> 19.7% (46)
+6MAX OPEN S=10 CO   -> 25.8% (62)
+6MAX OPEN S=10 BTN  -> 38.2% (82)
+6MAX OPEN S=10 SB   -> 58.1% (HU Nash);  BB call 39.1%
+6MAX OPEN S=15 UTG  -> 11.2% (31)
+6MAX OPEN S=15 MP   -> 14.7% (30)
+6MAX OPEN S=15 CO   -> 18.4% (39)
+6MAX OPEN S=15 BTN  -> 27.9% (67)
+6MAX OPEN S=15 SB   -> 47.1% (HU Nash);  BB call 27.8%
+6MAX OPEN S=20 UTG  -> 6.8% (10)
+6MAX OPEN S=20 MP   -> 10.1% (22)
+6MAX OPEN S=20 CO   -> 13.8% (31)
+6MAX OPEN S=20 BTN  -> 22.1% (54)
+6MAX OPEN S=20 SB   -> 40.0% (HU Nash);  BB call 21.7%
+DONE

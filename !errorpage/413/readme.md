@@ -4,6 +4,8 @@
 
 自訂錯誤頁面子目錄，維護指定錯誤碼頁面或錯誤頁素材。
 
+**本頁目前未被串接**：project00061 的 nginx server block 沒有 `error_page 413` 設定；且 `client_max_body_size 50G` 讓 413 幾乎不可能觸發。頁面留著備用，要啟用需自行調整 nginx 設定（nginx.conf 不在本專案內，屬使用者的伺服器設定）。
+
 ## 主要檔案
 
 - `index.html`

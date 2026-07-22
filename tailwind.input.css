@@ -1,0 +1,29 @@
+/* Tailwind 建置來源檔。放在專案根目錄（不在 frontend/ 底下，避免被 nginx 當靜態檔服務）。
+   產出 → frontend/tailwind.css（該檔為建置產物，但仍需進版控，見 package.json 說明）。 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   分頁(tab)選中狀態修正
+   ---------------------------------------------------------------------------
+   各分頁按鈕的未選中樣式是 `border-transparent text-zinc-300`，選中時由 JS
+   加上 `border-emerald-400 text-emerald-400`(session.js / table.js / series.js /
+   main.js / newsession.js / batchcreate.js / sessionseries.js)。
+
+   這兩組都是同權重的 utility，誰生效取決於「在輸出 CSS 裡誰比較後面」：
+   建置版的輸出是固定順序，.border-transparent 與 .text-zinc-300 剛好排在
+   .border-emerald-400 / .text-emerald-400 之後 → 選中樣式被蓋掉、highlight 消失。
+   (Play CDN 時代是依使用順序即時產生，所以之前看起來正常。)
+
+   這裡用「按鈕 class + utility」的複合選擇器把權重提高一級(0,2,0 > 0,1,0)，
+   不必改 JS、也不依賴 utility 的輸出順序。
+   --------------------------------------------------------------------------- */
+/* 注意: 不能包在 @layer utilities 裡, Tailwind 會把對應不到候選 class 的自訂選擇器 purge 掉。
+   放在 @tailwind 指令之後的一般 CSS 不會被清除, 且天然排在所有 utility 之後。 */
+[class*="tab-btn"].border-emerald-400 {
+	border-color: #34d399;
+}
+[class*="tab-btn"].text-emerald-400 {
+	color: #34d399;
+}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="報名費拆分：獎池 / 手續費 / bounty 拆分。免費線上撲克工具，不用登入、無廣告。Buy-in Split: Split prize pool, fee, and bounty. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/buyinsplit.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="報名費拆分 / Buy-in Split - PokerTrace">
+		<meta property="og:description" content="報名費拆分：獎池 / 手續費 / bounty 拆分。免費線上撲克工具，不用登入、無廣告。Buy-in Split: Split prize pool, fee, and bounty. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/buyinsplit.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>報名費拆分 (Buy-in Split) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="bptitle">報名費拆分</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bptotallabel" for="bptotal">報名總額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bptotal" min="0" inputmode="numeric" value="1200"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bpfeelabel" for="bpfee">手續費</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bpfee" min="0" inputmode="numeric" value="200"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bpbountylabel" for="bpbounty">Bounty</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bpbounty" min="0" inputmode="numeric" value="0"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bpentrieslabel" for="bpentries">報名人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bpentries" min="0" inputmode="numeric" value="80"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bpprizelabel">每人進獎池</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="bpprize">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bppctlabel">獎池占比</div><div class="mt-1 text-2xl font-extrabold" id="bppct">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bppoollabel">總獎池</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="bppool">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bphostlabel">主辦手續費收入</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="bphost">-</div></div>
+				</div>
+				<div id="bpwarn" class="mt-4 hidden rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300"></div>
+				<div class="mt-3 text-xs text-zinc-500" id="bpnote">每人進獎池 = 報名總額 − 手續費 − Bounty。總獎池 = 每人進獎池 × 報名人數（bounty 池另計）。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">報名費怎麼拆：獎池、行政費、賞金</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">一筆買入通常拆成進入獎池的部分、主辦行政費，賞金賽還要再拆出 bounty。這個工具輸入買入金額與各項比例，立即算出每個部分的金額與全場總額，公告結構時清楚透明。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/buyinsplit.js"></script>
+	</body>
+</html>

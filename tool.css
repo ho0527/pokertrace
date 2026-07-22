@@ -1,0 +1,274 @@
+
+/* ===== 公開 API 文件：可收合端點手風琴 ===== */
+.apiep{
+	background: linear-gradient(to bottom, rgba(24,24,27,0.95), rgba(9,9,11,0.95));
+	border: 1px solid #27272a;
+	border-radius: 20px;
+	overflow: hidden;
+}
+
+.apiep-head{
+	align-items: center;
+	background: transparent;
+	color: #f4f4f5;
+	cursor: pointer;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding: 16px 18px;
+	text-align: left;
+	width: 100%;
+}
+
+.apiep-head:hover{
+	background: rgba(255,255,255,0.03);
+}
+
+.apiep-method{
+	border-radius: 8px;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 900;
+	letter-spacing: .5px;
+	padding: 3px 10px;
+}
+
+.apiep-path{
+	color: #6ee7b7;
+	font-family: monospace;
+	font-size: 16px;
+	font-weight: 800;
+}
+
+.apiep-titletext{
+	color: #a1a1aa;
+	font-size: 14px;
+}
+
+.apiep-chevron{
+	color: #71717a;
+	margin-left: auto;
+	transition: transform .18s ease;
+}
+
+.apiep.open .apiep-chevron{
+	transform: rotate(180deg);
+}
+
+.apiep-body{
+	display: none;
+	padding: 0 18px 18px;
+}
+
+.apiep.open .apiep-body{
+	display: block;
+}
+
+.apiep-desc{
+	color: #d4d4d8;
+	font-size: 14px;
+	line-height: 1.7;
+	margin-bottom: 12px;
+}
+
+.apiep-auth{
+	background: rgba(9,9,11,0.7);
+	border: 1px solid #27272a;
+	border-radius: 14px;
+	color: #a1a1aa;
+	font-size: 13px;
+	line-height: 1.7;
+	padding: 10px 12px;
+}
+
+.apisection-title{
+	color: #71717a;
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: .14em;
+	margin: 18px 0 6px;
+	text-transform: uppercase;
+}
+
+.apifield{
+	border-top: 1px solid #1f1f23;
+	padding: 10px 0;
+}
+
+.apifield-top{
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.apifield-name{
+	color: #6ee7b7;
+	font-family: monospace;
+	font-size: 14px;
+	font-weight: 800;
+	word-break: break-all;
+}
+
+.apifield-type{
+	color: #a1a1aa;
+	font-family: monospace;
+	font-size: 12px;
+}
+
+.apifield-req{
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 800;
+	padding: 1px 8px;
+}
+
+.apifield-req.req{
+	background: rgba(16,185,129,0.18);
+	color: #34d399;
+}
+
+.apifield-req.opt{
+	background: rgba(113,113,122,0.2);
+	color: #a1a1aa;
+}
+
+.apifield-desc{
+	color: #c7c7cc;
+	font-size: 13px;
+	line-height: 1.6;
+	margin-top: 4px;
+}
+
+.apifield-desc code,
+.apiep-desc code,
+.apinote-body code{
+	background: #18181b;
+	border-radius: 6px;
+	font-size: 12px;
+	padding: 1px 5px;
+}
+
+.apinotes{
+	display: grid;
+	gap: 10px;
+	grid-template-columns: 1fr;
+	margin-top: 12px;
+}
+
+@media (min-width: 640px){
+	.apinotes{
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.apinote{
+	background: rgba(9,9,11,0.7);
+	border: 1px solid #27272a;
+	border-radius: 14px;
+	padding: 12px 14px;
+}
+
+.apinote-title{
+	color: #f4f4f5;
+	font-size: 13px;
+	font-weight: 800;
+	margin-bottom: 4px;
+}
+
+.apinote-body{
+	color: #c7c7cc;
+	font-size: 13px;
+	line-height: 1.7;
+}
+
+.apicode-label{
+	color: #a1a1aa;
+	font-size: 12px;
+	font-weight: 700;
+	margin: 10px 0 4px;
+}
+
+.apicode{
+	background: rgba(9,9,11,0.85);
+	border: 1px solid #27272a;
+	border-radius: 16px;
+	color: #d4d4d8;
+	font-size: 12px;
+	line-height: 1.6;
+	overflow-x: auto;
+	padding: 14px;
+	white-space: pre;
+}
+
+/* 翻後 solver：可點格子 + EV 詳情 */
+.fscell{ cursor: pointer; }
+.fscell-sel{ box-shadow: 0 0 0 2px #fff; z-index:2; }
+
+.fsdetailhint{
+	color: var(--color-text-faint);
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.fsdetailhead{
+	align-items: baseline;
+	display: flex;
+	gap: 12px;
+	margin-bottom: 6px;
+}
+
+.fsdetailhand{
+	font-family: var(--font-mono);
+	font-size: 20px;
+	font-weight: 900;
+}
+
+.fsdetailmix{
+	color: var(--color-primary-soft);
+	font-size: 13px;
+	font-weight: 800;
+}
+
+.fsdetailtable{
+	font-size: 13px;
+	width: 100%;
+}
+
+.fsdetailtable th{
+	color: var(--color-text-faint);
+	font-size: 11px;
+	font-weight: 800;
+	padding: 4px 8px;
+	text-align: left;
+}
+
+.fsdetailtable td{
+	border-top: 1px solid #27272a;
+	padding: 6px 8px;
+}
+
+.fsdetailtable .fsnum{
+	font-family: var(--font-mono);
+	text-align: right;
+}
+
+.fsdot{
+	border-radius: 3px;
+	display: inline-block;
+	height: 11px;
+	margin-right: 6px;
+	width: 11px;
+}
+
+.fsok{
+	color: var(--color-primary-soft);
+	font-weight: 800;
+}
+
+.fsdetailnote{
+	color: var(--color-text-faint);
+	font-size: 12px;
+	line-height: 1.6;
+	margin-top: 8px;
+}

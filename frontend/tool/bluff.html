@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="Bluff 平衡頻率：下注大小對應詐唬比例。免費線上撲克工具，不用登入、無廣告。Bluff Frequency: Bluff ratio by bet size. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/bluff.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="Bluff 平衡頻率 / Bluff Frequency - PokerTrace">
+		<meta property="og:description" content="Bluff 平衡頻率：下注大小對應詐唬比例。免費線上撲克工具，不用登入、無廣告。Bluff Frequency: Bluff ratio by bet size. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/bluff.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>Bluff 平衡頻率 (Bluff Frequency) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="bftitle">Bluff 平衡頻率</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bfpotlabel" for="bfpot">底池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bfpot" min="0" inputmode="numeric" value="100"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bfbetlabel" for="bfbet">下注額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bfbet" min="0" inputmode="numeric" value="75"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bfvaluelabel" for="bfvalue">價值組合數（選填）</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bfvalue" min="0" inputmode="numeric" value="12"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bfsizelabel">下注佔底池</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="bfsize">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bffraclabel">詐唬佔下注比例</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="bffrac">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bfratiolabel">價值 : 詐唬</div><div class="mt-1 text-2xl font-extrabold" id="bfratio">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="bfcombolabel">建議詐唬組合</div><div class="mt-1 text-2xl font-extrabold text-amber-400" id="bfcombo">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="bfnote">平衡時，詐唬佔下注範圍比例 = 下注額 ÷（底池 + 2 × 下注額）。價值:詐唬比 =（底池 + 下注額）:下注額。建議詐唬組合 = 價值組合 × 下注額 ÷（底池 + 下注額）。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">詐唬頻率怎麼平衡？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">GTO 概念中，下注尺寸決定價值與詐唬的平衡比例：下注滿 pot 時約 2:1（67% 價值、33% 詐唬），下注 1/2 pot 約 3:1。這個工具依你的下注大小算出不被剝削的詐唬比例，讓你的下注範圍不會被對手用全跟或全棄的簡單策略擊敗。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/bluff.js"></script>
+	</body>
+</html>

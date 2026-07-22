@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="獎金分配表：總獎池到各名次獎金。免費線上撲克工具，不用登入、無廣告。Payout Table: Prize pool to place payouts. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/payouttable.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="獎金分配表 / Payout Table - PokerTrace">
+		<meta property="og:description" content="獎金分配表：總獎池到各名次獎金。免費線上撲克工具，不用登入、無廣告。Payout Table: Prize pool to place payouts. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/payouttable.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<base href="../">
+		<title>獎金分配表 (Payout Table) - PokerTrace 免費撲克工具</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="pttitle">獎金分配表</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="ptpoollabel" for="ptpool">總獎池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="ptpool" min="0" inputmode="numeric" value="100000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="ptplaceslabel" for="ptplaces">名次數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="ptplaces" min="1" max="50" inputmode="numeric" value="9"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="ptsteeplabel" for="ptsteep">集中度</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="ptsteep" step="0.05" min="0.5" max="0.95" inputmode="decimal" value="0.7"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="ptroundlabel" for="ptround">現金取整</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="ptround" min="0" inputmode="numeric" value="100"></div>
+				</div>
+
+				<div class="mt-6 overflow-hidden rounded-2xl border border-zinc-800">
+					<div class="grid grid-cols-3 gap-px bg-zinc-800 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">
+						<div class="bg-zinc-950/80 px-4 py-3" id="pthrank">名次</div>
+						<div class="bg-zinc-950/80 px-4 py-3 text-right" id="pthcash">獎金</div>
+						<div class="bg-zinc-950/80 px-4 py-3 text-right" id="pthpct">佔比</div>
+					</div>
+					<div id="ptrows"></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="ptnote">依集中度（幾何衰減）自動鋪一條前重後輕的獎金曲線，補尾差到冠軍使總和等於總獎池。集中度越小越集中於前段。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">獎金分配表產生器</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入總獎池、獎勵名額與分配曲線，工具產生各名次的獎金金額，總和自動對齊獎池。主辦可直接公告，選手也能在泡沫期算清楚每爬一名值多少錢。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/payouttable.js"></script>
+	</body>
+</html>

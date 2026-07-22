@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="大盲防守參考：面對各位置 open 的防守。免費線上撲克工具，不用登入、無廣告。Blind Defense: Blind defense by opener. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/blinddefense.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="大盲防守參考 / Blind Defense - PokerTrace">
+		<meta property="og:description" content="大盲防守參考：面對各位置 open 的防守。免費線上撲克工具，不用登入、無廣告。Blind Defense: Blind defense by opener. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/blinddefense.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>大盲防守參考 (Blind Defense) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="bdtitle">大盲防守參考</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="overflow-hidden rounded-2xl border border-zinc-800">
+					<div class="grid grid-cols-12 gap-px bg-zinc-800 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">
+						<div class="col-span-3 bg-zinc-950/80 px-4 py-3" id="bdhpos">加注位置</div>
+						<div class="col-span-3 bg-zinc-950/80 px-4 py-3 text-right" id="bdhdefend">防守範圍</div>
+						<div class="col-span-6 bg-zinc-950/80 px-4 py-3" id="bdhnote">說明</div>
+					</div>
+					<div id="bdrows"></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="bdnote">大盲面對 2–2.5bb 開池、單跳的概略防守參考（含跟注與 3-bet）。位置越後、底池賠率越好，防守越寬。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">大盲該防守多寬？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">大盲位已經投入一個盲注，跟注的底池賠率比其他位置好，因此可以用比想像中寬的範圍防守。面對不同位置的 open——例如按鈕位的寬範圍或槍口位的緊範圍——合理的防守範圍差異很大。這張參考卡整理面對各位置加注時建議的防守與 3-bet 範圍。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/blinddefense.js"></script>
+	</body>
+</html>

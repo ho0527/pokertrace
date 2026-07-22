@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="Break 排程：各次休息的時刻表。免費線上撲克工具，不用登入、無廣告。Break Schedule: Break timeline. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/breaksched.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="Break 排程 / Break Schedule - PokerTrace">
+		<meta property="og:description" content="Break 排程：各次休息的時刻表。免費線上撲克工具，不用登入、無廣告。Break Schedule: Break timeline. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/breaksched.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>Break 排程 (Break Schedule) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="bktitle">Break 排程</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bkstartlabel" for="bkstart">開賽時間</label><input type="time" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bkstart" value="19:00"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bklevelminlabel" for="bklevelmin">每級分鐘</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bklevelmin" min="1" inputmode="numeric" value="20"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bktotallabel" for="bktotal">總級數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bktotal" min="1" inputmode="numeric" value="20"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bkeverylabel" for="bkevery">每幾級休息</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bkevery" min="1" inputmode="numeric" value="4"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bkdurlabel" for="bkdur">休息分鐘</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bkdur" min="1" inputmode="numeric" value="10"></div>
+				</div>
+
+				<div class="mt-6 overflow-hidden rounded-2xl border border-zinc-800">
+					<div class="grid grid-cols-3 gap-px bg-zinc-800 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">
+						<div class="bg-zinc-950/80 px-4 py-3" id="bkhno">休息</div>
+						<div class="bg-zinc-950/80 px-4 py-3" id="bkhafter">在第幾級後</div>
+						<div class="bg-zinc-950/80 px-4 py-3 text-right" id="bkhtime">時刻</div>
+					</div>
+					<div id="bkrows"></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="bknote">列出每次休息開始的時刻（已累計先前休息時間）。addon 截止通常設在某次休息，可對照此表安排。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">休息時間排程表</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入開賽時間、每級長度與休息規則（例如每 4 級休息 10 分鐘），工具會列出整場比賽每次 break 的實際時刻，方便主辦公告時程、選手安排用餐與休息。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/breaksched.js"></script>
+	</body>
+</html>

@@ -362,5 +362,5 @@ except Exception as error:
 	printcolorhaveline("fail","[ERROR] "+str(error),"")
 	Response({
 		"success": False,
-		"data": "ERROR_unknow_error_pls_tell_the_admin:\n"+str(error)
+		"data": "ERROR_unknow_error_pls_tell_the_admin"
 	},status.HTTP_500_INTERNAL_SERVER_ERROR)

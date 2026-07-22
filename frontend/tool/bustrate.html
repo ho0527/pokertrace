@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="淘汰速率估算：淘汰速率與 FT 預估。免費線上撲克工具，不用登入、無廣告。Bust Rate: Bust pace and final table estimate. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/bustrate.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="淘汰速率估算 / Bust Rate - PokerTrace">
+		<meta property="og:description" content="淘汰速率估算：淘汰速率與 FT 預估。免費線上撲克工具，不用登入、無廣告。Bust Rate: Bust pace and final table estimate. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/bustrate.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>淘汰速率估算 (Bust Rate) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="butitle">淘汰速率估算</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bustartlabel" for="bustart">起始人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bustart" min="1" inputmode="numeric" value="120"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bucurrentlabel" for="bucurrent">目前人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bucurrent" min="0" inputmode="numeric" value="60"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="buelapsedlabel" for="buelapsed">已歷時（分鐘）</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="buelapsed" min="1" inputmode="numeric" value="120"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="butargetlabel" for="butarget">目標剩餘人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="butarget" min="1" inputmode="numeric" value="9"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="buratelabel">淘汰速率</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="burate">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="buetalabel">預估還需</div><div class="mt-1 text-2xl font-extrabold" id="bueta">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="butotallabel">預估總時長</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="butotal">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="bunote">淘汰速率 = (起始 − 目前) ÷ 已歷時。預估還需 = (目前 − 目標) ÷ 速率。實際後期淘汰會放慢，僅供概估。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">淘汰速率與 Final Table 時間預估</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入目前人數、平均每級淘汰數或歷史節奏，工具會推估到達獎圈與決賽桌的大約時間和級別，讓主辦能預估收場時間、選手能安排體力分配。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/bustrate.js"></script>
+	</body>
+</html>

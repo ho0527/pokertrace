@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="Timebank 計時器：多情境時間、點一下開始/暫停。免費線上撲克工具，不用登入、無廣告。Timebank Drill: Practice decision timing. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/timebankdrill.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="Timebank 計時器 / Timebank Drill - PokerTrace">
+		<meta property="og:description" content="Timebank 計時器：多情境時間、點一下開始/暫停。免費線上撲克工具，不用登入、無廣告。Timebank Drill: Practice decision timing. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/timebankdrill.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>Timebank 計時器 (Timebank Drill) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-3xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="tbtitle">Timebank 計時器</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="tbback">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div id="tbtimer" class="select-none cursor-pointer rounded-2xl border border-zinc-800 bg-zinc-950/70 py-12 text-center transition">
+					<div class="mono text-7xl font-black md:text-8xl" id="tbcount">15</div>
+					<div class="mt-2 text-sm font-bold uppercase tracking-[0.16em] text-zinc-400" id="tbhint">點一下開始</div>
+				</div>
+
+				<div class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3" id="tbpresets"></div>
+
+				<div class="mt-6">
+					<div class="mb-2 text-sm font-bold text-zinc-300" id="tbpresetslabel">時間情況設定</div>
+					<div id="tbpresetlist" class="space-y-2"></div>
+					<div class="mt-3 flex flex-wrap items-end gap-2">
+						<div class="text-xs font-bold text-zinc-400">
+							<label class="mb-1 block" id="tbsecondslabel" for="tbnewseconds">秒數</label>
+							<input type="number" class="min-h-12 w-28 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="tbnewseconds" min="1" inputmode="numeric" value="30">
+						</div>
+						<div class="flex-1 text-xs font-bold text-zinc-400">
+							<label class="mb-1 block" id="tblabellabel" for="tbnewlabel">標籤</label>
+							<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="tbnewlabel" placeholder="例：決賽桌">
+						</div>
+						<input type="button" class="min-h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="tbadd" value="新增">
+					</div>
+				</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">決策時間練習器</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">線上打慣的選手到現場常被時間壓力影響決策。這個工具模擬不同時限的決策情境，點一下開始/暫停，練習在時間壓力下維持穩定的思考流程。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/timebankdrill.js"></script>
+	</body>
+</html>

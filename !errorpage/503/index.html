@@ -1,18 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
     <head>
         <meta charset="UTF-8">
-        <title>Document</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>503 服務暫時無法使用 - PokerTrace</title>
+        <link href="/material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+        <link href="/material/icon/icon.png" rel="apple-touch-icon">
         <link rel="stylesheet" href="/!errorpage/index.css">
     </head>
     <body>
-        <div class="text center">
-            503<br>
-            GATEWAY TIMEOUT
-        </div>
-        <div class="footer">
-            如果您認為此錯誤有誤請用DC找 chris0527 或 <a href="/website/anther/respond" class="a">填寫此表單</a> 回報<br>
-            此錯誤常見原因為: 伺服器問題與用戶端無關
-        </div>
+        <main class="errorcard">
+            <img src="/!errorpage/image/503-dark.svg" alt="503" class="errorart">
+            <p class="errorcode">503</p>
+            <h1 class="errortitle">服務暫時無法使用</h1>
+            <p class="errordesc">伺服器目前負載過高或正在維護，請稍後再試一次。</p>
+            <div class="erroractions">
+                <input type="button" class="btn btn-outline" value="回上一頁" data-error-back>
+                <a href="/frontend/" class="btn btn-primary">回首頁</a>
+                <a href="/frontend/contact.html" class="btn btn-ghost">聯絡我們</a>
+            </div>
+            <p class="errornote">如果您認為此錯誤有誤，歡迎<a href="/frontend/contact.html">聯絡我們</a>回報，或透過 Discord 聯繫 chris0527。</p>
+        </main>
+        <script src="/!errorpage/errorpage.js"></script>
     </body>
 </html>

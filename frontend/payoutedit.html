@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<meta name="theme-color" content="#0d0d0d">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<title>編輯名次 — Poker Clock</title>
+	<link href="../material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+	<link href="../material/icon/icon.png" rel="apple-touch-icon">
+	<link rel="stylesheet" href="control.css">
+	<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+	<script src="translate.js"></script>
+</head>
+
+<body>
+	<div id="navigationbar"></div>
+
+	<div class="layout">
+		<div class="topbar">
+			<div class="title-row">
+				<div style="flex:1;min-width:0">
+					<div class="tname" id="tournName">編輯名次</div>
+					<div class="tname-sub"><span id="tournSub">PAYOUT EDIT</span> · <span id="hLv">—</span>/<span id="hLvMax">—</span></div>
+				</div>
+				<div id="regBadge" class="reg-badge reg-open">REG OPEN</div>
+			</div>
+		</div>
+
+		<div class="section">
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+				<a href="control.html" class="btn btn-ghost btn-sm" id="btnBack">返回控制台</a>
+				<input type="button" class="btn btn-primary btn-sm" id="btnSavePayout" value="儲存名次">
+			</div>
+		</div>
+
+		<div class="section">
+			<div class="section-title" id="quickTitle">快速新增</div>
+			<div class="card">
+				<div class="struct-tools">
+					<div class="struct-tool-row">
+						<label id="quickRankLabel">名次範圍</label>
+						<input class="txt" id="quickRank" type="text" placeholder="1 或 1-10" aria-label="名次範圍">
+						<input type="button" class="btn btn-sm" id="btnAddPayout" value="新增">
+					</div>
+					<div class="struct-tool-row">
+						<label id="quickCashLabel">獎金</label>
+						<input class="txt" id="quickCash" type="number" min="0" step="0.01" inputmode="decimal" placeholder="獎金金額" aria-label="獎金">
+						<input class="txt" id="quickReward" type="text" placeholder="獎項（可留空）" aria-label="獎項">
+					</div>
+				</div>
+				<div id="quickHintText" style="font-size:11px;color:#888;line-height:1.6">
+					可輸入單一名次或範圍，例如 1-10。獎金為現金金額，會列入總和；獎項可留空，若填了會與獎金一起顯示成「獎金＋獎項」。
+				</div>
+			</div>
+		</div>
+
+		<div class="section">
+			<div class="section-title" id="genTitle">快速產生</div>
+			<div class="card">
+				<div class="struct-tools struct-tools-pairs">
+					<div class="struct-tool-row">
+						<label id="genPlacesLabel">獲獎名次</label>
+						<input class="txt" id="genPlaces" type="number" min="1" max="200" inputmode="numeric" value="9" aria-label="獲獎名次數">
+					</div>
+					<div class="struct-tool-row">
+						<label id="genPoolLabel">總獎池（選填）</label>
+						<input class="txt" id="genPool" type="number" min="0" inputmode="numeric" value="100000" aria-label="總獎池">
+					</div>
+					<div class="struct-tool-row">
+						<label id="genSteepLabel">集中度</label>
+						<input class="txt" id="genSteep" type="number" min="0.5" max="0.95" step="0.05" inputmode="decimal" value="0.7" aria-label="集中度">
+					</div>
+					<div class="struct-tool-row">
+						<label id="genRoundLabel">現金取整</label>
+						<input class="txt" id="genRound" type="number" min="0" inputmode="numeric" value="100" aria-label="現金取整">
+					</div>
+					<div class="struct-tool-row">
+						<label id="genMinLabel">最低獎金</label>
+						<input class="txt" id="genMin" type="number" min="0" inputmode="numeric" value="0" aria-label="最低獎金">
+					</div>
+					<div class="struct-tool-row">
+						<input type="button" class="btn btn-sm btn-primary" id="btnGenPayout" value="產生獎金分配" style="grid-column:1/-1">
+					</div>
+				</div>
+				<div id="genHintText" style="font-size:11px;color:#888;line-height:1.6;margin-top:8px">
+					依名次數自動鋪一條前重後輕的獎金曲線。總獎池預設帶入控制台計算出的獎池，可自行覆蓋。集中度越小越集中於前段（例如 0.6 冠軍佔比更高）。填總獎池時自動換算現金填入獎金並補足尾差到冠軍；留空則只建立名次、不填獎金。最低獎金可設定墊底名次的下限（例如 2000），低於此值的名次會拉到最低，差額由其餘名次重新分攤。產生會取代目前所有名次。
+				</div>
+			</div>
+		</div>
+
+		<div class="section">
+			<div class="section-title" id="editTitle">名次設定</div>
+			<div class="card">
+				<div class="payout-edit-head">
+					<span id="headRank">名次</span>
+					<span id="headCash">獎金</span>
+					<span id="headReward">獎項</span>
+					<span id="headAction">操作</span>
+				</div>
+				<div id="payoutEditList"></div>
+				<div id="payoutSum" style="font-size:11px;color:#888;line-height:1.6;margin-top:12px">獎金總和：$0</div>
+					<div id="payoutPreview" style="font-size:11px;color:#9ca3af;line-height:1.6;margin-top:6px"></div>
+			</div>
+		</div>
+
+		<div class="section">
+			<div class="section-title" id="otherRewardTitle">其他獎勵</div>
+			<div class="card">
+				<div class="payout-edit-head">
+					<span id="headOtherLabel">名次</span>
+					<span id="headOtherCash">獎金</span>
+					<span id="headOtherReward">獎項</span>
+					<span id="headOtherAction">操作</span>
+				</div>
+				<div id="otherRewardList"></div>
+				<input type="button" class="btn btn-sm btn-ghost" id="btnAddOtherReward" value="新增一列">
+				<div id="otherRewardHint" style="font-size:11px;color:#888;line-height:1.6;margin-top:8px">
+					用來記錄與名次無關的獎勵，例如賞金（bounty）、首殺獎、幸運獎。「名次」那格請自行填寫標籤文字。此區塊只是記錄，不會列入獎金總和，也不參與任何自動獎金結算。
+				</div>
+			</div>
+		</div>
+
+		<div class="section" style="margin-bottom:70px">
+			<div class="section-title" id="ioTitle">匯入匯出</div>
+			<div class="card">
+				<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+					<input type="button" class="btn btn-sm btn-ghost" id="btnExportPayout" value="匯出 JSON">
+					<input type="button" class="btn btn-sm btn-ghost" id="btnImportPayout" value="匯入 JSON">
+					<label class="btn btn-sm btn-ghost" for="payoutFileIn" id="importFileLabel">匯入檔案</label>
+					<input type="file" id="payoutFileIn" accept="application/json,.json" style="display:none">
+				</div>
+				<textarea class="txt txt-area" id="payoutJsonText" placeholder="匯出的名次 JSON 會顯示在這裡，也可以貼上 JSON 後按匯入。" aria-label="名次 JSON" style="display:none;margin-bottom:8px;font-family:'JetBrains Mono',monospace;font-size:12px;min-height:120px"></textarea>
+			</div>
+		</div>
+	</div>
+
+	<div class="status-bar">
+		<div><span class="sync-dot" id="syncDot"></span><span id="syncText">讀取中</span></div>
+		<div id="lastAction">就緒</div>
+	</div>
+
+	<div class="toast" id="toast"></div>
+
+	<script src="initialize.js"></script>
+	<script src="payoutedit.js"></script>
+</body>
+
+</html>

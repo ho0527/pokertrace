@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="小費分配：floor 抽成與發牌員分配。免費線上撲克工具，不用登入、無廣告。Tip Share: Tip split for staff. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/tipshare.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="小費分配 / Tip Share - PokerTrace">
+		<meta property="og:description" content="小費分配：floor 抽成與發牌員分配。免費線上撲克工具，不用登入、無廣告。Tip Share: Tip split for staff. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/tipshare.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>小費分配 (Tip Share) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="tstitle">小費分配</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="tstotallabel" for="tstotal">總小費</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="tstotal" min="0" inputmode="numeric" value="12000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="tsdealerslabel" for="tsdealers">發牌員人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="tsdealers" min="1" inputmode="numeric" value="6"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="tsfloorlabel" for="tsfloor">Floor 抽成 (%)</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="tsfloor" min="0" max="100" step="0.1" inputmode="decimal" value="10"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="tsfloorcutlabel">Floor 分得</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="tsfloorcut">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="tspoollabel">發牌員池</div><div class="mt-1 text-2xl font-extrabold" id="tspool">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="tseachlabel">每位發牌員</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="tseach">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="tsnote">Floor 分得 = 總小費 × 抽成%。其餘平均分給發牌員。可依實際分配規則調整抽成。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">小費怎麼分？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入小費總額、floor 抽成比例與發牌員的工時或桌數權重，工具算出每個人分得的金額，收場分小費快速又公平。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/tipshare.js"></script>
+	</body>
+</html>

@@ -2,258 +2,343 @@ if(!weblsget(WEBLSNAME+"signin")){
     href("signin.html")
 }
 
-let allSessionData=[]
+let allsessiondata=[]
 let chart=null
 
 function benefittext(key){
-    return TRANSLATE[LANGUAGE]["benefit"][key]
+    if(!TRANSLATE[LANGUAGE]){
+        return key
+    }
+    if(!TRANSLATE[LANGUAGE]["benefit"]){
+        return key
+    }
+    return TRANSLATE[LANGUAGE]["benefit"][key]||key
+}
+
+function setbenefittext(selector,text){
+    let element=document.querySelector(selector)
+    if(element){
+        if(element.tagName=="INPUT"){
+            element.value=text
+        }else{
+            element.textContent=text
+        }
+    }
 }
 
 function applybenefitlanguage(){
     document.title=benefittext("title")
-    innertext("h1",benefittext("title"),false)
-    let labels=document.querySelectorAll("label")
-    if(0<labels.length){
-        labels[0].textContent=benefittext("startdate")
-    }
-    if(1<labels.length){
-        labels[1].textContent=benefittext("enddate")
-    }
-    innertext("#search",benefittext("search"),false)
-    innertext("#reset",benefittext("reset"),false)
+    setbenefittext("#benefiteyebrow",benefittext("eyebrow"))
+    setbenefittext("#benefittitle",benefittext("title"))
+    setbenefittext("#benefitpositiondesc",benefittext("positiondesc"))
+    setbenefittext("#backtoprofile",benefittext("backtoprofile"))
+    setbenefittext("#benefitfiltertitle",benefittext("filtertitle"))
+    setbenefittext("#benefitfilterdesc",benefittext("filterdesc"))
+    setbenefittext("#startdatelabel",benefittext("startdate"))
+    setbenefittext("#enddatelabel",benefittext("enddate"))
+    setbenefittext("#search",benefittext("search"))
+    setbenefittext("#reset",benefittext("reset"))
+    setbenefittext("#summaryrangetitle",benefittext("summaryrangetitle"))
+    setbenefittext("#summarytotaltitle",benefittext("summarytotaltitle"))
+    setbenefittext("#summarycounttitle",benefittext("summarycounttitle"))
+    setbenefittext("#chartemptytitle",benefittext("emptychart"))
+    setbenefittext("#chartemptydesc",benefittext("emptychartdesc"))
+    setbenefittext("#chartemptycta",TRANSLATE[LANGUAGE]["navigationbar"]["session"])
 }
 
-applybenefitlanguage()
-
-// 計算時間差（分鐘）
-function calculateduration(starttime,endtime){
-    let start=new Date(starttime)
-    let end=new Date(endtime)
-    let diff=end-start
-    return Math.floor(diff/(1000*60)) // 轉換為分鐘
+function sessionshowmoney(row){
+    return row["isstaff"]!=true&&((row["isown"]==false&&row["owned"]==true)||(row["isown"]==true&&row["owned"]==false))&&((row["isown"]==false&&(row["myregistrationstatus"]=="confirmed"||row["myregistrationstatus"]=="advanced"))||row["owned"]==false)
 }
 
-// 格式化時長顯示
-function formatduration(minutes){
-    if(minutes<60){
-        return `${minutes} ${benefittext("minute")}`
-    }else{
-        return `${Math.floor(minutes/60)} ${benefittext("hour")} ${minutes%60} ${benefittext("minute")}`
+function sessionprofit(row){
+    if(row["isstaff"]==true){
+        return null
     }
-}
-
-// 根據日期範圍重新繪製圖表
-function renderChart(){
-    let startdate=getvalue("#startdate")
-    let enddate=getvalue("#enddate")
-
-    // 第一步：用全部資料算出每日盈虧（同一天的 session 合併累加，不重複新增）
-    let allDailyProfit={}
-    let allSortedDates=[]
-
-    function sessionshowmoney(row){
-        return row["isstaff"]!=true&&((row["isown"]==false&&row["owned"]==true)||(row["isown"]==true&&row["owned"]==false))&&((row["isown"]==false&&row["myregistrationstatus"]=="confirmed")||row["owned"]==false)
-    }
-
-    function sessionprofit(row){
-        if(row["isstaff"]==true){
-            return null
-        }
-        if(row["owned"]==true){
-            if(row["isown"]==true){
-                return null
-            }
-            if(row["myregistrationstatus"]=="confirmed"&&row["myregistration"]){
-                return float(row["myregistration"]["profit"]||0)
-            }
-            return null
-        }
+    if(row["owned"]==true){
         if(row["isown"]==true){
-            return float(row["winprice"]||0)-((float(row["buyin"]||0)+float(row["buyinfee"]||0))+((float(row["rebuybuyin"]||0)+float(row["rebuyfee"]||0))*float(row["rebuycount"]||0)))
+            return null
+        }
+        if((row["myregistrationstatus"]=="confirmed"||row["myregistrationstatus"]=="advanced")&&row["myregistration"]){
+            return float(row["myregistration"]["profit"]||0)
         }
         return null
     }
+    if(row["isown"]==true){
+        let buyintotal=float(row["buyin"]||0)+float(row["buyinfee"]||0)
+        let rebuytotal=(float(row["rebuybuyin"]||0)+float(row["rebuyfee"]||0))*float(row["rebuycount"]||0)
+        let reentrytotal=(float(row["reentrybuyin"]||0)+float(row["reentryfee"]||0))*float(row["reentrycount"]||0)
+        let addontotal=(float(row["addonbuyin"]||0)+float(row["addonfee"]||0))*float(row["addoncount"]||0)
+        return float(row["winprice"]||0)-(buyintotal+rebuytotal+reentrytotal+addontotal)
+    }
+    return null
+}
 
-    for(let i=0;i<allSessionData.length;i=i+1){
-        let session=allSessionData[i]
-        let date=session["starttime"].split("T")[0]
+function buildchartdata(startdate,enddate){
+    let alldailyprofit={}
+    let allsorteddates=[]
+    let i=0
+    for(i=0;i<allsessiondata.length;i=i+1){
+        let session=allsessiondata[i]
         let profit=sessionprofit(session)
+        if(profit==null||!sessionshowmoney(session)){
+            continue
+        }
+        let date=ptformatdatetime(session["starttime"]).substring(0,10)
+        if(date==""){
+            continue
+        }
+        if(alldailyprofit[date]==undefined){
+            alldailyprofit[date]=0
+            allsorteddates.push(date)
+        }
+        alldailyprofit[date]=alldailyprofit[date]+profit
+    }
+    allsorteddates.sort()
 
-        if(profit!==null&&sessionshowmoney(session)){
-            if(allDailyProfit[date]==undefined){
-                allDailyProfit[date]=0
-                allSortedDates.push(date)
-            }
-            allDailyProfit[date]+=profit
+    let allcumulative={}
+    let cumulative=0
+    for(i=0;i<allsorteddates.length;i=i+1){
+        let date=allsorteddates[i]
+        cumulative=cumulative+alldailyprofit[date]
+        allcumulative[date]=cumulative
+    }
+
+    let sorteddates=[]
+    for(i=0;i<allsorteddates.length;i=i+1){
+        let currentdate=allsorteddates[i]
+        let passstarted=true
+        let passended=true
+        if(startdate!=""&&currentdate<startdate){
+            passstarted=false
+        }
+        if(enddate!=""&&currentdate>enddate){
+            passended=false
+        }
+        if(passstarted&&passended){
+            sorteddates.push(currentdate)
         }
     }
 
-    allSortedDates.sort()
-
-    // 第二步：對全部日期計算累計值（從最一開始到最後）
-    let allCumulative={}
-    let cum=0
-    for(let i=0;i<allSortedDates.length;i=i+1){
-        let date=allSortedDates[i]
-        cum+=allDailyProfit[date]
-        allCumulative[date]=cum
+    let dailyprofit={}
+    let cumulativevalues=[]
+    let totalprofit=0
+    for(i=0;i<sorteddates.length;i=i+1){
+        let date=sorteddates[i]
+        dailyprofit[date]=alldailyprofit[date]||0
+        cumulativevalues.push(allcumulative[date]||0)
+        totalprofit=allcumulative[date]||0
     }
 
-    // 第三步：篩選要顯示的日期範圍
-    let sortedDates=allSortedDates.filter(function(date){
-        let passStart=startdate==="" || date>=startdate
-        let passEnd=enddate==="" || date<=enddate
-        return passStart && passEnd
-    })
+    return {
+        "sorteddates": sorteddates,
+        "dailyprofit": dailyprofit,
+        "cumulativevalues": cumulativevalues,
+        "totalprofit": totalprofit
+    }
+}
 
-    // 每日盈虧只取篩選範圍內的（tooltip 用）
-    let dailyProfit={}
-    for(let i=0;i<sortedDates.length;i=i+1){
-        dailyProfit[sortedDates[i]]=allDailyProfit[sortedDates[i]]||0
+function formatrange(startdate,enddate){
+    return startdate+" ~ "+enddate
+}
+
+function formatsignednumber(number){
+    if(0<=number){
+        return "+"+number
+    }
+    return ""+number
+}
+
+function updatesummary(result,startdate,enddate){
+    innertext("#summaryrangevalue",formatrange(startdate,enddate),false)
+    innertext("#summarytotalvalue",formatsignednumber(result["totalprofit"]||0),false)
+    removeclass("#summarytotalvalue",["text-green-400","text-red-400"])
+    if(0<=(result["totalprofit"]||0)){
+        addclass("#summarytotalvalue",["text-green-400"])
+    }else{
+        addclass("#summarytotalvalue",["text-red-400"])
+    }
+    innertext("#summarycountvalue",result["sorteddates"].length,false)
+
+    if(result["sorteddates"].length<1){
+        innertext("#benefitresultdesc",benefittext("emptyresultdesc"),false)
+        return
+    }
+    innertext("#benefitresultdesc",benefittext("resultdescprefix")+" "+startdate+" "+benefittext("to")+" "+enddate+" "+benefittext("resultdescsuffix"),false)
+}
+
+function showemptychart(showed){
+    if(showed){
+        style("#chart",[["display","none"]])
+        removeclass("#chartempty",["hidden"])
+        return
+    }
+    style("#chart",[["display","block"]])
+    addclass("#chartempty",["hidden"])
+}
+
+function renderchart(){
+    let startdate=getvalue("startdate")
+    let enddate=getvalue("enddate")
+    let result=buildchartdata(startdate,enddate)
+    updatesummary(result,startdate,enddate)
+
+    if(result["sorteddates"].length<1){
+        showemptychart(true)
+        if(chart){
+            chart.clear()
+        }
+        return
     }
 
-    // 直接使用全資料算出的累計值，原點自然反映歷史總金額
-    let cumulativeValues=[]
-    for(let i=0;i<sortedDates.length;i=i+1){
-        cumulativeValues.push(allCumulative[sortedDates[i]])
-    }
-
-    // 初始化圖表
+    showemptychart(false)
     if(!chart){
-        chart=echarts.init(document.getElementById("chart"))
+        chart=echarts.init(domgetid("chart"))
     }
 
     let option={
-        backgroundColor: "#18181b",
-        tooltip: {
-            trigger: "axis",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            textStyle: {
-                color: "#fff"
+        "backgroundColor": "#18181b",
+        "tooltip": {
+            "trigger": "axis",
+            "backgroundColor": "rgba(0, 0, 0, 0.7)",
+            "textStyle": {
+                "color": "#fff"
             },
-            formatter: function(params){
-                if(params.length === 0) return ""
+            "formatter": function(params){
+                if(params.length<1){
+                    return ""
+                }
                 let date=params[0].name
                 let value=params[0].value
-                let dailyValue=dailyProfit[date] || 0
-                return `${date}<br>${benefittext("dailyprofit")}: ${dailyValue}<br>${benefittext("cumulativeprofit")}: ${value}`
+                let dailyvalue=result["dailyprofit"][date]||0
+                return date+"<br>"+benefittext("dailyprofit")+": "+dailyvalue+"<br>"+benefittext("cumulativeprofit")+": "+value
             }
         },
-        grid: {
-            left: "10%",
-            right: "10%",
-            top: "10%",
-            bottom: "10%",
-            containLabel: true
+        "grid": {
+            "left": "10%",
+            "right": "10%",
+            "top": "10%",
+            "bottom": "10%",
+            "containLabel": true
         },
-        xAxis: {
-            type: "category",
-            data: sortedDates,
-            name: benefittext("date"),
-            nameLocation: "middle",
-            nameGap: 30,
-            nameTextStyle: {
-                color: "#999"
+        "xAxis": {
+            "type": "category",
+            "data": result["sorteddates"],
+            "name": benefittext("date"),
+            "nameLocation": "middle",
+            "nameGap": 30,
+            "nameTextStyle": {
+                "color": "#999"
             },
-            axisLine: {
-                lineStyle: {
-                    color: "#555"
+            "axisLine": {
+                "lineStyle": {
+                    "color": "#555"
                 }
             },
-            axisLabel: {
-                color: "#bbb"
+            "axisLabel": {
+                "color": "#bbb"
             }
         },
-        yAxis: {
-            type: "value",
-            name: benefittext("amount"),
-            nameLocation: "middle",
-            nameGap: 50,
-            nameTextStyle: {
-                color: "#999"
+        "yAxis": {
+            "type": "value",
+            "name": benefittext("amount"),
+            "nameLocation": "middle",
+            "nameGap": 50,
+            "nameTextStyle": {
+                "color": "#999"
             },
-            axisLine: {
-                lineStyle: {
-                    color: "#555"
+            "axisLine": {
+                "lineStyle": {
+                    "color": "#555"
                 }
             },
-            axisLabel: {
-                color: "#bbb"
+            "axisLabel": {
+                "color": "#bbb"
             },
-            splitLine: {
-                lineStyle: {
-                    color: "#444"
+            "splitLine": {
+                "lineStyle": {
+                    "color": "#444"
                 }
             }
         },
-        series: [
-            {
-                type: "line",
-                data: cumulativeValues,
-                showSymbol: true,
-                smooth: true,
-                itemStyle: {
-                    color: function(params){
-                        let dailyValue=dailyProfit[sortedDates[params.dataIndex]] || 0
-                        return dailyValue >= 0 ? "#10b981" : "#ef4444" // 綠色盈利，紅色虧損
-                    },
-                    borderColor: "#fff",
-                    borderWidth: 2
+        "series": [{
+            "type": "line",
+            "data": result["cumulativevalues"],
+            "showSymbol": true,
+            "smooth": true,
+            "itemStyle": {
+                "color": function(params){
+                    let dailyvalue=result["dailyprofit"][result["sorteddates"][params.dataIndex]]||0
+                    if(0<=dailyvalue){
+                        return "#10b981"
+                    }
+                    return "#ef4444"
                 },
-                lineStyle: {
-                    color: "#3b82f6",
-                    width: 2
-                },
-                areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: "rgba(59, 130, 246, 0.3)" },
-                        { offset: 1, color: "rgba(59, 130, 246, 0.1)" }
-                    ])
-                }
+                "borderColor": "#fff",
+                "borderWidth": 2
+            },
+            "lineStyle": {
+                "color": "#3b82f6",
+                "width": 2
+            },
+            "areaStyle": {
+                "color": new echarts.graphic.LinearGradient(0,0,0,1,[
+                    {"offset": 0,"color": "rgba(59, 130, 246, 0.3)"},
+                    {"offset": 1,"color": "rgba(59, 130, 246, 0.1)"}
+                ])
             }
-        ]
+        }]
     }
 
     chart.setOption(option)
 }
 
-// 獲取所有session資料
+function localdateymd(datevalue){
+    let y=datevalue.getFullYear()
+    let m=String(datevalue.getMonth()+1).padStart(2,"0")
+    let d=String(datevalue.getDate()).padStart(2,"0")
+    return y+"-"+m+"-"+d
+}
+
+function setdefaultdates(){
+    let today=new Date()
+    let thirtydaysago=new Date(today.getTime()-30*24*60*60*1000)
+    value("#enddate",localdateymd(today))
+    value("#startdate",localdateymd(thirtydaysago))
+}
+
+applybenefitlanguage()
+setdefaultdates()
+
 ajax("GET",AJAXURL+"getsessionlist?limit=1000",function(event,data){
-    if(data["success"]){
-        allSessionData=(data["data"]["sessions"]||data["data"]||[])
-
-        let today = new Date()
-        let thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-        value("#enddate", today.toISOString().split("T")[0])
-        value("#startdate", thirtyDaysAgo.toISOString().split("T")[0])
-
-        // 初始繪製
-        renderChart()
-    }else{
-        pttoast(benefittext("networkerror"),"error")
+    if(!data["success"]){
+        if(data["data"]=="ERROR_token_error"||data["data"]=="ERROR_token_not_found"){
+            pthandleauthfailure(data["data"],{
+                "toasted": false
+            })
+            return
+        }
+        if(typeof pttoasterror=="function"){
+            pttoasterror(benefittext("networkerror"))
+        }
+        return
     }
+    allsessiondata=data["data"]["sessions"]||data["data"]||[]
+    renderchart()
 },null,[
     ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
-])
-
-// 綁定查詢按鈕
-onclick("#search", function(){
-    renderChart()
+],{
+    "loadingtarget": "#chartwrap"
 })
 
-// 綁定重置按鈕
-onclick("#reset", function(){
-	let today = new Date()
-	let thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-	value("#enddate", today.toISOString().split("T")[0])
-	value("#startdate", thirtyDaysAgo.toISOString().split("T")[0])
-
-    renderChart()
+onclick("#search",function(){
+    renderchart()
 })
 
-// 監聽Enter鍵
-onenterclick("#startdate,#enddate", function(){
-    renderChart()
+onclick("#reset",function(){
+    setdefaultdates()
+    renderchart()
+})
+
+onenterclick("#startdate,#enddate",function(){
+    renderchart()
 })

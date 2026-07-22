@@ -1,18 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
     <head>
         <meta charset="UTF-8">
-        <title>400</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>400 錯誤的請求 - PokerTrace</title>
+        <link href="/material/icon/icon.png" rel="shortcut icon" type="image/x-icon">
+        <link href="/material/icon/icon.png" rel="apple-touch-icon">
         <link rel="stylesheet" href="/!errorpage/index.css">
     </head>
     <body>
-        <div class="text center">
-            400<br>
-            BAD REQUEST
-        </div>
-        <div class="footer">
-            如果您認為此錯誤有誤請用DC找 chris0527 或 <a href="/website/anther/respond" class="a">填寫此表單</a> 回報<br>
-            此錯誤常見原因為: 客戶端發送的請求有誤
-        </div>
+        <main class="errorcard">
+            <p class="errorcode">400</p>
+            <h1 class="errortitle">錯誤的請求</h1>
+            <p class="errordesc">您的瀏覽器送出的請求格式有誤，請確認網址或表單內容後再試一次。</p>
+            <div class="erroractions">
+                <input type="button" class="btn btn-outline" value="回上一頁" data-error-back>
+                <a href="/frontend/" class="btn btn-primary">回首頁</a>
+                <a href="/frontend/contact.html" class="btn btn-ghost">聯絡我們</a>
+            </div>
+            <p class="errornote">如果您認為此錯誤有誤，歡迎<a href="/frontend/contact.html">聯絡我們</a>回報，或透過 Discord 聯繫 chris0527。</p>
+        </main>
+        <script src="/!errorpage/errorpage.js"></script>
     </body>
 </html>

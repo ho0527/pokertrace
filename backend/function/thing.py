@@ -5,6 +5,7 @@ import json
 import random
 import re
 import os
+import secrets
 import string
 import datetime
 
@@ -80,10 +81,13 @@ def uploadfile(path,file,name):
     except Exception as error:
         printcolorhaveline("fail","[ERROR] function uploadfile error: "+str(error),"")
 
+# 產生隨機字串；用於登入 session token (api/user.py) 與邀請 verifytoken (api/staff.py)，
+# 屬於安全憑證，必須用 secrets (CSPRNG)，不可用 random (Mersenne Twister 狀態可由足夠輸出還原)。
+# 長度、字元集 (62 碼英數) 與回傳格式維持不變，呼叫端不受影響。
 def randomtext(length=35):
     name=""
     for i in range(length):
-        name=name+str("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[random.randint(0,61)])
+        name=name+str(secrets.choice("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
     return name
 
 def deletefile(path):

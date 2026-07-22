@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="報名 / 獎池進度：進度條與距保底差額。免費線上撲克工具，不用登入、無廣告。Registration Progress: Progress and guarantee gap. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/regprogress.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="報名 / 獎池進度 / Registration Progress - PokerTrace">
+		<meta property="og:description" content="報名 / 獎池進度：進度條與距保底差額。免費線上撲克工具，不用登入、無廣告。Registration Progress: Progress and guarantee gap. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/regprogress.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>報名 / 獎池進度 (Registration Progress) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="rgtitle">報名 / 獎池進度</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="rgcurrentlabel" for="rgcurrent">目前報名</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="rgcurrent" min="0" inputmode="numeric" value="62"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="rgtargetlabel" for="rgtarget">目標人數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="rgtarget" min="1" inputmode="numeric" value="100"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="rgperlabel" for="rgper">每人進獎池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="rgper" min="0" inputmode="numeric" value="1000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="rgguaranteelabel" for="rgguarantee">保底獎池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="rgguarantee" min="0" inputmode="numeric" value="100000"></div>
+				</div>
+
+				<div class="mt-6">
+					<div class="mb-1 flex justify-between text-sm text-zinc-400"><span id="rgbarlabel">報名進度</span><span id="rgpct" class="font-bold text-emerald-400">-</span></div>
+					<div class="h-4 w-full overflow-hidden rounded-full bg-zinc-800"><div id="rgbar" class="h-full rounded-full bg-emerald-500 transition-all"></div></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="rgpoollabel">目前獎池</div><div class="mt-1 text-2xl font-extrabold text-emerald-400" id="rgpool">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="rggaplabel">距保底差額</div><div class="mt-1 text-2xl font-extrabold" id="rggap">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="rgneedlabel">還需報名</div><div class="mt-1 text-2xl font-extrabold text-zinc-200" id="rgneed">-</div></div>
+				</div>
+				<div class="mt-3 text-xs text-zinc-500" id="rgnote">目前獎池 = 目前報名 × 每人進獎池。距保底差額為正代表尚未達標（可能 overlay），需再 N 人報名才能補足。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">報名與獎池進度即時看板</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">輸入目前報名人次與買入設定，工具顯示獎池累積進度條、距離保底還差多少人，以及主辦目前承擔的保底缺口，適合開賽前掛在螢幕上即時更新。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/regprogress.js"></script>
+	</body>
+</html>

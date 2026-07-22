@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="3-bet / 4-bet 範圍卡：價值與詐唬範圍參考。免費線上撲克工具，不用登入、無廣告。3-bet / 4-bet Range: Value and bluff range notes. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/threebetrange.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="3-bet / 4-bet 範圍卡 / 3-bet / 4-bet Range - PokerTrace">
+		<meta property="og:description" content="3-bet / 4-bet 範圍卡：價值與詐唬範圍參考。免費線上撲克工具，不用登入、無廣告。3-bet / 4-bet Range: Value and bluff range notes. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/threebetrange.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>3-bet / 4-bet 範圍卡 (3-bet / 4-bet Range) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="trtitle">3-bet / 4-bet 範圍卡</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div id="trrows" class="space-y-2"></div>
+				<div class="mt-3 text-xs text-zinc-500" id="trnote">概略 3-bet / 4-bet 價值與詐唬範圍參考。價值牌求被跟，詐唬牌選有阻擋牌（如 A、K）的手。依對手與深度調整。</div>
+			</section>
+		</div>
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">3-bet / 4-bet 範圍參考</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">3-bet 範圍要由價值牌與合適的詐唬牌（如 A5s 這類阻斷牌）組成，而不是只用強牌。這張卡整理不同位置對抗下常用的 3-bet / 4-bet 價值與詐唬組合，幫你建立不好剝削的再加注範圍。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/threebetrange.js"></script>
+	</body>
+</html>

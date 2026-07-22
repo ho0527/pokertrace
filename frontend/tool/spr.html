@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="SPR 計算器：底池計分牌比與承諾度。免費線上撲克工具，不用登入、無廣告。SPR Calculator: Stack-to-pot ratio. Free online poker tool by PokerTrace.">
+		<link rel="canonical" href="https://pokertrace.net/frontend/tool/spr.html">
+		<meta property="og:type" content="website">
+		<meta property="og:site_name" content="PokerTrace">
+		<meta property="og:title" content="SPR 計算器 / SPR Calculator - PokerTrace">
+		<meta property="og:description" content="SPR 計算器：底池計分牌比與承諾度。免費線上撲克工具，不用登入、無廣告。SPR Calculator: Stack-to-pot ratio. Free online poker tool by PokerTrace.">
+		<meta property="og:url" content="https://pokertrace.net/frontend/tool/spr.html">
+		<meta property="og:image" content="https://pokertrace.net/material/image/indeximage.png">
+		<meta property="og:locale" content="zh_TW">
+		<meta name="twitter:card" content="summary">
+		<title>SPR 計算器 (SPR Calculator) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+			<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+
+		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="sprtitle">SPR 計算器</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">回上一頁</a>
+			</div>
+
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="grid grid-cols-2 gap-4 sm:grid-cols-2">
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sprstacklabel" for="sprstack">有效計分牌</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sprstack" min="0" inputmode="numeric" value="9000"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="sprpotlabel" for="sprpot">底池</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="sprpot" min="0" inputmode="numeric" value="3000"></div>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="sprvaluelabel">SPR</div><div class="mt-1 text-4xl font-extrabold text-emerald-400" id="sprvalue">-</div></div>
+					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="sprzonelabel">承諾度</div><div class="mt-1 text-2xl font-extrabold" id="sprzone">-</div></div>
+				</div>
+				<div class="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 text-sm leading-7 text-zinc-300" id="sprguide">-</div>
+				<div class="mt-3 text-xs text-zinc-500" id="sprnote">SPR = 有效計分牌 ÷ 底池。SPR 越低越容易為一手好牌全下；越高越需要謹慎，頂對頂踢腳也可能不夠。</div>
+			</section>
+		</div>
+
+		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
+			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">SPR 是什麼？怎麼用？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">SPR（底池計分牌比）= 有效計分牌 ÷ 翻牌時底池。SPR 3 以下適合頂對就打全下的承諾底池，10 以上則要更多操作空間與更強的成手。輸入計分牌與底池，工具算出 SPR 並給出對應的承諾度提示。</p>
+			</div>
+		</section>
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/spr.js"></script>
+	</body>
+</html>

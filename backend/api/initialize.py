@@ -1,10 +1,14 @@
-BASERUL="https:// 輸入你的基底URL"
+import os
+
+# 正式機（production）：DB=pokertrace、後端 8061、nginx 3061、網域 pokertrace.net
+# 測試機在 C:\nginx\htdocs\website\externalcase\project00061（DB=pokertrace_test、8161、test.pokertrace.net）
+BASERUL="https://pokertrace.net/frontend/"
 SETTING={
-    "dbname": "// 你的資料庫名稱",
+    "dbname": "pokertrace",
 	"dbsetting": {
 		"host": "localhost",
-		"username": "// 你的資料庫使用者名稱",
-		"password": "// 你的資料庫使用者密碼",
+		"username": "chris0527",
+		"password": os.environ.get("PT_DB_PASSWORD",""),
 		"port": 5432,
 		"sqltype": "pgsql"
 	}
