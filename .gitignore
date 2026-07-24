@@ -10,3 +10,11 @@ backend/backup/dumps/
 
 # 備份檔只在測試機產生,正式機是純部署目標,不應出現也不進版控
 *_old_t*
+
+# Word 暫存鎖定檔
+~$*
+
+# 正式機不做建置(nginx 直接吃 tailwind.css 產物), 不需要 npm 檔
+package.json
+package-lock.json
+node_modules/
