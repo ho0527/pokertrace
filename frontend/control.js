@@ -1213,11 +1213,19 @@ function rendertableinfo(data){
 	if(!domgetid('tableStatTables')){
 		return
 	}
-	let tables=(data&&data["tables"])||[]
+	let alltables=(data&&data["tables"])||[]
+	// 已關閉的桌不計入牌桌數與併桌建議: 它們已在收桌流程中, 不該被當成容量、也不該被建議「掉桌」。
+	// 但關閉桌上若還有人, 人數仍計入 totalplayers(這些人要併去開放桌, 需求容量要算他們)。
+	let tables=[]
+	for(let i=0;i<alltables.length;i=i+1){
+		if(!alltables[i]["closed"]){
+			tables.push(alltables[i])
+		}
+	}
 	let tablecount=tables.length
 	let totalplayers=0
-	for(let i=0;i<tables.length;i=i+1){
-		totalplayers=totalplayers+(parseInt(tables[i]["occupied"],10)||0)
+	for(let i=0;i<alltables.length;i=i+1){
+		totalplayers=totalplayers+(parseInt(alltables[i]["occupied"],10)||0)
 	}
 	let avg=0
 	if(tablecount>0){
@@ -1378,7 +1386,7 @@ function buildlinkedplayerlistbase(){
 				<div>
 					<div class="text-[13px] font-extrabold text-white">${safetext(item["playername"]||"未命名選手")}</div>
 					<div class="text-[11px] text-neutral-500">${safetext(tabletext)}</div>
-					<div class="text-[11px] text-neutral-600">P-${safetext(item["playerplayerid"]||"")}${statustext}</div>
+					<div class="text-[11px] text-neutral-600">${safetext(item["playerplayerid"]||"")}${statustext}</div>
 				</div>
 				<div class="flex justify-end gap-1.5">
 					<input type="button" class="${buttonclass}" onclick="timerplayerfunction(this)" data-sync-free="1" data-timer-player="${safetext(item["id"])}" data-timer-action="${buttonaction}" value="${buttontext}">

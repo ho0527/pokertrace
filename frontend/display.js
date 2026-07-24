@@ -882,10 +882,19 @@ function currentbigblind(item) {
 }
 
 function averagestacktotal() {
-	// 場上總計分牌＝起始碼 × 總入場人次（計分牌守恆：被淘汰選手的計分牌已轉給存活者，
-	// 不會消失）。不可用 linkedchiptotal 只加總「存活選手」的當前計分牌，因為在
-	// 沒有牌局計分牌資料時會退回起始碼，漏掉被淘汰選手的計分牌而嚴重低估平均計分牌。
-	return numericstate(state["startingChips"]) * numericstate(state["totalEntries"])
+	// 首選後端的 conservedChipTotal(守恆總量): Σ 每列實際注入的計分牌(多日晉級列=帶入碼),
+	// 不隨淘汰變動——淘汰者的計分牌已轉給存活者仍在場上, 這是唯一同時滿足
+	// 「多日賽帶入碼各不相同」與「淘汰不漏算」的總量。
+	// 後端尚未提供(舊版/手動模式)時退回舊守恆公式「起始碼 × 總入場人次」(單日賽正確)。
+	// 不可用 averageStackTotal(只加總存活者當前碼): 沒有牌局資料時淘汰者的計分牌會直接消失,
+	// 單日與多日都會低估——這正是它從來不被這裡採用的原因。
+	let conserved=numericstate(state["conservedChipTotal"])
+	if (conserved <= 0) {
+		conserved=numericstate(state["startingChips"]) * numericstate(state["totalEntries"])
+	}
+	// 再與 averageStackTotal(存活者當前碼)取 max 當補網: 晉級者爆掉後 re-entry 時
+	// startchip 被重設、帶入碼從守恆估計中消失, 有牌局資料時存活者當前碼會是較大的真實值。
+	return Math.max(conserved, numericstate(state["averageStackTotal"]))
 }
 
 // 顯示端品牌化（檢查表 3.3）：品牌名稱、主色、logo、可選顯示欄位
@@ -1087,7 +1096,9 @@ function render() {
 	domgetid("avgStack").textContent=fmt(avgstack) + " (" + avgstackbb.toFixed(1) + "BB)"
 	domgetid("playersDisplay").textContent=state["players"]
 	if (state["showMultidayRemaining"]==true) {
-		domgetid("entriesLabel").textContent="/" + (state["multidayRemaining"] || 0) + "(" + (state["multidaySourceTotalEntries"] || 0) + ")"
+		// 分母用「本日進場人數」(multidayTodayEntries: 晉級 + 本日新進), 不用只算晉級的 multidayRemaining,
+		// 否則 Day2 有 re-entry / 直接報名時在場人數會超過晉級人數, 出現 13/12 這種矛盾。
+		domgetid("entriesLabel").textContent="/" + (state["multidayTodayEntries"] || 0) + "(" + (state["multidaySourceTotalEntries"] || 0) + ")"
 	} else {
 		domgetid("entriesLabel").textContent="/" + state["totalEntries"]
 	}

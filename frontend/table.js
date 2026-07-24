@@ -993,6 +993,10 @@ function rendermergetableoptions(){
 		if(String(tabletables[i]["id"])==String(id)){
 			continue
 		}
+		// 已關閉的桌不可作為併桌目標
+		if(tabletables[i]["closedtime"]){
+			continue
+		}
 		html=html+`<option value="${tabletables[i]["id"]}">${safehtml(tabletables[i]["no"]||tabletables[i]["token"]||"-")}</option>`
 	}
 	innerhtml("#mergetabletarget",html,false)

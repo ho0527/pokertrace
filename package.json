@@ -9,5 +9,8 @@
 	},
 	"devDependencies": {
 		"tailwindcss": "^3.4.19"
+	},
+	"dependencies": {
+		"jsqr": "^1.4.0"
 	}
 }

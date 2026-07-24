@@ -1,15 +1,24 @@
-// 報到 QR 掃描器：用瀏覽器內建 BarcodeDetector（不依賴 CDN）讀相機畫面，
-// 辨識到收據 QR（checkin 網址）後自動開啟該筆報到核對頁。不支援時提供手動輸入。
+// 報到 QR 掃描器：優先用瀏覽器內建 BarcodeDetector 讀相機畫面；不支援時改用
+// 本地 jsqr.js（jsQR）以 canvas 取幀解碼。辨識到收據 QR（checkin 網址）後自動
+// 開啟該筆報到核對頁。兩者都不可用或相機失敗時提供手動輸入。
 
 let scanstream=null
 let scandetector=null
 let scantimer=null
+let scancanvas=null
 let scanbusy=false
 let scanhandled=false
 let scanstarting=false
 
 if(!weblsget(WEBLSNAME+"signin")){
 	href("signin.html")
+}
+
+function scantext(key){
+	if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["scanpage"]&&TRANSLATE[LANGUAGE]["scanpage"][key]){
+		return TRANSLATE[LANGUAGE]["scanpage"][key]
+	}
+	return key
 }
 
 function scanstatus(text,kind){
@@ -68,12 +77,12 @@ function scangoto(value){
 		target=""
 	}
 	if(!target){
-		scanstatus("掃到內容，但不是報到 QR："+value,"warning")
+		scanstatus(scantext("notcheckinqr")+value,"warning")
 		return
 	}
 	scanhandled=true
 	scanstop()
-	scanstatus("已辨識，前往報到頁…","success")
+	scanstatus(scantext("going"),"success")
 	href(target)
 }
 
@@ -96,56 +105,118 @@ function scandetectloop(){
 	})
 }
 
+// jsQR fallback：從視訊流取一幀畫到 canvas，getImageData 丟給 jsQR 解碼，
+// 解到值走與 BarcodeDetector 相同的 scangoto 流程。
+function scanjsqrloop(){
+	if(scanbusy||scanhandled){
+		return
+	}
+	let video=domgetid("scanvideo")
+	if(!video||video.readyState<2||!video.videoWidth||!video.videoHeight){
+		return
+	}
+	scanbusy=true
+	if(!scancanvas){
+		scancanvas=document.createElement("canvas")
+	}
+	scancanvas.width=video.videoWidth
+	scancanvas.height=video.videoHeight
+	let context=scancanvas.getContext("2d",{"willReadFrequently": true})
+	context.drawImage(video,0,0,scancanvas.width,scancanvas.height)
+	let imagedata=context.getImageData(0,0,scancanvas.width,scancanvas.height)
+	let code=jsQR(imagedata.data,scancanvas.width,scancanvas.height)
+	scanbusy=false
+	if(code&&code["data"]){
+		scangoto(code["data"])
+	}
+}
+
+function scanpolling(){
+	if(scantimer||scanhandled||!scanstream){
+		return
+	}
+	if(scandetector){
+		scantimer=setInterval(scandetectloop,300)
+	}else{
+		scantimer=setInterval(scanjsqrloop,250)
+	}
+}
+
+function scancamerastart(){
+	navigator.mediaDevices.getUserMedia({"video": {"facingMode": "environment"}}).then(function(stream){
+		scanstarting=false
+		scanstream=stream
+		let video=domgetid("scanvideo")
+		video.srcObject=stream
+		video.play()
+		scanstatus(scantext("aim"),"info")
+		scanpolling()
+	}).catch(function(error){
+		scanstarting=false
+		scanstatus(scantext("camerafail"),"error")
+	})
+}
+
 function scanstart(){
 	if(scanstarting){
 		return
 	}
 	scanhandled=false
-	if(!("BarcodeDetector" in window)||!BarcodeDetector.getSupportedFormats){
-		scanstatus("這個瀏覽器不支援內建 QR 掃描，請改用手機相機掃描收據 QR，或在下方手動輸入報名編號。","warning")
-		return
-	}
+	scandetector=null
 	if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-		scanstatus("無法存取相機，請改用手機相機或手動輸入。","warning")
+		scanstatus(scantext("camerafail"),"error")
 		return
 	}
-	scanstarting=true
-	BarcodeDetector.getSupportedFormats().then(function(formatlist){
-		let supported=false
-		for(let i=0;i<formatlist.length;i=i+1){
-			if(formatlist[i]=="qr_code"){
-				supported=true
+	if(("BarcodeDetector" in window)&&BarcodeDetector.getSupportedFormats){
+		scanstarting=true
+		BarcodeDetector.getSupportedFormats().then(function(formatlist){
+			let supported=false
+			for(let i=0;i<formatlist.length;i=i+1){
+				if(formatlist[i]=="qr_code"){
+					supported=true
+				}
 			}
-		}
-		if(!supported){
-			scanstarting=false
-			scanstatus("這個瀏覽器不支援內建 QR 掃描，請改用手機相機掃描收據 QR，或在下方手動輸入報名編號。","warning")
-			return
-		}
-		try{
-			scandetector=new BarcodeDetector({"formats": ["qr_code"]})
-		}catch(error){
-			scanstarting=false
-			scanstatus("無法建立 QR 掃描器，請手動輸入報名編號。","error")
-			return
-		}
-		navigator.mediaDevices.getUserMedia({"video": {"facingMode": "environment"}}).then(function(stream){
-			scanstarting=false
-			scanstream=stream
-			let video=domgetid("scanvideo")
-			video.srcObject=stream
-			video.play()
-			scanstatus("將 QR 對準框內…","info")
-			scantimer=setInterval(scandetectloop,300)
+			if(supported){
+				try{
+					scandetector=new BarcodeDetector({"formats": ["qr_code"]})
+				}catch(error){
+					scandetector=null
+				}
+			}
+			if(scandetector||typeof jsQR=="function"){
+				scancamerastart()
+			}else{
+				scanstarting=false
+				scanstatus(scantext("nosupport"),"warning")
+			}
 		}).catch(function(error){
-			scanstarting=false
-			scanstatus("相機啟動失敗（可能未授權相機權限）。請允許權限後按「重新啟動相機」，或手動輸入。","error")
+			if(typeof jsQR=="function"){
+				scandetector=null
+				scancamerastart()
+			}else{
+				scanstarting=false
+				scanstatus(scantext("nosupport"),"warning")
+			}
 		})
-	}).catch(function(error){
-		scanstarting=false
-		scanstatus("無法建立 QR 掃描器，請手動輸入報名編號。","error")
-	})
+	}else if(typeof jsQR=="function"){
+		scanstarting=true
+		scancamerastart()
+	}else{
+		scanstatus(scantext("nosupport"),"warning")
+	}
 }
+
+// 分頁隱藏時暫停解碼輪詢，回到前景再恢復，避免背景白耗 CPU。
+document.addEventListener("visibilitychange",function(){
+	if(document.hidden){
+		if(scantimer){
+			clearInterval(scantimer)
+			scantimer=null
+		}
+	}else{
+		scanpolling()
+	}
+})
 
 onclick("#scanrestart",function(element,event){
 	scanstop()
@@ -155,7 +226,7 @@ onclick("#scanrestart",function(element,event){
 onclick("#scanmanualgo",function(element,event){
 	let manual=getvalue("scanmanualinput")
 	if(!manual){
-		pttoast("請輸入報名編號","warning")
+		pttoast(scantext("manualempty"),"warning")
 		return
 	}
 	scanstop()

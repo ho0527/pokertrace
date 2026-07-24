@@ -621,7 +621,7 @@ function renderemploymentsection(row){
                 "<div class=\"flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between\">"+
                     "<div>"+
                         "<div class=\"text-base font-bold text-white\">"+escapehtml(ownername)+"</div>"+
-                        "<div class=\"mt-1 font-mono text-xs text-zinc-400\">P-"+item["ownerplayerid"]+"</div>"+
+                        "<div class=\"mt-1 font-mono text-xs text-zinc-400\">"+item["ownerplayerid"]+"</div>"+
                     "</div>"+
                     "<div class=\"rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm font-bold text-emerald-300\">"+role+"</div>"+
                 "</div>"+
@@ -715,7 +715,7 @@ function renderstaffmodal(){
             "<div class=\"flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3\">"+
                 "<div class=\"min-w-0\">"+
                     "<div class=\"text-sm font-bold text-white break-all\">"+escapehtml(row["staffname"]||profiletext("targetuser"))+"</div>"+
-                    "<div class=\"mt-1 font-mono text-xs text-zinc-400\">P-"+row["staffplayerid"]+"</div>"+
+                    "<div class=\"mt-1 font-mono text-xs text-zinc-400\">"+row["staffplayerid"]+"</div>"+
                     "<div class=\"mt-2 text-xs font-bold "+statusclass+"\">"+statustext+"</div>"+
                 "</div>"+
                 "<input type=\"button\" class=\"modalremovestaff rounded-full border border-zinc-700 px-3 py-1 text-xs font-bold text-zinc-300 transition hover:border-red-400 hover:text-red-300\" data-staffid=\""+row["id"]+"\" value=\""+profiletext("remove")+"\">"+

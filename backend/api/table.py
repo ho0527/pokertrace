@@ -41,6 +41,7 @@ def ensuretablesettingcolumns():
 	""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."table" ADD COLUMN IF NOT EXISTS firstdealerplace bigint DEFAULT 1""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."table" ADD COLUMN IF NOT EXISTS selfseating bigint DEFAULT 1""",[],SETTING["dbsetting"])
+	query(SETTING["dbname"],"""ALTER TABLE public."table" ADD COLUMN IF NOT EXISTS closedtime timestamp with time zone""",[],SETTING["dbsetting"])
 
 def tableauthuser(request):
 	header=request.headers.get("Authorization")
@@ -64,6 +65,14 @@ def tableowneraccess(sessionrow,userrow):
 	if sessionrow["userid"]==userrow["id"] or 4<=int(userrow["permission"]):
 		return True
 	return False
+
+# 牌桌管理權限: 擁有者/管理員之外, 該場次聘用的「裁判(floor)」也可關閉與併桌
+# (裁判是 tableboard 的主要使用者; 發牌員/助理不開放)。
+def tablemanageaccess(sessionrow,userrow):
+	if tableowneraccess(sessionrow,userrow):
+		return True
+	staffrow=query(SETTING["dbname"],"""SELECT 1 FROM "sessionstaff" WHERE "sessionid"=%s AND "staffuserid"=%s AND "role"='floor' AND "status"='active' AND "deletetime" IS NULL LIMIT 1""",[sessionrow["id"],userrow["id"]],SETTING["dbsetting"])
+	return True if staffrow else False
 
 def tableactiveplayers(sessionid,tableid):
 	return query(SETTING["dbname"],"""
@@ -230,6 +239,7 @@ def getsessiontableboard(request,sessionid):
 			"maxseat": maxseat,
 			"occupied": occupied,
 			"empty": maxseat-occupied,
+			"closed": True if t.get("closedtime") else False,
 			"players": players
 		})
 
@@ -661,7 +671,7 @@ def gettable(request,tableid):
 							row["firstdealerplace"]=1
 						if not row.get("selfseating"):
 							row["selfseating"]=1
-						tablerows=query(SETTING["dbname"],"""SELECT "id","no","token" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC,"id" ASC""",[sessionrow["id"]],SETTING["dbsetting"])
+						tablerows=query(SETTING["dbname"],"""SELECT "id","no","token","closedtime" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC,"id" ASC""",[sessionrow["id"]],SETTING["dbsetting"])
 						currentplayers=tablecurrentplayers(sessionrow,tableid)
 						chipmap=lasttablechips(tableid)
 						for current in currentplayers:
@@ -1104,6 +1114,7 @@ def movetableplayer(request,tableid):
 
 @api_view(["POST"])
 def mergetableplayers(request,tableid):
+	ensuretablesettingcolumns()
 	userrow,errresp=tableauthuser(request)
 	if errresp:
 		return errresp
@@ -1111,22 +1122,125 @@ def mergetableplayers(request,tableid):
 	targettableid=data.get("targettableid")
 	if not targettableid or str(targettableid)==str(tableid):
 		return errorresponse("ERROR_request_data_type_error")
+	# targettableid="auto" 為特殊值: 不指定單一目標桌, 改把來源選手隨機分配到同場次所有開放中的桌
+	automode=str(targettableid)=="auto"
 	tablerow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[tableid],SETTING["dbsetting"])
-	targetrow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[targettableid],SETTING["dbsetting"])
-	if not tablerow or not targetrow:
+	if not tablerow:
 		return errorresponse("ERROR_table_not_found")
 	tablerow=tablerow[0]
-	targetrow=targetrow[0]
-	if tablerow["sessionid"]!=targetrow["sessionid"]:
-		return errorresponse("ERROR_table_not_found")
+	targetrow=None
+	if not automode:
+		targetrow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[targettableid],SETTING["dbsetting"])
+		if not targetrow:
+			return errorresponse("ERROR_table_not_found")
+		targetrow=targetrow[0]
+		if tablerow["sessionid"]!=targetrow["sessionid"]:
+			return errorresponse("ERROR_table_not_found")
+		# 已關閉的桌不可作為併桌目標 (關閉=不再有新選手進桌)
+		if targetrow.get("closedtime"):
+			return errorresponse("ERROR_table_closed")
 	sessionrow=query(SETTING["dbname"],"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[tablerow["sessionid"]],SETTING["dbsetting"])
 	if not sessionrow:
 		return errorresponse("ERROR_session_not_found")
 	sessionrow=sessionrow[0]
-	if not tableowneraccess(sessionrow,userrow):
+	if not tablemanageaccess(sessionrow,userrow):
 		return errorresponse("ERROR_no_permission")
 	maxseat=int(sessionrow.get("maxseat") or 9)
+	if automode:
+		# auto 模式: 目標=同場次所有「開放中」的其他桌 (未刪除且 closedtime IS NULL)
+		opentablelist=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s AND "id"!=%s AND "deletetime" IS NULL AND "closedtime" IS NULL ORDER BY "no" ASC,"id" ASC""",[tablerow["sessionid"],tableid],SETTING["dbsetting"]) or []
+		if not opentablelist:
+			return errorresponse("ERROR_request_data_type_error")
+		# auto 模式 targettableno/targettablename 給 null, 前端據此顯示「併入多桌」; 各列去向看 moves 的 totableno/toseatno
+		movedata={
+			"moves": [],
+			"sourcetableno": tablerow.get("no"),
+			"sourcetablename": tablerow.get("name") or "",
+			"targettableno": None,
+			"targettablename": None
+		}
+		# 每張開放桌各自算空位清單 (linkuser 看 sessionplayer 在桌名單, 非 linkuser 看 seating 流水推出的當前座位)
+		emptymap={}
+		for opentable in opentablelist:
+			used=[]
+			if sessionrow.get("linkuser"):
+				targetplayers=tableactiveplayers(sessionrow["id"],opentable["id"])
+				for player in targetplayers:
+					used.append(player["seatno"])
+			else:
+				targetcurrent=tablecurrentplayers(sessionrow,opentable["id"])
+				for seat in targetcurrent:
+					if seat.get("player"):
+						used.append(seat["seatno"])
+			empty=[]
+			for seatno in range(1,maxseat+1):
+				if seatno not in used:
+					empty.append(seatno)
+			emptymap[opentable["id"]]=empty
+		if sessionrow.get("linkuser"):
+			sourceplayers=tableactiveplayers(sessionrow["id"],tableid)
+		else:
+			sourcecurrent=tablecurrentplayers(sessionrow,tableid)
+			sourceplayers=[]
+			for seat in sourcecurrent:
+				if seat.get("player"):
+					sourceplayers.append(seat)
+		totalempty=0
+		for opentable in opentablelist:
+			totalempty=totalempty+len(emptymap[opentable["id"]])
+		# 所有開放桌空位總和不足以容納來源人數 → 比照單桌空位不足回同一個錯
+		if totalempty<len(sourceplayers):
+			return errorresponse("ERROR_request_data_type_error")
+		# 逐人分配: 每次選「目前剩餘空位最多」的桌 (平衡), 座位在該桌空位中隨機取; 明細在交易寫入前組好
+		sqllist=[]
+		for i in range(len(sourceplayers)):
+			picked=None
+			for opentable in opentablelist:
+				if len(emptymap[opentable["id"]])<1:
+					continue
+				if picked is None or len(emptymap[picked["id"]])<len(emptymap[opentable["id"]]):
+					picked=opentable
+			seatno=random.choice(emptymap[picked["id"]])
+			emptymap[picked["id"]].remove(seatno)
+			if sessionrow.get("linkuser"):
+				sqllist.append(["""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s""",[picked["id"],seatno,sourceplayers[i]["sessionplayerid"]]])
+				movedata["moves"].append({
+					"playername": sourceplayers[i].get("name") or "",
+					"playerid": sourceplayers[i].get("playerid") or "",
+					"fromseatno": sourceplayers[i]["seatno"],
+					"totableno": picked.get("no"),
+					"totablename": picked.get("name") or "",
+					"toseatno": seatno
+				})
+			else:
+				player=sourceplayers[i]["player"]
+				sqllist.append(["""INSERT INTO "seating"("tableid","seatno","buyin","time","name","type","chip","createtime")VALUES(%s,%s,%s,NOW(),%s,%s,%s,NOW())""",[picked["id"],seatno,0,player.get("name") or "","buyin",player.get("chip") or sessionrow.get("chip") or 0]])
+				movedata["moves"].append({
+					"playername": player.get("name") or "",
+					"playerid": "",
+					"fromseatno": sourceplayers[i]["seatno"],
+					"totableno": picked.get("no"),
+					"totablename": picked.get("name") or "",
+					"toseatno": seatno
+				})
+		if not sessionrow.get("linkuser"):
+			sqllist.append(["""UPDATE "seating" SET "deletetime"=NOW() WHERE "tableid"=%s AND "deletetime" IS NULL""",[tableid]])
+		if sqllist:
+			result=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
+			if result is None:
+				return errorresponse("ERROR_database_error")
+		if sessionrow.get("linkuser"):
+			broadcasttablesession(sessionrow)
+		return Response({"success": True,"data": movedata},status.HTTP_200_OK)
 	used=[]
+	# 併桌去向明細: 在交易寫入前就用已知的來源選手與空位對應組好, 不能事後再查(可能已被其他操作改動)
+	movedata={
+		"moves": [],
+		"sourcetableno": tablerow.get("no"),
+		"sourcetablename": tablerow.get("name") or "",
+		"targettableno": targetrow.get("no"),
+		"targettablename": targetrow.get("name") or ""
+	}
 	if sessionrow.get("linkuser"):
 		targetplayers=tableactiveplayers(sessionrow["id"],targettableid)
 		for i in range(len(targetplayers)):
@@ -1141,12 +1255,20 @@ def mergetableplayers(request,tableid):
 		sqllist=[]
 		for i in range(len(sourceplayers)):
 			sqllist.append(["""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s""",[targettableid,empty[i],sourceplayers[i]["sessionplayerid"]]])
+			movedata["moves"].append({
+				"playername": sourceplayers[i].get("name") or "",
+				"playerid": sourceplayers[i].get("playerid") or "",
+				"fromseatno": sourceplayers[i]["seatno"],
+				"totableno": targetrow.get("no"),
+				"totablename": targetrow.get("name") or "",
+				"toseatno": empty[i]
+			})
 		if sqllist:
 			result=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
 			if result is None:
 				return errorresponse("ERROR_database_error")
 		broadcasttablesession(sessionrow)
-		return Response({"success": True,"data": ""},status.HTTP_200_OK)
+		return Response({"success": True,"data": movedata},status.HTTP_200_OK)
 	targetcurrent=tablecurrentplayers(sessionrow,targettableid)
 	for i in range(len(targetcurrent)):
 		if targetcurrent[i].get("player"):
@@ -1166,11 +1288,44 @@ def mergetableplayers(request,tableid):
 	for i in range(len(sourceplayers)):
 		player=sourceplayers[i]["player"]
 		sqllist.append(["""INSERT INTO "seating"("tableid","seatno","buyin","time","name","type","chip","createtime")VALUES(%s,%s,%s,NOW(),%s,%s,%s,NOW())""",[targettableid,empty[i],0,player.get("name") or "","buyin",player.get("chip") or sessionrow.get("chip") or 0]])
+		movedata["moves"].append({
+			"playername": player.get("name") or "",
+			"playerid": "",
+			"fromseatno": sourceplayers[i]["seatno"],
+			"totableno": targetrow.get("no"),
+			"totablename": targetrow.get("name") or "",
+			"toseatno": empty[i]
+		})
 	sqllist.append(["""UPDATE "seating" SET "deletetime"=NOW() WHERE "tableid"=%s AND "deletetime" IS NULL""",[tableid]])
 	result=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
 	if result is None:
 		return errorresponse("ERROR_database_error")
-	return Response({"success": True,"data": ""},status.HTTP_200_OK)
+	return Response({"success": True,"data": movedata},status.HTTP_200_OK)
+
+@api_view(["POST"])
+def closetable(request,tableid):
+	# 關閉/重新開啟牌桌: closedtime 有值=已關閉(不再讓新選手進桌), NULL=開放中
+	ensuretablesettingcolumns()
+	userrow,errresp=tableauthuser(request)
+	if errresp:
+		return errresp
+	tablerow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[tableid],SETTING["dbsetting"])
+	if not tablerow:
+		return errorresponse("ERROR_table_not_found")
+	tablerow=tablerow[0]
+	sessionrow=query(SETTING["dbname"],"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[tablerow["sessionid"]],SETTING["dbsetting"])
+	if not sessionrow:
+		return errorresponse("ERROR_session_not_found")
+	sessionrow=sessionrow[0]
+	if not tablemanageaccess(sessionrow,userrow):
+		return errorresponse("ERROR_no_permission")
+	data=json.loads(request.body or "{}")
+	closed=boolval(data.get("closed"))
+	if closed:
+		query(SETTING["dbname"],"""UPDATE "table" SET "closedtime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",[tableid],SETTING["dbsetting"])
+	else:
+		query(SETTING["dbname"],"""UPDATE "table" SET "closedtime"=NULL,"updatetime"=NOW() WHERE "id"=%s""",[tableid],SETTING["dbsetting"])
+	return Response({"success": True,"data": {"closed": closed}},status.HTTP_200_OK)
 
 @api_view(["DELETE"])
 def deletetable(request,tableid):

@@ -362,11 +362,27 @@ function formattime(ts){
 	return ptformatdatetime(ts)
 }
 
-function tableoptions(selected){
+function tmt(key,fallback){
+	if(TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["tablemanage"]&&TRANSLATE[LANGUAGE]["tablemanage"][key]){
+		return TRANSLATE[LANGUAGE]["tablemanage"][key]
+	}
+	return fallback
+}
+
+function tableoptions(selected,openonlyed){
 	let html=`<option value="">未排座</option>`
 	for(let i=0;i<tables.length;i=i+1){
 		let table=tables[i]
-		html=html+`<option value="${safehtml(table["id"])}" ${String(selected)==String(table["id"])?"selected":""}>${safehtml(table["no"]||table["token"]||("Table "+table["id"]))}</option>`
+		let closed=table["closedtime"]?true:false
+		// openonlyed: 排座下拉只列開放中的桌 (已關閉桌不可再塞新選手); 手動座位下拉仍列出全部, 但標註已關閉
+		if(openonlyed&&closed&&String(selected)!=String(table["id"])){
+			continue
+		}
+		let label=String(table["no"]||table["token"]||("Table "+table["id"]))
+		if(closed){
+			label=label+" ("+tmt("closedbadge","已關閉")+")"
+		}
+		html=html+`<option value="${safehtml(table["id"])}" ${String(selected)==String(table["id"])?"selected":""}>${safehtml(label)}</option>`
 	}
 	return html
 }
@@ -688,7 +704,7 @@ function loadregistrations(){
 
 		let toolbar=domgetid("registrationtoolbar")
 		if(toolbar){
-			let tablehtml=tableoptions("")
+			let tablehtml=tableoptions("",true)
 			toolbar.innerHTML=`
 				<div class="flex items-center justify-between gap-3">
 					<div>
@@ -711,6 +727,7 @@ function loadregistrations(){
 					<input type="button" class="bg-sky-600 hover:bg-sky-700 px-3 py-2 rounded text-sm font-semibold" id="randomunseatedbtn" value="未入座補位">
 					<input type="button" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm font-semibold" id="randomselectedbtn" value="重排選取選手">
 					<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-sm font-semibold" id="randombalancedbtn" value="全部桌平均排座">
+					<input type="button" class="bg-rose-600 hover:bg-rose-700 px-3 py-2 rounded text-sm font-semibold" id="unseatallbtn" value="${rt("unseatall_btn")}">
 					<input type="button" class="bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded text-sm font-semibold" id="applybestchipbtn" value="套用晉級最高計分牌">
 				</div>
 				<div class="mt-4 border-t border-zinc-800 pt-4">
@@ -871,6 +888,30 @@ function loadregistrations(){
 					["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 				],{
 					loadingtarget: "#reglist"
+				})
+			})
+			onclick("#unseatallbtn",function(element,event){
+				ptconfirm(rt("unseatall_confirm"),function(okayed){
+					if(!okayed){
+						return
+					}
+					element.disabled=true
+					ajax("PUT",AJAXURL+"randomizesessionplayerseats/"+sessionid,function(event,data){
+						element.disabled=false
+						if(data["success"]){
+							let unseatedcount=(data["data"]||{})["unseatedcount"]||0
+							pttoast(rt("unseatall_done").replace("{n}",String(unseatedcount)),"success")
+							loadregistrations()
+						}else{
+							pttoast(pterror(data["data"]||rt("unseatall_fail")),"error")
+						}
+					},str({
+						"mode": "unseatall"
+					}),[
+						["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+					],{
+						loadingtarget: "#reglist"
+					})
 				})
 			})
 			onclick("#selectallplayers",function(element,event){
@@ -1201,6 +1242,17 @@ function bindactions(){
 	let seatinputs=document.querySelectorAll(".seatinput")
 	for(let i=0;i<seatinputs.length;i=i+1){
 		seatinputs[i].addEventListener("change",function(){
+			if(this.dataset.field=="tableid"){
+				// 換桌時座位一律重設回未選 (-), 並依新桌重建可選座位, 避免把舊座位號帶到新桌
+				let seatbox=this.closest("tr")||this.closest(".registrationcard")
+				if(seatbox){
+					let seatselect=seatbox.querySelector(`.seatinput[data-id="${this.dataset.id}"][data-field="seatno"]`)
+					if(seatselect){
+						seatselect.innerHTML=seatoptions("",this.value,this.dataset.id)
+						seatselect.value=""
+					}
+				}
+			}
 			saveseat(this.dataset.id,this)
 		})
 	}
@@ -1463,19 +1515,7 @@ function savefinance(sessionplayerid){
 			for(let i=0;i<warnings.length;i=i+1){
 				pttoast(pterror(warnings[i]),"warning")
 			}
-			setregistrationresultsummary({
-				"showed": true,
-				"type": 0<warnings.length?"warning":"success",
-				"eyebrow": "收益修正摘要",
-				"title": 0<warnings.length?"收益修正已儲存，且有提醒":"收益修正已儲存",
-				"message": "這次修改只影響該筆報名財務資料，不會改動場次本身的獎金或買入設定。",
-				"items": [
-					{"label": "選手", "value": String(sessionplayerid)},
-					{"label": "警告", "value": String(warnings.length)},
-					{"label": "影響範圍", "value": "單筆報名"}
-				],
-				"details": warnings
-			})
+			// 收益修正不佔版面摘要區塊, 用上方浮動提示即可(警告已逐條 pttoast, 下方另有「修改完成」)
 			loadregistrations()
 			let modal=domgetid("financemodal")
 			if(modal){

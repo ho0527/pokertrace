@@ -573,6 +573,27 @@ def linkedchipgrandtotal(sessionrow,row,latestchips=None):
 			total=total+timerplayerchip(sessionrow,row[i],latestchips)
 	return total
 
+def conservedchiptotal(sessionrow,row):
+	# 守恆總量: Σ 每列「實際注入」的計分牌, 不隨淘汰變動——被淘汰選手的計分牌已轉給存活者仍在場上。
+	# 每列注入 = startchip(單日=起始碼; 多日晉級列=帶入的 advancechip) + 各加買次數 × 該場設定的碼量。
+	# 已晉級離場列要扣回 advancechip: 那些計分牌被帶去下一日, 不在本場檯面上。
+	# rebuychip/reentrychip 未設定(0)時退回起始碼, 單日賽全等於「起始碼 × 總入場人次」的舊守恆公式。
+	basechip=intval(sessionrow.get("chip"),0)
+	rebuychip=intval(sessionrow.get("rebuychip"),0) or basechip
+	reentrychip=intval(sessionrow.get("reentrychip"),0) or basechip
+	addonchip=intval(sessionrow.get("addonchip"),0)
+	total=0
+	for i in range(len(row)):
+		total=total+intval(row[i].get("startchip"),0)
+		total=total+intval(row[i].get("rebuycount"),0)*rebuychip
+		total=total+intval(row[i].get("reentrycount"),0)*reentrychip
+		total=total+intval(row[i].get("addoncount"),0)*addonchip
+		if row[i].get("registrationstatus")=="advanced":
+			total=total-intval(row[i].get("advancechip"),0)
+	if total<0:
+		total=0
+	return total
+
 def finalizetimerpendingplaces(sessionid):
 	registeredcount=len(gettimerplayerrows(sessionid))
 	row=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerplayer" WHERE "sessionid"=%s AND "status"='eliminated' AND "deletetime" IS NULL ORDER BY "eliminatedtime" ASC, "id" ASC""",[sessionid],SETTING["dbsetting"])
@@ -604,6 +625,20 @@ def multidayremaining(sessionid):
 		printcolorhaveline("fail","[ERROR] multidayremaining "+str(error),"")
 	return 0
 
+def multidaytodayentries(sessionid):
+	# 本日進場次數 = 此場的總入場次數 (1+rebuy+reentry, confirmed/advanced), 即 _sessiontotalentries。
+	# 顯示端分母用這個, 不用 multidayremaining(只算前一日晉級進來的人)——否則 Day2 有 re-entry /
+	# 直接報名時, 在場人數會超過晉級人數而出現 13/12 的矛盾畫面。
+	# 這裡數「入場次數」不是「人數」: 同一人 re-entry 一次, 分母 +1(13->14), 與「總入場」的 +1 對齊,
+	# 例: 12 晉級 + 1 人本日進場 = 13, 該人爆掉再 re-entry -> 分母 14、總數 +1。
+	# status 含 advanced: 已晉級去下一日的人今天仍算「本日進場」過, 計入分母; 在場人數(numerator)才排除 advanced。
+	try:
+		from .sessionplayer import _sessiontotalentries
+		return intval(_sessiontotalentries(sessionid),0)
+	except Exception as error:
+		printcolorhaveline("fail","[ERROR] multidaytodayentries "+str(error),"")
+	return 0
+
 def hasmultidayincoming(sessionid):
 	# 此場是否有玩家從前一日晉級進來 (即此場是某條 multiday 關係的 target)。
 	# 不可用 multidaytargetid 轉址: 中間日 (Day2) 同時是前一日的 target 與下一日的 source,
@@ -619,43 +654,55 @@ def hasmultidayincoming(sessionid):
 	return False
 
 def multidaysourcetotalentries(sessionid):
-	# 整個多日賽的原始參賽總人數 = 沿 multiday 關係往上追到最源頭 (第一日) 的場次,
-	# 加總這些「根場次」的報名數。中間日不能只算直接來源, 否則 Day3 只會拿到
-	# Day2 的人數 (D2A+D2B=30) 而非 Day1 的原始總額 (D1A+D1B=50)。
-	# 用 visited 防環、rootids 去重 (多條路徑可能匯到同一個根)。
+	# 整個多日賽的參賽總入場次數 = 走遍同一多日賽的所有場次, 每場加總「本場入場次數 − 本場晉級承接列數」。
+	#   本場入場次數 = _sessiontotalentries = SUM(1+rebuy+reentry)（confirmed/advanced）。
+	#   本場晉級承接列數 = 本場 sessionplayer 中 advancesourceid 有值的列(從前一日晉級進來那幾筆)。
+	#   減掉承接列的「基本入場」= 前一日已算過的重複; 他們在本場的 rebuy/reentry 與本場全新報名保留。
+	#   用 target 端承接列數而非來源端晉級人數(_multidayremainingcount): 要扣的正是本場那幾筆重複基本入場,
+	#   target 端一一對應最準; 來源端在多來源或晉級後又異動時可能多扣/少扣(曾出現 14/14 但總數多算 2)。
+	#   例: Day1=127, Day2 有 12 人晉級 + 2 人 Day2 才買進 → _sessiontotalentries(Day2)=14、承接列=12,
+	#       Day2 貢獻 14−12=2, 總計 127+2=129。
+	# 舊版只加總「根場次(第一日)」的報名數, 因此 Day2 之後的 re-entry / 直接報名一律漏算(總數卡在 127)。
+	# 走整張圖(往上找來源、往下找目標)而非只找根, 才能把每一天的新入場都納入; visited 防環、去重。
 	try:
 		from .sessionplayer import _sessiontotalentries
 	except Exception as error:
 		printcolorhaveline("fail","[ERROR] multidaysourcetotalentries import "+str(error),"")
 		return 0
 	visited=set()
-	rootids=set()
-	stack=[sessionid]
+	# sessionid 來自 URL path 是「字串」, DB 撈回的關係 id 是「整數」——
+	# 不先正規化成 int, visited 會同時存 "202" 與 202 兩個節點, 起點場次被走兩次、
+	# 貢獻被加兩遍(實際發生過: 202 貢獻 2 被重複 → 總數 129 顯示成 131)。
+	stack=[intval(sessionid,0)]
 	while stack:
 		currentid=stack.pop()
-		rows=query(SETTING["dbname"],f"""
-			SELECT sr."sourceid"
+		if currentid in visited:
+			continue
+		visited.add(currentid)
+		# 往上: 誰是 currentid 的來源(sourceid, targetid=current)
+		# 往下: currentid 是誰的來源(targetid, sourceid=current)
+		neighbours=query(SETTING["dbname"],f"""
+			SELECT sr."sourceid" AS sid, sr."targetid" AS tid
 			FROM "sessionrelation" sr
-			WHERE sr."targetid"=%s AND sr."relationtype"='multiday' AND sr."deletetime" IS NULL
-			ORDER BY sr."id" ASC
-		""",[currentid],SETTING["dbsetting"])
-		for i in range(len(rows or [])):
-			sourceid=rows[i]["sourceid"]
-			if sourceid in visited:
-				continue
-			visited.add(sourceid)
-			subrows=query(SETTING["dbname"],f"""
-				SELECT COUNT(*) AS count
-				FROM "sessionrelation"
-				WHERE "targetid"=%s AND "relationtype"='multiday' AND "deletetime" IS NULL
-			""",[sourceid],SETTING["dbsetting"])
-			if subrows and subrows[0].get("count") and 0<intval(subrows[0].get("count"),0):
-				stack.append(sourceid)
-			else:
-				rootids.add(sourceid)
+			WHERE (sr."targetid"=%s OR sr."sourceid"=%s) AND sr."relationtype"='multiday' AND sr."deletetime" IS NULL
+		""",[currentid,currentid],SETTING["dbsetting"])
+		for i in range(len(neighbours or [])):
+			sid=intval(neighbours[i]["sid"],0)
+			tid=intval(neighbours[i]["tid"],0)
+			if 0<sid and sid not in visited:
+				stack.append(sid)
+			if 0<tid and tid not in visited:
+				stack.append(tid)
 	total=0
-	for rootid in rootids:
-		total=total+_sessiontotalentries(rootid)
+	for dayid in visited:
+		# 本場晉級承接列數 = advancesourceid 有值的列(從前一日承接進來那幾筆)。
+		# 扣掉這些列的「基本入場」(前一日已算過的重複); 他們在本場的 rebuy/reentry 與本場全新報名保留。
+		carryrow=query(SETTING["dbname"],f"""SELECT COUNT(*) AS count FROM "sessionplayer" WHERE "sessionid"=%s AND "advancesourceid" IS NOT NULL AND "status" IN ('confirmed','advanced') AND "deletetime" IS NULL""",[dayid],SETTING["dbsetting"])
+		carry=intval(carryrow[0].get("count"),0) if carryrow else 0
+		# _sessiontotalentries 對「零人的場次」(例: 尚未開賽的 Day3 目標) 會回 None, 這裡收斂成 0,
+		# 否則 None-carry 會丟例外, 讓整個計時器 state 建構失敗、顯示端掛掉。
+		entries=intval(_sessiontotalentries(dayid),0)
+		total=total+entries-carry
 	return total
 
 def defaultconfig(sessionrow,players,totalentries):
@@ -953,12 +1000,14 @@ def buildtimerstate(sessionid,readonly=False):
 		playerlist=attachknockouts(sessionid,serializetimerplayers(counts[2]))
 		averagechiptotal=linkedchiptotal(sessionrow,counts[2])
 		totalchipcount=linkedchipgrandtotal(sessionrow,counts[2])
+		conservedtotal=conservedchiptotal(sessionrow,counts[2])
 	else:
 		players=0
 		totalentries=0
 		playerlist=[]
 		averagechiptotal=0
 		totalchipcount=0
+		conservedtotal=0
 	config=readconfig(sessionrow,players,totalentries,readonly)
 	schedule=readlevels(sessionid,readonly)
 	payouts=readpayouts(sessionid,readonly)
@@ -971,6 +1020,7 @@ def buildtimerstate(sessionid,readonly=False):
 		playerlist=attachknockouts(sessionid,serializetimerplayers(counts[2]))
 		averagechiptotal=linkedchiptotal(sessionrow,counts[2])
 		totalchipcount=linkedchipgrandtotal(sessionrow,counts[2])
+		conservedtotal=conservedchiptotal(sessionrow,counts[2])
 	state={}
 	state.update(config)
 	state.update(runtime)
@@ -982,8 +1032,10 @@ def buildtimerstate(sessionid,readonly=False):
 	state["playerMode"]="linked" if boolval(sessionrow.get("linkuser")) else "manual"
 	state["showMultidayRemaining"]=hasmultidayincoming(sessionid)
 	state["multidayRemaining"]=multidayremaining(sessionid)
+	state["multidayTodayEntries"]=multidaytodayentries(sessionid)
 	state["multidaySourceTotalEntries"]=multidaysourcetotalentries(sessionid)
 	state["averageStackTotal"]=averagechiptotal
+	state["conservedChipTotal"]=conservedtotal
 	state["totalChipCount"]=totalchipcount
 	# 顯示端品牌設定（檢查表 3.3）；欄位若尚未建立，get 會回 None
 	state["brandName"]=sessionrow.get("brandname") or ""

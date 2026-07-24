@@ -777,16 +777,30 @@ function rendersessiontablelist(){
 	let html=""
 	for(let i=start;i<end;i=i+1){
 		let tableurl=`table.html?id=${rows[i]["id"]}`
+		let closed=rows[i]["closedtime"]?true:false
+		let closedbadge=""
+		if(closed){
+			closedbadge=` <span class="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-xs font-bold text-rose-300">${smt("closedbadge","已關閉")}</span>`
+		}
+		let managehtml=""
+		if(sessioncanmanagetable()){
+			// 併桌/關閉權限比照後端 tableowneraccess: 擁有者或管理員 (聘用人員不可)
+			managehtml=`
+				<input type="button" class="mergetablebtn text-amber-400 hover:underline" data-id="${rows[i]["id"]}" value="${smt("mergebutton","併桌")}">
+				<input type="button" class="closetablebtn ${closed?"text-emerald-400":"text-zinc-300"} hover:underline" data-id="${rows[i]["id"]}" data-closed="${closed?"1":""}" value="${closed?smt("openbutton","重新開啟"):smt("closebutton","關閉牌桌")}">
+			`
+		}
 		html=html+`
 			<tr class="hover:bg-zinc-700 transition cursor-pointer sessiontablerow" data-url="${tableurl}">
-				<td class="relative py-2 px-2">${safehtml(sessiontableno(rows[i]))}<a href="${tableurl}" class="rowlink absolute inset-0 z-10"></a></td>
+				<td class="relative py-2 px-2">${safehtml(sessiontableno(rows[i]))}${closedbadge}<a href="${tableurl}" class="rowlink absolute inset-0 z-10"></a></td>
 				<td class="relative py-2 px-2">
 					${
 						tablelinked||!canviewsessionsettings(currentsession)?`
-							-<a href="${tableurl}" class="rowlink absolute inset-0 z-10"></a>
+							${managehtml||"-"}${managehtml?"":`<a href="${tableurl}" class="rowlink absolute inset-0 z-10"></a>`}
 						`:`
 							<a href="edittable.html?id=${rows[i]["id"]}" class="text-blue-400 hover:underline">編輯</a>
 							<input type="button" class="text-red-400 hover:underline deletetable" data-id="${rows[i]["id"]}" value="刪除">
+							${managehtml}
 						`
 					}
 				</td>
@@ -837,7 +851,241 @@ function rendersessiontablelist(){
 			])
 		})
 	})
+	onclick(".mergetablebtn",function(element,event){
+		opensessiontablemerge(dataset(element,"id"))
+	})
+	onclick(".closetablebtn",function(element,event){
+		let tableid=dataset(element,"id")
+		let closed=dataset(element,"closed")?false:true
+		let table=findsessiontable(tableid)
+		let label=table?String(sessiontableno(table)):""
+		if(closed){
+			ptconfirm(smt("closeconfirm","確定要關閉「{table}」嗎？關閉後不會再有新選手進入此桌。").replace("{table}",safehtml(label)),function(okayed){
+				if(!okayed){
+					return
+				}
+				callsessiontableclosed(tableid,true,element)
+			})
+		}else{
+			callsessiontableclosed(tableid,false,element)
+		}
+	})
 	rendersessiontablepager(rows.length)
+}
+
+function smt(key,fallback){
+	if(TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["tablemanage"]&&TRANSLATE[LANGUAGE]["tablemanage"][key]){
+		return TRANSLATE[LANGUAGE]["tablemanage"][key]
+	}
+	return fallback
+}
+
+function sessioncanmanagetable(){
+	if(!currentsession){
+		return false
+	}
+	if(currentsession["isown"]||currentsession["isadmin"]){
+		return true
+	}
+	return false
+}
+
+function findsessiontable(tableid){
+	for(let i=0;i<sessiontables.length;i=i+1){
+		if(String(sessiontables[i]["id"])==String(tableid)){
+			return sessiontables[i]
+		}
+	}
+	return null
+}
+
+function callsessiontableclosed(tableid,closed,element){
+	if(element){
+		element.disabled=true
+	}
+	ajax("POST",AJAXURL+"closetable/"+tableid,function(event,data){
+		if(element){
+			element.disabled=false
+		}
+		if(data["success"]){
+			pttoast(closed?smt("closesuccess","已關閉牌桌"):smt("opensuccess","已重新開啟牌桌"),"success")
+			loadsessiondata(true)
+		}else{
+			pttoast(pterror(data["data"]||smt("togglefail","操作失敗")),"error")
+		}
+	},str({
+		"closed": closed
+	}),[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],{
+		loadingtarget: "#tablemain"
+	})
+}
+
+function opensessiontablemerge(sourceid){
+	// 空位數要用實際入座狀況計算, gettablelist 沒帶, 改抓多牌桌總覽看板資料
+	ajax("GET",AJAXURL+"getsessiontableboard/"+sessionid,function(event,data){
+		if(!data["success"]){
+			pttoast(pterror(data["data"]||smt("loadfail","載入牌桌資料失敗")),"error")
+			return
+		}
+		let boardtables=(data["data"]||{})["tables"]||[]
+		let source=null
+		for(let i=0;i<boardtables.length;i=i+1){
+			if(String(boardtables[i]["id"])==String(sourceid)){
+				source=boardtables[i]
+			}
+		}
+		if(!source){
+			pttoast(pterror("ERROR_table_not_found"),"error")
+			return
+		}
+		let sourcelabel=String(source["name"]||source["no"]||source["id"])
+		let sourcecount=int(source["occupied"]||0)
+		let old=domgetid("tablemergemodal")
+		if(old){
+			ptremovescrollcover(old)
+		}
+		let optionhtml=""
+		for(let i=0;i<boardtables.length;i=i+1){
+			let table=boardtables[i]
+			if(String(table["id"])==String(sourceid)||table["closed"]){
+				continue
+			}
+			let empty=int(table["empty"]||0)
+			let enough=sourcecount<=empty
+			let optiontext=String(table["name"]||table["no"]||table["id"])+"　"+smt("emptycount","{n} 空位").replace("{n}",empty)
+			if(!enough){
+				optiontext=optiontext+"　"+smt("mergeinsufficient","空位不足")
+			}
+			optionhtml=optionhtml+`<input type="button" class="tablemergetargetbtn w-full text-left bg-zinc-700 hover:bg-zinc-600 disabled:opacity-40 rounded px-3 py-2 text-sm" data-id="${safehtml(table["id"])}" value="${safehtml(optiontext)}" ${enough?"":"disabled"}>`
+		}
+		if(!optionhtml){
+			optionhtml=`<div class="text-sm text-zinc-500">${smt("mergenotarget","沒有可併入的開放牌桌")}</div>`
+		}
+		let cover=doccreate("div")
+		cover.id="tablemergemodal"
+		cover.className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4"
+		cover.innerHTML=`
+			<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-md w-full p-5 shadow-xl">
+				<div class="flex items-center justify-between mb-4">
+					<div class="text-lg font-semibold text-white">${smt("mergetitle","併桌：選擇目標牌桌")}</div>
+					<input type="button" class="closetablemerge text-zinc-400 hover:text-white" value="×">
+				</div>
+				<div class="text-sm text-zinc-400 mb-4">${smt("mergedesc","把「{table}」的所有選手併到選定的目標桌，併桌後本桌會自動關閉。").replace("{table}",safehtml(sourcelabel))}</div>
+				<div class="grid grid-cols-1 gap-2 max-h-[50vh] overflow-y-auto">${optionhtml}</div>
+				<div class="flex justify-end gap-2 mt-5">
+					<input type="button" class="closetablemerge bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="${smt("cancel","取消")}">
+				</div>
+			</div>
+		`
+		ptlockpagescroll()
+		document.body.appendChild(cover)
+		onclick(".closetablemerge",function(element,event){
+			ptremovescrollcover(domgetid("tablemergemodal"))
+		})
+		onclick(".tablemergetargetbtn",function(element,event){
+			let targetid=dataset(element,"id")
+			let target=null
+			for(let i=0;i<boardtables.length;i=i+1){
+				if(String(boardtables[i]["id"])==String(targetid)){
+					target=boardtables[i]
+				}
+			}
+			let targetlabel=target?String(target["name"]||target["no"]||target["id"]):""
+			ptconfirm(smt("mergeconfirm","確定要把「{source}」的所有選手併到「{target}」嗎？併桌後「{source}」會自動關閉。").replace(/\{source\}/g,safehtml(sourcelabel)).replace("{target}",safehtml(targetlabel)),function(okayed){
+				if(!okayed){
+					return
+				}
+				sessionmergetableto(sourceid,targetid)
+			})
+		})
+	},null,[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	])
+}
+
+function sessionmergetableto(sourceid,targetid){
+	ajax("POST",AJAXURL+"mergetableplayers/"+sourceid,function(event,data){
+		if(data["success"]){
+			let modal=domgetid("tablemergemodal")
+			if(modal){
+				ptremovescrollcover(modal)
+			}
+			let movedata=data["data"]||{}
+			// 併桌=拆桌: 成功後自動關閉來源桌, 之後不該再有人進來
+			ajax("POST",AJAXURL+"closetable/"+sourceid,function(event,closedata){
+				if(closedata["success"]){
+					opensessionmergeresult(movedata,true)
+				}else{
+					pttoast(smt("mergeclosefail","併桌完成，但自動關閉來源桌失敗，請手動關閉"),"warning")
+					opensessionmergeresult(movedata,false)
+				}
+				loadsessiondata(true)
+			},str({
+				"closed": true
+			}),[
+				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+			])
+		}else{
+			pttoast(pterror(data["data"]||smt("mergefail","併桌失敗")),"error")
+		}
+	},str({
+		"targettableid": int(targetid)
+	}),[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],{
+		loadingtarget: "#tablemergemodal"
+	})
+}
+
+function opensessionmergeresult(movedata,closeded){
+	let old=domgetid("tablemergeresultmodal")
+	if(old){
+		ptremovescrollcover(old)
+	}
+	let sourcelabel=String(movedata["sourcetablename"]||movedata["sourcetableno"]||"")
+	let targetlabel=String(movedata["targettablename"]||movedata["targettableno"]||"")
+	let moves=movedata["moves"]||[]
+	let rowhtml=""
+	for(let i=0;i<moves.length;i=i+1){
+		let move=moves[i]
+		let playeridhtml=""
+		if(move["playerid"]){
+			playeridhtml=` <span class="text-sm font-normal text-zinc-400">(${safehtml(move["playerid"])})</span>`
+		}
+		rowhtml=rowhtml+`
+			<div class="flex items-center justify-between gap-3 border-t border-zinc-800 py-2">
+				<div class="min-w-0 truncate text-lg font-bold text-white">${safehtml(move["playername"]||"-")}${playeridhtml}</div>
+				<div class="shrink-0 font-mono text-xl font-extrabold text-emerald-400">${safehtml(movedata["sourcetableno"])}-${safehtml(move["fromseatno"])} → ${safehtml(move["totableno"])}-${safehtml(move["toseatno"])}</div>
+			</div>
+		`
+	}
+	if(!rowhtml){
+		rowhtml=`<div class="py-3 text-sm text-zinc-400">${smt("resultempty","此次併桌沒有需要移動的選手。")}</div>`
+	}
+	let closedhtml=""
+	if(closeded){
+		closedhtml=`<div class="mt-3 text-xs text-amber-300">${smt("resultclosed","「{source}」已自動關閉，不會再有新選手進入。").replace("{source}",safehtml(sourcelabel))}</div>`
+	}
+	let cover=doccreate("div")
+	cover.id="tablemergeresultmodal"
+	cover.className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4"
+	cover.innerHTML=`
+		<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-md w-full p-5 shadow-xl">
+			<div class="text-lg font-semibold text-white mb-4">${smt("resulttitle","「{source}」併入「{target}」").replace("{source}",safehtml(sourcelabel)).replace("{target}",safehtml(targetlabel))}</div>
+			<div class="max-h-[50vh] overflow-y-auto">${rowhtml}</div>
+			${closedhtml}
+			<div class="flex justify-end gap-2 mt-5">
+				<input type="button" class="closemergeresult bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded font-semibold" value="${smt("resultclose","關閉")}">
+			</div>
+		</div>
+	`
+	ptlockpagescroll()
+	document.body.appendChild(cover)
+	onclick(".closemergeresult",function(element,event){
+		ptremovescrollcover(domgetid("tablemergeresultmodal"))
+	})
 }
 
 function sessionplayersended(players){

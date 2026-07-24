@@ -2049,9 +2049,10 @@ def deletehand(request,handid):
 				"""UPDATE "sessiontimerplayer" SET "status"='active',"eliminatedtime"=NULL,"place"=NULL,"updatetime"=NOW() WHERE "sessionid"=%s AND "sessionplayerid"=%s AND "status"='eliminated' AND "deletetime" IS NULL""",
 				[hand["sessionid"],busted["sessionplayerid"]]
 			])
+			# 自動回座屬於自動入座路徑: 該桌若已被關閉 (closedtime 有值, 例如已併桌拆掉) 就不回座, 讓玩家維持未入座由工作人員手動安排
 			restorelist.append([
-				"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s AND "tableid" IS NULL AND "seatno" IS NULL AND "deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessionplayer" sp2 WHERE sp2."sessionid"=%s AND sp2."tableid"=%s AND sp2."seatno"=%s AND sp2."status"='confirmed' AND sp2."deletetime" IS NULL)""",
-				[hand["tableid"],busted["seatno"],busted["sessionplayerid"],hand["sessionid"],hand["tableid"],busted["seatno"]]
+				"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s AND "tableid" IS NULL AND "seatno" IS NULL AND "deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessionplayer" sp2 WHERE sp2."sessionid"=%s AND sp2."tableid"=%s AND sp2."seatno"=%s AND sp2."status"='confirmed' AND sp2."deletetime" IS NULL) AND EXISTS(SELECT 1 FROM "table" t2 WHERE t2."id"=%s AND t2."deletetime" IS NULL AND t2."closedtime" IS NULL)""",
+				[hand["tableid"],busted["seatno"],busted["sessionplayerid"],hand["sessionid"],hand["tableid"],busted["seatno"],hand["tableid"]]
 			])
 	sqllist=[
 		["""UPDATE "hand" SET "deletetime"=NOW() WHERE "id"=%s""",[handid]],

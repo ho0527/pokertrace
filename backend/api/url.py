@@ -104,6 +104,7 @@ urlpatterns=[
     re_path(r"^eliminatetableplayer/(?P<tableid>[^/]+)$",table.eliminatetableplayer,name="eliminatetableplayer"),
     re_path(r"^movetableplayer/(?P<tableid>[^/]+)$",table.movetableplayer,name="movetableplayer"),
     re_path(r"^mergetableplayers/(?P<tableid>[^/]+)$",table.mergetableplayers,name="mergetableplayers"),
+    re_path(r"^closetable/(?P<tableid>[^/]+)$",table.closetable,name="closetable"),
     re_path(r"^deletetable/(?P<tableid>[^/]+)$",table.deletetable,name="deletetable"),
 
     re_path(r"^getseatinglist/(?P<tableid>[^/]+)$",seating.getseatinglist,name="getseatinglist"),

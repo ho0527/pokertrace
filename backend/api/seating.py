@@ -138,6 +138,11 @@ def newseating(request,tableid,seatno):
 					if sessionrow:
 						sessionrow=sessionrow[0]
 						if tokenuserrow["id"]==sessionrow["userid"] or 4<=int(tokenuserrow["permission"]):
+							# 已關閉的桌不再收新的入座記錄 (buyin/rebuy); 離席記錄不擋, 讓既有選手仍可記離開
+							if row.get("closedtime"):
+								requestbody=json.loads(request.body or "{}")
+								if requestbody.get("type")!="leave":
+									return errorresponse("ERROR_table_closed")
 							requestdata=validate(json.loads(request.body),{
 								"type": "required|string|in:buyin,rebuy,leave",
 								"name": "required|string",

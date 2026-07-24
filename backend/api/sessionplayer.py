@@ -725,7 +725,7 @@ try:
 				totalchipcount=totalchipcount+intval(r.get("advancechip"),0)
 			elif r["status"]=="confirmed" and r.get("timerstatus")!="eliminated":
 				totalchipcount=totalchipcount+(latestchip if latestchip>0 else intval(r.get("startchip"),0))
-		tablerows=query(SETTING["dbname"],f"""SELECT "id","no","token" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
+		tablerows=query(SETTING["dbname"],f"""SELECT "id","no","token","closedtime" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
 		advancetargets=_multidaytargets(sessionid)
 
 		# 收據抬頭用：場地名稱、系列賽名稱（若此場次被系列賽包住）、開賽時間
@@ -1227,8 +1227,59 @@ try:
 		if maxseat<=0:
 			maxseat=9
 		startchip=requestdata["data"].get("startchip") or sessionrow.get("chip") or 0
-		if mode!="selected" and mode!="balanced":
+		if mode!="selected" and mode!="balanced" and mode!="unseatall":
 			mode="unseated"
+		if not _bool(sessionrow.get("linkuser")) and mode!="unseatall":
+			# 手動場次 (linkuser=false) 的座位存在 seating 表, 隨機入座各模式目前只支援串接場次;
+			# 直接回明確錯誤, 不做只改 sessionplayer 欄位、畫面看不到效果的假成功
+			return errorresponse("ERROR_request_data_type_error")
+		if mode=="unseatall" and not _bool(sessionrow.get("linkuser")):
+			# 手動場次: 座位是 seating 流水 (tablecurrentplayers 非 linkuser 分支),
+			# 比照 mergetableplayers 非 linkuser 的清桌作法, 把該場次所有牌桌 (含已關閉桌) 的 seating rows 軟刪
+			from .table import tablecurrentplayers
+			tablerows=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC,"id" ASC""",[sessionid],SETTING["dbsetting"]) or []
+			unseatedcount=0
+			sqllist=[]
+			for i in range(len(tablerows)):
+				currentplayers=tablecurrentplayers(sessionrow,tablerows[i]["id"])
+				seatedcount=0
+				for j in range(len(currentplayers)):
+					if currentplayers[j].get("player"):
+						seatedcount=seatedcount+1
+				if seatedcount>0:
+					unseatedcount=unseatedcount+seatedcount
+					sqllist.append([f"""UPDATE "seating" SET "deletetime"=NOW() WHERE "tableid"=%s AND "deletetime" IS NULL""",[tablerows[i]["id"]]])
+			if len(sqllist)>0:
+				transactionresult=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
+				if transactionresult is None:
+					return errorresponse("ERROR_database_error")
+			return Response({
+				"success": True,
+				"data": {
+					"unseatedcount": unseatedcount
+				}
+			},status.HTTP_200_OK)
+		if mode=="unseatall":
+			# 打散 (重新抽桌): 把該場次所有在場選手 (confirmed、未淘汰) 全部退座, 之後再用既有隨機入座重抽
+			# 已關閉桌上的選手一樣要清 (他們正是要被打散的), 所以不看 table.closedtime
+			unseatrows=query(SETTING["dbname"],f"""SELECT sp."id" FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."status"='confirmed' AND (sp."tableid" IS NOT NULL OR sp."seatno" IS NOT NULL) AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[sessionid],SETTING["dbsetting"])
+			unseatidlist=[]
+			for i in range(len(unseatrows or [])):
+				unseatidlist.append(unseatrows[i]["id"])
+			if len(unseatidlist)>0:
+				sqllist=[]
+				for i in range(len(unseatidlist)):
+					sqllist.append([f"""UPDATE "sessionplayer" SET "tableid"=NULL,"seatno"=NULL,"updatetime"=NOW() WHERE "id"=%s""",[unseatidlist[i]]])
+				transactionresult=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
+				if transactionresult is None:
+					return errorresponse("ERROR_database_error")
+			_broadcastsessiontimer(sessionrow)
+			return Response({
+				"success": True,
+				"data": {
+					"unseatedcount": len(unseatidlist)
+				}
+			},status.HTTP_200_OK)
 		if mode=="selected" and len(playerids)==0:
 			return errorresponse("ERROR_request_data_not_found")
 		if mode=="selected":
@@ -1247,12 +1298,13 @@ try:
 			},status.HTTP_200_OK)
 		if mode=="balanced":
 			tableids=requestdata["data"].get("tableids") or []
+			# 平均排座屬於自動挑桌: 已關閉 (closedtime 有值) 的桌一律排除, 即使呼叫端明確列出也不塞人進去
 			if len(tableids)==0:
-				tablerows=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
+				tablerows=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL AND "closedtime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
 			else:
 				tablerows=[]
 				for i in range(len(tableids)):
-					itemrow=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "id"=%s AND "sessionid"=%s AND "deletetime" IS NULL""",[tableids[i],sessionid],SETTING["dbsetting"])
+					itemrow=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "id"=%s AND "sessionid"=%s AND "deletetime" IS NULL AND "closedtime" IS NULL""",[tableids[i],sessionid],SETTING["dbsetting"])
 					if itemrow:
 						tablerows.append(itemrow[0])
 			if len(tablerows)==0:
@@ -1298,6 +1350,9 @@ try:
 		if not tablerow:
 			return errorresponse("ERROR_table_not_found")
 		tablerow=tablerow[0]
+		# 未入座補位/重排選取屬於整批自動排座: 已關閉的桌不可再塞新選手 (比照 mergetableplayers 對關閉目標桌回錯誤)
+		if tablerow.get("closedtime"):
+			return errorresponse("ERROR_table_closed")
 		seats=[]
 		for i in range(1,maxseat+1):
 			seats.append(i)
