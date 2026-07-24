@@ -33,8 +33,6 @@
 - `display.css`
 - `display.html`
 - `display.js`
-- `editsession.html`
-- `editsession.js`
 - `edittable.html`
 - `edittable.js`
 - `gto.js`
@@ -358,7 +356,7 @@ git diff --check -- frontend\tool\{toolname}.html frontend\tool\{toolname}.js fr
 - `newedithand` 在統一紀錄模式可建立沒有 Hero 的公共手牌；`handdetail` 讓玩家只更新自己的私有底牌與私人備註。
 - `broadcast.html`／`broadcast.js` 是場外現場轉播（唯讀）：橢圓牌桌視覺化、動作標示、下注計分牌（顏色取自場次面額）、可選牌面／牌背樣式（存 localStorage）、蓋牌暗化、底牌／未知牌顯示牌背；連 `ws/hand/<sessionid>/` 收事件即重抓 `getbroadcasthandlist`，並每 15 秒輪詢一次以配合固定延遲。`broadcastcontrol.html`／`broadcastcontrol.js` 是 H4H 裁判逐手推進控制台。轉播入口按鈕在 `table.html`／`session.html` 手牌分頁，僅符合資格（開放轉播＋統一紀錄＋公開場）時顯示；轉播設定在場次「牌局設定」。
 - `handreplay.js` 是手牌動畫回放：`handdetail.html` 的「▶ 動畫回放」按鈕會用同頁覆蓋層，把該手 `bittingdata`（依 `type` 分街、`id` 順序）展開成逐步 frame，在橢圓牌桌上播放發牌→逐街下注→翻公共牌→攤牌，含播放／單步／速度／進度條與「顯示所有底牌」切換。底牌預設牌背、hero（`selfseating`）預設亮並固定置於牌桌正下方、攤牌亮未蓋牌者。下注計分牌會呼叫 `getsessionchips` 用該場實際面額顏色上色（失敗則用通用色階）。牌桌另含：座位剩餘碼隨投入即時扣減、all-in 標誌、all-in 且動作結束（未蓋牌未全押者≤1）即翻牌、all-in 勝率＋outs（呼叫 `equity` 端點，僅有人 all-in 且底牌已知時顯示）、底池計分牌疊（可關閉）、左側 side pot、右側燒牌（`boardcard.burnflop/turn/river`）、一開始空桌不放牌背、攤牌後多一格「派彩」把底池計分牌移到贏家（`winnered`）面前；長按牌桌可開皮膚燈箱、長按後左右拖曳可 scrub 時間軸。牌桌視覺樣式抽在共用的 `pokertable.css`（與現場轉播共用同一套 `.bc-*` class；`broadcast.html` 目前仍保留一份 inline 版本，可後續去重）。
-- `session.html` 的「其他 → 設定」側欄除了「一般」「牌局設定」「刪除賽事」，另有「我的成績」：編輯自己在該場次的獲獎金額、獲獎獎品與名次，送 `editsessionresult`（與 `editsession.html` 同一支端點，兩邊都能改）。該端點是整列覆寫，所以未在此頁編輯的 `reentrycount` / `totalbuyin` / `inmoney` / `inft` 會用 `currentsession` 目前值原樣帶回，避免被洗成 0 或 false；儲存後呼叫 `loadsessiondata()` 讓總覽盈虧同步。整個設定分頁由 `canviewsessionsettings()`（`isown` / `isadmin` / `isstaff`）控管，對應後端 `_cansessionsetting`。
+- `session.html` 的「其他 → 設定」側欄除了「一般」「牌局設定」「刪除賽事」，另有「我的成績」：編輯自己在該場次的獲獎金額、名次、總買入、獲獎獎品、有進錢圈（ITM）與有進 Final Table，送 `editsessionresult`。舊的 `editsession.html` / `editsession.js` 已移除，這裡是唯一入口；`sessionlist` 的「編輯」與場次頁個人紀錄區的「編輯」都導到 `session.html?id=<id>#other-settings-result`，重新整理也會停在同一個分頁。該端點是整列覆寫，七個欄位一定要送齊，只有 `reentrycount` 本頁沒有欄位可編輯、會用 `currentsession` 目前值原樣帶回，避免被洗成 0；儲存後呼叫 `loadsessiondata()` 讓總覽盈虧同步。整個設定分頁由 `canviewsessionsettings()`（`isown` / `isadmin` / `isstaff`）控管，對應後端 `_cansessionsetting`。
 - `clublist` 手機版以卡片呈現並有前端分頁；`sessionlist` 手機版搜尋區可收合，兩者搜尋都提供清空按鈕。
 - `initialize.js` 會注入共用 manifest 與 `touch-action: manipulation`，也提供計時器頁共用常數與 loading helper；計時器相關頁面會載入 `initialize.js`，但依頁面類型跳過站台 nav / footer 注入。
 - `display.html` 是目前唯一不做中譯的前端頁面，計時器顯示端固定維持英文顯示文案。

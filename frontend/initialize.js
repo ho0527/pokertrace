@@ -2053,7 +2053,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				系統版本 a1.0.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				系統版本 a1.1.1 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>

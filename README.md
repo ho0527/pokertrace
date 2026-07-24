@@ -539,7 +539,6 @@ server {
 | `frontend/profile.html` | 個人檔案、統計與聘用資訊 |
 | `frontend/sessionlist.html` | 場次列表 |
 | `frontend/newsession.html` | 建立場次 |
-| `frontend/editsession.html` | 編輯場次 |
 | `frontend/session.html` | 場次詳細頁（含「加入系列賽」） |
 | `frontend/serieslist.html` | 系列賽管理（列表與新增） |
 | `frontend/series.html` | 系列賽詳情（場次彙總與排行榜） |

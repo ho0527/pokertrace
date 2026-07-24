@@ -25,13 +25,17 @@ const TRANSLATE={
 			"description": "登錄自己在本場次的獎金、獎品與名次，會同步反映在總覽的盈虧統計。",
 			"winprice": "獲獎金額",
 			"place": "名次",
+			"totalbuyin": "總買入",
 			"winthing": "獲獎獎品",
 			"winthingplaceholder": "如無獎品可填 N/A",
+			"inmoney": "有進錢圈 (ITM)",
+			"inft": "有進 Final Table",
 			"save": "儲存我的成績",
 			"savesuccess": "儲存成功",
 			"savefail": "儲存失敗",
 			"winpricenegative": "獲獎金額不得為負數",
-			"placenegative": "名次不得為負數"
+			"placenegative": "名次不得為負數",
+			"totalbuyinnegative": "總買入不得為負數"
 		},
 		"toolseo": {
 			"addonevtitle": "Add-on 該不該買？怎麼判斷划不划算",
@@ -5395,9 +5399,6 @@ const TRANSLATE={
 		            ".mobile-prize-card .lbl": "總現金獎金"
 		        }
 		    },
-		    "editsession.html": {
-		        "title": "編輯場次"
-		    },
 		    "edittable.html": {
 		        "title": "修改牌桌",
 		        "text": {
@@ -5498,13 +5499,17 @@ const TRANSLATE={
 			"description": "Record your prize, item and place for this session. It updates the profit stats on the overview tab.",
 			"winprice": "Prize Amount",
 			"place": "Place",
+			"totalbuyin": "Total Buy-in",
 			"winthing": "Prize Item",
 			"winthingplaceholder": "Enter N/A if there is no prize",
+			"inmoney": "In The Money (ITM)",
+			"inft": "Made Final Table",
 			"save": "Save My Result",
 			"savesuccess": "Saved",
 			"savefail": "Save failed",
 			"winpricenegative": "Prize amount cannot be negative",
-			"placenegative": "Place cannot be negative"
+			"placenegative": "Place cannot be negative",
+			"totalbuyinnegative": "Total buy-in cannot be negative"
 		},
 		"toolseo": {
 			"addonevtitle": "Should you take the add-on?",
@@ -10867,9 +10872,6 @@ const TRANSLATE={
 		            ".schedule-card .lbl": "Schedule",
 		            ".mobile-prize-card .lbl": "Total Cash Prize"
 		        }
-		    },
-		    "editsession.html": {
-		        "title": "Edit Session"
 		    },
 		    "edittable.html": {
 		        "title": "Edit Table",

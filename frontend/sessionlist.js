@@ -281,7 +281,7 @@ function sessionedithref(row){
 	if(row["owned"]==true){
 		return "session.html?id="+row["id"]+"#settings"
 	}
-	return "editsession.html?id="+row["id"]
+	return "session.html?id="+row["id"]+"#other-settings-result"
 }
 
 function sessionrowended(row){

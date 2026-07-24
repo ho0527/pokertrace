@@ -27,7 +27,6 @@
 - `sessionlist.html` / `sessionlist.js`：場次列表。
 - `session.html` / `session.js`：場次詳情。
 - `newsession.html` / `newsession.js`：新增場次。
-- `editsession.html` / `editsession.js`：編輯場次。
 - `control.html` / `control.js` / `control.css`：計時器控制端。
 - `display.html` / `display.js` / `display.css`：計時器顯示端。
 

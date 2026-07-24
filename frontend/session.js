@@ -2262,7 +2262,7 @@ function renderactionarea(row,timerloaded){
 		title.textContent="個人紀錄"
 		let edithtml=""
 		if(row["isown"]||row["isadmin"]){
-			edithtml=`<a href="editsession.html?id=${sessionid}" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold">編輯</a>`
+			edithtml=`<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold" data-sessionjump="#other-settings-result" value="編輯">`
 		}
 		btns.innerHTML=`
 			${edithtml}
@@ -2797,10 +2797,11 @@ function settingresultnumber(id){
 }
 
 function validatesettingresult(){
-	// 比照 editsession.js validateresult: 後端 winprice 是 integer|min:0, place 以字串存但同樣不接受負數
+	// 後端 winprice 是 integer|min:0, place / totalbuyin 以字串存但同樣不接受負數
 	let winpriceelement=domgetid("setwinprice")
 	let placeelement=domgetid("setplace")
-	if(!winpriceelement||!placeelement){
+	let totalbuyinelement=domgetid("settotalbuyin")
+	if(!winpriceelement||!placeelement||!totalbuyinelement){
 		return false
 	}
 	if(settingresultnumber("setwinprice")<0){
@@ -2811,6 +2812,14 @@ function validatesettingresult(){
 		return false
 	}
 	ptsetfieldmessage(winpriceelement,"")
+	if(settingresultnumber("settotalbuyin")<0){
+		let message=sessionresulttext("totalbuyinnegative","總買入不得為負數")
+		ptsetfieldmessage(totalbuyinelement,message)
+		pttoast(message,"error")
+		totalbuyinelement.focus()
+		return false
+	}
+	ptsetfieldmessage(totalbuyinelement,"")
 	if(settingresultnumber("setplace")<0){
 		let message=sessionresulttext("placenegative","名次不得為負數")
 		ptsetfieldmessage(placeelement,message)
@@ -2829,11 +2838,14 @@ function rendersettingresult(){
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("winprice","獲獎金額"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setwinprice" min="0" inputmode="numeric" value="${safehtml(currentsession["winprice"]||0)}"></label>
 			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("place","名次"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setplace" min="0" inputmode="numeric" value="${safehtml(currentsession["place"]||0)}"></label>
-			<label class="block text-sm text-zinc-300 md:col-span-2">${safehtml(sessionresulttext("winthing","獲獎獎品"))}<input type="text" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setwinthing" placeholder="${safehtml(sessionresulttext("winthingplaceholder","如無獎品可填 N/A"))}" value="${safehtml(currentsession["winthing"]||"N/A")}"></label>
+			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("totalbuyin","總買入"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="settotalbuyin" min="0" inputmode="numeric" value="${safehtml(currentsession["totalbuyin"]||0)}"></label>
+			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("winthing","獲獎獎品"))}<input type="text" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setwinthing" placeholder="${safehtml(sessionresulttext("winthingplaceholder","如無獎品可填 N/A"))}" value="${safehtml(currentsession["winthing"]||"N/A")}"></label>
+			<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setinmoney" ${currentsession["inmoney"]?"checked":""}>${safehtml(sessionresulttext("inmoney","有進錢圈 (ITM)"))}</label>
+			<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setinft" ${currentsession["inft"]?"checked":""}>${safehtml(sessionresulttext("inft","有進 Final Table"))}</label>
 		</div>
 		<div class="text-right mt-4"><input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded" id="savesettingresult" value="${safehtml(sessionresulttext("save","儲存我的成績"))}"></div>
 	`,false)
-	let checklist=["setwinprice","setplace"]
+	let checklist=["setwinprice","setplace","settotalbuyin"]
 	for(let i=0;i<checklist.length;i=i+1){
 		let element=domgetid(checklist[i])
 		if(element){
@@ -2849,20 +2861,22 @@ function rendersettingresult(){
 		if(!validatesettingresult()){
 			return
 		}
-		// editsessionresult 是整列覆寫: reentrycount / totalbuyin / inmoney / inft 沒送會被寫成 0 或 false,
-		// 所以未編輯的欄位一律帶回 currentsession 目前值, 型別比照 editsession.js 與後端 validate schema
+		// editsessionresult 是整列覆寫: 七個欄位一定要送齊, 沒送的會被寫成 0 或 false,
+		// reentrycount 本頁沒有欄位可編輯, 所以帶回 currentsession 目前值; 其餘六個送使用者輸入值
 		let reentrycount=int(currentsession["reentrycount"]||0)
 		if(Number.isNaN(reentrycount)){
 			reentrycount=0
 		}
+		let inmoneyelement=domgetid("setinmoney")
+		let inftelement=domgetid("setinft")
 		let payload={
 			"reentrycount": reentrycount,
 			"winprice": settingresultnumber("setwinprice"),
 			"winthing": (getvalue("setwinthing")||"").trim()||"N/A",
-			"inmoney": currentsession["inmoney"]==true,
-			"inft": currentsession["inft"]==true,
+			"inmoney": inmoneyelement!=null&&inmoneyelement.checked==true,
+			"inft": inftelement!=null&&inftelement.checked==true,
 			"place": String(settingresultnumber("setplace")),
-			"totalbuyin": String(currentsession["totalbuyin"]||0)
+			"totalbuyin": String(settingresultnumber("settotalbuyin"))
 		}
 		element.disabled=true
 		ajax("PUT",AJAXURL+"editsessionresult/"+sessionid,function(event,data){
@@ -2871,6 +2885,9 @@ function rendersettingresult(){
 				currentsession["winprice"]=payload["winprice"]
 				currentsession["winthing"]=payload["winthing"]
 				currentsession["place"]=payload["place"]
+				currentsession["totalbuyin"]=payload["totalbuyin"]
+				currentsession["inmoney"]=payload["inmoney"]
+				currentsession["inft"]=payload["inft"]
 				pttoast(sessionresulttext("savesuccess","儲存成功"),"success")
 				loadsessiondata()
 			}else{
@@ -3990,7 +4007,14 @@ function sessionhashstate(){
 		"handtab": "",
 		"tabletab": "",
 		"overviewtab": "",
-		"othertab": ""
+		"othertab": "",
+		"settingtab": ""
+	}
+	// 從場次列表或個人紀錄的「編輯」進來時直接停在 其他 → 設定 → 我的成績
+	if(sessionhash=="other-settings-result"||sessionhash=="settings-result"){
+		state["othertab"]="settings"
+		state["settingtab"]="result"
+		state["tab"]="other"
 	}
 	if(sessionhash=="overview-other-settings"||sessionhash=="overview-other-relations"){
 		state["othertab"]=sessionhash.replace("overview-other-","")
@@ -4114,6 +4138,11 @@ function applysessionhash(){
 	if(state["othertab"]){
 		selectsessionothertab(state["othertab"])
 	}
+	if(state["settingtab"]){
+		// currentsession 還沒載入時 rendersettings 會直接返回, 先寫入頁籤記憶讓資料載完後仍停在同一個分頁
+		weblsset(settingtabkey,state["settingtab"])
+		rendersettings(state["settingtab"])
+	}
 	if(state["tabletab"]){
 		selectsessiontabletab(state["tabletab"])
 	}
@@ -4169,6 +4198,16 @@ document.addEventListener("click",function(event){
 		if(tab){
 			tab.click()
 			selectsessionothertab("settings")
+			href(jump)
+		}
+		return
+	}
+	if(jump=="#other-settings-result"){
+		let tab=document.querySelector('.tab-btn[data-tab="other"]')
+		if(tab){
+			tab.click()
+			selectsessionothertab("settings")
+			rendersettings("result")
 			href(jump)
 		}
 		return
