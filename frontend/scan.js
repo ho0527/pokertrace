@@ -1,6 +1,8 @@
 // 報到 QR 掃描器：優先用瀏覽器內建 BarcodeDetector 讀相機畫面；不支援時改用
 // 本地 jsqr.js（jsQR）以 canvas 取幀解碼。辨識到收據 QR（checkin 網址）後自動
 // 開啟該筆報到核對頁。兩者都不可用或相機失敗時提供手動輸入。
+// 手動輸入用的是收據上印的「入場編號」(sessionplayer.serialno)，只在單一場次內
+// 唯一，所以要先選場次；QR 走的則是 sessionplayer.id，兩者不同不可混用。
 
 let scanstream=null
 let scandetector=null
@@ -9,6 +11,11 @@ let scancanvas=null
 let scanbusy=false
 let scanhandled=false
 let scanstarting=false
+// 從場次頁 / 報名清單頁點進來時會帶 ?s=<場次id>，用來預選場次。
+// 參數名以 sessionid 為準，仍相容舊的 s（已印出的收據 QR 內含 ?s=）
+const SCANURLSESSIONID=getget("sessionid")||getget("s")||""
+// 手動輸入只列「還在進行中」的場次：結束超過一天的就不列，避免下拉塞滿舊場次。
+const SCANSESSIONMAXAGEMS=24*60*60*1000
 
 if(!weblsget(WEBLSNAME+"signin")){
 	href("signin.html")
@@ -19,6 +26,90 @@ function scantext(key){
 		return TRANSLATE[LANGUAGE]["scanpage"][key]
 	}
 	return key
+}
+
+// 手動輸入區文案走 translate；查不到翻譯時 scantext 會回 key，這時保留 HTML 既有文案不覆蓋。
+function scansettext(id,key){
+	let element=domgetid(id)
+	let text=scantext(key)
+	if(element&&text!=key){
+		element.textContent=text
+	}
+}
+
+// 手動輸入的場次下拉：清單直接用 getsessionlist（後端只回本人擁有 / 受聘 / 可報名的場次），
+// 前端再留下「主辦場次 + 自己可操作（isown / isstaff） + 尚未結束」的，才是能報到的場。
+function scanloadsessionlist(){
+	let select=domgetid("scanmanualsession")
+	if(select){
+		select.innerHTML=`<option value="">${escapehtml(scantext("sessionloading"))}</option>`
+		ajax("GET",AJAXURL+"getsessionlist?limit=200&page=1",function(event,data){
+			if(!data["success"]){
+				select.innerHTML=`<option value="">${escapehtml(scantext("sessionfail"))}</option>`
+				return
+			}
+			let list=(data["data"]||{})["sessions"]||[]
+			let optionlist=[]
+			let selectedid=""
+			for(let i=0;i<list.length;i=i+1){
+				let row=list[i]
+				let operateded=row["isown"]==true||row["isstaff"]==true
+				let recented=true
+				let endtime=row["endtime"]||row["starttime"]||""
+				if(endtime){
+					let endtimems=new Date(String(endtime).replace(" ","T")).getTime()
+					if(!isNaN(endtimems)){
+						recented=(Date.now()-endtimems)<SCANSESSIONMAXAGEMS
+					}
+				}
+				let usableed=row["owned"]==true&&operateded&&row["sessionended"]!=true&&recented
+				// 網址指定的場次一律列出來（可能已結束或較舊），才不會點進來反而選不到。
+				if(String(row["id"])==String(SCANURLSESSIONID)&&operateded){
+					usableed=true
+					selectedid=String(row["id"])
+				}
+				if(usableed){
+					let starttime=ptformatdatetimeminute(row["starttime"])
+					let name=row["name"]||""
+					if(starttime){
+						name=name+"（"+starttime+"）"
+					}
+					optionlist.push({
+						"id": String(row["id"]),
+						"name": name
+					})
+				}
+			}
+			let html=""
+			if(optionlist.length<1){
+				html=`<option value="">${escapehtml(scantext("sessionempty"))}</option>`
+			}else{
+				// 只有一個可選時不放提示選項，讓它自動選定，工作人員不用多點一次。
+				if(1<optionlist.length&&!selectedid){
+					html=`<option value="">${escapehtml(scantext("sessionrequired"))}</option>`
+				}
+				for(let i=0;i<optionlist.length;i=i+1){
+					html=html+`<option value="${escapehtml(optionlist[i]["id"])}">${escapehtml(optionlist[i]["name"])}</option>`
+				}
+			}
+			select.innerHTML=html
+			if(selectedid){
+				select.value=selectedid
+				// 從場次頁 / 報名工作台帶 ?s= 進來時場次已經確定, 不需要再讓使用者挑,
+				// 把下拉換成固定文字顯示, 避免誤選到別場而查不到人。
+				let fixedbox=domgetid("scanmanualsessionfixed")
+				if(fixedbox){
+					let picked=select.selectedOptions&&select.selectedOptions[0]?select.selectedOptions[0].textContent:""
+					fixedbox.textContent=picked
+					fixedbox.classList.remove("hidden")
+					fixedbox.classList.add("flex")
+					select.classList.add("hidden")
+				}
+			}
+		},null,[
+			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+		])
+	}
 }
 
 function scanstatus(text,kind){
@@ -64,12 +155,12 @@ function scangoto(value){
 	let target=""
 	try{
 		let parsed=new URL(value)
-		let s=parsed.searchParams.get("s")
+		let s=parsed.searchParams.get("sessionid")||parsed.searchParams.get("s")
 		let r=parsed.searchParams.get("r")
 		if(r){
 			target="checkin.html?"
 			if(s){
-				target=target+"s="+encodeURIComponent(s)+"&"
+				target=target+"sessionid="+encodeURIComponent(s)+"&"
 			}
 			target=target+"r="+encodeURIComponent(r)
 		}
@@ -223,14 +314,33 @@ onclick("#scanrestart",function(element,event){
 	scanstart()
 })
 
+// 手動輸入送出的是「場次 + 入場編號」，checkin.html 會改打 getcheckininfobyentry。
 onclick("#scanmanualgo",function(element,event){
-	let manual=getvalue("scanmanualinput")
-	if(!manual){
-		pttoast(scantext("manualempty"),"warning")
-		return
+	let select=domgetid("scanmanualsession")
+	let manualsessionid=""
+	if(select){
+		manualsessionid=select.value
 	}
-	scanstop()
-	href("checkin.html?r="+encodeURIComponent(manual))
+	let manual=getvalue("scanmanualinput")
+	if(!manualsessionid){
+		pttoast(scantext("sessionrequired"),"warning")
+	}else if(!manual){
+		pttoast(scantext("manualempty"),"warning")
+	}else{
+		scanstop()
+		href("checkin.html?sessionid="+encodeURIComponent(manualsessionid)+"&entry="+encodeURIComponent(manual))
+	}
 })
 
+scansettext("scanmanualhint","manualhint")
+scansettext("scanmanualsessionlabel","manualsessionlabel")
+scansettext("scanmanualentrylabel","manualentrylabel")
+if(domgetid("scanmanualinput")&&scantext("manualentrylabel")!="manualentrylabel"){
+	domgetid("scanmanualinput").setAttribute("placeholder",scantext("manualentrylabel"))
+}
+// 帶場次進來(從報名工作台掃碼)時，返回目標回該場次的報名工作台；沒帶場次才回場次列表。
+if(SCANURLSESSIONID&&domgetid("scanback")){
+	domgetid("scanback").href="register.html?sessionid="+encodeURIComponent(SCANURLSESSIONID)
+}
+scanloadsessionlist()
 scanstart()

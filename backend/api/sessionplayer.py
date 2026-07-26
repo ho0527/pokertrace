@@ -471,6 +471,119 @@ def _upsertadvancetarget(sourceplayer,source,targets,chip):
 		"bestchip": _num(countrow[0].get("bestchip"),0) if countrow else chip
 	})
 
+# 報到核對查詢的共用 SELECT; 後面接不同的 WHERE 條件 (掃 QR 用 sp."id", 手動輸入用 sp."sessionid"+sp."serialno")。
+CHECKININFOSELECT="""SELECT sp.*,
+       u."name" AS playername, u."playerid" AS playerplayerid,
+       tp."place" AS timerplace, tp."status" AS timerstatus,
+       t."no" AS tableno, t."token" AS tabletoken
+    FROM "sessionplayer" sp
+    JOIN "user" u ON u."id"=sp."userid"
+    LEFT JOIN "sessiontimerplayer" tp ON tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."deletetime" IS NULL
+    LEFT JOIN "table" t ON t."id"=sp."tableid" AND t."deletetime" IS NULL
+    WHERE sp."deletetime" IS NULL AND """
+
+# 沿晉級鏈往後追的最大步數; 正常多日賽不會超過這個層數, 純粹當防呆上限。
+ADVANCECHAINMAX=20
+
+def _advancechainfinal(row):
+	# Day1 收據晉級沿用: 掃到的那筆若已晉級 (status='advanced'), 就沿著
+	# advancetargetid(目標場次 id) + 同一個 userid 往後找, 一路追到最後一筆報名。
+	# 中間日同時是 target 也是 source, 所以是迴圈追蹤而不是只追一層。
+	# 防環: visitedplayer / visitedsession 記錄走過的 sessionplayer.id 與 sessionid,
+	# 走回頭就停; 另外用 ADVANCECHAINMAX 當硬上限。
+	# 目標列不存在 (資料不完整) 時就停在目前這筆, 由呼叫端照原樣顯示。
+	finalrow=row
+	visitedplayer=set()
+	visitedsession=set()
+	visitedplayer.add(row["id"])
+	visitedsession.add(row["sessionid"])
+	for step in range(ADVANCECHAINMAX):
+		targetsessionid=_int(finalrow.get("advancetargetid"),0)
+		if finalrow.get("status")!="advanced" or targetsessionid<=0 or targetsessionid in visitedsession:
+			break
+		nextrow=query(SETTING["dbname"],CHECKININFOSELECT+"""sp."sessionid"=%s AND sp."userid"=%s""",[targetsessionid,finalrow["userid"]],SETTING["dbsetting"])
+		if not nextrow:
+			break
+		nextrow=nextrow[0]
+		if nextrow["id"] in visitedplayer:
+			break
+		visitedplayer.add(nextrow["id"])
+		visitedsession.add(targetsessionid)
+		finalrow=nextrow
+	return finalrow
+
+def _checkininfodata(user,row):
+	# 報到核對頁的顯示資料組裝, 給 getcheckininfo 與 getcheckininfobyentry 共用。
+	# 回傳 (data,errorcode); 有 errorcode 時 data 為 None。
+	# 權限: 本人、場次擁有者 / 管理員、該場員工 (玩家掃自己的收據不會被權限擋)。
+	# 已晉級時改顯示鏈上最後一筆 (Day1 收據可沿用到 Day2/Day3), 權限一律以「最後顯示的那一場」判定,
+	# 避免只有舊場次權限的人靠舊收據看到新場次資料。
+	sourcerow=row
+	row=_advancechainfinal(row)
+	followedadvanceed=row["id"]!=sourcerow["id"]
+
+	sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[row["sessionid"]],SETTING["dbsetting"])
+	if not sessionrow:
+		return None,"ERROR_session_not_found"
+	sessionrow=sessionrow[0]
+
+	isstaffview=_requireowner(sessionrow,user) or _sessionstaffed(sessionrow,user)
+	allowed=isstaffview or row["userid"]==user["id"]
+	if not allowed:
+		return None,"ERROR_no_permission"
+
+	advancedfrom=""
+	advancedfromsessionid=None
+	if followedadvanceed:
+		advancedfromsessionid=sourcerow["sessionid"]
+		sourcesessionrow=query(SETTING["dbname"],f"""SELECT "name" FROM "session" WHERE "id"=%s""",[sourcerow["sessionid"]],SETTING["dbsetting"])
+		if sourcesessionrow:
+			advancedfrom=sourcesessionrow[0].get("name") or ""
+
+	# 算名次 / 獎金 (供列印獎金收據)
+	_attachfinance(sessionrow,[row])
+
+	clubname=""
+	if sessionrow.get("clubid"):
+		clubrow=query(SETTING["dbname"],f"""SELECT "name" FROM "club" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionrow["clubid"]],SETTING["dbsetting"])
+		if clubrow:
+			clubname=clubrow[0].get("name") or ""
+	seriestitle=""
+	seriesrow=query(SETTING["dbname"],f"""SELECT se."name" AS name FROM "seriessession" ss JOIN "series" se ON se."id"=ss."seriesid" AND se."deletetime" IS NULL WHERE ss."sessionid"=%s AND ss."deletetime" IS NULL ORDER BY ss."id" ASC LIMIT 1""",[row["sessionid"]],SETTING["dbsetting"])
+	if seriesrow:
+		seriestitle=seriesrow[0].get("name") or ""
+
+	tablename=row.get("tableno")
+	if tablename is None or tablename=="":
+		tablename=row.get("tabletoken") or ""
+
+	return {
+		"playername": row.get("playername"),
+		"playerplayerid": row.get("playerplayerid"),
+		"sessionid": row.get("sessionid"),
+		"sessionplayerid": row.get("id"),
+		"sessionname": sessionrow["name"],
+		"seriestitle": seriestitle,
+		"clubname": clubname,
+		"starttime": sessionrow.get("starttime"),
+		"serialno": row.get("serialno"),
+		"status": row.get("status"),
+		"place": row.get("timerplace"),
+		"finalprize": row.get("finalprize"),
+		"autoprize": row.get("autoprize"),
+		"canissue": isstaffview,
+		"tablename": tablename,
+		"seatno": row.get("seatno"),
+		"buyin": (row.get("buyin") or 0)+(row.get("fee") or 0),
+		"paymenttype": row.get("paymenttype"),
+		"reentrycount": row.get("reentrycount") or 0,
+		"followedadvanceed": followedadvanceed,
+		"advancedfrom": advancedfrom,
+		"advancedfromsessionid": advancedfromsessionid,
+		"currentsessionname": sessionrow["name"],
+		"currentsessionid": row.get("sessionid")
+	},None
+
 
 # main START
 try:
@@ -781,76 +894,51 @@ try:
 
 	@api_view(["GET"])
 	def getcheckininfo(request,sessionplayerid):
-		# 報到核對頁用：查單筆報名的顯示資訊。允許本人、場次擁有者 / 管理員、該場員工查看（玩家掃自己的收據不會被權限擋）。
+		# 報到核對頁用：掃收據 QR 進來, 用 sessionplayer.id 查單筆報名的顯示資訊。
 		user,errresp=_gettokenuser(request)
 		if errresp:
 			return errresp
 
-		row=query(SETTING["dbname"],
-			f"""SELECT sp.*,
-			       u."name" AS playername, u."playerid" AS playerplayerid,
-			       tp."place" AS timerplace, tp."status" AS timerstatus,
-			       t."no" AS tableno, t."token" AS tabletoken
-			    FROM "sessionplayer" sp
-			    JOIN "user" u ON u."id"=sp."userid"
-			    LEFT JOIN "sessiontimerplayer" tp ON tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."deletetime" IS NULL
-			    LEFT JOIN "table" t ON t."id"=sp."tableid" AND t."deletetime" IS NULL
-			    WHERE sp."id"=%s AND sp."deletetime" IS NULL""",
-			[sessionplayerid],
-			SETTING["dbsetting"]
-		)
+		if _int(sessionplayerid,0)<=0:
+			return errorresponse("ERROR_registration_not_found")
+
+		row=query(SETTING["dbname"],CHECKININFOSELECT+"""sp."id"=%s""",[_int(sessionplayerid,0)],SETTING["dbsetting"])
 		if not row:
 			return errorresponse("ERROR_registration_not_found")
-		row=row[0]
 
-		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[row["sessionid"]],SETTING["dbsetting"])
-		if not sessionrow:
-			return errorresponse("ERROR_session_not_found")
-		sessionrow=sessionrow[0]
-
-		isstaffview=_requireowner(sessionrow,user) or _sessionstaffed(sessionrow,user)
-		allowed=isstaffview or row["userid"]==user["id"]
-		if not allowed:
-			return errorresponse("ERROR_no_permission")
-
-		# 算名次 / 獎金（供列印獎金收據）
-		_attachfinance(sessionrow,[row])
-
-		clubname=""
-		if sessionrow.get("clubid"):
-			clubrow=query(SETTING["dbname"],f"""SELECT "name" FROM "club" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionrow["clubid"]],SETTING["dbsetting"])
-			if clubrow:
-				clubname=clubrow[0].get("name") or ""
-		seriestitle=""
-		seriesrow=query(SETTING["dbname"],f"""SELECT se."name" AS name FROM "seriessession" ss JOIN "series" se ON se."id"=ss."seriesid" AND se."deletetime" IS NULL WHERE ss."sessionid"=%s AND ss."deletetime" IS NULL ORDER BY ss."id" ASC LIMIT 1""",[row["sessionid"]],SETTING["dbsetting"])
-		if seriesrow:
-			seriestitle=seriesrow[0].get("name") or ""
-
-		tablename=row.get("tableno")
-		if tablename is None or tablename=="":
-			tablename=row.get("tabletoken") or ""
+		data,errorcode=_checkininfodata(user,row[0])
+		if errorcode:
+			return errorresponse(errorcode)
 
 		return Response({
 			"success": True,
-			"data": {
-				"playername": row.get("playername"),
-				"playerplayerid": row.get("playerplayerid"),
-				"sessionname": sessionrow["name"],
-				"seriestitle": seriestitle,
-				"clubname": clubname,
-				"starttime": sessionrow.get("starttime"),
-				"serialno": row.get("serialno"),
-				"status": row.get("status"),
-				"place": row.get("timerplace"),
-				"finalprize": row.get("finalprize"),
-				"autoprize": row.get("autoprize"),
-				"canissue": isstaffview,
-				"tablename": tablename,
-				"seatno": row.get("seatno"),
-				"buyin": (row.get("buyin") or 0)+(row.get("fee") or 0),
-				"paymenttype": row.get("paymenttype"),
-				"reentrycount": row.get("reentrycount") or 0
-			}
+			"data": data
+		},status.HTTP_200_OK)
+
+	@api_view(["GET"])
+	def getcheckininfobyentry(request,sessionid,entryno):
+		# 報到核對頁用：工作人員照收據手動輸入時, 用 場次 + 入場編號 (sessionplayer.serialno) 查。
+		# 入場編號只在單一場次內唯一, 所以一定要帶 sessionid; 回傳結構與 getcheckininfo 完全相同。
+		user,errresp=_gettokenuser(request)
+		if errresp:
+			return errresp
+
+		if _int(sessionid,0)<=0:
+			return errorresponse("ERROR_session_not_found")
+		if _int(entryno,0)<=0:
+			return errorresponse("ERROR_registration_not_found")
+
+		row=query(SETTING["dbname"],CHECKININFOSELECT+"""sp."sessionid"=%s AND sp."serialno"=%s""",[_int(sessionid,0),_int(entryno,0)],SETTING["dbsetting"])
+		if not row:
+			return errorresponse("ERROR_registration_not_found")
+
+		data,errorcode=_checkininfodata(user,row[0])
+		if errorcode:
+			return errorresponse(errorcode)
+
+		return Response({
+			"success": True,
+			"data": data
 		},status.HTTP_200_OK)
 
 	@api_view(["PUT"])
@@ -1328,14 +1416,21 @@ try:
 				})
 			random.shuffle(rows)
 			for i in range(len(rows or [])):
-				best=None
+				# 找出目前人數最少的桌; 有多桌並列最少時「隨機」挑一桌,
+				# 避免固定選 index 最小的桌造成 A,B,A,B 輪流入座的「排隊」感(真正隨機分桌)
+				mincount=None
+				candidates=[]
 				for j in range(len(tabledata)):
 					if len(tabledata[j]["seats"])==0:
 						continue
-					if best is None or tabledata[j]["count"]<tabledata[best]["count"]:
-						best=j
-				if best is None:
+					if mincount is None or tabledata[j]["count"]<mincount:
+						mincount=tabledata[j]["count"]
+						candidates=[j]
+					elif tabledata[j]["count"]==mincount:
+						candidates.append(j)
+				if not candidates:
 					break
+				best=random.choice(candidates)
 				seatno=tabledata[best]["seats"].pop(0)
 				tabledata[best]["count"]=tabledata[best]["count"]+1
 				query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"startchip"=%s,"updatetime"=NOW() WHERE "id"=%s""",[tabledata[best]["table"]["id"],seatno,startchip,rows[i]["id"]],SETTING["dbsetting"])

@@ -290,6 +290,8 @@ const APICATEGORIES=[
 						SUB("name","string","顯示名稱。","Display name."),
 						SUB("playerid","string","選手代碼。","Player code."),
 						R("chipcolors","object[]","計分牌色票陣列。","Chip color tickets.",[SUB("name","string","顏色名稱／面額標籤。","Color/denomination label."),SUB("color","string","HEX 色碼。","HEX color.")]),
+						SUB("carddeck","string","牌背皮膚(classic/crimson/midnight)。","Card back skin (classic/crimson/midnight)."),
+						SUB("potmainside","string","回放主池位置(left/right)。","Replay main pot side (left/right)."),
 						R("chipset","object[]","計分牌組陣列。","Chip sets.",[SUB("name","string","組合名稱。","Set name."),R("chips","object[]","計分牌陣列。","Chips.",[SUB("shape","string","形狀。","Shape."),SUB("value","int","面額。","Value."),SUB("color","string","顏色。","Color.")])])
 					]),
 					R("data.todaytotalprofit / weektotalprofit / monthtotalprofit","int","今日／本週／本月損益。","Today / this week / this month profit.",null),
@@ -350,6 +352,22 @@ const APICATEGORIES=[
 					SUB("color","string","HEX 色碼，例如 #ff0000。","HEX color, e.g. #ff0000.")
 				],ex: [{ name: "100",color: "#000000" },{ name: "500",color: "#ff0000" }] })],
 				response: [R("data","object[]","更新後的色票陣列。","The updated color tickets.",[SUB("name","string","顏色名稱／面額標籤。","Color/denomination label."),SUB("color","string","HEX 色碼。","HEX color.")])],
+				errors: [ETOKEN,EREQ]
+			},
+			{
+				id: "editusercarddeck",method: "PUT",path: "/editusercarddeck",title: { z: "修改牌背皮膚",e: "Update card deck skin" },
+				desc: { z: "更新牌背皮膚偏好，供手牌回放與現場轉播讀取。",e: "Update card back skin preference used by hand replay and live broadcast." },
+				auth: AUTHTOKEN,
+				params: [P("carddeck","string",true,"classic / crimson / midnight / royal / ocean / sunset / rose / graphite，非法值一律回退 classic。","One of classic / crimson / midnight / royal / ocean / sunset / rose / graphite; invalid values fall back to classic.",{ ex: "royal" })],
+				response: [R("data","string","更新後的牌背皮膚。","The updated card deck skin.",null)],
+				errors: [ETOKEN,EREQ]
+			},
+			{
+				id: "edituserpotmainside",method: "PUT",path: "/edituserpotmainside",title: { z: "修改主池位置",e: "Update main pot side" },
+				desc: { z: "更新手牌回放的主池位置偏好；邊池顯示在反方向。",e: "Update the main pot side preference for hand replay; side pots show on the opposite side." },
+				auth: AUTHTOKEN,
+				params: [P("potmainside","string",true,"left / right，非法值一律回退 right。","left / right; invalid values fall back to right.",{ ex: "left" })],
+				response: [R("data","string","更新後的主池位置。","The updated main pot side.",null)],
 				errors: [ETOKEN,EREQ]
 			},
 			{
@@ -1303,6 +1321,8 @@ const APICATEGORIES=[
 				response: [R("data","object","報到核對資訊。","Check-in verification info.",[
 					SUB("playername","string","選手名稱。","Player name."),
 					SUB("playerplayerid","string","選手代碼。","Player code."),
+					SUB("sessionid","int","場次 id。","Session id."),
+					SUB("sessionplayerid","int","報名 id。","Registration id."),
 					SUB("sessionname","string","場次名稱。","Session name."),
 					SUB("seriestitle","string","所屬系列賽名稱（無則為空字串）。","The owning series' name (empty string if none)."),
 					SUB("clubname","string","協會名稱。","Association name."),
@@ -1317,9 +1337,21 @@ const APICATEGORIES=[
 					SUB("seatno","int","座位號。","Seat number."),
 					SUB("buyin","int","買入金額（含服務費）。","Buy-in amount (fee included)."),
 					SUB("paymenttype","string","付款方式。","Payment type."),
-					SUB("reentrycount","int","再入次數。","Re-entry count.")
+					SUB("reentrycount","int","再入次數。","Re-entry count."),
+					SUB("followedadvanceed","bool","是否沿晉級鏈改顯示較新的場次。掃到前一日的收據且該選手已晉級時為 true。","True when the lookup followed the multi-day advance chain to a later session (e.g. scanning a Day 1 receipt after the player advanced)."),
+					SUB("advancedfrom","string","原本掃到的那一場名稱（followedadvanceed 為 true 時有值）。","Name of the session the scanned receipt belongs to (set when followedadvanceed is true)."),
+					SUB("advancedfromsessionid","int","原本掃到的那一場 id。","Session id the scanned receipt belongs to."),
+					SUB("currentsessionname","string","目前實際顯示的場次名稱。","Name of the session actually shown."),
+					SUB("currentsessionid","int","目前實際顯示的場次 id。","Session id actually shown.")
 				])],
 				errors: [ETOKEN,ERR("404","ERROR_registration_not_found","找不到報名。","Registration not found."),ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
+			},
+			{
+				id: "getcheckininfobyentry",method: "GET",path: "/getcheckininfobyentry/{sessionid}/{entryno}",title: { z: "以入場編號查報到核對資訊",e: "Check-in verification info by entry number" },
+				desc: { z: "報到核對頁的手動輸入用：用場次 id 加上收據上印的入場編號（sessionplayer.serialno）查單筆報名，回傳結構與 /getcheckininfo 完全相同。入場編號只在單一場次內唯一，所以一定要帶場次 id。權限與 /getcheckininfo 相同。",e: "For manual input on the check-in verification page: look up a single registration by session id plus the entry number printed on the receipt (sessionplayer.serialno). The response is identical to /getcheckininfo. Entry numbers are unique only within a session, so the session id is required. Permissions match /getcheckininfo." },
+				auth: AUTHTOKEN,params: [pathparam("sessionid","場次 id。","Session id.",99),pathparam("entryno","收據上的入場編號（sessionplayer.serialno）。","The entry number printed on the receipt (sessionplayer.serialno).",7)],
+				response: [R("data","object","報到核對資訊，欄位同 /getcheckininfo。","Check-in verification info; same fields as /getcheckininfo.",null)],
+				errors: [ETOKEN,ERR("404","ERROR_registration_not_found","找不到該入場編號的報名。","No registration matches the entry number."),ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
 			},
 			{
 				id: "editsessionplayerfinance",method: "PUT",path: "/editsessionplayerfinance/{sessionplayerid}",title: { z: "編輯選手財務",e: "Edit player finance" },

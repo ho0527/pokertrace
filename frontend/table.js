@@ -7,25 +7,32 @@ let tableevchart=null
 let tablehandpage=1
 let tablehandpagesize=20
 let tablehandsortdir=weblsget(WEBLSNAME+"handsortdir")||"desc"
+// 牌桌手牌表排序狀態(可點各欄表頭排序);預設建立時間, 方向沿用既有 handsortdir
+let tablehandsortstate={"key": "createtime","ascended": tablehandsortdir=="asc"}
 
-// 依建立時間排序(升/降冪), 不動原陣列
-function handsortbytime(rows,dir){
-	rows.sort(function(a,b){
-		let ca=String(a["createtime"]||"")
-		let cb=String(b["createtime"]||"")
-		if(ca!=cb){
-			return ca<cb?-1:1
-		}
-		return (parseInt(a["id"])||0)-(parseInt(b["id"])||0)
-	})
-	if(dir=="desc"){
-		rows.reverse()
+function tablehandsortvalue(item,key){
+	if(key=="createtime"){
+		let text=ptformatdatetime(item["createtime"])
+		return text||null
 	}
-	return rows
+	if(key=="selfseating"||key=="bigblind"||key=="result"){
+		let number=Number(item[key])
+		return isNaN(number)?null:number
+	}
+	if(key=="tablename"){
+		let text=String(item["tablename"]||item["tabletoken"]||"").trim()
+		return text||null
+	}
+	let text=""
+	if(item[key]!=null){
+		text=String(item[key]).trim()
+	}
+	return text||null
 }
 
 function tablesortedhands(){
-	return handsortbytime(tablehands.slice(),tablehandsortdir)
+	let key=tablehandsortstate["key"]||"createtime"
+	return ptsortlist(tablehands,key,tablehandsortstate["ascended"],tablehandsortvalue)
 }
 let seatlog=[]
 let date=""
@@ -751,6 +758,7 @@ function handsummarytext(id){
 
 function rendertablehandlist(){
 	let rows=tablesortedhands()
+	ptsortarrow("#tablehandhead",tablehandsortstate["key"],tablehandsortstate["ascended"])
 	let totalpage=Math.max(1,Math.ceil(rows.length/tablehandpagesize))
 	if(totalpage<tablehandpage){
 		tablehandpage=totalpage
@@ -897,6 +905,21 @@ function bindhandfilters(){
 		tablehandsortdir=(tablehandsortdir=="desc")?"asc":"desc"
 		weblsset(WEBLSNAME+"handsortdir",tablehandsortdir)
 		element.value=tabletext("sorttime")+" "+(tablehandsortdir=="desc"?"↓":"↑")
+		tablehandsortstate["key"]="createtime"
+		tablehandsortstate["ascended"]=(tablehandsortdir=="asc")
+		tablehandpage=1
+		rendertablehandlist()
+	})
+	// 綁定各欄表頭排序;若切到建立時間欄, 同步更新時間鈕方向與 handsortdir(handdetail 連結沿用)
+	ptbindsort("#tablehandhead",tablehandsortstate,function(){
+		if(tablehandsortstate["key"]=="createtime"){
+			tablehandsortdir=tablehandsortstate["ascended"]?"asc":"desc"
+			weblsset(WEBLSNAME+"handsortdir",tablehandsortdir)
+			let sortbtn=domgetid("tablehandsort")
+			if(sortbtn){
+				sortbtn.value=tabletext("sorttime")+" "+(tablehandsortdir=="desc"?"↓":"↑")
+			}
+		}
 		tablehandpage=1
 		rendertablehandlist()
 	})

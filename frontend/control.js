@@ -115,7 +115,7 @@ function controltext(key){
 			itmhintwarnprefix: "\n⚠ 目前獎金分配為 ",
 			itmhintwarnmiddle: " 名 — 建議按「智能分配」對齊到 ",
 			itmhintok: "\n✓ 獎金分配與 ITM 人數一致",
-			"nocontrolpermission": "此帳號沒有計時器控制權限（發牌員僅供檢視），控制按鈕已停用",
+			"nocontrolpermission": "此帳號沒有計時器控制權限（計分員僅供檢視），控制按鈕已停用",
 			"otherreward": "其他獎勵"
 		},
 		en: {
@@ -342,7 +342,7 @@ let wsretrytimer=null
 let serverstateinited=false
 let savebusy=false
 let wsdownnotified=false  // 斷線提示去重, 避免重試時重複跳 toast
-let controlblocked=false  // 角色無控制權限 (例如發牌員) 時鎖住控制按鈕
+let controlblocked=false  // 角色無控制權限 (例如計分員) 時鎖住控制按鈕
 
 function islinkedplayer(){
 	return STATE.playerMode=="linked"
@@ -529,7 +529,7 @@ function save(action, partialState=null) {
 			render()
 			setcontrolenabled(iscontrolready())
 		}else if(data&&data["success"]==false&&data["data"]=="ERROR_no_permission"){
-			// 後端判定無控制權限 (例如發牌員): 停用控制並提示, 與 loadcontrolaccess 一致
+			// 後端判定無控制權限 (例如計分員): 停用控制並提示, 與 loadcontrolaccess 一致
 			blockcontrol()
 		}
 	}).catch(function(e){
@@ -1291,7 +1291,7 @@ function loadtableboard(){
 
 // ==== 前端角色 gate: 後端 savetimer 已用 hastimercontrolpermission 強制把關,
 // 這裡用 getsession 回傳的 isown / isadmin / accessrole 先行判斷 (裁判 floor 與
-// 助理 assistant 可操作, 發牌員 dealer 不可), 沒有控制權就直接停用控制按鈕並提示,
+// 助理 assistant 可操作, 計分員 dealer 不可), 沒有控制權就直接停用控制按鈕並提示,
 // 不必等按下去吃後端 403 才知道。判斷條件與 backend/api/timer.py 一致。
 function blockcontrol(){
 	controlblocked=true
@@ -1316,7 +1316,7 @@ function loadcontrolaccess(){
 		// 不再用 accessrole 主動鎖 staff: getsession 的 accessrole 來自 getsessionstaffaccess,
 		// 以 sessionstaff 優先, 會把同一人在 userstaff 的 floor/assistant 身分被 sessionstaff 的 dealer 遮蔽,
 		// 而後端 hastimercontrolpermission 兩表各查會放行 floor/assistant, 前端據 accessrole 鎖會誤鎖後端允許的人。
-		// 發牌員等真正無控制權者交由 savetimer 回 ERROR_no_permission 時 (見 sendstate) blockcontrol 把關。
+		// 計分員等真正無控制權者交由 savetimer 回 ERROR_no_permission 時 (見 sendstate) blockcontrol 把關。
 		if(data&&data["success"]==false&&data["data"]=="ERROR_no_permission"){
 			blockcontrol()
 		}

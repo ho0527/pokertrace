@@ -29,7 +29,7 @@ def asyncsendmail(*args,**kwargs):
 def buildverifyemail(ownername,staffname,role,token,sessioninfo=None):
 	rolelabel="員工"
 	if role=="dealer":
-		rolelabel="發牌員(Dealer)"
+		rolelabel="計分員(Dealer)"
 	if role=="floor":
 		rolelabel="裁判(Floor)"
 	if role=="assistant":

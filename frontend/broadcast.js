@@ -59,6 +59,11 @@ function bcapplytexts(){
 	setid("bcskinclassic",bctext("skinclassic"))
 	setid("bcskincrimson",bctext("skincrimson"))
 	setid("bcskinmidnight",bctext("skinmidnight"))
+	setid("bcskinroyal",bctext("skinroyal"))
+	setid("bcskinocean",bctext("skinocean"))
+	setid("bcskinsunset",bctext("skinsunset"))
+	setid("bcskinrose",bctext("skinrose"))
+	setid("bcskingraphite",bctext("skingraphite"))
 	setid("bcstatus",bctext("statusconnecting"))
 }
 
@@ -524,11 +529,11 @@ function bcconnectws(){
 
 // 牌面牌背皮膚(觀眾偏好, 存 localStorage)
 function bcapplyskin(skin){
-	let valid=["classic","crimson","midnight"]
+	let valid=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite"]
 	if(valid.indexOf(skin)<0){
 		skin="classic"
 	}
-	document.body.classList.remove("deck-classic","deck-crimson","deck-midnight")
+	document.body.classList.remove("deck-classic","deck-crimson","deck-midnight","deck-royal","deck-ocean","deck-sunset","deck-rose","deck-graphite")
 	document.body.classList.add("deck-"+skin)
 	try{
 		localStorage.setItem("bc-deck",skin)
@@ -539,6 +544,21 @@ function bcapplyskin(skin){
 	if(sel){
 		sel.value=skin
 	}
+}
+
+// 使用者切換牌背時同步存回帳號, 讓偏好跨裝置一致(與 profile / 手牌回放共用同一來源)
+function bcsavedecktoaccount(skin){
+	if(typeof ajax!="function"||typeof AJAXURL=="undefined"||typeof weblsget!="function"||typeof WEBLSNAME=="undefined"){
+		return
+	}
+	let token=weblsget(WEBLSNAME+"token")
+	if(!token){
+		return
+	}
+	ajax("PUT",AJAXURL+"editusercarddeck",function(event,data){},JSON.stringify({ carddeck: skin }),[
+		["Content-Type","application/json"],
+		["Authorization","Bearer "+token]
+	])
 }
 
 function bcinitskin(){
@@ -553,6 +573,7 @@ function bcinitskin(){
 	if(sel){
 		sel.addEventListener("change",function(){
 			bcapplyskin(this.value)
+			bcsavedecktoaccount(this.value)
 		})
 	}
 }

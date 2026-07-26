@@ -16,9 +16,22 @@ const TRANSLATE={
 			"aim": "將 QR 對準框內…",
 			"going": "已辨識，前往報到頁…",
 			"notcheckinqr": "掃到內容，但不是報到 QR：",
-			"nosupport": "這個瀏覽器不支援 QR 掃描，請改用手機相機掃描收據 QR，或在下方手動輸入報名編號。",
-			"camerafail": "無法啟用相機，請允許相機權限後按「重新啟動相機」，或在下方手動輸入報名編號。",
-			"manualempty": "請輸入報名編號"
+			"nosupport": "這個瀏覽器不支援 QR 掃描，請改用手機相機掃描收據 QR，或在下方手動輸入收據上的入場編號。",
+			"camerafail": "無法啟用相機，請允許相機權限後按「重新啟動相機」，或在下方手動輸入收據上的入場編號。",
+			"manualempty": "請輸入入場編號",
+			"manualhint": "相機不能用時，可選擇場次後手動輸入收據上的「入場編號」：",
+			"manualsessionlabel": "場次",
+			"manualentrylabel": "入場編號",
+			"sessionloading": "載入場次中…",
+			"sessionempty": "沒有可操作的進行中場次",
+			"sessionrequired": "請先選擇場次",
+			"sessionfail": "場次載入失敗，請重新整理再試"
+		},
+		"checkinpage": {
+			"missingparam": "網址缺少報名參數",
+			"missingsession": "網址缺少場次參數，請從掃描頁重新查詢",
+			"entrynotfound": "查無此入場編號，請確認或改用掃描",
+			"loadfail": "載入失敗"
 		},
 		"sessionresult": {
 			"title": "我的成績",
@@ -92,8 +105,8 @@ const TRANSLATE={
 			"colorupbody": "盲注升高後小面額失去作用，就要把它們換成大面額。輸入要移除的面額與各選手持有量，工具算出每人應換得的大計分牌與剩餘零頭，配合 chip race 或無條件進位規則快速完成換色。",
 			"countdowntitle": "倒數計時器",
 			"countdownbody": "設定目標時刻或倒數長度，全螢幕顯示剩餘時間。適合晚到報名截止、休息結束倒數、衛星賽開打提醒等現場情境，不用登入、開著就能用。",
-			"dealersoptitle": "發牌員標準流程速查",
-			"dealersopbody": "從洗牌、切牌、發牌順序，到燒牌、開公共牌與收注的標準動作，加上常見失誤（先開牌、發錯家、掉牌）的處理原則——這份速查表讓新手發牌員快速上手，也讓主辦有一致的執法依據。",
+			"dealersoptitle": "計分員標準流程速查",
+			"dealersopbody": "從洗牌、切牌、發牌順序，到燒牌、開公共牌與收注的標準動作，加上常見失誤（先開牌、發錯家、掉牌）的處理原則——這份速查表讓新手計分員快速上手，也讓主辦有一致的執法依據。",
 			"depthstrategytitle": "不同計分牌深度該怎麼打？",
 			"depthstrategybody": "100 BB 的深計分牌可以打隱含賠率與多街操作，40 BB 進入 3-bet 全下的範疇，20 BB 以下 push/fold 成為主軸，10 BB 幾乎只剩全下或棄牌。輸入你的 BB 數，工具給出該深度的策略重點與該避免的錯誤。",
 			"drawoutstitle": "聽牌有幾張補牌？成牌率多少？",
@@ -111,9 +124,9 @@ const TRANSLATE={
 			"handrankingtitle": "撲克牌型大小順序",
 			"handrankingbody": "皇家同花順、同花順、四條、葫蘆、同花、順子、三條、兩對、一對、高牌——十種牌型由大到小的完整排序與範例。新手最常搞混的「同花 vs 順子」「葫蘆 vs 同花」在這裡一目瞭然。",
 			"handsesttitle": "每小時能打幾手牌？",
-			"handsestbody": "現場一桌一位發牌員每小時大約 25 到 35 手，人數、選手速度與洗牌方式都會影響。輸入桌數與條件，工具估算全場每小時手數，是估算比賽節奏與現金桌抽水收入的基礎數字。",
+			"handsestbody": "現場一桌一位計分員每小時大約 25 到 35 手，人數、選手速度與洗牌方式都會影響。輸入桌數與條件，工具估算全場每小時手數，是估算比賽節奏與現金桌抽水收入的基礎數字。",
 			"hostcosttitle": "主辦一場比賽的財務試算",
-			"hostcostbody": "把場地、發牌員、設備等成本，與買入、抽成、保底設定放在同一張試算表：工具算出不同報名人數下的獎池、收入與盈虧，讓你在公告保底前就知道自己承擔多少風險。",
+			"hostcostbody": "把場地、計分員、設備等成本，與買入、抽成、保底設定放在同一張試算表：工具算出不同報名人數下的獎池、收入與盈虧，讓你在公告保底前就知道自己承擔多少風險。",
 			"icmtitle": "ICM 是什麼？拆彩金怎麼算？",
 			"icmbody": "ICM（獨立計分牌模型）把每個人的計分牌換算成獎金的期望值：計分牌價值不是線性的，短碼的每一顆計分牌比大碼的更值錢。談 deal 拆彩金時，輸入各家計分牌與獎金結構，工具同時給出 ICM 期望值與 chip-chop 兩種拆法的金額，讓談判有客觀依據。",
 			"impliedoddstitle": "隱含賠率怎麼算？",
@@ -179,7 +192,7 @@ const TRANSLATE={
 			"stackcalctitle": "計分牌量換算：BB 與 M 值",
 			"stackcalcbody": "同樣 30000 計分牌，在盲注 100/200 是 150 BB 的深計分牌，在 1000/2000 只剩 15 BB。輸入計分牌與盲注（含前注），工具算出 BB 數與 M 值，讓你隨時知道自己真正的深度，而不是被計分牌面額迷惑。",
 			"staffingtitle": "比賽現場要配多少人力？",
-			"staffingbody": "依桌數與賽制估算需要的發牌員（含輪替）、floor 與行政助理人數。輸入桌數、是否輪替與服務範圍，工具給出建議配置，讓你不會開賽當天才發現人手不夠。",
+			"staffingbody": "依桌數與賽制估算需要的計分員（含輪替）、floor 與行政助理人數。輸入桌數、是否輪替與服務範圍，工具給出建議配置，讓你不會開賽當天才發現人手不夠。",
 			"staffpaytitle": "工作人員薪資試算",
 			"staffpaybody": "輸入每位工作人員的時薪、工時、獎金與交通補貼，工具算出個別與總計的人事成本，是主辦財務試算裡最常被低估的一塊。",
 			"stakingmarkuptitle": "賣股與 Markup 怎麼算？",
@@ -199,7 +212,7 @@ const TRANSLATE={
 			"timebankdrilltitle": "決策時間練習器",
 			"timebankdrillbody": "線上打慣的選手到現場常被時間壓力影響決策。這個工具模擬不同時限的決策情境，點一下開始/暫停，練習在時間壓力下維持穩定的思考流程。",
 			"tipsharetitle": "小費怎麼分？",
-			"tipsharebody": "輸入小費總額、floor 抽成比例與發牌員的工時或桌數權重，工具算出每個人分得的金額，收場分小費快速又公平。",
+			"tipsharebody": "輸入小費總額、floor 抽成比例與計分員的工時或桌數權重，工具算出每個人分得的金額，收場分小費快速又公平。",
 			"waitlisttitle": "候補要等多久？",
 			"waitlistbody": "輸入目前候補人數、桌數與平均離場速度，工具估算大約的等待時間與消化速度，讓候補選手心裡有數，也讓主辦決定要不要加開新桌。",
 			"winprobtitle": "計分牌領先等於幾成冠軍機率？",
@@ -216,6 +229,11 @@ const TRANSLATE={
 			"skinclassic": "經典藍",
 			"skincrimson": "緋紅",
 			"skinmidnight": "午夜綠",
+			"skinroyal": "皇家紫",
+			"skinocean": "海洋青",
+			"skinsunset": "暮橙",
+			"skinrose": "玫瑰紅",
+			"skingraphite": "石墨黑",
 			"statusconnecting": "連線中…",
 			"statuslive": "轉播中",
 			"statusreconnect": "重新連線中…",
@@ -284,6 +302,7 @@ const TRANSLATE={
 			"river": "河牌",
 			"showdown": "攤牌",
 			"payout": "派彩",
+			"paysidepots": "分邊池",
 			"allin": "全下",
 			"fold": "蓋牌",
 			"raise": "加注",
@@ -296,8 +315,14 @@ const TRANSLATE={
 			"emptyseat": "空位",
 			"pot": "底池",
 			"burn": "燒牌",
+			"burnshown": "燒牌(秀)",
 			"mainpot": "主池",
 			"sidepot": "邊池",
+			"needflop": "需要翻牌",
+			"backdoor": "後門聽牌",
+			"drawingdead": "聽死牌",
+			"splitpot": "平分",
+			"chopout": "平分聽牌",
 			"potchips": "底池計分牌",
 			"decktitle": "牌面牌背樣式（長按牌桌）",
 			"scrubhint": "長按牌桌左右拖曳可移動時間軸",
@@ -309,7 +334,12 @@ const TRANSLATE={
 			"nextaria": "下一步",
 			"skinclassic": "經典藍",
 			"skincrimson": "緋紅",
-			"skinmidnight": "午夜綠"
+			"skinmidnight": "午夜綠",
+			"skinroyal": "皇家紫",
+			"skinocean": "海洋青",
+			"skinsunset": "暮橙",
+			"skinrose": "玫瑰紅",
+			"skingraphite": "石墨黑"
 		},
 		"common": {
 			"leaveconfirm": "表單資料尚未保存，確定要離開嗎？",
@@ -751,7 +781,7 @@ const TRANSLATE={
 			"timerentrytitle": "計時器工作",
 			"timerentrydesc": "裁判與助理可快速前往可操作的場次計時器",
 			"playerrole": "選手 / 主辦者",
-			"dealerrole": "發牌員",
+			"dealerrole": "計分員",
 			"floorrole": "裁判",
 			"assistantrole": "助理",
 			"nextstepstitle": "建議下一步",
@@ -785,7 +815,7 @@ const TRANSLATE={
 			"exportcolbuyincount": "總組數",
 			"staff": "聘用人員",
 			"employed": "已聘用",
-			"dealer": "發牌員",
+			"dealer": "計分員",
 			"floor": "裁判",
 			"assistant": "助理",
 			"manage": "管理",
@@ -908,7 +938,7 @@ const TRANSLATE={
 			"toolbrtitle": "Bankroll 建議",
 			"toolbrdesc": "依賽制建議買入數",
 			"tooltstitle": "小費分配",
-			"tooltsdesc": "floor 抽成與發牌員分配",
+			"tooltsdesc": "floor 抽成與計分員分配",
 			"toollctitle": "級數時刻表",
 			"toollcdesc": "每級與休息的時刻",
 			"toolcntitle": "點碼計算",
@@ -1017,6 +1047,22 @@ const TRANSLATE={
 			"languagecarddesc": "切換介面語言。",
 			"chipcolorcardtitle": "計分牌顏色種類",
 			"chipcolorcarddesc": "整理場次設定可用的顏色名稱。",
+			"carddeckcardtitle": "牌背樣式",
+			"carddeckcarddesc": "選擇手牌回放與現場轉播的牌背樣式。",
+			"deckclassic": "經典藍",
+			"deckcrimson": "緋紅",
+			"deckmidnight": "午夜綠",
+			"deckroyal": "皇家紫",
+			"deckocean": "海洋青",
+			"decksunset": "暮橙",
+			"deckrose": "玫瑰紅",
+			"deckgraphite": "石墨黑",
+			"replaysettingscardtitle": "手牌回放設定",
+			"replaysettingscarddesc": "牌背樣式與主池位置；點下方開啟預覽並選擇。",
+			"potsidecardtitle": "主池位置",
+			"potsidecarddesc": "手牌回放主池收在哪一側，邊池顯示在反方向。",
+			"potsideleft": "靠左",
+			"potsideright": "靠右",
 			"chipsetcardtitle": "常用計分牌組合",
 			"chipsetcarddesc": "儲存常用面額組合，供場次快速匯入。",
 			"shakecardtitle": "搖一搖回報問題",
@@ -1270,7 +1316,7 @@ const TRANSLATE={
 			"rolewarning": "請注意，帳號類型選擇後無法再修改，請謹慎選擇",
 			"roleerror": "⚠ 請選擇帳號類型",
 			"roleplayer": "Player 選手",
-			"roledealer": "Dealer 發牌員",
+			"roledealer": "Dealer 計分員",
 			"rolefloor": "Floor 裁判",
 			"roleassistant": "Assistant 助理",
 			"languagenamezhtw": "中文",
@@ -1438,7 +1484,7 @@ const TRANSLATE={
 			"toolbrtitle": "Bankroll 建議",
 			"toolbrdesc": "依賽制建議買入數",
 			"tooltstitle": "小費分配",
-			"tooltsdesc": "floor 抽成與發牌員分配",
+			"tooltsdesc": "floor 抽成與計分員分配",
 			"toollctitle": "級數時刻表",
 			"toollcdesc": "每級與休息的時刻",
 			"toolcntitle": "點碼計算",
@@ -2316,12 +2362,12 @@ const TRANSLATE={
 			"title": "小費分配",
 			"back": "回上一頁",
 			"total": "總小費",
-			"dealers": "發牌員人數",
+			"dealers": "計分員人數",
 			"floor": "Floor 抽成 (%)",
 			"floorcut": "Floor 分得",
-			"pool": "發牌員池",
-			"each": "每位發牌員",
-			"note": "Floor 分得 = 總小費 × 抽成%。其餘平均分給發牌員。可依實際分配規則調整抽成。"
+			"pool": "計分員池",
+			"each": "每位計分員",
+			"note": "Floor 分得 = 總小費 × 抽成%。其餘平均分給計分員。可依實際分配規則調整抽成。"
 		},
 		"levelclockpage": {
 			"title": "級數時刻表",
@@ -2419,10 +2465,10 @@ const TRANSLATE={
 			"seats": "每桌座位",
 			"relief": "輪替比例 (%)",
 			"tables": "桌數",
-			"dealers": "發牌員",
+			"dealers": "計分員",
 			"floor": "Floor",
 			"assist": "助理",
-			"note": "發牌員 = 桌數 ×（1 + 輪替比例）；Floor ≈ 每 8 桌 1 位（至少 1）；助理 ≈ 每 6 桌 1 位（至少 1）。為概略建議，依場館流程調整。"
+			"note": "計分員 = 桌數 ×（1 + 輪替比例）；Floor ≈ 每 8 桌 1 位（至少 1）；助理 ≈ 每 6 桌 1 位（至少 1）。為概略建議，依場館流程調整。"
 		},
 		"preflopsizepage": {
 			"title": "翻牌前加注尺寸",
@@ -2629,7 +2675,7 @@ const TRANSLATE={
 		"dealersoppage": {
 			"title": "發牌流程速查",
 			"back": "回上一頁",
-			"note": "常見發牌流程與錯誤處理重點，供新手發牌員參考；正式判定以該場規則與 floor 裁定為準。"
+			"note": "常見發牌流程與錯誤處理重點，供新手計分員參考；正式判定以該場規則與 floor 裁定為準。"
 		},
 		"bubblepressurepage": {
 			"title": "泡沫壓力指數",
@@ -4205,7 +4251,7 @@ const TRANSLATE={
 								"每記錄完一手，點「▶ 推進下一手」放行給觀眾端；點錯可「退回一手」。",
 								"賽事結束或不需控管時點「全部放行 →」一次放行所有手牌。"
 							],
-							"tip": "轉播控制台限場次擁有者與受聘的裁判／助理／發牌員操作；觀眾端會即時收到放行事件自動更新。",
+							"tip": "轉播控制台限場次擁有者與受聘的裁判／助理／計分員操作；觀眾端會即時收到放行事件自動更新。",
 							"tools": [
 								{
 									"name": "推進下一手",
@@ -4256,16 +4302,16 @@ const TRANSLATE={
 				{
 					"id": "staff",
 					"title": "聘用人員與權限",
-					"lead": "PokerTrace 的帳號分為選手（player）、發牌員（dealer）、裁判（floor）與助理（assistant）四種類型。主辦者可以在個人資料聘用人員，受邀者透過邀請信確認後，就會看到相關場次並依角色取得對應的操作權限。先弄懂角色分工，再建立聘用關聯，現場分工會更順暢。",
+					"lead": "PokerTrace 的帳號分為選手（player）、計分員（dealer）、裁判（floor）與助理（assistant）四種類型。主辦者可以在個人資料聘用人員，受邀者透過邀請信確認後，就會看到相關場次並依角色取得對應的操作權限。先弄懂角色分工，再建立聘用關聯，現場分工會更順暢。",
 					"items": [
 						{
 							"id": "staff-roles",
 							"title": "角色與權限總覽",
-							"desc": "每種角色能做的事不同。聘用人員可以看到並編輯受聘的相關場次，但不能刪除或複製場次，這些場次也不會計入他自己的盈虧統計；計時器只開放給裁判與助理操作，發牌員專注在手牌紀錄。",
+							"desc": "每種角色能做的事不同。聘用人員可以看到並編輯受聘的相關場次，但不能刪除或複製場次，這些場次也不會計入他自己的盈虧統計；計時器只開放給裁判與助理操作，計分員專注在手牌紀錄。",
 							"steps": [
-								"確認自己的帳號類型：選手、發牌員、裁判或助理。",
+								"確認自己的帳號類型：選手、計分員、裁判或助理。",
 								"選手（主辦者）對自己的場次有完整操作權限。",
-								"裁判與助理可操作計時器控制端；發牌員不可操作計時器。",
+								"裁判與助理可操作計時器控制端；計分員不可操作計時器。",
 								"受聘場次會標示「已聘用」，且不計入聘用人員自己的盈虧報表。"
 							],
 							"tip": "前端按鈕顯示只是輔助，實際權限由後端檢查；看不到某功能時，先確認自己的角色與聘用狀態。",
@@ -4275,7 +4321,7 @@ const TRANSLATE={
 									"use": "可建立並主辦場次，是場次擁有者，也可聘用其他人員。"
 								},
 								{
-									"name": "發牌員（dealer）",
+									"name": "計分員（dealer）",
 									"use": "負責手牌紀錄與現場資料輸入，不可操作計時器。"
 								},
 								{
@@ -4293,10 +4339,10 @@ const TRANSLATE={
 						{
 							"id": "staff-hire",
 							"title": "在個人資料聘用人員",
-							"desc": "主辦者的個人資料有「聘用關聯」區，分成發牌員、裁判、助理三張卡片，各自顯示目前人數。輸入對方的使用者 ID 送出邀請，對方確認後就會納入你的全域人員名單。",
+							"desc": "主辦者的個人資料有「聘用關聯」區，分成計分員、裁判、助理三張卡片，各自顯示目前人數。輸入對方的使用者 ID 送出邀請，對方確認後就會納入你的全域人員名單。",
 							"steps": [
 								"進入個人資料，捲動到「聘用關聯」區。",
-								"在發牌員／裁判／助理卡片點「管理」開啟名單視窗。",
+								"在計分員／裁判／助理卡片點「管理」開啟名單視窗。",
 								"輸入對方的使用者 ID（例如 P-00099）後點「新增」送出邀請。",
 								"對方確認前狀態顯示「待確認」，確認後轉為「啟用」；不再合作時可按「移除」。"
 							],
@@ -4304,7 +4350,7 @@ const TRANSLATE={
 							"tools": [
 								{
 									"name": "員工卡片",
-									"use": "發牌員／裁判／助理三張卡各顯示人數與「管理」按鈕。"
+									"use": "計分員／裁判／助理三張卡各顯示人數與「管理」按鈕。"
 								},
 								{
 									"name": "名單視窗",
@@ -4349,7 +4395,7 @@ const TRANSLATE={
 							"steps": [
 								"登入後在個人資料查看「聘用關聯」，確認受聘的主辦與角色。",
 								"到場次列表查看標示「已聘用」的相關場次。",
-								"依角色開始工作：裁判／助理進控制端，發牌員進牌桌記錄手牌。",
+								"依角色開始工作：裁判／助理進控制端，計分員進牌桌記錄手牌。",
 								"個人報表只計入你以選手身分參加的場次。"
 							],
 							"tip": "已聘用場次可編輯但不可刪除或複製；需要調整場次設定時，請聯絡場次擁有者。",
@@ -5490,9 +5536,22 @@ const TRANSLATE={
 			"aim": "Aim the QR inside the frame…",
 			"going": "Recognized. Opening the check-in page…",
 			"notcheckinqr": "Scanned content is not a check-in QR: ",
-			"nosupport": "This browser does not support QR scanning. Use your phone camera on the receipt QR, or enter the registration number below.",
-			"camerafail": "Unable to start the camera. Allow camera permission and press \"Restart camera\", or enter the registration number below.",
-			"manualempty": "Please enter the registration number"
+			"nosupport": "This browser does not support QR scanning. Use your phone camera on the receipt QR, or enter the entry number printed on the receipt below.",
+			"camerafail": "Unable to start the camera. Allow camera permission and press \"Restart camera\", or enter the entry number printed on the receipt below.",
+			"manualempty": "Please enter the entry number",
+			"manualhint": "If the camera is unavailable, pick the session and enter the \"Entry No.\" printed on the receipt:",
+			"manualsessionlabel": "Session",
+			"manualentrylabel": "Entry No.",
+			"sessionloading": "Loading sessions…",
+			"sessionempty": "No active session available",
+			"sessionrequired": "Please select a session first",
+			"sessionfail": "Failed to load sessions. Please refresh and try again"
+		},
+		"checkinpage": {
+			"missingparam": "The URL is missing the registration parameter",
+			"missingsession": "The URL is missing the session parameter. Please search again from the scan page",
+			"entrynotfound": "No registration found for this entry number. Check it or scan the QR instead",
+			"loadfail": "Load failed"
 		},
 		"sessionresult": {
 			"title": "My Result",
@@ -5690,6 +5749,11 @@ const TRANSLATE={
 			"skinclassic": "Classic",
 			"skincrimson": "Crimson",
 			"skinmidnight": "Midnight",
+			"skinroyal": "Royal",
+			"skinocean": "Ocean",
+			"skinsunset": "Sunset",
+			"skinrose": "Rose",
+			"skingraphite": "Graphite",
 			"statusconnecting": "Connecting…",
 			"statuslive": "Live",
 			"statusreconnect": "Reconnecting…",
@@ -5758,6 +5822,7 @@ const TRANSLATE={
 			"river": "River",
 			"showdown": "Showdown",
 			"payout": "Payout",
+			"paysidepots": "Side pots",
 			"allin": "All-in",
 			"fold": "Fold",
 			"raise": "Raise",
@@ -5770,8 +5835,14 @@ const TRANSLATE={
 			"emptyseat": "Empty",
 			"pot": "Pot",
 			"burn": "Burn",
+			"burnshown": "Burn shown",
 			"mainpot": "Main",
 			"sidepot": "Side",
+			"needflop": "Need flop",
+			"backdoor": "Backdoor",
+			"drawingdead": "Drawing dead",
+			"splitpot": "Split",
+			"chopout": "Chop draw",
 			"potchips": "Pot chips",
 			"decktitle": "Card style (long-press table)",
 			"scrubhint": "Long-press the table and drag to scrub",
@@ -5783,7 +5854,12 @@ const TRANSLATE={
 			"nextaria": "Next",
 			"skinclassic": "Classic",
 			"skincrimson": "Crimson",
-			"skinmidnight": "Midnight"
+			"skinmidnight": "Midnight",
+			"skinroyal": "Royal",
+			"skinocean": "Ocean",
+			"skinsunset": "Sunset",
+			"skinrose": "Rose",
+			"skingraphite": "Graphite"
 		},
 		"common": {
 			"leaveconfirm": "You have unsaved changes. Are you sure you want to leave?",
@@ -6491,6 +6567,22 @@ const TRANSLATE={
 			"languagecarddesc": "Change the interface language.",
 			"chipcolorcardtitle": "Chip Colors",
 			"chipcolorcarddesc": "Manage the color names available in session setup.",
+			"carddeckcardtitle": "Card Back",
+			"carddeckcarddesc": "Choose the card back style for hand replay and live broadcast.",
+			"deckclassic": "Classic",
+			"deckcrimson": "Crimson",
+			"deckmidnight": "Midnight",
+			"deckroyal": "Royal",
+			"deckocean": "Ocean",
+			"decksunset": "Sunset",
+			"deckrose": "Rose",
+			"deckgraphite": "Graphite",
+			"replaysettingscardtitle": "Hand Replay Settings",
+			"replaysettingscarddesc": "Card back style and main pot side; tap below to preview and choose.",
+			"potsidecardtitle": "Main Pot Side",
+			"potsidecarddesc": "Which side the main pot sits on in hand replay; side pots show on the opposite side.",
+			"potsideleft": "Left",
+			"potsideright": "Right",
 			"chipsetcardtitle": "Saved Chip Sets",
 			"chipsetcarddesc": "Store common denomination sets for quick import.",
 			"shakecardtitle": "Shake to Report",

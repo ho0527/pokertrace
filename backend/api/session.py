@@ -1271,7 +1271,7 @@ def editsessionsettings(request,sessionid):
 	if requestdata["error"] is not None:
 		return errorresponse(requestdata["error"])
 	data=requestdata["data"]
-	# 發牌員不可操作計時器: dealer 不可改計時器相關設定 (比照 timer.py 的 role IN ('floor','assistant') 判斷)
+	# 計分員不可操作計時器: dealer 不可改計時器相關設定 (比照 timer.py 的 role IN ('floor','assistant') 判斷)
 	if "autostartbytime" in data:
 		access=getsessionstaffaccess(sessionid,userrow["id"])
 		isadmin=(4<=int(userrow["permission"]))

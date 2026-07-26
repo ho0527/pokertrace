@@ -131,6 +131,8 @@ CREATE TABLE IF NOT EXISTS public."user"(
 	permission integer NOT NULL DEFAULT 1,
 	playerid varchar(8) NOT NULL DEFAULT '0',
 	type varchar(50) DEFAULT '',
+	carddeck varchar(20) NOT NULL DEFAULT 'classic',
+	potmainside varchar(10) NOT NULL DEFAULT 'right',
 	chipcolors text NOT NULL DEFAULT '[{"name":"白色","color":"#ffffff"},{"name":"紅色","color":"#ff0000"},{"name":"藍色","color":"#0000ff"},{"name":"綠色","color":"#008000"},{"name":"黑色","color":"#000000"},{"name":"黃色","color":"#ffff00"},{"name":"橘色","color":"#ffa500"},{"name":"紫色","color":"#800080"},{"name":"粉紅色","color":"#ffc0cb"},{"name":"灰色","color":"#808080"}]',
 	createtime timestamp with time zone NOT NULL DEFAULT now(),
 	updatetime timestamp with time zone NOT NULL DEFAULT now(),
@@ -138,6 +140,8 @@ CREATE TABLE IF NOT EXISTS public."user"(
 );
 
 ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS chipcolors text NOT NULL DEFAULT '[{"name":"白色","color":"#ffffff"},{"name":"紅色","color":"#ff0000"},{"name":"藍色","color":"#0000ff"},{"name":"綠色","color":"#008000"},{"name":"黑色","color":"#000000"},{"name":"黃色","color":"#ffff00"},{"name":"橘色","color":"#ffa500"},{"name":"紫色","color":"#800080"},{"name":"粉紅色","color":"#ffc0cb"},{"name":"灰色","color":"#808080"}]';
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS carddeck varchar(20) NOT NULL DEFAULT 'classic';
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS potmainside varchar(10) NOT NULL DEFAULT 'right';
 
 -- 聯絡我們訊息
 CREATE TABLE IF NOT EXISTS public.contactmessage(

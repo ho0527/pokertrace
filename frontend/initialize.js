@@ -1218,6 +1218,15 @@ function loadbackendadminlinks(){
 		return
 	}
 	ajax("GET",AJAXURL+"getuser",function(event,data){
+		if(data["success"]){
+			// 牌背 / 主池位置偏好每頁同步到 localStorage, 供手牌回放 / 現場轉播讀取帳號設定
+			try{
+				localStorage.setItem("bc-deck",data["data"]["carddeck"]||"classic")
+				localStorage.setItem("bc-potside",data["data"]["potmainside"]||"right")
+			}catch(error){
+				// localStorage 不可用時忽略
+			}
+		}
 		if(data["success"]&&4<=Number(data["data"]["permission"]||0)){
 			let headerlink=domgetid("headerlink")
 			if(headerlink&&!domgetid("contactadminlink")){
@@ -2053,7 +2062,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				系統版本 a1.1.1 | Made with ♠ ♥ ♦ ♣ in Taipei
+				系統版本 a1.2.0 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>
@@ -3410,6 +3419,81 @@ function ptformatdatetimeminute(value){
 		return text.substring(0,16)
 	}
 	return text
+}
+
+// 通用表格排序（各頁資料表共用，仿 admin 的做法抽成共用）：
+//   * getvalue(item,key) 由各頁提供，回傳排序值(數字或字串)；取不到一律回 null，統一排到最後
+//   * ptsortlist 依 key/ascended 排一份新陣列(不改原陣列)；key 為空字串代表維持原順序
+//   * ptsortarrow 依當前 key/ascended 更新表頭箭頭(容器內 .ptsortarrow[data-sortkey])
+//   * ptbindsort 綁定容器內 .ptsortth 的點擊：同欄切升降、換欄重設升冪，再呼叫 rerender()
+function ptsortcompare(itema,itemb,key,ascended,getvalue){
+	let left=getvalue(itema,key)
+	let right=getvalue(itemb,key)
+	let result=0
+	if(left==null&&right!=null){
+		result=1
+	}else if(left!=null&&right==null){
+		result=-1
+	}else if(left!=null&&right!=null){
+		if(typeof left=="number"&&typeof right=="number"){
+			result=left-right
+		}else{
+			result=String(left).localeCompare(String(right),"zh-Hant")
+		}
+		if(!ascended){
+			result=0-result
+		}
+	}
+	return result
+}
+
+function ptsortlist(list,key,ascended,getvalue){
+	let out=(list||[]).slice()
+	if(key){
+		out.sort(function(itema,itemb){
+			return ptsortcompare(itema,itemb,key,ascended,getvalue)
+		})
+	}
+	return out
+}
+
+function ptsortarrow(containerselector,key,ascended){
+	let container=document.querySelector(containerselector)
+	if(!container){
+		return
+	}
+	let arrows=container.querySelectorAll(".ptsortarrow")
+	for(let i=0;i<arrows.length;i=i+1){
+		let mark=""
+		if(key&&arrows[i].getAttribute("data-sortkey")==key){
+			mark=ascended?" ▲":" ▼"
+		}
+		arrows[i].textContent=mark
+	}
+}
+
+function ptbindsort(containerselector,state,rerender){
+	let container=document.querySelector(containerselector)
+	if(!container){
+		return
+	}
+	let ths=container.querySelectorAll(".ptsortth")
+	for(let i=0;i<ths.length;i=i+1){
+		ths[i].style.cursor="pointer"
+		ths[i].addEventListener("click",function(){
+			let key=this.getAttribute("data-sortkey")
+			if(!key){
+				return
+			}
+			if(state["key"]==key){
+				state["ascended"]=!state["ascended"]
+			}else{
+				state["key"]=key
+				state["ascended"]=true
+			}
+			rerender()
+		})
+	}
 }
 
 // 共用分頁切換器。前後頁固定顯示，用「<」「>」符號（語言中性）。

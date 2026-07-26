@@ -50,7 +50,7 @@ const SIGNUPFALLBACK={
 	"rolewarning": "請注意，帳號類型選擇後無法再修改，請謹慎選擇",
 	"roleerror": "⚠ 請選擇帳號類型",
 	"roleplayer": "Player 選手",
-	"roledealer": "Dealer 發牌員",
+	"roledealer": "Dealer 計分員",
 	"rolefloor": "Floor 裁判",
 	"roleassistant": "Assistant 助理",
 	"languagenamezhtw": "中文",

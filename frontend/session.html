@@ -95,9 +95,9 @@
 					<!-- 場次列表 -->
 					<div class="md:h-[50vh] md:overscroll-contain overflow-x-auto rounded-2xl border border-zinc-800">
 						<table class="w-full text-sm">
-							<thead class="sticky top-0 text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
+							<thead class="sticky top-0 text-left text-xs font-bold uppercase tracking-wider text-zinc-400" id="sessiontablehead">
 								<tr class="border-b border-zinc-800 bg-zinc-900">
-									<th class="px-4 py-3">名稱</th>
+									<th class="ptsortth select-none px-4 py-3" data-sortkey="no"><span id="sessiontablenamehead">名稱</span><span class="ptsortarrow text-emerald-400" data-sortkey="no"></span></th>
 									<th class="px-4 py-3">操作</th>
 								</tr>
 							</thead>
@@ -135,13 +135,13 @@
 					<!-- 桌面：表格 -->
 					<div class="hidden md:block overflow-x-auto rounded-2xl border border-zinc-800">
 						<table class="w-full text-sm">
-							<thead class="text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
+							<thead class="text-left text-xs font-bold uppercase tracking-wider text-zinc-400" id="sessionhandhead">
 								<tr class="border-b border-zinc-800 bg-zinc-900">
 									<th class="px-4 py-3">#</th>
-									<th class="px-4 py-3">位置</th>
+									<th class="ptsortth select-none px-4 py-3" data-sortkey="tablename"><span>位置</span><span class="ptsortarrow text-emerald-400" data-sortkey="tablename"></span></th>
 									<th class="px-4 py-3">起手牌</th>
 									<th class="px-4 py-3">行動</th>
-									<th class="px-4 py-3">結果</th>
+									<th class="ptsortth select-none px-4 py-3" data-sortkey="result"><span>結果</span><span class="ptsortarrow text-emerald-400" data-sortkey="result"></span></th>
 									<th class="px-4 py-3">重要性</th>
 								</tr>
 							</thead>

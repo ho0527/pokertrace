@@ -47,6 +47,24 @@ let registrationdatalist=[]
 let registrationpage=1
 let registrationpagesize=25
 let registrationfilter="all"
+// 報名清單排序狀態(點表頭切換);取值器交給通用 ptsortlist/ptsortarrow
+let registrationsortstate={"key": "","ascended": true}
+
+function registrationsortvalue(item,key){
+	if(key=="registertime"){
+		let text=ptformatdatetime(item["registertime"])
+		return text||null
+	}
+	if(key=="profit"){
+		let number=Number(item["profit"])
+		return isNaN(number)?null:number
+	}
+	let text=""
+	if(item[key]!=null){
+		text=String(item[key]).trim()
+	}
+	return text||null
+}
 let registrationkeyword=""
 let registrationstatekey=WEBLSNAME+"registrationquery"+sessionid
 
@@ -60,6 +78,8 @@ if(!sessionid){
 }
 
 domgetid("back").href="session.html?id="+sessionid
+// 掃描頁帶場次進去: 手動輸入入場編號時可直接預選這一場, 不用再挑。
+domgetid("scanlink").href="scan.html?sessionid="+encodeURIComponent(sessionid)
 
 function loadregistrationquerystate(){
 	let raw=""
@@ -107,6 +127,12 @@ function saveregistrationquerystate(){
 }
 
 loadregistrationquerystate()
+
+// 綁定報名清單表頭排序:點同欄切升降、換欄重設升冪, 排序後回第 1 頁重畫
+ptbindsort("#reghead",registrationsortstate,function(){
+	registrationpage=1
+	renderregistrationlist()
+})
 
 function moneytext(value){
 	value=float(value)||0
@@ -937,6 +963,8 @@ function loadregistrations(){
 
 function renderregistrationlist(){
 		let fulllist=getfilteredregistrationlist()
+		fulllist=ptsortlist(fulllist,registrationsortstate["key"],registrationsortstate["ascended"],registrationsortvalue)
+		ptsortarrow("#reghead",registrationsortstate["key"],registrationsortstate["ascended"])
 		let maxpage=Math.ceil(fulllist.length/registrationpagesize)||1
 		if(registrationpage>maxpage){
 			registrationpage=maxpage
@@ -1303,7 +1331,7 @@ function buildreceiptdata(r){
 	}
 	// 報到 / 驗證網址：帶場次 id 與這筆報名 id。checkin.html 之後再做，QR 先把網址編進去。
 	let basepath=location.pathname.replace(/[^/]*$/,"")
-	let qrdata=location.origin+basepath+"checkin.html?s="+encodeURIComponent(sessionid)+"&r="+encodeURIComponent(r["id"])
+	let qrdata=location.origin+basepath+"checkin.html?sessionid="+encodeURIComponent(sessionid)+"&r="+encodeURIComponent(r["id"])
 	// 入場編號要確認 / 報到後才有；未確認顯示「未確認」而不是舊號碼。
 	let entryno="未確認"
 	if((r["status"]=="confirmed"||r["status"]=="advanced")&&r["serialno"]){

@@ -363,6 +363,8 @@ git diff --check -- frontend\tool\{toolname}.html frontend\tool\{toolname}.js fr
 - `initialize.js` 提供「搖一搖聯絡我們」：手機劇烈搖晃時跳出燈箱引導到 `contact.html`；使用者可在燈箱內或個人資料偏好設定關閉（localStorage `shakecontactoff`）。iOS 未授權動作感應時會顯示一次性引導橫幅（點「允許」的手勢當下請求系統授權；「先不要」記錄在 `shakecontactiosasked` 不再打擾），也可之後在 `profile.html` 的開關點擊時再授權。計時器頁不啟用。
 - `newtable` 支援用起始與結束牌桌編號一次新增多個牌桌，例如 1 到 9 會建立 9 個牌桌；名稱欄在範圍模式會當作前綴。
 - 舊的 `registrations.html` 已由 `register.html` / `register.js` 取代。
+- 報到有兩條路徑，用的是**不同編號**，不可混用：`scan.html` 掃收據 QR 走 `checkin.html?s=<場次id>&r=<報名id>`（`r` 是 `sessionplayer.id`，QR 由 `register.js` 產生）；手動輸入走 `checkin.html?s=<場次id>&entry=<入場編號>`（`entry` 是收據上印的「入場編號」＝ `sessionplayer.serialno`，只在單一場次內唯一，所以一定要帶 `s`）。`checkin.js` 有 `r` 就打 `getcheckininfo`，只有 `entry`+`s` 就打 `getcheckininfobyentry`，兩支回傳結構相同。
+- `scan.html` 手動輸入區有場次下拉：清單取 `getsessionlist?limit=200&page=1`，前端只留「主辦場次（`owned`）＋ 自己可操作（`isown` / `isstaff`）＋ 未結束（`sessionended` 不為 true）＋ 結束未超過一天」的場次；只有一場時自動選定，帶 `?s=<場次id>` 進來（`register.html` 的「掃描 QR」會帶）則預選該場並仍可切換。文案在 `translate.js` 的 `scanpage` / `checkinpage`。
 - `register.js` 加入玩家輸入框旁有「測試使用者」開關按鈕：預設關閉，查詢結果一律過濾掉測試使用者（`backend/defultuser.py` 產生、playerid `0` 開頭）；開啟後按鈕會 highlight（綠色），查詢結果才會包含測試使用者，且關鍵字為空時會自動以 `TUP_` 前綴列出測試玩家。
 - 全站按鈕目前以 `<input type="button|submit|reset">` 為主；少數需要包含子元素的互動區塊使用 `role="button"`、`tabindex="0"` 與鍵盤事件。
 - 若本目錄用途或重要檔案改變，請同步更新本 README 與 `AGENTS.md`。

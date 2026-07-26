@@ -26,11 +26,14 @@ let hrmaxseat=9
 let hrrevealall=false
 let hrspeed=1
 let hrshowpotchips=true
-let hrequity={}
-let hrequityouts={}
+// all-in 勝率逐街快取: hrequitymap[街別]={ 座位: { win, outs } }; 沿用 handdetail 的解算器邏輯
+let hrequitymap={}
 let hrbbmode=false
+let hrpotside="right"
 
 try{ hrbbmode=(localStorage.getItem("hr-bbmode")=="1") }catch(error){ hrbbmode=false }
+// 主池位置偏好(帳號設定同步到 localStorage): right=主池靠右、邊池靠左; left 相反
+try{ hrpotside=(localStorage.getItem("bc-potside")=="left")?"left":"right" }catch(error){ hrpotside="right" }
 
 // 金額格式: BB 模式時以該手大盲為單位顯示(x.x BB), 否則原始計分牌數
 function hrfmtamt(amount){
@@ -111,46 +114,77 @@ function hrboardslots(board,small){
 	return html
 }
 
-// 燒牌(右側): 資料有值就以正面小牌顯示, 標「燒牌」
-function hrburnshtml(frame){
+// 燒牌(插在底池籌碼堆底下): 預設牌背; 有記錄到牌值(被秀牌)就翻正面顯示(不特別標記、不發光)
+function hrpotburnshtml(frame){
 	let burns=frame.burns||[]
-	let cards=""
-	for(let i=0;i<burns.length;i=i+1){
-		if(burns[i]){
-			cards=cards+hrcardface(burns[i],true)
-		}
-	}
-	if(!cards){
+	if(!burns.length){
 		return ""
 	}
-	return `<div class="bc-burns"><div class="bc-sidelabel">${hrtext("burn")}</div><div class="bc-burnrow">${cards}</div></div>`
+	let cards=""
+	for(let i=0;i<burns.length;i=i+1){
+		let b=burns[i]||{}
+		if(b.shown&&b.card){
+			cards=cards+`<span class="bc-burncard shown">${hrcardface(b.card,true)}</span>`
+		}else{
+			cards=cards+`<span class="bc-burncard">${hrcardback(true)}</span>`
+		}
+	}
+	return `<div class="bc-potburns">${cards}</div>`
 }
 
-// 邊池(左側): 只有 all-in 造成多層時才列出主池/邊池
-function hrsidepotshtml(frame){
-	// 派彩幀底池已移到贏家面前, 不再顯示邊池
+// 把底池拆成主池 + 邊池: 只有在下注都掃進池(當街無人還有面前籌碼)且分層>1 時才拆, 避免與面前下注重複計
+function hrpotlayers(frame){
+	let layers=frame.sidepots||[]
+	let hasunswept=false
+	for(let key in frame.seats){
+		if(!frame.seats[key].folded&&frame.seats[key].bet>0){
+			hasunswept=true
+		}
+	}
+	let awarded=frame.award&&Object.keys(frame.award).length
+	let mainamount=frame.pot
+	let sidelist=[]
+	if(layers.length>1&&!hasunswept&&!awarded){
+		mainamount=layers[0].amount
+		for(let i=1;i<layers.length;i=i+1){
+			if(layers[i].amount>0&&layers[i].eligible>=2){
+				sidelist.push(layers[i])
+			}
+		}
+	}
+	return { mainamount: mainamount,sidelist: sidelist }
+}
+
+// 邊池組(收在主池反方向, 一層層往外堆疊累積): 派彩幀不顯示(已移到贏家面前)
+function hrsidepotstackhtml(frame){
 	if(frame.award&&Object.keys(frame.award).length){
 		return ""
 	}
-	// 只顯示有 2 人以上競爭的池; 單人資格的是未被跟注的退還額, 不算池
-	let pots=(frame.sidepots||[]).filter(function(p){ return p.eligible>=2 })
-	if(pots.length<=1){
+	let layers=hrpotlayers(frame)
+	if(!layers.sidelist.length){
 		return ""
 	}
 	let rows=""
-	for(let i=0;i<pots.length;i=i+1){
-		let label=i==0?hrtext("mainpot"):(hrtext("sidepot")+i)
-		rows=rows+`<div class="bc-potrow"><span class="bc-potlabel">${hresc(label)}</span><span class="bc-potval">${hresc(hrfmtamt(pots[i].amount))}</span></div>`
+	for(let i=0;i<layers.sidelist.length;i=i+1){
+		let label=hrtext("sidepot")+(i+1)
+		rows=rows+`<div class="bc-sidepotitem"><div class="bc-sidepotchips">${hrchipstack(layers.sidelist[i].amount)}</div><div class="bc-sidepotlabel">${hresc(label)} ${hresc(hrfmtamt(layers.sidelist[i].amount))}</div></div>`
 	}
-	return `<div class="bc-sidepots">${rows}</div>`
+	return `<div class="bc-sidepotwrap">${rows}</div>`
 }
 
-// 底池計分牌疊(可關閉)
-function hrpotchipshtml(frame){
-	if(!hrshowpotchips||!(frame.pot>0)){
+// 底池組(主池, 固定收在設定的那一側, 擬真現場): 燒牌插在籌碼堆底下 + 籌碼堆 + 金額
+function hrpotgrouphtml(frame){
+	let layers=hrpotlayers(frame)
+	let mainamount=layers.mainamount
+	let burns=hrpotburnshtml(frame)
+	// 有邊池時主池標「主池」以區分, 沒有邊池就是單一「底池」
+	let potlabel=layers.sidelist.length?hrtext("mainpot"):hrtext("pot")
+	let pile=(hrshowpotchips&&mainamount>0)?`<div class="bc-potpile">${hrchipstack(mainamount)}</div>`:""
+	let amt=(mainamount>0)?`<div class="bc-pot">${hresc(potlabel)} ${hresc(hrfmtamt(mainamount))}</div>`:""
+	if(!burns&&!pile&&!amt){
 		return ""
 	}
-	return `<div class="bc-potchips">${hrchipstack(frame.pot)}</div>`
+	return `<div class="bc-potgroup">${burns}${pile}${amt}</div>`
 }
 
 function hrseatcards(seat){
@@ -266,22 +300,34 @@ function hrsnapshot(state,phase,actingseat){
 		seats: seats,
 		award: award,
 		phase: phase,
+		streetkey: state.streetkey||"preflop",
 		showdown: state.showdown,
 		acting: actingseat||0
 	}
 	frame.sidepots=hrsidepots(frame)
-	// all-in 鎖定: 未蓋牌者≥2 且「還能下注(未全押)」的人≤1 → 動作已結束, 翻牌
+	// all-in 攤牌鎖定: 未蓋牌者≥2、當街下注都已跟平(或全押), 且還能下注(有計分牌)的人≤1
+	// → 動作真的結束才翻牌跑馬, 避免「還沒 call 就開牌」
 	let active=0
-	let canact=0
+	let withchips=0
+	let maxbet=0
 	for(let key in seats){
 		if(!seats[key].folded){
 			active=active+1
 			if(!seats[key].allin){
-				canact=canact+1
+				withchips=withchips+1
+			}
+			if(seats[key].bet>maxbet){
+				maxbet=seats[key].bet
 			}
 		}
 	}
-	frame.allinlocked=(active>=2&&canact<=1)
+	let matched=true
+	for(let key in seats){
+		if(!seats[key].folded&&!seats[key].allin&&seats[key].bet<maxbet){
+			matched=false
+		}
+	}
+	frame.allinlocked=(active>=2&&withchips<=1&&matched)
 	return frame
 }
 
@@ -332,10 +378,54 @@ function hrsidepots(frame){
 	return pots
 }
 
+// 手牌結束時依各座位「總投入」分層(主池 index 0=資格最多者), 每層含金額與有資格(未蓋牌)座位, 供派彩歸屬
+function hrfinalpots(seats){
+	let contribs=[]
+	for(let key in seats){
+		let amt=hrint(seats[key].invested)
+		if(amt>0){
+			contribs.push({ seat: hrint(key),amt: amt,folded: seats[key].folded })
+		}
+	}
+	let levels=[]
+	for(let i=0;i<contribs.length;i=i+1){
+		if(levels.indexOf(contribs[i].amt)<0){
+			levels.push(contribs[i].amt)
+		}
+	}
+	levels.sort(function(a,b){ return a-b })
+	let pots=[]
+	let prev=0
+	for(let l=0;l<levels.length;l=l+1){
+		let cap=levels[l]
+		let amount=0
+		let elig=[]
+		for(let i=0;i<contribs.length;i=i+1){
+			if(contribs[i].amt>=cap){
+				amount=amount+(cap-prev)
+				if(!contribs[i].folded){
+					elig.push(contribs[i].seat)
+				}
+			}
+		}
+		if(amount>0){
+			let key=elig.slice().sort(function(a,b){ return a-b }).join(",")
+			// 相同「有資格集合」的連續層合併(盲注造成的雜訊小層)
+			if(pots.length&&pots[pots.length-1].key==key){
+				pots[pots.length-1].amount=pots[pots.length-1].amount+amount
+			}else{
+				pots.push({ amount: amount,eligibleseats: elig,key: key })
+			}
+		}
+		prev=cap
+	}
+	return pots
+}
+
 function hrbuildframes(hand){
 	let frames=[]
 	let seatlist=hand["seatingdata"]||[]
-	let state={ board: [],burns: [],pot: 0,seats: {},award: {},showdown: false }
+	let state={ board: [],burns: [],pot: 0,seats: {},award: {},showdown: false,streetkey: "preflop" }
 	for(let i=0;i<seatlist.length;i=i+1){
 		let seatno=hrint(seatlist[i]["seatno"])
 		state.seats[seatno]={ bet: 0,invested: 0,folded: false,allin: false,action: null }
@@ -353,6 +443,7 @@ function hrbuildframes(hand){
 
 	for(let si=0;si<streets.length;si=si+1){
 		let street=streets[si]
+		state.streetkey=street.key
 		let rows=hrstreetrows(hand,street.key)
 		if(street.key!="preflop"){
 			// 這條街既沒有公共牌也沒有動作 → 手牌已在前一街結束
@@ -366,10 +457,8 @@ function hrbuildframes(hand){
 				state.seats[key].bet=0
 				state.seats[key].action=null
 			}
-			// 翻牌前先顯示燒牌(若有), 再翻該街公共牌
-			if(street.burn){
-				state.burns.push(street.burn)
-			}
+			// 每條街發牌前都有一張燒牌(插在底池籌碼堆底下); 記錄到牌值代表被秀牌, 否則牌背
+			state.burns.push({ card: street.burn||"",shown: street.burn?true:false })
 			state.board=street.board.slice()
 			frames.push(hrsnapshot(state,street.label,0))
 		}
@@ -384,6 +473,10 @@ function hrbuildframes(hand){
 			let allined=row["allined"]===true||action=="allin"
 			if(action=="fold"){
 				s.folded=true
+			}else if(action=="ante"){
+				// 前注是死錢, 直接進底池, 不放在座位前(不算當前下注); invested 仍計入以正確算剩餘計分牌與邊池
+				state.pot=state.pot+hrint(row["chip"])
+				s.invested=s.invested+hrint(row["chip"])
 			}else{
 				s.bet=s.bet+hrint(row["chip"])
 				s.invested=s.invested+hrint(row["chip"])
@@ -405,26 +498,74 @@ function hrbuildframes(hand){
 	state.showdown=true
 	frames.push(hrsnapshot(state,hrtext("showdown"),0))
 
-	// 派彩: 底池分給贏家(seatingdata.winnered), 計分牌移到贏家面前
-	let winners=[]
+	// 派彩: 先分邊池(反方向那側)再分主池。每個池分給該池「有資格且有贏得毛額」的贏家。
+	// 各座位贏得毛額 wpot: 贏家 = endchip - chip + chipchange(chipchange 即本手投入), 輸家 = 0。
+	let wpot={}
+	let winnered={}
 	for(let i=0;i<seatlist.length;i=i+1){
+		let seatno=hrint(seatlist[i]["seatno"])
 		if(seatlist[i]["winnered"]){
-			winners.push(hrint(seatlist[i]["seatno"]))
+			winnered[seatno]=true
+			let won=hrint(seatlist[i]["endchip"])-hrint(seatlist[i]["chip"])+hrint(seatlist[i]["chipchange"])
+			wpot[seatno]=won>0?won:0
 		}
 	}
-	let totalpot=state.pot
-	if(winners.length&&totalpot>0){
-		let share=Math.floor(totalpot/winners.length)
-		let award={}
-		for(let w=0;w<winners.length;w=w+1){
-			award[winners[w]]=share
+	let potlayers=hrfinalpots(state.seats)
+	let remaining={}
+	for(let seat in wpot){
+		remaining[seat]=wpot[seat]
+	}
+	let sideawards={}
+	let mainaward={}
+	// 反向逐層歸屬: 先外層邊池, 最後主池(index 0=主池); 依剩餘 wpot 貪婪指派給有資格的贏家
+	for(let li=potlayers.length-1;li>=0;li=li-1){
+		let layer=potlayers[li]
+		let eligwin=[]
+		for(let e=0;e<layer.eligibleseats.length;e=e+1){
+			let seat=layer.eligibleseats[e]
+			if(winnered[seat]&&(remaining[seat]||0)>0){
+				eligwin.push(seat)
+			}
 		}
-		// 餘數給第一位贏家
-		let leftover=totalpot-share*winners.length
-		if(leftover>0){
-			award[winners[0]]=award[winners[0]]+leftover
+		if(!eligwin.length){
+			for(let e=0;e<layer.eligibleseats.length;e=e+1){
+				if(winnered[layer.eligibleseats[e]]){
+					eligwin.push(layer.eligibleseats[e])
+				}
+			}
 		}
-		state.award=award
+		if(!eligwin.length){
+			continue
+		}
+		let share=Math.floor(layer.amount/eligwin.length)
+		let leftover=layer.amount-share*eligwin.length
+		for(let w=0;w<eligwin.length;w=w+1){
+			let seat=eligwin[w]
+			let amt=share+(w===0?leftover:0)
+			if(li===0){
+				mainaward[seat]=(mainaward[seat]||0)+amt
+			}else{
+				sideawards[seat]=(sideawards[seat]||0)+amt
+			}
+			remaining[seat]=(remaining[seat]||0)-amt
+		}
+	}
+	// 先分邊池: 邊池籌碼移到贏家面前, 主池(index 0)仍留在桌上
+	if(Object.keys(sideawards).length){
+		state.award=sideawards
+		state.pot=potlayers.length?potlayers[0].amount:0
+		frames.push(hrsnapshot(state,hrtext("paysidepots"),0))
+	}
+	// 再分主池: 全部籌碼到位
+	let finalaward={}
+	for(let seat in sideawards){
+		finalaward[seat]=sideawards[seat]
+	}
+	for(let seat in mainaward){
+		finalaward[seat]=(finalaward[seat]||0)+mainaward[seat]
+	}
+	if(Object.keys(finalaward).length){
+		state.award=finalaward
 		state.pot=0
 		frames.push(hrsnapshot(state,hrtext("payout"),0))
 	}
@@ -494,8 +635,10 @@ function hrseatposhtml(seat,seatno,x,y,isdealer,frame){
 	// all-in 持久標誌
 	let allinbadge=(ss.allin&&!ss.folded)?`<span class="bc-allin">ALL-IN</span>`:""
 	let equityhtml=hrequityhtml(seatno,ss,frame)
+	// 顯示勝率小標(含 outs)的座位提高層級, 避免小標被相鄰座位框蓋掉
+	let eqcls=equityhtml?" eq":""
 	return `
-		<div class="bc-seatpos" style="left:${x}%;top:${y}%">
+		<div class="bc-seatpos${eqcls}" style="left:${x}%;top:${y}%">
 			<div class="bc-seatbox${win}${foldcls}${acting}">${dealer}${allinbadge}${equityhtml}
 				<div class="bc-avatar">${hresc(hrinitial(seat["name"]))}</div>
 				<div class="bc-name">${name}</div>
@@ -523,21 +666,39 @@ function hroutspips(outs){
 	return html
 }
 
-// all-in 勝率小標(含 outs): all-in / 動作鎖定 / 攤牌時顯示; 資料由 hrloadequity 非同步填入
+// all-in 勝率小標(含 outs): 只有 all-in 被跟注鎖定(牌已開)或攤牌時才顯示, 跟開牌時機一致;
+// 一全下但還沒有人跟注時不顯示(還沒開牌不給機率)。依「當前這條街的板面」逐街更新。
 function hrequityhtml(seatno,ss,frame){
 	if(ss.folded){
 		return ""
 	}
-	if(!ss.allin&&!frame.showdown&&!frame.allinlocked){
+	if(!frame.showdown&&!frame.allinlocked){
 		return ""
 	}
-	let pct=hrequity[seatno]
-	if(pct==null||pct===""){
+	let streetmap=hrequitymap[frame.streetkey]
+	if(!streetmap||!streetmap[seatno]){
 		return ""
 	}
-	let outs=hrequityouts[seatno]||[]
+	let pct=streetmap[seatno].win
+	let outs=streetmap[seatno].outs||[]
 	let outshtml=outs.length?` <span class="bc-outs">${hroutspips(outs)}</span>`:""
-	return `<span class="bc-equity">${hresc(pct)}%${outshtml}</span>`
+	// 沒 outs 時, 依解算器狀態顯示「需要翻牌 / 後門聽牌 / 聽死牌 / 平分」等
+	let statustext=hrequitystatuslabel(streetmap[seatno].status,outs.length>0)
+	let statushtml=statustext?` <span class="bc-eqstatus">${hresc(statustext)}</span>`:""
+	return `<span class="bc-equity">${hresc(pct)}%${outshtml}${statushtml}</span>`
+}
+
+// 把 equity 端點的 status 對成解算器式文字(走 translate, 換語言自動更新); 有 outs 時不另標
+function hrequitystatuslabel(status,hasouts){
+	if(hasouts){
+		return ""
+	}
+	if(status=="runner_runner"){ return hrtext("backdoor") }
+	if(status=="drawing_dead"){ return hrtext("drawingdead") }
+	if(status=="need_flop"){ return hrtext("needflop") }
+	if(status=="tie_only"){ return hrtext("splitpot") }
+	if(status=="chop_out"){ return hrtext("chopout") }
+	return ""
 }
 
 function hrbethtml(amount,x,y,won){
@@ -567,8 +728,8 @@ function hrtablehtml(hand,frame){
 		let py=Math.round((50+41*Math.sin(theta))*10)/10
 		seatshtml=seatshtml+hrseatposhtml(byseat[seatno],seatno,px,py,dealerseat==seatno,frame)
 		let ss=frame.seats[seatno]
-		let bx=Math.round((50+30*Math.cos(theta))*10)/10
-		let by=Math.round((50+27*Math.sin(theta))*10)/10
+		let bx=Math.round((50+27*Math.cos(theta))*10)/10
+		let by=Math.round((50+24*Math.sin(theta))*10)/10
 		if(byseat[seatno]&&ss&&!ss.folded&&ss.bet>0){
 			bethtml=bethtml+hrbethtml(ss.bet,bx,by)
 		}
@@ -578,15 +739,13 @@ function hrtablehtml(hand,frame){
 		}
 	}
 	return `
-		<div class="bc-tablewrap">
+		<div class="bc-tablewrap potside-${hresc(hrpotside)}">
 			<div class="bc-felt"></div>
-			${hrsidepotshtml(frame)}
-			${hrburnshtml(frame)}
+			${hrsidepotstackhtml(frame)}
 			<div class="bc-center">
 				<div class="bc-board">${hrboardslots(frame.board,false)}</div>
-				${frame.pot>0?`<div class="bc-pot">${hrtext("pot")} ${hresc(hrfmtamt(frame.pot))}</div>`:""}
-				${hrpotchipshtml(frame)}
 			</div>
+			${hrpotgrouphtml(frame)}
 			${bethtml}
 			${seatshtml}
 		</div>`
@@ -628,14 +787,9 @@ function hrbuildoverlay(){
 				<option value="2">2×</option>
 				<option value="4">4×</option>
 			</select>
-			<select class="hr-select" id="hrskin" aria-label="deck">
-				<option value="classic">${hrtext("skinclassic")}</option>
-				<option value="crimson">${hrtext("skincrimson")}</option>
-				<option value="midnight">${hrtext("skinmidnight")}</option>
-			</select>
-			<label class="hr-toggle"><input type="checkbox" id="hrreveal">${hrtext("revealall")}</label>
-			<label class="hr-toggle"><input type="checkbox" id="hrpotchips" checked>${hrtext("potchips")}</label>
-			<label class="hr-toggle"><input type="checkbox" id="hrbb">BB</label>
+			<input type="button" class="hr-togglebtn${hrrevealall?" on":""}" id="hrreveal" value="${hrtext("revealall")}">
+			<input type="button" class="hr-togglebtn${hrshowpotchips?" on":""}" id="hrpotchips" value="${hrtext("potchips")}">
+			<input type="button" class="hr-togglebtn${hrbbmode?" on":""}" id="hrbb" value="BB">
 		</div>
 		<div class="hr-lightbox" id="hrlightbox" hidden>
 			<div class="hr-lbpanel">
@@ -656,19 +810,22 @@ function hrbuildoverlay(){
 		hrspeed=parseFloat(this.value)||1
 		if(hrtimer){ hrpause(); hrplay() }
 	})
-	document.getElementById("hrreveal").addEventListener("change",function(){
-		hrrevealall=this.checked
+	document.getElementById("hrreveal").addEventListener("click",function(){
+		hrrevealall=!hrrevealall
+		this.classList.toggle("on",hrrevealall)
 		hrshow()
 	})
-	document.getElementById("hrpotchips").addEventListener("change",function(){
-		hrshowpotchips=this.checked
+	document.getElementById("hrpotchips").addEventListener("click",function(){
+		hrshowpotchips=!hrshowpotchips
+		this.classList.toggle("on",hrshowpotchips)
 		hrshow()
 	})
 	let hrbbcb=document.getElementById("hrbb")
 	if(hrbbcb){
-		hrbbcb.checked=hrbbmode
-		hrbbcb.addEventListener("change",function(){
-			hrbbmode=this.checked
+		hrbbcb.classList.toggle("on",hrbbmode)
+		hrbbcb.addEventListener("click",function(){
+			hrbbmode=!hrbbmode
+			this.classList.toggle("on",hrbbmode)
 			try{
 				localStorage.setItem("hr-bbmode",hrbbmode?"1":"0")
 			}catch(error){
@@ -677,15 +834,12 @@ function hrbuildoverlay(){
 			hrshow()
 		})
 	}
-	let skinsel=document.getElementById("hrskin")
-	skinsel.value=saveddeck
-	skinsel.addEventListener("change",function(){ hrapplyskin(this.value) })
 	document.addEventListener("keydown",hrkeydown)
 }
 
 // 牌面牌背皮膚(與現場轉播共用 localStorage bc-deck)
 function hrapplyskin(skin){
-	let valid=["classic","crimson","midnight"]
+	let valid=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite"]
 	if(valid.indexOf(skin)<0){
 		skin="classic"
 	}
@@ -698,9 +852,15 @@ function hrapplyskin(skin){
 	}catch(error){
 		// localStorage 不可用時忽略
 	}
-	let sel=document.getElementById("hrskin")
-	if(sel){
-		sel.value=skin
+	// 同步存回帳號, 讓牌背偏好跨裝置一致(與 profile 設定共用同一來源)
+	if(typeof ajax=="function"&&typeof AJAXURL!="undefined"&&typeof weblsget=="function"&&typeof WEBLSNAME!="undefined"){
+		let token=weblsget(WEBLSNAME+"token")
+		if(token){
+			ajax("PUT",AJAXURL+"editusercarddeck",function(event,data){},JSON.stringify({ carddeck: skin }),[
+				["Content-Type","application/json"],
+				["Authorization","Bearer "+token]
+			])
+		}
 	}
 }
 
@@ -715,7 +875,12 @@ function hrlbbuild(){
 	let skins=[
 		{ key: "classic",name: hrtext("skinclassic") },
 		{ key: "crimson",name: hrtext("skincrimson") },
-		{ key: "midnight",name: hrtext("skinmidnight") }
+		{ key: "midnight",name: hrtext("skinmidnight") },
+		{ key: "royal",name: hrtext("skinroyal") },
+		{ key: "ocean",name: hrtext("skinocean") },
+		{ key: "sunset",name: hrtext("skinsunset") },
+		{ key: "rose",name: hrtext("skinrose") },
+		{ key: "graphite",name: hrtext("skingraphite") }
 	]
 	let html=""
 	for(let i=0;i<skins.length;i=i+1){
@@ -893,60 +1058,54 @@ function hrloadchips(hand){
 	},null,headers)
 }
 
-// all-in 鎖定當下的公共牌(可能是空/翻牌/轉牌); equity 要用「當時」的板面才算得出機率, 用完整板面會變成 0/100
-function hrallinlockboard(){
-	for(let i=0;i<hrframes.length;i=i+1){
-		if(hrframes[i].allinlocked){
-			return hrframes[i].board.slice()
-		}
+// all-in 勝率: 沿用 handdetail 的解算器邏輯(buildallinequityplan 找到被跟注的 all-in 街 + 各街板面),
+// 逐街呼叫 equity 端點, 依「當時板面」算勝率與 outs(用完整板面會變成 0/100), 結果快取到 hrequitymap[街別]。
+function hrloadequity(hand){
+	if(typeof buildallinequityplan!="function"||typeof ajax!="function"||typeof AJAXURL=="undefined"){
+		return
 	}
-	return []
+	let plan=buildallinequityplan(hand)
+	if(!plan||!plan.seats||plan.seats.length<2){
+		return
+	}
+	for(let i=0;i<plan.streets.length;i=i+1){
+		hrfetchstreetequity(plan,plan.streets[i],1)
+	}
 }
 
-// 有 all-in 時, 蒐集未蓋牌且底牌已知的座位, 呼叫 equity 端點算 all-in 勝率
-function hrloadequity(hand){
-	let bit=hand["bittingdata"]||[]
-	let hasallin=false
-	let folded={}
-	for(let i=0;i<bit.length;i=i+1){
-		let a=String(bit[i]["action"]||"").toLowerCase()
-		if(bit[i]["allined"]===true||a=="allin"){ hasallin=true }
-		if(a=="fold"){ folded[hrint(bit[i]["seatno"])]=true }
+// 逐街抓勝率; 這條街失敗(伺服器忙 / 偶發網路)時自動重試, 避免「某條街(例如轉牌)勝率不見」
+function hrfetchstreetequity(plan,streetitem,attempt){
+	let handlist=[]
+	for(let k=0;k<plan.seats.length;k=k+1){
+		handlist.push(plan.seats[k].cards.slice())
 	}
-	if(!hasallin||typeof ajax!="function"||typeof AJAXURL=="undefined"){
-		return
-	}
-	let seats=hand["seatingdata"]||[]
-	let entries=[]
-	for(let i=0;i<seats.length;i=i+1){
-		let seatno=hrint(seats[i]["seatno"])
-		if(folded[seatno]){ continue }
-		let hc=hrseatcards(seats[i])
-		if(hc[0]&&hc[1]&&String(hc[0]).length>=2&&String(hc[1]).length>=2){
-			entries.push({ seatno: seatno,cards: [hc[0],hc[1]] })
-		}
-	}
-	if(entries.length<2){
-		return
-	}
-	// 用 all-in 鎖定當下的板面(未發完的牌交給後端枚舉), 才會是真正的機率而非 0/100
-	let lockboard=hrallinlockboard()
 	let bodydata={
-		gametype: (typeof equitygametype=="function")?equitygametype(hand):"HE",
-		handlist: entries.map(function(e){ return e.cards }),
-		board: { floplist: [lockboard[0]||"",lockboard[1]||"",lockboard[2]||""],turn: lockboard[3]||"",river: lockboard[4]||"" }
+		gametype: plan.gametype,
+		handlist: handlist,
+		board: {
+			floplist: [streetitem["board"][0]||"",streetitem["board"][1]||"",streetitem["board"][2]||""],
+			turn: streetitem["board"][3]||"",
+			river: streetitem["board"][4]||""
+		}
 	}
 	ajax("POST",AJAXURL+"equity",function(event,data){
 		if(data&&data["success"]&&data["data"]){
 			let results=data["data"]["resultlist"]||data["data"]["results"]||[]
-			for(let k=0;k<entries.length;k=k+1){
+			let bystreet={}
+			for(let k=0;k<plan.seats.length;k=k+1){
 				let r=results[k]
 				if(r&&r["win"]!=null){
-					hrequity[entries[k].seatno]=Math.round(Number(r["win"])||0)
-					hrequityouts[entries[k].seatno]=r["outs"]||r["outlist"]||[]
+					bystreet[plan.seats[k].seatno]={
+						win: Math.round(Number(r["win"])||0),
+						outs: r["outs"]||r["outlist"]||[],
+						status: r["status"]||""
+					}
 				}
 			}
+			hrequitymap[streetitem["street"]]=bystreet
 			hrshow()
+		}else if(attempt<3){
+			setTimeout(function(){ hrfetchstreetequity(plan,streetitem,attempt+1) },400*attempt)
 		}
 	},JSON.stringify(bodydata),[
 		["Content-Type","application/json"],
@@ -962,10 +1121,10 @@ function openhandreplay(hand){
 	hrhand=hand
 	hrhero=hrint(hand["selfseating"])
 	hrmaxseat=hrmaxseatof(hand)
+	try{ hrpotside=(localStorage.getItem("bc-potside")=="left")?"left":"right" }catch(error){ hrpotside="right" }
 	hrframes=hrbuildframes(hand)
 	hrindex=0
-	hrequity={}
-	hrequityouts={}
+	hrequitymap={}
 	hrbuildoverlay()
 	let root=document.getElementById("hroverlay")
 	root.removeAttribute("hidden")

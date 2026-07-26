@@ -22,7 +22,7 @@
 					<div class="mt-3 text-sm leading-7 text-zinc-400" id="sessionname"></div>
 				</div>
 				<div class="flex gap-2">
-					<a href="scan.html" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-emerald-600 px-6 text-sm font-bold text-white transition hover:bg-emerald-700">掃描 QR</a>
+					<a href="scan.html" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-emerald-600 px-6 text-sm font-bold text-white transition hover:bg-emerald-700" id="scanlink">掃描 QR</a>
 					<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back">返回場次</a>
 				</div>
 			</div>
@@ -88,14 +88,14 @@
 
 			<div class="hidden overflow-x-auto rounded-2xl border border-zinc-800 md:block">
 				<table class="w-full text-sm">
-					<thead class="text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
+					<thead class="text-left text-xs font-bold uppercase tracking-wider text-zinc-400" id="reghead">
 						<tr class="border-b border-zinc-800">
 							<th class="px-4 py-3 text-left">選取</th>
-							<th class="px-4 py-3 text-left">選手</th>
-							<th class="px-4 py-3 text-left">報名時間</th>
-							<th class="px-4 py-3 text-left">狀態</th>
+							<th class="ptsortth select-none px-4 py-3 text-left" data-sortkey="playername"><span class="pointer-events-none">選手</span><span class="ptsortarrow pointer-events-none text-emerald-400" data-sortkey="playername"></span></th>
+							<th class="ptsortth select-none px-4 py-3 text-left" data-sortkey="registertime"><span class="pointer-events-none">報名時間</span><span class="ptsortarrow pointer-events-none text-emerald-400" data-sortkey="registertime"></span></th>
+							<th class="ptsortth select-none px-4 py-3 text-left" data-sortkey="status"><span class="pointer-events-none">狀態</span><span class="ptsortarrow pointer-events-none text-emerald-400" data-sortkey="status"></span></th>
 							<th class="px-4 py-3 text-left">座位</th>
-							<th class="px-4 py-3 text-left">收益</th>
+							<th class="ptsortth select-none px-4 py-3 text-left" data-sortkey="profit"><span class="pointer-events-none">收益</span><span class="ptsortarrow pointer-events-none text-emerald-400" data-sortkey="profit"></span></th>
 							<th class="px-4 py-3 text-left">修正</th>
 							<th class="px-4 py-3 text-right">操作</th>
 						</tr>

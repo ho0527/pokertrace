@@ -1752,22 +1752,7 @@ onclick("#back",function(element,event){
 		return
 	}
 	event.preventDefault()
-	if(1<history.length){
-		let fallbacked=false
-		let timer=setTimeout(function(){
-			if(fallbacked){
-				return
-			}
-			fallbacked=true
-			backfallback()
-		},300)
-		window.addEventListener("pagehide",function(){
-			fallbacked=true
-			clearTimeout(timer)
-		},{ once: true })
-		history.back()
-		return
-	}
+	// 直接回到來源分頁(session #hands / table #2), 不用 history.back — 避免回退到別的分頁(例如 #overview-general)
 	backfallback()
 })
 

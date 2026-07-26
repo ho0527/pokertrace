@@ -16,7 +16,7 @@ const RECEIPTSAMPLE={
 	"issuer": "Rurul",
 	"tableno": "",
 	"seatno": "",
-	"qrdata": "https://pokertrace.example/frontend/checkin.html?s=123&r=456"
+	"qrdata": "https://pokertrace.example/frontend/checkin.html?sessionid=123&r=456"
 }
 
 // 每一聯要顯示哪些區塊。共通抬頭（logo / 標題 / 賽事 / 選手 / 號碼 / QR）四聯都有。

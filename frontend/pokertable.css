@@ -18,6 +18,7 @@
 .bc-board{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;min-height:46px}
 .bc-pot{display:inline-block;font-size:12px;font-weight:800;color:#ffe9a8;letter-spacing:.04em;background:rgba(0,0,0,.28);border-radius:999px;padding:3px 12px}
 .bc-seatpos{position:absolute;transform:translate(-50%,-50%);width:118px;z-index:2}
+.bc-seatpos.eq{z-index:6}
 .bc-seatbox{position:relative;border:1px solid #2a352f;border-radius:12px;background:rgba(15,20,17,.94);padding:6px 8px 7px;text-align:center;box-shadow:0 6px 16px rgba(0,0,0,.4)}
 .bc-seatbox.win{border-color:#facc15;box-shadow:0 0 0 2px rgba(250,204,21,.4),0 6px 16px rgba(0,0,0,.4)}
 .bc-seatbox.empty{opacity:.4}
@@ -38,6 +39,28 @@
 .deck-midnight .bc-card.red{color:#ff9a9a}
 .deck-midnight .bc-card.back{background:#0f5d43;border-color:#0a4231}
 .deck-midnight .bc-card.unknown{background:linear-gradient(135deg,#28323b,#1a2129)}
+/* 追加牌背皮膚(royal/ocean/sunset/rose 換牌背色;graphite 連牌面也做深色) */
+.deck-royal .bc-card.back{background:#6d28d9;border-color:#4c1d95}
+.deck-ocean .bc-card.back{background:#0e7490;border-color:#0b5566}
+.deck-sunset .bc-card.back{background:#c2410c;border-color:#9a3412}
+.deck-rose .bc-card.back{background:#be185d;border-color:#9d174e}
+.deck-graphite .bc-card{background:#242428;color:#e9eef2;border-color:#3a3a42}
+.deck-graphite .bc-card.red{color:#ff9a9a}
+.deck-graphite .bc-card.back{background:#3f3f46;border-color:#27272a}
+.deck-graphite .bc-card.unknown{background:linear-gradient(135deg,#33333a,#1e1e22)}
+/* 燈箱內每款皮膚各自預覽: 用更高特異度(.hr-lbopt.deck-*), 避免覆蓋層當前 deck class 從外層滲入把所有預覽變同色 */
+.hr-lbopt.deck-classic .bc-card.back{background:#1e3a8a;border-color:#16296b}
+.hr-lbopt.deck-crimson .bc-card.back{background:#7f1d1d;border-color:#5c1414}
+.hr-lbopt.deck-midnight .bc-card{background:#20262e;color:#e9eef2;border-color:#39424d}
+.hr-lbopt.deck-midnight .bc-card.red{color:#ff9a9a}
+.hr-lbopt.deck-midnight .bc-card.back{background:#0f5d43;border-color:#0a4231}
+.hr-lbopt.deck-royal .bc-card.back{background:#6d28d9;border-color:#4c1d95}
+.hr-lbopt.deck-ocean .bc-card.back{background:#0e7490;border-color:#0b5566}
+.hr-lbopt.deck-sunset .bc-card.back{background:#c2410c;border-color:#9a3412}
+.hr-lbopt.deck-rose .bc-card.back{background:#be185d;border-color:#9d174e}
+.hr-lbopt.deck-graphite .bc-card{background:#242428;color:#e9eef2;border-color:#3a3a42}
+.hr-lbopt.deck-graphite .bc-card.red{color:#ff9a9a}
+.hr-lbopt.deck-graphite .bc-card.back{background:#3f3f46;border-color:#27272a}
 
 /* 蓋牌暗化 */
 .bc-seatbox.folded{opacity:.42;filter:grayscale(.4)}
@@ -49,7 +72,7 @@
 .bc-action.danger{background:rgba(244,63,94,.18);color:#fca5b0}
 
 /* 下注計分牌(桌上, 座位前方) */
-.bc-bet{position:absolute;transform:translate(-50%,-50%);z-index:1;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
+.bc-bet{position:absolute;transform:translate(-50%,-50%);z-index:7;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
 .bc-betchips{display:flex}
 .bc-chipdisc{width:15px;height:15px;border-radius:50%;border:1px solid rgba(0,0,0,.5);box-shadow:0 1px 2px rgba(0,0,0,.4);margin-left:-6px;background-clip:padding-box}
 .bc-chipdisc:first-child{margin-left:0}
@@ -82,6 +105,7 @@
 .bc-outs span{margin-right:2px}
 .bc-outs .r{color:#b91c1c}
 .bc-outs .mo{opacity:.7;font-weight:700}
+.bc-eqstatus{margin-left:4px;padding-left:4px;border-left:1px solid rgba(0,0,0,.28);font-weight:700}
 
 /* 底池計分牌 / 邊池 / 燒牌 */
 .bc-potchips{display:flex;justify-content:center;margin-top:5px}
@@ -93,10 +117,37 @@
 .bc-sidelabel{font-size:9px;font-weight:800;letter-spacing:.08em;color:#f0b37e;margin-bottom:3px;text-transform:uppercase}
 .bc-burnrow{display:flex;gap:2px;justify-content:center;opacity:.85}
 .bc-burnrow .bc-card{filter:brightness(.82)}
+/* 底池組: 固定收在牌面右側; 燒牌插在籌碼堆底下(擬真現場收池) */
+.bc-potgroup{position:absolute;left:68%;top:50%;transform:translate(-50%,-50%);z-index:2;display:flex;flex-direction:column;align-items:center}
+.bc-potburns{position:relative;z-index:1;display:flex;justify-content:center}
+.bc-burncard{position:relative;margin-left:-13px}
+.bc-burncard:first-child{margin-left:0}
+.bc-burncard .bc-card{filter:brightness(.9)}
+.bc-burncard.shown{z-index:4}
+.bc-burncard.shown .bc-card{filter:none}
+.bc-potpile{position:relative;z-index:2;margin-top:-15px;display:flex;justify-content:center}
+.bc-potgroup .bc-pot{margin-top:6px}
+/* 主池位置可設定(potside-left/right); 邊池收在反方向。收在板面「側邊、與板面同高」的開放區, 像現場把池收在一邊 */
+.potside-left .bc-potgroup{left:32%;top:52%}
+.potside-right .bc-potgroup{left:68%;top:52%}
+.bc-sidepotwrap{position:absolute;top:52%;transform:translate(-50%,-50%);z-index:2;display:flex;flex-direction:column;gap:7px;align-items:center}
+.potside-right .bc-sidepotwrap{left:32%}
+.potside-left .bc-sidepotwrap{left:68%}
+.bc-sidepotitem{display:flex;flex-direction:column;align-items:center}
+.bc-sidepotchips{display:flex;justify-content:center}
+.bc-sidepotlabel{font-size:9px;font-weight:800;color:#ffe9a8;background:rgba(0,0,0,.4);border-radius:8px;padding:1px 7px;margin-top:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:640px){
 	/* 手機版把邊池/燒牌移到板面內側(介於公共牌與座位之間), 避免卡到側邊座位文字 */
 	.bc-sidepots{left:23%;top:52%}
 	.bc-burns{left:77%;top:52%}
+	.potside-right .bc-potgroup{left:67%;top:54%}
+	.potside-left .bc-potgroup{left:33%;top:54%}
+	.bc-sidepotwrap{top:54%}
+	.potside-right .bc-sidepotwrap{left:33%}
+	.potside-left .bc-sidepotwrap{left:67%}
+	.bc-sidepotlabel{font-size:8px;padding:1px 5px}
+	.bc-burncard{margin-left:-10px}
+	.bc-potpile{margin-top:-12px}
 	.bc-potrow{font-size:8px;padding:1px 4px;background:rgba(0,0,0,.55)}
 	.bc-sidelabel{font-size:8px}
 	.bc-burnrow{background:rgba(0,0,0,.35);border-radius:6px;padding:2px}
@@ -138,6 +189,10 @@
 .hr-select{min-height:44px;border-radius:14px;background:#1b2420;color:#e7efe9;border:1px solid #2a352f;font-weight:700;font-size:13px;padding:0 10px;outline:none}
 .hr-toggle{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#cbd5e1;cursor:pointer;user-select:none}
 .hr-toggle input{width:16px;height:16px;accent-color:#34d399}
+/* 控制列的切換鈕: 點下去變色(啟用態), 不用勾選框 */
+.hr-togglebtn{min-height:44px;padding:0 14px;border-radius:14px;background:#1b2420;color:#9fb0a6;border:1px solid #2a352f;font-weight:700;font-size:13px;cursor:pointer;transition:background .15s,color .15s}
+.hr-togglebtn:hover{background:#25302b}
+.hr-togglebtn.on{background:#10b981;color:#04140d;border-color:transparent}
 .hr-seek{-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:#243029;flex:1;min-width:120px;max-width:340px;cursor:pointer;outline:none}
 .hr-seek::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#34d399;border:2px solid #07100c;cursor:pointer}
 .hr-seek::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#34d399;border:2px solid #07100c;cursor:pointer}
@@ -158,5 +213,6 @@
 	.hr-btn.play{min-width:96px}
 	.hr-select{min-height:38px;font-size:12px;padding:0 8px}
 	.hr-toggle{font-size:12px;gap:5px}
+	.hr-togglebtn{min-height:38px;font-size:12px;padding:0 11px;border-radius:11px}
 	.hr-progress{min-width:42px}
 }

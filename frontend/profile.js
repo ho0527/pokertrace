@@ -24,6 +24,8 @@ let chipcolors=[
     {"name": "黑色","color": "#000000"}
 ]
 let chipsets=[]
+let carddeck="classic"
+let potmainside="right"
 let lastreportrow=null
 let lastreportcontext={"type":"month","year":"","month":""}
 
@@ -185,6 +187,8 @@ function applyprofilelanguage(){
     updateshaketogglebutton()
     setvalue("#lang-zhtw",profiletext("chinese"))
     setvalue("#lang-en",profiletext("english"))
+    settext("#replaysettingscardtitle",profiletext("replaysettingscardtitle"))
+    settext("#replaysettingscarddesc",profiletext("replaysettingscarddesc"))
 
     settext("#toolstitle",profiletext("toolssectiontitle"))
     settext("#toolssubtitle",profiletext("toolssectiondesc"))
@@ -377,6 +381,15 @@ function gotuserdata(event,data){
     currentplayerid=row["playerid"]||""
     chipcolors=row["chipcolors"]||chipcolors
     chipsets=row["chipset"]||chipsets
+    carddeck=row["carddeck"]||"classic"
+    potmainside=row["potmainside"]||"right"
+    // 牌背 / 主池位置偏好快取到 localStorage, 供手牌回放 / 現場轉播直接讀取(key 與其共用)
+    try{
+        localStorage.setItem("bc-deck",carddeck)
+        localStorage.setItem("bc-potside",potmainside)
+    }catch(error){
+        // localStorage 不可用時忽略
+    }
     renderbasicprofile(row)
     arrangeprofilesections()
     applyprofilelanguage()
@@ -1156,6 +1169,136 @@ function switchlang(lang){
     ])
 }
 
+// 手牌回放設定燈箱內的選取高亮:牌背卡片(data-deck)標 sel、主池位置膠囊(data-potside)變藍
+function renderreplayselection(){
+    let cover=domgetid("replaysettingsmodal")
+    if(!cover){
+        return
+    }
+    let deckopts=cover.querySelectorAll("[data-deck]")
+    let i=0
+    for(i=0;i<deckopts.length;i=i+1){
+        if(deckopts[i].getAttribute("data-deck")==carddeck){
+            deckopts[i].classList.add("sel")
+        }else{
+            deckopts[i].classList.remove("sel")
+        }
+    }
+    let sideopts=cover.querySelectorAll("[data-potside]")
+    for(i=0;i<sideopts.length;i=i+1){
+        if(sideopts[i].getAttribute("data-potside")==potmainside){
+            sideopts[i].classList.remove("bg-zinc-700","text-zinc-300")
+            sideopts[i].classList.add("bg-blue-600","text-white")
+        }else{
+            sideopts[i].classList.remove("bg-blue-600","text-white")
+            sideopts[i].classList.add("bg-zinc-700","text-zinc-300")
+        }
+    }
+}
+
+function switchdeck(deck){
+    ajax("PUT",AJAXURL+"editusercarddeck",function(event,data){
+        if(data["success"]){
+            carddeck=data["data"]||deck
+            try{
+                localStorage.setItem("bc-deck",carddeck)
+            }catch(error){
+                // localStorage 不可用時忽略
+            }
+            renderreplayselection()
+            return
+        }
+        errorprompt(profiletext("unknownerror"))
+    },str({
+        "carddeck": deck
+    }),[
+        ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+    ])
+}
+
+function switchpotside(side){
+    ajax("PUT",AJAXURL+"edituserpotmainside",function(event,data){
+        if(data["success"]){
+            potmainside=data["data"]||side
+            try{
+                localStorage.setItem("bc-potside",potmainside)
+            }catch(error){
+                // localStorage 不可用時忽略
+            }
+            renderreplayselection()
+            return
+        }
+        errorprompt(profiletext("unknownerror"))
+    },str({
+        "potmainside": side
+    }),[
+        ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+    ])
+}
+
+// 手牌回放設定燈箱:牌背樣式(實際卡背+牌面預覽,點即套用並存帳號)+ 主池位置
+function openreplaysettings(){
+    let old=domgetid("replaysettingsmodal")
+    if(old){
+        closeprofilecover(old)
+    }
+    lockprofilescroll()
+    let decks=[
+        {"key": "classic","name": profiletext("deckclassic")},
+        {"key": "crimson","name": profiletext("deckcrimson")},
+        {"key": "midnight","name": profiletext("deckmidnight")},
+        {"key": "royal","name": profiletext("deckroyal")},
+        {"key": "ocean","name": profiletext("deckocean")},
+        {"key": "sunset","name": profiletext("decksunset")},
+        {"key": "rose","name": profiletext("deckrose")},
+        {"key": "graphite","name": profiletext("deckgraphite")}
+    ]
+    let swatches=""
+    let i=0
+    for(i=0;i<decks.length;i=i+1){
+        let sel=decks[i]["key"]==carddeck?" sel":""
+        swatches=swatches+`<div class="hr-lbopt deck-${decks[i]["key"]}${sel}" data-deck="${decks[i]["key"]}"><div class="hr-lbswatch"><span class="bc-card back sm"><span class="bc-emblem"></span></span><span class="bc-card red sm"><span class="r">A</span><span class="s">♥</span></span></div><div class="hr-lbname">${decks[i]["name"]}</div></div>`
+    }
+    let leftsel=potmainside=="left"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
+    let rightsel=potmainside=="right"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
+    let cover=doccreate("div")
+    cover.id="replaysettingsmodal"
+    cover.className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 p-4"
+    cover.innerHTML=`
+        <div class="max-h-[85vh] w-full max-w-lg overflow-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-xl">
+            <div class="mb-4 flex items-center justify-between">
+                <div class="text-lg font-semibold text-white">${profiletext("replaysettingscardtitle")}</div>
+                <input type="button" class="closereplaysettings cursor-pointer text-zinc-400 hover:text-white" value="×">
+            </div>
+            <div class="mb-2 text-sm font-bold text-zinc-300">${profiletext("carddeckcardtitle")}</div>
+            <div class="hr-lbgrid mb-5">${swatches}</div>
+            <div class="mb-2 text-sm font-bold text-zinc-300">${profiletext("potsidecardtitle")}</div>
+            <div class="flex gap-2">
+                <input type="button" class="rounded-full ${leftsel} px-6 py-2 text-sm font-bold transition hover:opacity-90" data-potside="left" value="${profiletext("potsideleft")}">
+                <input type="button" class="rounded-full ${rightsel} px-6 py-2 text-sm font-bold transition hover:opacity-90" data-potside="right" value="${profiletext("potsideright")}">
+            </div>
+        </div>`
+    document.body.appendChild(cover)
+    let closebuttons=cover.querySelectorAll(".closereplaysettings")
+    for(i=0;i<closebuttons.length;i=i+1){
+        closebuttons[i].onclick=function(){
+            closeprofilecover(cover)
+        }
+    }
+    let deckopts=cover.querySelectorAll("[data-deck]")
+    for(i=0;i<deckopts.length;i=i+1){
+        deckopts[i].onclick=function(){
+            switchdeck(this.getAttribute("data-deck"))
+        }
+    }
+    let sideopts=cover.querySelectorAll("[data-potside]")
+    for(i=0;i<sideopts.length;i=i+1){
+        sideopts[i].onclick=function(){
+            switchpotside(this.getAttribute("data-potside"))
+        }
+    }
+}
+
 function opensignoutmodal(){
     let modal=domgetid("signoutmodal")
     if(!modal||modal.classList.contains("hidden")){
@@ -1487,6 +1630,10 @@ onclick("#lang-zhtw",function(){
 
 onclick("#lang-en",function(){
     switchlang("en")
+})
+
+onclick("#openreplaysettings",function(){
+    openreplaysettings()
 })
 
 onclick("#closestaffmodal",function(){

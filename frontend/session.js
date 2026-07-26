@@ -32,6 +32,40 @@ let userchipcolors=[
 let userchipsets=[]
 let sessionhands=[]
 let sessionhandsortdir=weblsget(WEBLSNAME+"handsortdir")||"desc"
+// 手牌表 / 牌桌清單排序狀態(可點各欄表頭)
+let sessionhandsortstate={"key": "createtime","ascended": sessionhandsortdir=="asc"}
+let sessiontablesortstate={"key": "","ascended": true}
+
+function sessionhandsortvalue(item,key){
+	if(key=="createtime"){
+		let text=ptformatdatetime(item["createtime"])
+		return text||null
+	}
+	if(key=="selfseating"||key=="bigblind"||key=="result"){
+		let number=Number(item[key])
+		return isNaN(number)?null:number
+	}
+	if(key=="tablename"){
+		let text=String(item["tablename"]||"").trim()
+		return text||null
+	}
+	let text=""
+	if(item[key]!=null){
+		text=String(item[key]).trim()
+	}
+	return text||null
+}
+
+function sessiontablesortvalue(item,key){
+	if(key=="no"){
+		return sessiontableno(item)
+	}
+	let text=""
+	if(item[key]!=null){
+		text=String(item[key]).trim()
+	}
+	return text||null
+}
 let sessionhandsloadeded=false
 let sessionevchart=null
 let sessionselectedplayer=""
@@ -346,6 +380,14 @@ function applydefaultsessionview(row){
 		return
 	}
 	sessiondefaultviewapplieded=true
+	// 從手牌詳情返回(網址沒帶 hash)時, 預設停在「手牌」分頁而非總覽, 讓使用者回到原本看的地方
+	if((document.referrer||"").indexOf("handdetail.html")>=0){
+		let handstab=document.querySelector('.tab-btn[data-tab="hands"]')
+		if(handstab){
+			handstab.click()
+			return
+		}
+	}
 	let tab=document.querySelector('.tab-btn[data-tab="overview"]')
 	if(tab){
 		tab.click()
@@ -701,9 +743,9 @@ function initsessiontabletools(){
 	if(domgetid("deletetable")&&!canviewsessionsettings(currentsession)){
 		domgetid("deletetable").classList.add("hidden")
 	}
-	let heads=list.querySelectorAll("thead th")
-	if(heads.length){
-		heads[0].textContent="牌桌編號"
+	let namehead=domgetid("sessiontablenamehead")
+	if(namehead){
+		namehead.textContent="牌桌編號"
 	}
 	if(!domgetid("tablepager")){
 		let pager=doccreate("div")
@@ -768,6 +810,8 @@ function rendersessiontablepager(total){
 
 function rendersessiontablelist(){
 	let rows=filtersessiontables()
+	rows=ptsortlist(rows,sessiontablesortstate["key"],sessiontablesortstate["ascended"],sessiontablesortvalue)
+	ptsortarrow("#sessiontablehead",sessiontablesortstate["key"],sessiontablesortstate["ascended"])
 	let totalpage=Math.max(1,Math.ceil(rows.length/sessiontablepagesize))
 	if(totalpage<sessiontablepage){
 		sessiontablepage=totalpage
@@ -3689,18 +3733,7 @@ function filtersessionhands(){
 			rows.push(hand)
 		}
 	}
-	rows.sort(function(a,b){
-		let ca=String(a["createtime"]||"")
-		let cb=String(b["createtime"]||"")
-		if(ca!=cb){
-			return ca<cb?-1:1
-		}
-		return (parseInt(a["id"])||0)-(parseInt(b["id"])||0)
-	})
-	if(sessionhandsortdir=="desc"){
-		rows.reverse()
-	}
-	return rows
+	return ptsortlist(rows,sessionhandsortstate["key"]||"createtime",sessionhandsortstate["ascended"],sessionhandsortvalue)
 }
 
 function rendersessionhandpager(total){
@@ -3731,6 +3764,7 @@ function rendersessionhandpager(total){
 function rendersessionhandtable(){
 	let html=""
 	let cardhtml=""
+	ptsortarrow("#sessionhandhead",sessionhandsortstate["key"],sessionhandsortstate["ascended"])
 	let rows=filtersessionhands()
 	let totalpage=Math.max(1,Math.ceil(rows.length/sessionhandpagesize))
 	if(totalpage<sessionhandpage){
@@ -3844,8 +3878,28 @@ function bindsessionhandfilters(){
 		sessionhandsortdir=(sessionhandsortdir=="desc")?"asc":"desc"
 		weblsset(WEBLSNAME+"handsortdir",sessionhandsortdir)
 		element.textContent="時間 "+(sessionhandsortdir=="desc"?"↓":"↑")
+		sessionhandsortstate["key"]="createtime"
+		sessionhandsortstate["ascended"]=(sessionhandsortdir=="asc")
 		sessionhandpage=1
 		rendersessionhandtable()
+	})
+	// 綁定手牌表各欄表頭排序;切到建立時間欄時同步時間鈕方向與 handsortdir
+	ptbindsort("#sessionhandhead",sessionhandsortstate,function(){
+		if(sessionhandsortstate["key"]=="createtime"){
+			sessionhandsortdir=sessionhandsortstate["ascended"]?"asc":"desc"
+			weblsset(WEBLSNAME+"handsortdir",sessionhandsortdir)
+			let sortbtn=domgetid("sessionhandsort")
+			if(sortbtn){
+				sortbtn.textContent="時間 "+(sessionhandsortdir=="desc"?"↓":"↑")
+			}
+		}
+		sessionhandpage=1
+		rendersessionhandtable()
+	})
+	// 綁定牌桌清單表頭排序
+	ptbindsort("#sessiontablehead",sessiontablesortstate,function(){
+		sessiontablepage=1
+		rendersessiontablelist()
 	})
 }
 

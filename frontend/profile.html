@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>個人資料 - PokerTrace</title>
         <link rel="stylesheet" href="index.css">
+        <link rel="stylesheet" href="pokertable.css">
         <link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
         <script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
         <link rel="stylesheet" href="tailwind.css">
@@ -202,6 +203,12 @@
                         </div>
 
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-base font-bold text-white" id="replaysettingscardtitle">手牌回放設定</div>
+                            <div class="mb-4 text-sm leading-7 text-zinc-400" id="replaysettingscarddesc">牌背樣式與主池位置；點下方開啟預覽並選擇。</div>
+                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="openreplaysettings" value="管理">
+                        </div>
+
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
                             <div class="mb-2 text-base font-bold text-white" id="chipcolorcardtitle">計分牌顏色種類</div>
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="chipcolorcarddesc">整理場次設定可用的顏色名稱。</div>
                             <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipcolorpreview">尚未設定計分牌顏色</div>
@@ -285,7 +292,7 @@
         <div id="staffmodal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
             <div class="flex max-h-[80vh] w-full max-w-md flex-col rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
                 <div class="mb-5 flex items-center justify-between">
-                    <h2 class="text-xl font-extrabold text-white" id="staffmodal-title">發牌員名單</h2>
+                    <h2 class="text-xl font-extrabold text-white" id="staffmodal-title">計分員名單</h2>
                     <input type="button" class="text-2xl leading-none text-zinc-400 transition hover:text-white" id="closestaffmodal" value="&times;">
                 </div>
                 <div class="mb-5 flex gap-2">

@@ -67,7 +67,7 @@ def tableowneraccess(sessionrow,userrow):
 	return False
 
 # 牌桌管理權限: 擁有者/管理員之外, 該場次聘用的「裁判(floor)」也可關閉與併桌
-# (裁判是 tableboard 的主要使用者; 發牌員/助理不開放)。
+# (裁判是 tableboard 的主要使用者; 計分員/助理不開放)。
 def tablemanageaccess(sessionrow,userrow):
 	if tableowneraccess(sessionrow,userrow):
 		return True
