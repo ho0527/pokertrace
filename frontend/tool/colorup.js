@@ -14,6 +14,9 @@ function moneyfmt(value){
 	return Math.round(value).toLocaleString("en-US")
 }
 
+// 已載入的個人牌組（[{value,color,shape,label}]）。空陣列代表沒載入過，明細列就不上色。
+let culoadedchiplist=[]
+
 function calccolorup(){
 	let amount=num(getvalue("cuamount"))
 	let raw=String(getvalue("cudenom")||"").split(",")
@@ -37,27 +40,38 @@ function calccolorup(){
 	let html=""
 	for(let i=0;i<result.length;i=i+1){
 		html=html+`
-			<div class="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+			<div class="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+				${ptchipswatchhtml(result[i].denom)}
 				<span class="font-mono text-zinc-300">$${moneyfmt(result[i].denom)}</span>
-				<span class="font-mono font-bold text-white">${moneyfmt(result[i].count)} ${cutext("pieces")}</span>
+				<span class="ml-auto font-mono font-bold text-white">${moneyfmt(result[i].count)} ${cutext("pieces")}</span>
 			</div>
 		`
 	}
 	innerhtml("#curows",html,false)
+	// 手動改過面額字串後，不在已載入牌組裡的面額會自動隱藏色塊，不留上一次的顏色
+	ptchipswatchapply(domgetid("curows"),culoadedchiplist)
 	innertext("#cuchips",moneyfmt(totalchips),false)
 	innertext("#cucovered","$"+moneyfmt(amount-remaining),false)
 	innertext("#curemain","$"+moneyfmt(remaining),false)
 }
 
 function loadcuprofilechips(){
-	ptloadprofilechipdenoms(function(denoms){
-		if(!denoms||denoms.length<1){
+	ptloadprofilechiplist(function(chiplist){
+		if(!chiplist||chiplist.length<1){
 			return
 		}
-		denoms.sort(function(a,b){
+		culoadedchiplist=chiplist
+		// 色帶固定呈現「這次載入了什麼」，不隨使用者後續手動編輯面額字串而變動
+		innerhtml("#custrip",ptchipstriphtml(chiplist,false),false)
+		ptchipswatchapply(domgetid("custrip"),chiplist)
+		let denomlist=[]
+		for(let i=0;i<chiplist.length;i=i+1){
+			denomlist.push(chiplist[i]["value"])
+		}
+		denomlist.sort(function(a,b){
 			return b-a
 		})
-		value("#cudenom",denoms.join(", "))
+		value("#cudenom",denomlist.join(", "))
 		calccolorup()
 	})
 }

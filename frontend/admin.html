@@ -14,7 +14,7 @@
 
 		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
 			<div class="mb-6 flex flex-wrap gap-2">
-				<input type="button" class="rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white transition" id="admintabbuttonlog" value="紀錄">
+				<input type="button" class="rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white transition" data-entersubmit id="admintabbuttonlog" value="紀錄">
 				<input type="button" class="rounded-full bg-zinc-700 px-5 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-600" id="admintabbuttonuser" value="使用者">
 			</div>
 
@@ -22,29 +22,29 @@
 				<div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
 					<div>
 						<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400" id="adminlogeyebrow">API Access Log</p>
-						<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="adminlogheading">系統 API 紀錄</h1>
+						<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" data-i18n="adminlogpage.heading" id="adminlogheading">系統 API 紀錄</h1>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<input type="text" id="adminlogkeyword" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" placeholder="搜尋使用者姓名/信箱/選手編號/API/方法/IP" maxlength="100">
-						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-white transition hover:border-emerald-400" id="searchadminlog" value="搜尋">
-						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-white transition hover:border-rose-400" id="adminlogerroronly" aria-pressed="false" value="只看非 200">
-						<select id="adminloglimitselect" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" aria-label="每頁筆數">
+						<input type="text" id="adminlogkeyword" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-placeholder="adminlogpage.searchplaceholder" placeholder="搜尋使用者姓名/信箱/選手編號/API/方法/IP" maxlength="100">
+						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-white transition hover:border-emerald-400" data-entersubmit data-i18n-value="adminlogpage.search" id="searchadminlog" value="搜尋">
+						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-white transition hover:border-rose-400" data-i18n-value="adminlogpage.erroronly" id="adminlogerroronly" aria-pressed="false" value="只看非 200">
+						<select id="adminloglimitselect" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="adminuserpage.pagesizelabel" aria-label="每頁筆數">
 							<option value="10">10</option>
 							<option value="20" selected>20</option>
 							<option value="50">50</option>
 							<option value="100">100</option>
 						</select>
-						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="reloadadminlog" value="重新整理">
+						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-i18n-value="adminlogpage.reload" id="reloadadminlog" value="重新整理">
 					</div>
 				</div>
 				<div class="max-h-[65vh] overflow-y-auto overflow-x-auto rounded-2xl border border-zinc-800">
 					<table class="w-full text-left text-sm">
 						<thead class="sticky top-0 z-10 bg-zinc-900 text-zinc-400">
-							<tr>
-								<th class="px-4 py-3" id="adminlogcoltime">時間</th>
-								<th class="px-4 py-3" id="adminlogcoluser">使用者</th>
-								<th class="px-4 py-3" id="adminlogcolpath">API</th>
-								<th class="px-4 py-3" id="adminlogcolstatus">狀態碼</th>
+							<tr id="adminloghead">
+								<th class="ptsortth select-none px-4 py-3" data-sortkey="createtime"><span data-i18n="adminlogpage.coltime" id="adminlogcoltime">時間</span><span class="ptsortarrow text-emerald-400" data-sortkey="createtime"></span></th>
+								<th class="ptsortth select-none px-4 py-3" data-sortkey="username"><span data-i18n="adminlogpage.coluser" id="adminlogcoluser">使用者</span><span class="ptsortarrow text-emerald-400" data-sortkey="username"></span></th>
+								<th class="ptsortth select-none px-4 py-3" data-sortkey="path"><span id="adminlogcolpath">API</span><span class="ptsortarrow text-emerald-400" data-sortkey="path"></span></th>
+								<th class="ptsortth select-none px-4 py-3" data-sortkey="statuscode"><span data-i18n="adminlogpage.colstatus" id="adminlogcolstatus">狀態碼</span><span class="ptsortarrow text-emerald-400" data-sortkey="statuscode"></span></th>
 							</tr>
 						</thead>
 						<tbody id="adminlogtablebody"></tbody>
@@ -64,8 +64,8 @@
 					<div class="flex flex-wrap gap-2">
 						<input type="text" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="adminuserkeyword" maxlength="100" placeholder="搜尋姓名/信箱/選手編號">
 						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl bg-zinc-700 px-6 text-sm font-bold text-white transition hover:bg-zinc-600" id="showadminuserdefault" value="預設使用者">
-						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-white transition hover:border-emerald-400" id="searchadminuser" value="搜尋">
-						<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="adminuserlimitselect" aria-label="每頁筆數">
+						<input type="button" class="min-h-12 inline-flex items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-6 text-sm font-bold text-white transition hover:border-emerald-400" data-entersubmit id="searchadminuser" value="搜尋">
+						<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="adminuserpage.pagesizelabel" id="adminuserlimitselect" aria-label="每頁筆數">
 							<option value="10">10</option>
 							<option value="20" selected>20</option>
 							<option value="50">50</option>
@@ -97,7 +97,7 @@
 		<div id="adminlogdetailmodal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
 			<div class="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
 				<div class="mb-4 flex items-center justify-between">
-					<h2 class="text-lg font-bold" id="adminlogdetailtitle">詳細訊息</h2>
+					<h2 class="text-lg font-bold" data-i18n="adminlogpage.detailtitle" id="adminlogdetailtitle">詳細訊息</h2>
 					<input type="button" class="rounded-xl border border-zinc-700 px-3 py-1 text-sm text-zinc-300 hover:border-emerald-400" id="closeadminlogdetail" value="✕">
 				</div>
 				<div class="space-y-3 text-sm" id="adminlogdetailbody"></div>
@@ -118,17 +118,17 @@
 					<div>
 						<div class="text-xs uppercase tracking-wide text-zinc-500" id="adminuserblockdurationlabel">封鎖時長</div>
 						<select class="mt-1 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-[15px] text-white outline-none transition focus:border-emerald-400" id="adminuserblockduration">
-							<option value="1">1 小時</option>
-							<option value="24">1 天</option>
-							<option value="72">3 天</option>
-							<option value="168">7 天</option>
-							<option value="720">30 天</option>
+							<option data-i18n="adminuserpage.duration1hour" value="1">1 小時</option>
+							<option data-i18n="adminuserpage.duration1day" value="24">1 天</option>
+							<option data-i18n="adminuserpage.duration3day" value="72">3 天</option>
+							<option data-i18n="adminuserpage.duration7day" value="168">7 天</option>
+							<option data-i18n="adminuserpage.duration30day" value="720">30 天</option>
 						</select>
 					</div>
 				</div>
 				<div class="mt-6 flex justify-end gap-3 flex-wrap">
 					<input type="button" class="rounded-xl border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:border-emerald-400" id="canceladminuserblock" value="取消">
-					<input type="button" class="rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="submitadminuserblock" value="送出">
+					<input type="button" class="rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="submitadminuserblock" value="送出">
 				</div>
 			</div>
 		</div>

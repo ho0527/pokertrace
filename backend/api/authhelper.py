@@ -6,6 +6,23 @@ from .initialize import *
 # 依 RFC 7235 拆 "Authorization: <scheme> <credentials>"：只切第一個空白，並驗證 scheme 必須是 Bearer。
 # 舊寫法 header.split("Bearer ")[1] 沒驗 scheme 也沒 strip，"XBearer abc" 會被當成合法、
 # "Bearer a Bearer b" 會取到帶尾空白的 "a "。scheme 依 RFC 為不分大小寫，正常的 "Bearer <token>" 行為不變。
+#
+# 2026-07-31 用真 token 對**正式機**（當時仍是舊程式）的 /getuser 逐一實測，不是推論：
+#
+#   標頭                      舊（正式機實測）        新（本函式）
+#   沒有 Authorization        401 not_found          擋
+#   Bearer <token>            200                    放行
+#   XBearer <token>           **200 —— 被當成合法**   擋
+#   bearer <token>（小寫）     401 —— 誤擋合法請求      放行（RFC：scheme 不分大小寫）
+#   Bearer   <token>（多空白） 403 token_error 誤擋    放行（strip）
+#   Bearer（沒有值）           401 not_found          擋
+#   Basic xyzBearer <token>   403 —— 見下
+#
+# 最後一列要講準：**舊解析器確實會從它切出 token**，但端到端量到的是 403，
+# 因為 DRF 的 BasicAuthentication 認得 "Basic " 開頭，在進到 view 之前就以
+# "Invalid basic header. Credentials string should not contain spaces." 擋掉了。
+# XBearer 之所以能一路走到 view，正是因為它**不是** DRF 認得的 scheme。
+# 也就是說：那一層防護擋得住 Basic 偽裝，擋不住任意自訂 scheme —— 這一層才是這個函式在補的。
 def getbearertoken(request):
 	header=request.headers.get("Authorization")
 	if not header:

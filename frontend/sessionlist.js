@@ -2,6 +2,11 @@ let gametype={}
 let limittype={}
 let stacktype={}
 let eventtype={}
+// 場次列表的排序狀態。這份清單是**後端分頁**的，所以排序交給後端做
+// （在前端排只會排到當前這一頁，使用者以為排了全部其實沒有）。
+// 後端只開放時間 / 名稱 / 盈虧三欄 —— 買入與名次的顯示值是前端算出來的，
+// 拿任何單一 SQL 欄位去排都會排出與畫面不一致的順序。
+let sessionsortstate={ "key": "","ascended": true }
 let currentpage=1
 // 手機版（<sm 640px）一頁 10 筆，桌面版 20 筆：手機清單較窄，少一點比較好捲。
 let sessionpagelimit=20
@@ -129,30 +134,30 @@ function printsessionlist(){
 			return
 		}
 		let columns=[
-			{"title": "序號","align": "right"},
-			{"title": "時間"},
-			{"title": "名稱"},
-			{"title": "代碼","align": "center"},
-			{"title": "買入","align": "right"},
-			{"title": "名次","align": "center"},
-			{"title": "盈虧","align": "right"}
+			{"title": sessiontext("printcolno"),"align": "right"},
+			{"title": sessiontext("printcoltime")},
+			{"title": sessiontext("printcolname")},
+			{"title": sessiontext("printcolcode"),"align": "center"},
+			{"title": sessiontext("printcolbuyin"),"align": "right"},
+			{"title": sessiontext("printcolrank"),"align": "center"},
+			{"title": sessiontext("printcolprofit"),"align": "right"}
 		]
 		let rows=buildsessionprintrows(sessions)
 		let gamecount=domgetid("gamecount")?domgetid("gamecount").textContent:String(sessions.length)
 		let profit=domgetid("profit")?domgetid("profit").textContent:"-"
 		let avg=domgetid("avgplaylength")?domgetid("avgplaylength").textContent:"-"
 		let infohtml=ptprintinfogrid([
-			["總場次",gamecount],
-			["總盈虧",profit],
-			["平均時長",avg],
-			["本次列印筆數",sessions.length]
+			[sessiontext("printtotalsession"),gamecount],
+			[sessiontext("printtotalprofit"),profit],
+			[sessiontext("printavglength"),avg],
+			[sessiontext("printcount"),sessions.length]
 		])
-		let bodyhtml=infohtml+ptprintsectiontitle("場次列表")+ptprinttable(columns,rows,"查無場次")+ptprintsignblock(["承辦人簽名","主管簽名"])
+		let bodyhtml=infohtml+ptprintsectiontitle(sessiontext("printsectiontitle"))+ptprinttable(columns,rows,sessiontext("printempty"))+ptprintsignblock([sessiontext("printsignstaff"),sessiontext("printsignmanager")])
 		ptprintrun(ptprintbuild({
 			"eyebrow": "Sessions",
-			"title": "場次列表",
-			"subtitle": "賽事列表存底",
-			"meta": "列印時間 "+ptprinttimestamp()
+			"title": sessiontext("printtitle"),
+			"subtitle": sessiontext("printsubtitle"),
+			"meta": sessiontext("printmeta")+" "+ptprinttimestamp()
 		},bodyhtml))
 	},null,[["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]],{
 		loadingtarget: "#main"
@@ -526,13 +531,13 @@ function renderSessionTable(sessions){
 	innerhtml("#main",`
 		<table class="w-full text-sm border-separate border-spacing-0">
 			<thead>
-				<tr class="text-zinc-300">
+				<tr class="text-zinc-300" id="sessionlisthead">
 					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">#</th>
-					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">${sessiontext("time")}</th>
-					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">${sessiontext("name")}</th>
+					<th class="ptsortth select-none sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2" data-sortkey="starttime"><span>${sessiontext("time")}</span><span class="ptsortarrow text-emerald-400" data-sortkey="starttime"></span></th>
+					<th class="ptsortth select-none sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2" data-sortkey="name"><span>${sessiontext("name")}</span><span class="ptsortarrow text-emerald-400" data-sortkey="name"></span></th>
 					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">${sessiontext("buyin")}</th>
 					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">${sessiontext("place")}</th>
-					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">${sessiontext("profit")}</th>
+					<th class="ptsortth select-none sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2" data-sortkey="profit"><span>${sessiontext("profit")}</span><span class="ptsortarrow text-emerald-400" data-sortkey="profit"></span></th>
 					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">${sessiontext("action")}</th>
 				</tr>
 			</thead>
@@ -563,6 +568,12 @@ function renderSessionTable(sessions){
 			</tbody>
 		</table>
 	`,false)
+	// 表頭每次 render 都被重畫，所以箭頭與點擊要在這裡重來一次
+	ptsortarrow("#sessionlisthead",sessionsortstate["key"],sessionsortstate["ascended"])
+	ptbindsort("#sessionlisthead",sessionsortstate,function(){
+		currentpage=1
+		loadsessions()
+	})
 	bindbuttons()
 }
 
@@ -588,7 +599,7 @@ function bindbuttons(){
 		if(element.disabled){
 			return
 		}
-		ptsetsubmitstate(element,true,"報名中...")
+		ptsetsubmitstate(element,true,sessiontext("registering"))
 		ajax("POST",AJAXURL+"registersession/"+dataset(element,"id"),function(event,data){
 			if(data["success"]){
 				loadsessions()
@@ -610,7 +621,7 @@ function bindbuttons(){
 			if(element.disabled){
 				return
 			}
-			ptsetsubmitstate(element,true,"取消中...")
+			ptsetsubmitstate(element,true,sessiontext("cancelling"))
 			ajax("POST",AJAXURL+"unregistersession/"+dataset(element,"id"),function(event,data){
 				if(data["success"]){
 					loadsessions()
@@ -629,7 +640,7 @@ function bindbuttons(){
 		if(element.disabled){
 			return
 		}
-		ptsetsubmitstate(element,true,"複製中...")
+		ptsetsubmitstate(element,true,sessiontext("copying"))
 		ajax("POST",AJAXURL+"copysession/"+dataset(element,"id"),function(event,data){
 			if(data["success"]){
 				href("session.html?id="+data["data"]+"#settings")
@@ -699,6 +710,10 @@ function loadsessionpayload(){
 	let query=buildsessionfilterquery()
 	query.push("page="+currentpage)
 	query.push("limit="+sessionpagelimit)
+	if(sessionsortstate["key"]){
+		query.push("order="+encodeURIComponent(sessionsortstate["key"]))
+		query.push("direction="+(sessionsortstate["ascended"]?"asc":"desc"))
+	}
 	return AJAXURL+"getsessionlist?"+query.join("&")
 }
 

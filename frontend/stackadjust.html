@@ -16,15 +16,15 @@
 			<div class="newhand-topbar">
 				<div>
 					<div class="newhand-eyebrow">PokerTrace</div>
-					<h1 id="pagetitle">計分牌校正</h1>
+					<h1 data-i18n="stackadjustpage.heading" id="pagetitle">計分牌校正</h1>
 				</div>
 				<div class="newhand-topactions">
-					<a href="sessionlist.html" id="back">上一頁</a>
+					<a href="sessionlist.html" data-i18n="stackadjustpage.back" id="back">上一頁</a>
 				</div>
 			</div>
 			<section class="newhand-status">
 				<div>
-					<span>牌桌</span>
+					<span data-i18n="stackadjustpage.labeltable">牌桌</span>
 					<strong id="tablename">-</strong>
 				</div>
 				<div>
@@ -32,39 +32,39 @@
 					<strong id="dealerlabel">-</strong>
 				</div>
 				<div>
-					<span>選手</span>
+					<span data-i18n="stackadjustpage.labelplayer">選手</span>
 					<strong id="playercount">-</strong>
 				</div>
 				<div>
-					<span>總增減</span>
+					<span data-i18n="stackadjustpage.totaldelta">總增減</span>
 					<strong id="totaladjust">0</strong>
 				</div>
 				<div>
-					<span>場上總碼量</span>
+					<span data-i18n="stackadjustpage.totalstack">場上總碼量</span>
 						<strong id="totalinplay">-</strong>
 					</div>
 					<div>
-						<span>狀態</span>
-					<strong id="savestatus">尚未儲存</strong>
+						<span data-i18n="stackadjustpage.labelstatus">狀態</span>
+					<strong data-i18n="newedithandpage.statusnotsaved" id="savestatus">尚未儲存</strong>
 				</div>
 			</section>
 			<section class="newhand-grid">
 				<div class="newhand-panel">
 					<div class="newhand-panelhead">
 						<div>
-							<h2>校正原因</h2>
-							<p>這會建立一筆紀錄，下一手會承接校正後碼量</p>
+							<h2 data-i18n="stackadjustpage.reasontitle">校正原因</h2>
+							<p data-i18n="stackadjustpage.reasonnote">這會建立一筆紀錄，下一手會承接校正後碼量</p>
 						</div>
 					</div>
 					<div class="newhand-fields">
 						<div>
-							<label for="exceptiontype">原因</label>
+							<label data-i18n="stackadjustpage.labelreason" for="exceptiontype">原因</label>
 							<select id="exceptiontype">
-								<option value="chipcount">現場點數校正</option>
-								<option value="raceoff">換色 / Race off</option>
-								<option value="penalty">罰碼 / 補碼</option>
-								<option value="seatfix">座位資料修正</option>
-								<option value="other">其他</option>
+								<option data-i18n="stackadjustpage.reasoncount" value="chipcount">現場點數校正</option>
+								<option data-i18n="stackadjustpage.reasonrace" value="raceoff">換色 / Race off</option>
+								<option data-i18n="stackadjustpage.reasonpenalty" value="penalty">罰碼 / 補碼</option>
+								<option data-i18n="stackadjustpage.reasonseat" value="seatfix">座位資料修正</option>
+								<option data-i18n="stackadjustpage.reasonother" value="other">其他</option>
 							</select>
 						</div>
 						<div>
@@ -73,15 +73,15 @@
 						</div>
 					</div>
 					<div class="note-label mt-3">
-						<label for="ps">備註</label>
-						<textarea id="ps" rows="4" placeholder="請記錄校正原因"></textarea>
+						<label data-i18n="stackadjustpage.labelnote" for="ps">備註</label>
+						<textarea data-i18n-placeholder="stackadjustpage.psplaceholder" id="ps" rows="4" placeholder="請記錄校正原因"></textarea>
 					</div>
 				</div>
 				<div class="newhand-panel">
 					<div class="newhand-panelhead">
 						<div>
-							<h2>碼量增減</h2>
-							<p id="adjustnote">填入每位選手本次增減量</p>
+							<h2 data-i18n="stackadjustpage.adjusttitle">碼量增減</h2>
+							<p data-i18n="stackadjustpage.adjustnote" id="adjustnote">填入每位選手本次增減量</p>
 						</div>
 					</div>
 					<div class="newhand-seatlist" id="adjustlist"></div>
@@ -90,7 +90,7 @@
 			<section class="newhand-panel">
 				<div id="warnings" class="newhand-warnings"></div>
 				<div class="newhand-actions">
-					<input type="button" class="primary save" id="saveadjust" value="儲存校正">
+					<input type="button" class="primary save" data-entersubmit data-i18n-value="stackadjustpage.saveadjust" id="saveadjust" value="儲存校正">
 				</div>
 			</section>
 		</main>

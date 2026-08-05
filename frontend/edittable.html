@@ -15,18 +15,18 @@
 		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
 			<div class="mb-6">
 				<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Edit Table</p>
-				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl">編輯牌桌</h1>
+				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" data-i18n="edittablepage.heading">編輯牌桌</h1>
 			</div>
 
 			<form method="POST" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8" id="form">
 				<div>
-					<label for="no" class="mb-2 block text-sm font-bold text-zinc-100">牌桌編號</label>
+					<label for="no" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="edittablepage.labelno">牌桌編號</label>
 					<input type="number" min="1" inputmode="numeric" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="no">
 				</div>
 				<div class="mt-3 min-h-6 text-center text-sm font-bold leading-7 text-rose-300" id="error"></div>
 				<div class="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
-					<input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="back" value="返回">
-					<input type="submit" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="submit" value="送出">
+					<input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="navigationbar.back" id="back" value="返回">
+					<input type="submit" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit data-i18n-value="edittablepage.submit" id="submit" value="送出">
 				</div>
 			</form>
 		</div>

@@ -73,7 +73,7 @@ if(!weblsget(WEBLSNAME+"signin")){
 }
 
 if(!sessionid){
-	pttoast("缺少 sessionid","error")
+	pttoast(rt("missingsessionid"),"error")
 	href("sessionlist.html")
 }
 
@@ -122,6 +122,8 @@ function saveregistrationquerystate(){
 	}
 	try{
 		localStorage.setItem(registrationstatekey,JSON.stringify(data))
+		// TASK-060：登記進回收索引，超過保留天數會被自動清掉
+		ptkeytouch(registrationstatekey)
 	}catch(error){
 	}
 }
@@ -157,26 +159,26 @@ function renderregistrationguides(){
 	let flowbox=domgetid("registrationguideflow")
 	if(actionbox){
 		actionbox.innerHTML=`
-			<div><span class="font-semibold text-white">確認報名：</span>把選手從「已報名」推進到可排座、可計入現場流程的狀態。</div>
-			<div><span class="font-semibold text-white">排座：</span>只對已確認選手生效，可補未入座、重排選取選手，或平均全場座位。</div>
-			<div><span class="font-semibold text-white">晉級：</span>把選手帶往下一場目標賽事，並保存該選手的晉級計分牌。</div>
-			<div><span class="font-semibold text-white">收益修正：</span>只改這筆報名的財務資料，不會回寫整個場次設定。</div>
+			<div><span class="font-semibold text-white">${rt("helpconfirmlabel")}</span>${rt("helpconfirmtext")}</div>
+			<div><span class="font-semibold text-white">${rt("helpseatlabel")}</span>${rt("helpseattext")}</div>
+			<div><span class="font-semibold text-white">${rt("helpadvancelabel")}</span>${rt("helpadvancetext")}</div>
+			<div><span class="font-semibold text-white">${rt("helpfinancelabel")}</span>${rt("helpfinancetext")}</div>
 		`
 	}
 	if(statusbox){
 		statusbox.innerHTML=`
-			<div><span class="font-semibold text-yellow-300">已報名：</span>選手送出報名，但還沒完成主辦確認。</div>
-			<div><span class="font-semibold text-green-300">已確認：</span>可排座、可計入現場人數與後續操作。</div>
-			<div><span class="font-semibold text-sky-300">已晉級：</span>已轉入下一場目標賽事，若重複晉級會保留較高計分牌。</div>
-			<div><span class="font-semibold text-zinc-300">已取消：</span>這筆報名已失效；若已淘汰則需看再入場額度是否仍可用。</div>
+			<div><span class="font-semibold text-yellow-300">${rt("statusregistered")}：</span>${rt("helpregisteredtext")}</div>
+			<div><span class="font-semibold text-green-300">${rt("statusconfirmed")}：</span>${rt("helpconfirmedtext")}</div>
+			<div><span class="font-semibold text-sky-300">${rt("statusadvanced")}：</span>${rt("helpadvancedtext")}</div>
+			<div><span class="font-semibold text-zinc-300">${rt("statuscancelled")}：</span>${rt("helpcancelledtext")}</div>
 		`
 	}
 	if(flowbox){
 		flowbox.innerHTML=`
-			<div><span class="font-semibold text-white">1.</span> 先搜尋或新增選手，確認是不是要用現金 / 票券報名。</div>
-			<div><span class="font-semibold text-white">2.</span> 先批次確認，再做未入座補位或平均排座，避免座位混亂。</div>
-			<div><span class="font-semibold text-white">3.</span> 現場淘汰或多日賽時，再處理 Reentry、晉級與收益修正。</div>
-			<div><span class="font-semibold text-white">4.</span> 每次批次操作後先看本頁摘要，再決定要不要繼續下一步。</div>
+			<div><span class="font-semibold text-white">1.</span> ${rt("helpflow1")}</div>
+			<div><span class="font-semibold text-white">2.</span> ${rt("helpflow2")}</div>
+			<div><span class="font-semibold text-white">3.</span> ${rt("helpflow3")}</div>
+			<div><span class="font-semibold text-white">4.</span> ${rt("helpflow4")}</div>
 		`
 	}
 }
@@ -367,16 +369,16 @@ function canrebuyregistration(r){
 
 function statusbadge(status){
 	if(status=="registered"){
-		return `<span class="bg-yellow-900/40 text-yellow-300 px-2 py-1 rounded text-xs font-semibold">已報名</span>`
+		return `<span class="bg-yellow-900/40 text-yellow-300 px-2 py-1 rounded text-xs font-semibold">${rt("statusregistered")}</span>`
 	}
 	if(status=="confirmed"){
-		return `<span class="bg-green-900/40 text-green-300 px-2 py-1 rounded text-xs font-semibold">已確認</span>`
+		return `<span class="bg-green-900/40 text-green-300 px-2 py-1 rounded text-xs font-semibold">${rt("statusconfirmed")}</span>`
 	}
 	if(status=="advanced"){
-		return `<span class="bg-sky-900/40 text-sky-300 px-2 py-1 rounded text-xs font-semibold">已晉級</span>`
+		return `<span class="bg-sky-900/40 text-sky-300 px-2 py-1 rounded text-xs font-semibold">${rt("statusadvanced")}</span>`
 	}
 	if(status=="cancelled"){
-		return `<span class="bg-zinc-700 text-zinc-400 px-2 py-1 rounded text-xs font-semibold">已取消</span>`
+		return `<span class="bg-zinc-700 text-zinc-400 px-2 py-1 rounded text-xs font-semibold">${rt("statuscancelled")}</span>`
 	}
 	return `<span>${status}</span>`
 }
@@ -396,7 +398,8 @@ function tmt(key,fallback){
 }
 
 function tableoptions(selected,openonlyed){
-	let html=`<option value="">未排座</option>`
+	let html=`<option value="">${rt("noseat")}</option>`
+	let matched=false
 	for(let i=0;i<tables.length;i=i+1){
 		let table=tables[i]
 		let closed=table["closedtime"]?true:false
@@ -408,7 +411,14 @@ function tableoptions(selected,openonlyed){
 		if(closed){
 			label=label+" ("+tmt("closedbadge","已關閉")+")"
 		}
+		if(String(selected)==String(table["id"])){
+			matched=true
+		}
 		html=html+`<option value="${safehtml(table["id"])}" ${String(selected)==String(table["id"])?"selected":""}>${safehtml(label)}</option>`
+	}
+	// 已存的牌桌可能已被刪除，此時同樣要保住原值，否則改別的欄位會把選手靜默移出牌桌。
+	if(!matched&&selected){
+		html=html+`<option value="${safehtml(selected)}" selected>${safehtml(selected)}${rt("tablenotfound")}</option>`
 	}
 	return html
 }
@@ -435,13 +445,23 @@ function seatoptions(selected,tableid,ownid){
 	if(tableid&&seatoccupancy[String(tableid)]){
 		taken=seatoccupancy[String(tableid)]
 	}
+	let matched=false
 	for(let i=1;i<=maxseat;i=i+1){
 		let occupant=taken[String(i)]||""
 		let takenbyother=occupant&&String(occupant)!=String(ownid)
 		let isselected=String(selected)==String(i)
+		if(isselected){
+			matched=true
+		}
 		if(!takenbyother||isselected){
 			html=html+`<option value="${i}" ${isselected?"selected":""}>${i}</option>`
 		}
+	}
+	// 座位號可能超出目前的 maxseat（例如場次把每桌座位從 9 改成 6，但已有人坐 8 號位）。
+	// 若不補這個選項，select 會落在第一個「-」，而改動任一欄位時 handler 會把該選手的
+	// tableid / seatno / startchip 一起送出 —— 使用者只是改了計分牌，座位就被靜默清掉。
+	if(!matched&&selected){
+		html=html+`<option value="${safehtml(selected)}" selected>${safehtml(selected)}${rt("seatoutofrange")}</option>`
 	}
 	return html
 }
@@ -494,12 +514,12 @@ function askadvancechip(defaultchip,done){
 	cover.className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4"
 	cover.innerHTML=`
 		<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-sm w-full p-5 shadow-xl">
-			<div class="text-lg font-semibold text-white mb-3">設定晉級計分牌</div>
-			<div class="text-sm text-zinc-300 mb-3">系統會把選手帶到下一場多日賽；若選手重複晉級，下一場會保留最高計分牌。</div>
+			<div class="text-lg font-semibold text-white mb-3">${rt("advancechiptitle")}</div>
+			<div class="text-sm text-zinc-300 mb-3">${rt("advancechipdesc")}</div>
 			<input type="number" id="advancechipinput" class="w-full bg-zinc-700 text-white rounded px-3 py-2" value="${defaultchip||0}" min="1" inputmode="numeric">
 			<div class="flex justify-end gap-2 mt-5">
-				<input type="button" class="advancecancel bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="取消">
-				<input type="button" class="advanceok bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded" value="確認晉級">
+				<input type="button" class="advancecancel bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="${rt("cancel")}">
+				<input type="button" class="advanceok bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded" value="${rt("confirmadvance")}">
 			</div>
 		</div>
 	`
@@ -515,7 +535,7 @@ function askadvancechip(defaultchip,done){
 		// 後端收到 null 會回退成 startchip，選手就帶著錯的計分牌晉級（靜默）。
 		// 改用正向條件，NaN 不成立即被擋下。
 		if(!(chip>0)){
-			pttoast("請輸入晉級計分牌","warning")
+			pttoast(rt("needadvancechip"),"warning")
 			return
 		}
 		ptremovescrollcover(cover)
@@ -526,15 +546,15 @@ function askadvancechip(defaultchip,done){
 
 function canadvanceregistration(){
 	if(1<advancetargets.length){
-		pttoast("此賽事有多個晉級目標，請先整理關聯設定","warning")
+		pttoast(rt("multiadvancetarget"),"warning")
 		return false
 	}
 	return true
 }
 
 function financebuttonhtml(r){
-	let payment=r["paymenttype"]=="ticket"?"票券":"現金"
-	let prize=r["prizeoverride"]==null?"自動":r["prizeoverride"]
+	let payment=r["paymenttype"]=="ticket"?rt("paymentticket"):rt("paymentcash")
+	let prize=r["prizeoverride"]==null?rt("prizeauto"):r["prizeoverride"]
 	let buyextra=""
 	if(rebuyallowed){
 		buyextra=buyextra+`<span class="text-emerald-300">R:${int(r["rebuycount"]||0)}</span> `
@@ -545,11 +565,11 @@ function financebuttonhtml(r){
 	return `
 		<div class="flex items-center justify-between gap-2 md:block">
 			<div class="text-xs text-zinc-400 leading-5 mb-2">
-				<div>Reentry ${r["reentrycount"]||0} 次 / ${payment}</div>
-				${buyextra?`<div>加購 ${buyextra}</div>`:""}
-				<div>獎金修正 ${prize} / 票值 ${r["ticketvalue"]||0}</div>
+				<div>Reentry ${r["reentrycount"]||0}${rt("reentryunit")} / ${payment}</div>
+				${buyextra?`<div>${rt("addonlabel")}${buyextra}</div>`:""}
+				<div>${rt("prizefixlabel")}${prize}${rt("ticketvaluelabel")}${r["ticketvalue"]||0}</div>
 			</div>
-			<input type="button" class="openfinancebtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-reentry="${r["reentrycount"]||0}" data-rebuy="${int(r["rebuycount"]||0)}" data-addon="${int(r["addoncount"]||0)}" data-prize="${r["prizeoverride"]==null?"":r["prizeoverride"]}" data-ticket="${r["ticketvalue"]||0}" data-payment="${r["paymenttype"]||"cash"}" value="修正收益">
+			<input type="button" class="openfinancebtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-reentry="${r["reentrycount"]||0}" data-rebuy="${int(r["rebuycount"]||0)}" data-addon="${int(r["addoncount"]||0)}" data-prize="${r["prizeoverride"]==null?"":r["prizeoverride"]}" data-ticket="${r["ticketvalue"]||0}" data-payment="${r["paymenttype"]||"cash"}" value="${rt("financefix")}">
 		</div>
 	`
 }
@@ -566,24 +586,24 @@ function openfinancemodal(button){
 	cover.innerHTML=`
 		<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-md w-full p-5 shadow-xl">
 			<div class="flex items-center justify-between mb-4">
-				<div class="text-lg font-semibold text-white">修正收益資料</div>
+				<div class="text-lg font-semibold text-white">${rt("financetitle")}</div>
 				<input type="button" class="closefinance text-zinc-400 hover:text-white" value="×">
 			</div>
-			<div class="text-sm text-zinc-400 mb-4">這裡只修正此選手的報名財務資料，不會更改賽事本身設定。</div>
+			<div class="text-sm text-zinc-400 mb-4">${rt("financedesc")}</div>
 			<div class="grid grid-cols-1 gap-3">
-				<label class="text-sm text-zinc-300">Reentry 次數<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="reentrycount" inputmode="numeric" value="${dataset(button,"reentry")||0}"></label>
-				${rebuyallowed?`<label class="text-sm text-zinc-300">重買 (Rebuy) 次數<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="rebuycount" value="${dataset(button,"rebuy")||0}" placeholder="本場上限 ${maxrebuy}"></label>`:""}
-				${addonallowed?`<label class="text-sm text-zinc-300">增購 (Addon) 次數<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="addoncount" value="${dataset(button,"addon")||0}" placeholder="本場上限 ${maxaddon}"></label>`:""}
-				<label class="text-sm text-zinc-300">獎金修正<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="prizeoverride" inputmode="numeric" value="${dataset(button,"prize")}" placeholder="空白代表使用自動獎金"></label>
-				<label class="text-sm text-zinc-300">票券價值<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="ticketvalue" inputmode="numeric" value="${dataset(button,"ticket")||0}"></label>
-				<label class="text-sm text-zinc-300">買入方式<select class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="paymenttype">
-					<option value="cash" ${dataset(button,"payment")!="ticket"?"selected":""}>現金買入</option>
-					<option value="ticket" ${dataset(button,"payment")=="ticket"?"selected":""}>票券買入</option>
+				<label class="text-sm text-zinc-300">${rt("financereentry")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="reentrycount" inputmode="numeric" value="${dataset(button,"reentry")||0}"></label>
+				${rebuyallowed?`<label class="text-sm text-zinc-300">${rt("financerebuy")}<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="rebuycount" value="${dataset(button,"rebuy")||0}" placeholder="${rt("sessionmax")}${maxrebuy}"></label>`:""}
+				${addonallowed?`<label class="text-sm text-zinc-300">${rt("financeaddon")}<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="addoncount" value="${dataset(button,"addon")||0}" placeholder="${rt("sessionmax")}${maxaddon}"></label>`:""}
+				<label class="text-sm text-zinc-300">${rt("financeprize")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="prizeoverride" inputmode="numeric" value="${dataset(button,"prize")}" placeholder=rt("autoprizehint")></label>
+				<label class="text-sm text-zinc-300">${rt("financeticket")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="ticketvalue" inputmode="numeric" value="${dataset(button,"ticket")||0}"></label>
+				<label class="text-sm text-zinc-300">${rt("financepayment")}<select class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="paymenttype">
+					<option value="cash" ${dataset(button,"payment")!="ticket"?"selected":""}>${rt("paymentcashbuy")}</option>
+					<option value="ticket" ${dataset(button,"payment")=="ticket"?"selected":""}>${rt("paymentticketbuy")}</option>
 				</select></label>
 			</div>
 			<div class="flex justify-end gap-2 mt-5">
-				<input type="button" class="closefinance bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="取消">
-				<input type="button" class="savefinancebtn bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded" data-id="${id}" value="儲存">
+				<input type="button" class="closefinance bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="${rt("cancel")}">
+				<input type="button" class="savefinancebtn bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded" data-id="${id}" value="${rt("save")}">
 			</div>
 		</div>
 	`
@@ -623,9 +643,9 @@ function searchusers(){
 			if(!showtestusered&&String(r["playerid"]||"").indexOf("0")==0){
 				continue
 			}
-			let action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="報名">`
+			let action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="${rt("register")}">`
 			if(r["isstaff"]){
-				action=`<span class="text-xs text-red-300">員工不可報名</span>`
+				action=`<span class="text-xs text-red-300">${rt("staffcannotregister")}</span>`
 			}
 			if(r["registrationstatus"]){
 				action=`<span class="text-xs text-zinc-400">${r["registrationstatus"]}</span>`
@@ -644,13 +664,13 @@ function searchusers(){
 			`
 		}
 		if(!html){
-			html=`<div class="px-3 py-3 text-zinc-500 text-sm">沒有符合的使用者</div>`
+			html=`<div class="px-3 py-3 text-zinc-500 text-sm">${rt("nomatchuser")}</div>`
 		}
 		if(!html){
 			html=`
 				<div class="px-4 py-4 text-sm leading-7 text-zinc-400">
-					<div class="font-semibold text-zinc-200">找不到符合的選手</div>
-					<div class="mt-1">可搜尋選手 ID、名稱或 Email。若是現場新選手，請先確認他是否已建立帳號。</div>
+					<div class="font-semibold text-zinc-200">${rt("nomatchplayer")}</div>
+					<div class="mt-1">${rt("searchdesc")}</div>
 				</div>
 			`
 		}
@@ -663,13 +683,13 @@ function searchusers(){
 					setregistrationresultsummary({
 						"showed": true,
 						"type": "success",
-						"eyebrow": "報名結果",
-						"title": "已加入 1 位選手",
-						"message": "系統已將搜尋到的選手加入這場賽事，接下來可直接做確認或排座。",
+						"eyebrow": rt("panelregisterresult"),
+						"title": rt("paneladded1"),
+						"message": rt("paneladdedmsg"),
 						"items": [
-							{"label": "成功", "value": "1"},
-							{"label": "失敗", "value": "0"},
-							{"label": "下一步", "value": "確認 / 排座"}
+							{"label": rt("labelsuccess"), "value": "1"},
+							{"label": rt("labelfail"), "value": "0"},
+							{"label": rt("labelnext"), "value": rt("valueconfirmseat")}
 						]
 					})
 					loadregistrations()
@@ -734,60 +754,60 @@ function loadregistrations(){
 			toolbar.innerHTML=`
 				<div class="flex items-center justify-between gap-3">
 					<div>
-						<div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">加入選手</div>
-						<div class="mb-3 text-sm leading-6 text-zinc-400">輸入選手 ID、名稱或 Email 查詢後加入，或對現場選手直接報名。</div>
+						<div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">${rt("addplayer")}</div>
+						<div class="mb-3 text-sm leading-6 text-zinc-400">${rt("searchhint")}</div>
 					</div>
 					<div class="flex flex-wrap gap-2 items-center mb-3">
-						<input type="text" class="bg-zinc-700 text-white rounded px-2 py-2 text-sm w-48" id="hostplayerid" placeholder="選手 ID / 名稱 / Email">
-						<input type="button" class="${showtestusered?"bg-emerald-600 hover:bg-emerald-700":"bg-zinc-700 hover:bg-zinc-600"} px-3 py-2 rounded text-sm font-semibold" id="showtestuserbtn" value="測試使用者">
+						<input type="text" class="bg-zinc-700 text-white rounded px-2 py-2 text-sm w-48" id="hostplayerid" placeholder=rt("searchplaceholder")>
+						<input type="button" class="${showtestusered?"bg-emerald-600 hover:bg-emerald-700":"bg-zinc-700 hover:bg-zinc-600"} px-3 py-2 rounded text-sm font-semibold" id="showtestuserbtn" value="${rt("testuser")}">
 					</div>
 				</div>
 				<div class="mb-3 hidden rounded border border-zinc-700 overflow-hidden" id="usersearchresult"></div>
-				<div class="mt-4 border-t border-zinc-800 pt-4 mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">批次確認與排座</div>
-				<div class="mb-3 text-sm leading-6 text-zinc-400">先勾選要處理的選手，再批次確認或排座；排座僅對已確認選手生效。</div>
+				<div class="mt-4 border-t border-zinc-800 pt-4 mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">${rt("batchtitle")}</div>
+				<div class="mb-3 text-sm leading-6 text-zinc-400">${rt("batchhint")}</div>
 				<div class="flex flex-wrap gap-2 items-center">
-					<label class="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" id="selectallplayers">全選</label>
-					<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-sm font-semibold" id="confirmselectedbtn" value="批次確認">
+					<label class="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" id="selectallplayers">${rt("selectall")}</label>
+					<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-sm font-semibold" id="confirmselectedbtn" value="${rt("batchconfirmbtn")}">
 					<select class="bg-zinc-700 text-white rounded px-2 py-2 text-sm" id="randomtable">${tablehtml}</select>
-					<input type="number" class="bg-zinc-700 text-white rounded px-2 py-2 text-sm w-28" id="randomstartchip" inputmode="numeric" value="${startchip}" placeholder="起始計分牌">
-					<input type="button" class="bg-sky-600 hover:bg-sky-700 px-3 py-2 rounded text-sm font-semibold" id="randomunseatedbtn" value="未入座補位">
-					<input type="button" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm font-semibold" id="randomselectedbtn" value="重排選取選手">
-					<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-sm font-semibold" id="randombalancedbtn" value="全部桌平均排座">
+					<input type="number" class="bg-zinc-700 text-white rounded px-2 py-2 text-sm w-28" id="randomstartchip" inputmode="numeric" value="${startchip}" placeholder="${rt("startchipplaceholder")}">
+					<input type="button" class="bg-sky-600 hover:bg-sky-700 px-3 py-2 rounded text-sm font-semibold" id="randomunseatedbtn" value="${rt("fillunseatedbtn")}">
+					<input type="button" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm font-semibold" id="randomselectedbtn" value="${rt("reseatselectedbtn")}">
+					<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-sm font-semibold" id="randombalancedbtn" value="${rt("balanceallbtn")}">
 					<input type="button" class="bg-rose-600 hover:bg-rose-700 px-3 py-2 rounded text-sm font-semibold" id="unseatallbtn" value="${rt("unseatall_btn")}">
-					<input type="button" class="bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded text-sm font-semibold" id="applybestchipbtn" value="套用晉級最高計分牌">
+					<input type="button" class="bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded text-sm font-semibold" id="applybestchipbtn" value="${rt("applybestchipbtn")}">
 				</div>
 				<div class="mt-4 border-t border-zinc-800 pt-4">
 					<div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">List Query</div>
 					<div class="flex flex-wrap items-center gap-2">
-						<input type="text" class="bg-zinc-700 text-white rounded px-2 py-2 text-sm w-full sm:w-64" id="registrationkeyword" value="${safehtml(registrationkeyword)}" placeholder="查詢名稱 / ID / 名次">
-						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="all" value="全部">
-						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="alive" value="未淘汰">
-						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="eliminated" value="已淘汰">
-						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="unseated" value="未入座">
-						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="registered" value="待確認">
+						<input type="text" class="bg-zinc-700 text-white rounded px-2 py-2 text-sm w-full sm:w-64" id="registrationkeyword" value="${safehtml(registrationkeyword)}" placeholder="${rt("filterplaceholder")}">
+						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="all" value="${rt("filterall")}">
+						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="alive" value="${rt("filteralive")}">
+						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="eliminated" value="${rt("filterbusted")}">
+						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="unseated" value="${rt("filterunseated")}">
+						<input type="button" class="registrationfilterbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" data-filter="registered" value="${rt("filterpending")}">
 						<select class="bg-zinc-700 text-white rounded px-2 py-2 text-sm" id="registrationpagesize">
-							<option value="10" ${registrationpagesize==10?"selected":""}>每頁 10</option>
-							<option value="25" ${registrationpagesize==25?"selected":""}>每頁 25</option>
-							<option value="50" ${registrationpagesize==50?"selected":""}>每頁 50</option>
-							<option value="100" ${registrationpagesize==100?"selected":""}>每頁 100</option>
+							<option value="10" ${registrationpagesize==10?"selected":""}>${rt("perpageprefix")}10</option>
+							<option value="25" ${registrationpagesize==25?"selected":""}>${rt("perpageprefix")}25</option>
+							<option value="50" ${registrationpagesize==50?"selected":""}>${rt("perpageprefix")}50</option>
+							<option value="100" ${registrationpagesize==100?"selected":""}>${rt("perpageprefix")}100</option>
 						</select>
 					</div>
 					<div class="mt-3 flex flex-wrap items-center justify-between gap-2">
 						<div class="text-sm text-zinc-400" id="registrationpageinfo"></div>
 						<div class="flex gap-2">
-							<input type="button" class="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" id="registrationprevpage" value="上一頁">
-							<input type="button" class="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" id="registrationnextpage" value="下一頁">
+							<input type="button" class="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" id="registrationprevpage" value="${rt("prevpage")}">
+							<input type="button" class="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm font-semibold" id="registrationnextpage" value="${rt("nextpage")}">
 						</div>
 					</div>
 				</div>
 			`
 			let hostinput=domgetid("hostplayerid")
 			if(hostinput){
-				hostinput.placeholder="選手 ID / 名稱 / Email"
+				hostinput.placeholder=rt("searchplaceholder")
 			}
 			// let searchbutton=domgetid("searchuserbtn")
 			// if(searchbutton&&!domgetid("hostregisterbtn")){
-			// 	searchbutton.value="查詢選手"
+			// 	searchbutton.value="${rt("searchplayerbtn")}"
 			// 	searchbutton.insertAdjacentHTML("afterend",`<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-sm font-semibold" id="hostregisterbtn" value="直接報名">`)
 			// }
 			let resultbox=domgetid("usersearchresult")
@@ -811,7 +831,7 @@ function loadregistrations(){
 			onclick("#randomunseatedbtn",function(element,event){
 				let tableid=getvalue("randomtable")
 				if(!tableid){
-					pttoast("請先選擇牌桌","warning")
+					pttoast(rt("needselecttable"),"warning")
 					return
 				}
 				element.disabled=true
@@ -821,13 +841,13 @@ function loadregistrations(){
 						setregistrationresultsummary({
 							"showed": true,
 							"type": "success",
-							"eyebrow": "排座結果",
-							"title": "未入座選手已補位",
-							"message": "系統已依指定牌桌與起始計分牌處理未入座選手，請再檢查是否仍有人工調整需求。",
+							"eyebrow": rt("panelseatresult"),
+							"title": rt("panelfilledtitle"),
+							"message": rt("panelfilledmsg"),
 							"items": [
-								{"label": "模式", "value": "未入座補位"},
-								{"label": "牌桌", "value": String(tableid)},
-								{"label": "計分牌", "value": String(int(getvalue("randomstartchip")||startchip))}
+								{"label": rt("labelmode"), "value": rt("valuefillunseated")},
+								{"label": rt("labeltable"), "value": String(tableid)},
+								{"label": rt("labelchip"), "value": String(int(getvalue("randomstartchip")||startchip))}
 							]
 						})
 						loadregistrations()
@@ -848,11 +868,11 @@ function loadregistrations(){
 				let tableid=getvalue("randomtable")
 				let ids=selectedplayerids()
 				if(!tableid){
-					pttoast("請先選擇牌桌","warning")
+					pttoast(rt("needselecttable"),"warning")
 					return
 				}
 				if(ids.length==0){
-					pttoast("請先選取要重排的選手","warning")
+					pttoast(rt("needselectreseat"),"warning")
 					return
 				}
 				element.disabled=true
@@ -862,13 +882,13 @@ function loadregistrations(){
 						setregistrationresultsummary({
 							"showed": true,
 							"type": "success",
-							"eyebrow": "排座結果",
-							"title": "已重排選取選手",
-							"message": "只針對目前勾選的已確認選手重新分配座位，其他選手資料不受影響。",
+							"eyebrow": rt("panelseatresult"),
+							"title": rt("panelreseattitle"),
+							"message": rt("panelreseatmsg"),
 							"items": [
-								{"label": "模式", "value": "重排選取選手"},
-								{"label": "成功", "value": String(ids.length)},
-								{"label": "牌桌", "value": String(tableid)}
+								{"label": rt("labelmode"), "value": rt("valuereseatselected")},
+								{"label": rt("labelsuccess"), "value": String(ids.length)},
+								{"label": rt("labeltable"), "value": String(tableid)}
 							]
 						})
 						loadregistrations()
@@ -894,13 +914,13 @@ function loadregistrations(){
 						setregistrationresultsummary({
 							"showed": true,
 							"type": "success",
-							"eyebrow": "排座結果",
-							"title": "已完成平均排座",
-							"message": "系統已嘗試平衡所有牌桌座位，請再檢查個別桌況是否需要微調。",
+							"eyebrow": rt("panelseatresult"),
+							"title": rt("panelbalancetitle"),
+							"message": rt("panelbalancemsg"),
 							"items": [
-								{"label": "模式", "value": "平均全場"},
-								{"label": "起始計分牌", "value": String(int(getvalue("randomstartchip")||startchip))},
-								{"label": "下一步", "value": "檢查桌況"}
+								{"label": rt("labelmode"), "value": rt("valuebalanceall")},
+								{"label": rt("labelstartchip"), "value": String(int(getvalue("randomstartchip")||startchip))},
+								{"label": rt("labelnext"), "value": rt("valuechecktable")}
 							]
 						})
 						loadregistrations()
@@ -989,7 +1009,7 @@ function renderregistrationlist(){
 			if(fulllist.length<to){
 				to=fulllist.length
 			}
-			pageinfo.innerText="顯示 "+from+"-"+to+" / "+fulllist.length+"，第 "+registrationpage+" / "+maxpage+" 頁"
+			pageinfo.innerText=rt("pageinfoprefix")+from+"-"+to+" / "+fulllist.length+rt("pageinfomid")+registrationpage+" / "+maxpage+rt("pageinfosuffix")
 		}
 		let prevbutton=domgetid("registrationprevpage")
 		if(prevbutton){
@@ -1021,11 +1041,11 @@ function renderregistrationlist(){
 			body.innerHTML=""
 			cards.innerHTML=""
 			if(registrationdatalist.length==0){
-				empty.innerText="尚無報名紀錄"
-				emptymobile.innerText="尚無報名紀錄"
+				empty.innerText=rt("noregistration")
+				emptymobile.innerText=rt("noregistration")
 			}else{
-				empty.innerText="查無符合條件的報名紀錄"
-				emptymobile.innerText="查無符合條件的報名紀錄"
+				empty.innerText=rt("nomatchregistration")
+				emptymobile.innerText=rt("nomatchregistration")
 			}
 			empty.classList.remove("hidden")
 			emptymobile.classList.remove("hidden")
@@ -1044,37 +1064,37 @@ function renderregistrationlist(){
 			let actions=""
 			if(r["status"]=="registered"){
 				actions=`
-					<input type="button" class="confirmbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="確認">
-					<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="取消">
+					<input type="button" class="confirmbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("confirm")}">
+					<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 				`
 			}else if(r["status"]=="confirmed"){
 				actions=`
-					${advancetargets.length?`<input type="button" class="advancebtn bg-sky-600 hover:bg-sky-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-chip="${(unifiedhandrecord&&int(r["latestchip"]||0)>0)?int(r["latestchip"]):(r["startchip"]||startchip)}" value="晉級">`:""}
+					${advancetargets.length?`<input type="button" class="advancebtn bg-sky-600 hover:bg-sky-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-chip="${(unifiedhandrecord&&int(r["latestchip"]||0)>0)?int(r["latestchip"]):(r["startchip"]||startchip)}" value="${rt("advance")}">`:""}
 					${canrebuyregistration(r)?`<input type="button" class="rebuybtn bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="Rebuy">`:""}
-					<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="取消">
+					<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 				`
 				if(canreentryregistration(r)){
 					actions=`
 						<input type="button" class="reentrybtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerplayerid"])}" value="Reentry">
-						<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="取消">
+						<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 					`
 				}else if(r["timerstatus"]=="eliminated"){
-					actions=`<span class="text-xs text-yellow-300">Reentry 已達上限</span>`
+					actions=`<span class="text-xs text-yellow-300">${rt("reentrymaxed")}</span>`
 				}
 			}else if(r["status"]=="advanced"){
 				actions=`
-					${advancetargets.length?`<input type="button" class="advancebtn bg-sky-600 hover:bg-sky-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-chip="${r["advancechip"]||r["startchip"]||startchip}" value="更新計分牌">`:""}
-					<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="取消">
+					${advancetargets.length?`<input type="button" class="advancebtn bg-sky-600 hover:bg-sky-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-chip="${r["advancechip"]||r["startchip"]||startchip}" value="${rt("updatechip")}">`:""}
+					<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 				`
 			}
 
 			if(!cancancelregistration(r)){
 				actions=actions.replace(/<input type="button" class="cancelbtn[^>]*?>/g,"")
 			}
-			let receiptbtn=`<input type="button" class="printreceiptbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="列印收據">`
+			let receiptbtn=`<input type="button" class="printreceiptbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("printreceipt")}">`
 			let profitclass=0<=float(r["profit"])?"text-green-400":"text-red-400"
 			let selectedhtml=(r["status"]=="registered"||r["status"]=="confirmed")?`<input type="checkbox" class="selectplayer" value="${r["id"]}" data-status="${r["status"]}">`:""
-			let seathtml=`<span class="text-zinc-500 text-xs">確認後可排座</span>`
+			let seathtml=`<span class="text-zinc-500 text-xs">${rt("seatafterconfirm")}</span>`
 			if(r["status"]=="confirmed"){
 				seathtml=`
 					<div class="flex items-center justify-between gap-2 min-w-[100px] my-2">
@@ -1086,7 +1106,7 @@ function renderregistrationlist(){
 				// 「記錄手牌」連結目前刻意不顯示；若未來要恢復，需在這裡重新加回產生碼（連到 newedithand.html?tableid=...&seatno=...&playerid=...）。
 				if(r["timerstatus"]=="eliminated"){
 					selectedhtml=""
-					seathtml=`<span class="text-zinc-500 text-xs">已淘汰，請先 Reentry</span>`
+					seathtml=`<span class="text-zinc-500 text-xs">${rt("bustedneedreentry")}</span>`
 				}
 			}
 			html=html+`
@@ -1104,10 +1124,10 @@ function renderregistrationlist(){
 						${seathtml}
 					</td>
 					<td class="px-3 py-2">
-						<div class="text-xs text-zinc-400">成本 ${r["cost"]||0} / 名次 ${r["timerplace"]||"-"}</div>
-						<div class="text-xs text-zinc-400">自動獎金 ${r["autoprize"]||0}</div>
-						${r["advancetargetid"]?`<div class="text-xs text-sky-300">晉級 ${escapehtml(r["advancetargetname"]||"-")} / 計分牌 ${r["advancechip"]||0}</div>`:""}
-						${0<int(r["advancecount"])?`<div class="text-xs text-sky-300">重複晉級 ${r["advancecount"]} 次 / 最高 ${r["bestadvancechip"]||0}</div>`:""}
+						<div class="text-xs text-zinc-400">${rt("costlabel")}${r["cost"]||0} / ${rt("placelabel")}${r["timerplace"]||"-"}</div>
+						<div class="text-xs text-zinc-400">${rt("autoprizelabel")}${r["autoprize"]||0}</div>
+						${r["advancetargetid"]?`<div class="text-xs text-sky-300">${rt("advancedprefix")}${escapehtml(r["advancetargetname"]||"-")}${rt("chipmid")}${r["advancechip"]||0}</div>`:""}
+						${0<int(r["advancecount"])?`<div class="text-xs text-sky-300">${rt("repeatadvanceprefix")}${r["advancecount"]}${rt("repeatadvancemid")}${r["bestadvancechip"]||0}</div>`:""}
 						<div class="${profitclass} font-bold">${moneytext(r["profit"])}</div>
 					</td>
 					<td class="px-3 py-2">
@@ -1136,17 +1156,17 @@ function renderregistrationlist(){
 							<div class="mt-3">${statusbadge(r["status"])}</div>
 						</div>
 						<div>
-							<div class="text-xs text-zinc-400 mb-2">桌次/座位/計分牌數</div>
+							<div class="text-xs text-zinc-400 mb-2">${rt("tableseatchip")}</div>
 							${mobileseathtml}
 						</div>
 					</div>
 					<div class="mt-4 border-t border-zinc-700 grid grid-cols-2 gap-5 mt-4">
 						<div class="flex items-center justify-between pt-3">
 							<div>
-								<div class="text-xs text-zinc-400">成本 ${r["cost"]||0} / 名次 ${r["timerplace"]||"-"}</div>
-								<div class="text-xs text-zinc-400">自動獎金 ${r["autoprize"]||0}</div>
-								${r["advancetargetid"]?`<div class="text-xs text-sky-300">晉級 ${escapehtml(r["advancetargetname"]||"-")} / 計分牌 ${r["advancechip"]||0}</div>`:""}
-								${0<int(r["advancecount"])?`<div class="text-xs text-sky-300">重複晉級 ${r["advancecount"]} 次 / 最高 ${r["bestadvancechip"]||0}</div>`:""}
+								<div class="text-xs text-zinc-400">${rt("costlabel")}${r["cost"]||0} / ${rt("placelabel")}${r["timerplace"]||"-"}</div>
+								<div class="text-xs text-zinc-400">${rt("autoprizelabel")}${r["autoprize"]||0}</div>
+								${r["advancetargetid"]?`<div class="text-xs text-sky-300">${rt("advancedprefix")}${escapehtml(r["advancetargetname"]||"-")}${rt("chipmid")}${r["advancechip"]||0}</div>`:""}
+								${0<int(r["advancecount"])?`<div class="text-xs text-sky-300">${rt("repeatadvanceprefix")}${r["advancecount"]}${rt("repeatadvancemid")}${r["bestadvancechip"]||0}</div>`:""}
 							</div>
 							<div class="${profitclass} font-bold mt-1">${moneytext(r["profit"])}</div>
 						</div>
@@ -1184,7 +1204,7 @@ function bindactions(){
 	})
 
 	onclick(".cancelbtn",function(element,event){
-		ptconfirm("確定要取消這位選手的報名嗎?",function(ok){
+		ptconfirm(rt("confirmcancel"),function(ok){
 			if(ok!=true){
 				return
 			}
@@ -1252,7 +1272,7 @@ function bindactions(){
 					let advancedata=data["data"]||{}
 					let target=advancedata["target"]||{}
 					let count=advancedata["advancecount"]||1
-					pttoast("已晉級到 "+(target["name"]||"-")+"，累計晉級 "+count+" 次","success")
+					pttoast(rt("advancedtoprefix")+(target["name"]||"-")+rt("advancedcountmid")+count+rt("advancedcountsuffix"),"success")
 					loadregistrations()
 				}else{
 					pttoast(pterror(data["data"]||"晉級失敗"),"error")
@@ -1299,7 +1319,7 @@ function bindactions(){
 	onclick(".printreceiptbtn",function(element,event){
 		let r=findregistrationbyid(dataset(element,"id"))
 		if(!r){
-			pttoast("找不到報名資料","error")
+			pttoast(rt("registrationnotfound"),"error")
 			return
 		}
 		receiptprint(buildreceiptdata(r))
@@ -1321,9 +1341,9 @@ function buildreceiptdata(r){
 	if(domgetid("sessionname")){
 		sessionname=domgetid("sessionname").textContent||""
 	}
-	let payment="現金"
+	let payment=rt("paymentcash")
 	if(r["paymenttype"]=="ticket"){
-		payment="票券"
+		payment=rt("paymentticket")
 	}
 	let tableno=""
 	if(r["tableid"]){
@@ -1333,7 +1353,7 @@ function buildreceiptdata(r){
 	let basepath=location.pathname.replace(/[^/]*$/,"")
 	let qrdata=location.origin+basepath+"checkin.html?sessionid="+encodeURIComponent(sessionid)+"&r="+encodeURIComponent(r["id"])
 	// 入場編號要確認 / 報到後才有；未確認顯示「未確認」而不是舊號碼。
-	let entryno="未確認"
+	let entryno=rt("entrypending")
 	if((r["status"]=="confirmed"||r["status"]=="advanced")&&r["serialno"]){
 		entryno=r["serialno"]
 	}
@@ -1357,7 +1377,7 @@ function buildreceiptdata(r){
 function confirmselectedplayers(button){
 	let ids=selectedconfirmids()
 	if(ids.length==0){
-		pttoast("請先選取要確認的選手","warning")
+		pttoast(rt("needselectconfirm"),"warning")
 		return
 	}
 	button.disabled=true
@@ -1369,13 +1389,13 @@ function confirmselectedplayers(button){
 			setregistrationresultsummary({
 				"showed": true,
 				"type": "success",
-				"eyebrow": "批次確認摘要",
-				"title": "批次確認已完成",
-				"message": "系統已完成這次批次確認。建議下一步直接檢查未入座選手，決定是否要補位或平均排座。",
+				"eyebrow": rt("panelbatchconfirm"),
+				"title": rt("panelbatchtitle"),
+				"message": rt("panelbatchmsg"),
 				"items": [
-					{"label": "成功", "value": String(successcount)},
-					{"label": "失敗", "value": String(ids.length-successcount)},
-					{"label": "下一步", "value": "補位 / 排座"}
+					{"label": rt("labelsuccess"), "value": String(successcount)},
+					{"label": rt("labelfail"), "value": String(ids.length-successcount)},
+					{"label": rt("labelnext"), "value": rt("valuefillseat")}
 				]
 			})
 			loadregistrations()
@@ -1427,10 +1447,10 @@ function applybestadvancechips(button){
 		}
 	}
 	if(plans.length==0){
-		pttoast("沒有重複晉級選手可套用最高計分牌","warning")
+		pttoast(rt("noduplicateadvance"),"warning")
 		return
 	}
-	ptconfirm("確定把 "+plans.length+" 位重複晉級選手的起始計分牌，套用為各自的最高晉級計分牌？",function(okayed){
+	ptconfirm(rt("confirmapplyprefix")+plans.length+rt("confirmapplysuffix"),function(okayed){
 		if(!okayed){
 			return
 		}
@@ -1448,12 +1468,12 @@ function applybestadvancechips(button){
 				setregistrationresultsummary({
 					"showed": true,
 					"type": failcount==0?"success":"warning",
-					"eyebrow": "套用最高計分牌",
-					"title": failcount==0?"已套用重複晉級最高計分牌":"部分選手套用失敗",
-					"message": "系統已把重複晉級選手的起始計分牌更新為各自的最高晉級計分牌。",
+					"eyebrow": rt("panelapplymax"),
+					"title": failcount==0?rt("panelapplyoktitle"):rt("panelapplyfailtitle"),
+					"message": rt("panelapplymsg"),
 					"items": [
-						{"label": "成功", "value": String(successcount)},
-						{"label": "失敗", "value": String(failcount)}
+						{"label": rt("labelsuccess"), "value": String(successcount)},
+						{"label": rt("labelfail"), "value": String(failcount)}
 					]
 				})
 				loadregistrations()
@@ -1500,13 +1520,13 @@ function saveseat(sessionplayerid,source){
 			setregistrationresultsummary({
 				"showed": true,
 				"type": "success",
-				"eyebrow": "座位結果",
-				"title": "已儲存座位調整",
-				"message": "這位選手的牌桌、座位與起始計分牌已更新完成。",
+				"eyebrow": rt("panelseatsaved"),
+				"title": rt("panelseatsavedtitle"),
+				"message": rt("panelseatsavedmsg"),
 				"items": [
-					{"label": "選手", "value": String(sessionplayerid)},
-					{"label": "模式", "value": "單筆座位調整"},
-					{"label": "下一步", "value": "檢查桌況"}
+					{"label": rt("labelplayer"), "value": String(sessionplayerid)},
+					{"label": rt("labelmode"), "value": rt("valuesingleseat")},
+					{"label": rt("labelnext"), "value": rt("valuechecktable")}
 				]
 			})
 			loadregistrations()
@@ -1549,7 +1569,7 @@ function savefinance(sessionplayerid){
 			if(modal){
 				ptremovescrollcover(modal)
 			}
-			pttoast("修改完成","success")
+			pttoast(rt("edited"),"success")
 		}else{
 			pttoast(data["data"]||"儲存收益修正失敗","error")
 		}
@@ -1602,16 +1622,16 @@ onclick("#exportregistercsv",function(element,event){
 
 function registrationstatustext(status){
 	if(status=="registered"){
-		return "已報名"
+		return rt("statusregistered")
 	}
 	if(status=="confirmed"){
-		return "已確認"
+		return rt("statusconfirmed")
 	}
 	if(status=="advanced"){
-		return "已晉級"
+		return rt("statusadvanced")
 	}
 	if(status=="cancelled"){
-		return "已取消"
+		return rt("statuscancelled")
 	}
 	return status||"-"
 }
@@ -1631,7 +1651,7 @@ function registrationtablename(tableid){
 // 列印整份報名名單（不受目前篩選 / 分頁影響，供協會紙本存底）
 function printregistrationlist(){
 	if(!registrationdatalist||registrationdatalist.length<1){
-		pttoast("目前沒有報名資料可列印","error")
+		pttoast(rt("noprintdata"),"error")
 		return
 	}
 	let sessionname=""
@@ -1639,17 +1659,17 @@ function printregistrationlist(){
 		sessionname=domgetid("sessionname").textContent||""
 	}
 	let columns=[
-		{"title": "序號","align": "right"},
-		{"title": "選手"},
+		{"title": rt("printcolno"),"align": "right"},
+		{"title": rt("printcolplayer")},
 		{"title": "ID"},
-		{"title": "報名時間"},
-		{"title": "狀態","align": "center"},
-		{"title": "桌次","align": "center"},
-		{"title": "座位","align": "center"},
-		{"title": "買入","align": "right"},
-		{"title": "名次","align": "center"},
-		{"title": "獎金","align": "right"},
-		{"title": "盈虧","align": "right"}
+		{"title": rt("printcolregtime")},
+		{"title": rt("printcolstatus"),"align": "center"},
+		{"title": rt("printcoltable"),"align": "center"},
+		{"title": rt("printcolseat"),"align": "center"},
+		{"title": rt("printcolbuyin"),"align": "right"},
+		{"title": rt("printcolplace"),"align": "center"},
+		{"title": rt("printcolprize"),"align": "right"},
+		{"title": rt("printcolprofit"),"align": "right"}
 	]
 	let rows=[]
 	for(let i=0;i<registrationdatalist.length;i=i+1){
@@ -1678,19 +1698,19 @@ function printregistrationlist(){
 	let statcancelled=domgetid("statcancelled")?domgetid("statcancelled").textContent:"0"
 	let stattotalchip=domgetid("stattotalchip")?domgetid("stattotalchip").textContent:"0"
 	let infohtml=ptprintinfogrid([
-		["場次",sessionname||"-"],
-		["總筆數",registrationdatalist.length],
-		["已報名",statregistered],
-		["已確認",statconfirmed],
-		["已取消",statcancelled],
-		["總計分牌數",stattotalchip]
+		[rt("printsession"),sessionname||"-"],
+		[rt("printtotalcount"),registrationdatalist.length],
+		[rt("statusregistered"),statregistered],
+		[rt("statusconfirmed"),statconfirmed],
+		[rt("statuscancelled"),statcancelled],
+		[rt("printtotalchip"),stattotalchip]
 	])
-	let bodyhtml=infohtml+ptprintsectiontitle("報名名單")+ptprinttable(columns,rows,"尚無報名紀錄")+ptprintsignblock(["承辦人簽名","主管簽名"])
+	let bodyhtml=infohtml+ptprintsectiontitle(rt("printsectiontitle"))+ptprinttable(columns,rows,rt("noregistration"))+ptprintsignblock([rt("printsignstaff"),rt("printsignmanager")])
 	ptprintrun(ptprintbuild({
 		"eyebrow": "Registrations",
-		"title": (sessionname||"場次")+" 報名名單",
-		"subtitle": "報名清單存底",
-		"meta": "列印時間 "+ptprinttimestamp()
+		"title": (sessionname||rt("printsession"))+rt("printtitlesuffix"),
+		"subtitle": rt("printsubtitle"),
+		"meta": rt("printmeta")+" "+ptprinttimestamp()
 	},bodyhtml))
 }
 

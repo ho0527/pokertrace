@@ -8,125 +8,16 @@ if(!weblsget(WEBLSNAME+"signin")){
 }
 
 // handdetail 動態渲染的字串多語表；靜態標題另由 applyhanddetailstatic 套用
-const HANDDETAILTEXT={
-	"zhtw": {
-		"cardstitle": "牌面",
-		"myhandtitle": "我的底牌",
-		"seatingtitle": "座位與結果",
-		"actionstitle": "下注歷程",
-		"notetitle": "備註",
-		"colseat": "座位",
-		"colplayer": "選手",
-		"colhand": "手牌",
-		"colstart": "起始",
-		"colend": "結束",
-		"colresult": "結果",
-		"edit": "編輯",
-		"privatefilled": "已補私有底牌",
-		"privatemissing": "尚未補我的底牌",
-		"hidden": "未公開",
-		"privatenoteprefix": "Seat ",
-		"privatenotesuffix": " 的私有紀錄，只會顯示給本人。",
-		"firstcard": "第一張",
-		"secondcard": "第二張",
-		"privatenote": "私人備註",
-		"savemyhand": "儲存我的底牌",
-		"saving": "儲存中...",
-		"saved": "已儲存",
-		"savefail": "儲存失敗",
-		"lead": "領先",
-		"outs": "補牌",
-		"chop": "分池",
-		"backdoor": "後門聽牌",
-		"drawingdead": "聽死牌",
-		"splitpot": "平分底池",
-		"needflop": "需要翻牌",
-		"allinequity": "All-in 勝率",
-		"solving": "All-in 勝率解算中…",
-		"hand": "手牌",
-		"record": "紀錄",
-		"publicrecord": "公共紀錄",
-		"blind": "盲注",
-		"blindslabel": "盲注",
-		"totalpot": "總底池",
-		"herohand": "Hero 手牌",
-		"nohero": "未指定 Hero，選手可各自補自己的底牌。",
-		"board": "公共牌",
-		"burn": "燒牌",
-		"unknown": "未知",
-		"start": "起始",
-		"end": "結束",
-		"leftbeforesubmit": "送出前已離桌",
-		"noseating": "沒有座位資料",
-		"loadfail": "讀取手牌失敗",
-		"preflop": "翻牌前",
-		"exportjson": "匯出 JSON",
-		"exportdone": "已匯出手牌 JSON",
-		"exportnodata": "手牌尚未載入完成"
-	},
-	"en": {
-		"cardstitle": "Board",
-		"myhandtitle": "My Cards",
-		"seatingtitle": "Seats & Results",
-		"actionstitle": "Action History",
-		"notetitle": "Notes",
-		"colseat": "Seat",
-		"colplayer": "Player",
-		"colhand": "Hand",
-		"colstart": "Start",
-		"colend": "End",
-		"colresult": "Result",
-		"edit": "Edit",
-		"privatefilled": "Private cards saved",
-		"privatemissing": "Your cards not added yet",
-		"hidden": "Hidden",
-		"privatenoteprefix": "Private record for Seat ",
-		"privatenotesuffix": ", visible only to you.",
-		"firstcard": "First card",
-		"secondcard": "Second card",
-		"privatenote": "Private note",
-		"savemyhand": "Save my cards",
-		"saving": "Saving...",
-		"saved": "Saved",
-		"savefail": "Save failed",
-		"lead": "Ahead",
-		"outs": "Outs",
-		"chop": "Chop",
-		"backdoor": "Backdoor draw",
-		"drawingdead": "Drawing dead",
-		"splitpot": "Split pot",
-		"needflop": "Need flop",
-		"allinequity": "All-in Equity",
-		"solving": "Solving all-in equity…",
-		"hand": "Hand",
-		"record": "Record",
-		"publicrecord": "Public record",
-		"blind": "Blind",
-		"blindslabel": "Blinds",
-		"totalpot": "Total Pot",
-		"herohand": "Hero Cards",
-		"nohero": "No Hero set; players can add their own cards.",
-		"board": "Board",
-		"burn": "Burn",
-		"unknown": "Unknown",
-		"start": "Start",
-		"end": "End",
-		"leftbeforesubmit": "Left before submission",
-		"noseating": "No seat data",
-		"loadfail": "Failed to load hand",
-		"preflop": "Preflop",
-		"exportjson": "Export JSON",
-		"exportdone": "Hand JSON exported",
-		"exportnodata": "Hand not loaded yet"
-	}
-}
-
+// 本頁文案一律讀 translate.js 的 handdetailpage 區段。
+// 原本這裡有一份檔內雙語字典 HANDDETAILTEXT，2026-07-28 已整批搬進 translate.js（TASK-042）。
+// 查不到 key 時退回 zhtw，再查不到回空字串，與搬移前的行為一致。
 function hdt(key){
-	let pack=HANDDETAILTEXT[LANGUAGE]||HANDDETAILTEXT["zhtw"]
-	if(pack[key]!=undefined){
-		return pack[key]
+	let section=(TRANSLATE[LANGUAGE]||{})["handdetailpage"]||{}
+	if(section[key]!=undefined){
+		return section[key]
 	}
-	return HANDDETAILTEXT["zhtw"][key]||""
+	let fallback=(TRANSLATE["zhtw"]||{})["handdetailpage"]||{}
+	return fallback[key]||""
 }
 
 // 套用靜態區塊（標題、表頭、編輯鈕）的語言，dynamic 內容各自用 hdt() 處理
@@ -166,8 +57,11 @@ function exporthandjson(){
 		pttoast(hdt("exportnodata"),"error")
 		return
 	}
+	// version 2（TASK-038）：hand 物件多了 boardlist（每個 run 的公共牌與獎池分配），
+	// 結構已經和 version 1 不同，所以版本號要升，讓舊的匯出檔仍可被辨識。
+	// boardcard / totalpot 兩個舊欄位仍然在，version 1 的讀取端不會壞。
 	let payload={
-		"version": 1,
+		"version": 2,
 		"type": "poker-trace-hand",
 		"hand": currenthand
 	}
@@ -201,58 +95,42 @@ function tokenheaders(){
 	]
 }
 
+// 底牌依牌型而定（Hold'em 2、Omaha 4…），讀 value 內實際存在的 card1..card5。
+function holecardsof(value){
+	let cards=[]
+	if(!value){
+		return cards
+	}
+	for(let i=1;i<=5;i=i+1){
+		if(value["card"+i]){
+			cards.push(value["card"+i])
+		}
+	}
+	return cards
+}
+
 function cardpair(value){
 	if(!value){
 		return rendercardgroup([])
 	}
-	return rendercardgroup([value["card1"],value["card2"]])
+	return rendercardgroup(holecardsof(value))
 }
 
 function cardpairhighlight(value,highlight){
 	if(!value){
 		return rendercardgroup([])
 	}
-	return rendercardgroup([value["card1"],value["card2"]],highlight)
+	return rendercardgroup(holecardsof(value),highlight)
 }
 
+// TASK-037 起共用 initialize.js 的解析
 function boardtext(board){
-	if(!board){
-		return rendercardgroup([])
-	}
-	let flop=board["flop"]||[]
-	let cards=[]
-	for(let i=0;i<flop.length;i=i+1){
-		if(flop[i]){
-			cards.push(flop[i])
-		}
-	}
-	if(board["turn"]){
-		cards.push(board["turn"])
-	}
-	if(board["river"]){
-		cards.push(board["river"])
-	}
-	return rendercardgroup(cards)
+	return rendercardgroup(ptboardcardlist(board))
 }
 
+// TASK-037 起共用 initialize.js 的解析
 function boardcards(board){
-	if(!board){
-		return []
-	}
-	let flop=board["flop"]||[]
-	let cards=[]
-	for(let i=0;i<flop.length;i=i+1){
-		if(flop[i]){
-			cards.push(flop[i])
-		}
-	}
-	if(board["turn"]){
-		cards.push(board["turn"])
-	}
-	if(board["river"]){
-		cards.push(board["river"])
-	}
-	return cards
+	return ptboardcardlist(board)
 }
 
 function boardtexthighlight(board,highlight){
@@ -471,13 +349,17 @@ function rendercard(card,highlight,rabbited){
 	if(parts["rank"]=="?"){
 		return `<span class="pt-card unknown"><span class="pt-card-rank">?</span></span>`
 	}
+	// highlight 的值可能是 true（舊寫法，等同 high）、"high"、"low" 或 "both"
 	let highlighted=highlight&&highlight[cardkey(card)]
 	let classes="pt-card"
 	if(parts["reded"]){
 		classes=classes+" red"
 	}
-	if(highlighted){
+	if(highlighted&&highlighted!="low"){
 		classes=classes+" pt-card-best"
+	}
+	if(highlighted=="low"||highlighted=="both"){
+		classes=classes+" pt-card-low"
 	}
 	if(rabbited){
 		classes=classes+" pt-card-x"
@@ -523,6 +405,36 @@ function renderboardgroup(board,highlight,rabbitmap){
 		html=html+`<span class="pt-card unknown"><span class="pt-card-rank">?</span></span>`
 	}
 	html=html+`</span>`
+	return html
+}
+
+// TASK-038 顯示 A：多 board 時上下堆疊，每個 board 一列並標「第 n 次」與該次的贏家金額。
+// 單 board 時完全不走這裡，畫面與之前一模一樣（驗收條件）。
+// highlight / rabbitmap 只套用在第一個 board：那兩者是從攤牌結果推出來的，
+// 目前的 showdowndata 沒有分 run 的資訊，硬套到其他 board 會標錯牌。
+function renderboardrunlist(hand,highlight,rabbitmap){
+	let boardlist=ptboardlistof(hand)
+	let html=""
+	for(let i=0;i<boardlist.length;i=i+1){
+		let item=boardlist[i]
+		let winnertext=""
+		let allocation=item["allocationlist"]
+		for(let k=0;k<allocation.length;k=k+1){
+			if(winnertext){
+				winnertext=winnertext+"、"
+			}
+			winnertext=winnertext+hdt("boardrunwinner").replace("{seat}",safe(allocation[k]["seatno"])).replace("{amount}",money(allocation[k]["amount"]))
+		}
+		if(!winnertext){
+			winnertext=hdt("boardrunpot").replace("{amount}",money(item["amount"]))
+		}
+		html=html+`
+			<div class="flex flex-wrap items-center gap-2 py-1">
+				<span class="shrink-0 rounded-full bg-zinc-700 px-2 py-0.5 text-xs text-zinc-300">${safe(hdt("boardrun").replace("{n}",item["runno"]))}</span>
+				${renderboardgroup(item["board"],i==0?highlight:null,i==0?rabbitmap:null)}
+				<span class="ml-auto text-xs text-zinc-400">${safe(winnertext)}</span>
+			</div>`
+	}
 	return html
 }
 
@@ -839,10 +751,23 @@ function besthand(cards){
 	return best
 }
 
-function highlitemap(cards){
+// kind 省略時是 "high"（最佳五張，綠光）。hi-lo 的低牌傳 "low"（黃光）。
+// 同一張牌兩邊都用到時由 mergehighlight() 合成 "both"（上綠下黃）。
+function highlitemap(cards,kind){
 	let data={}
 	for(let i=0;i<(cards||[]).length;i=i+1){
-		data[cardkey(cards[i]["card"]||cards[i])]=true
+		data[cardkey(cards[i]["card"]||cards[i])]=kind||"high"
+	}
+	return data
+}
+
+function mergehighlight(high,low){
+	let data={}
+	for(let key in high||{}){
+		data[key]="high"
+	}
+	for(let key in low||{}){
+		data[key]=data[key]=="high"?"both":"low"
 	}
 	return data
 }
@@ -854,49 +779,223 @@ function handlabel(best){
 	return "("+best["value"]["name"]+" "+best["value"]["main"]+")"
 }
 
+// 底牌張數依牌型而定（Hold'em 2、Omaha 4、五張 Omaha 5）。
+// 原本這裡寫死只讀 card1/card2，Omaha 的第 3、4 張底牌根本沒進入比較，
+// 再加上下方沒有套「恰好 2 張底牌 + 3 張公牌」的約束，就會出現「1 張底牌 + 4 張公牌」這種不合法的組合。
 function handcardsarray(handcard){
-	let cards=[]
-	if(handcard&&handcard["card1"]){
-		cards.push(handcard["card1"])
-	}
-	if(handcard&&handcard["card2"]){
-		cards.push(handcard["card2"])
-	}
-	return cards
+	return holecardsof(handcard)
 }
 
-function showdowninfo(row,board){
-	let handcards=handcardsarray(row["handcard"])
-	if(handcards.length!=2){
+// 與後端 hand.py 的 equityomahaed() 對齊：OM / O8 / O5 / BO 皆為 Omaha 家族。
+// BO（Big O，5 張底牌的奧馬哈高低）原本漏了，於是它的攤牌最佳五張會被當德州從十張任選五。
+function showdownomahaed(hand){
+	let g=String((hand||{})["gametype"]||"").toUpperCase()
+	return g=="OM"||g=="O8"||g=="O5"||g=="BO"
+}
+
+// Omaha 規則：必須恰好用 2 張底牌 + 3 張公牌，不能像 Hold'em 那樣從 7 張裡任選 5 張。
+// 這裡的窮舉與後端 hand.py 的 C(底牌,2) x C(公牌,3) 完全一致。
+function besthandomaha(holecards,boardcards){
+	let hole=[]
+	let i=0
+	for(i=0;i<holecards.length;i=i+1){
+		let item=parsecardvalue(holecards[i])
+		if(item){
+			hole.push(item)
+		}
+	}
+	let board=[]
+	for(i=0;i<boardcards.length;i=i+1){
+		let item=parsecardvalue(boardcards[i])
+		if(item){
+			board.push(item)
+		}
+	}
+	if(hole.length<2||board.length<3){
 		return null
 	}
-	let cards=[]
-	for(let i=0;i<handcards.length;i=i+1){
-		cards.push(handcards[i])
+	let best=null
+	for(let a=0;a<hole.length-1;a=a+1){
+		for(let b=a+1;b<hole.length;b=b+1){
+			for(let c=0;c<board.length-2;c=c+1){
+				for(let d=c+1;d<board.length-1;d=d+1){
+					for(let e=d+1;e<board.length;e=e+1){
+						let combo=[hole[a],hole[b],board[c],board[d],board[e]]
+						let value=evaluatefive(combo)
+						if(!best||0<comparehandvalue(value,best["value"])){
+							best={
+								"value": value,
+								"cards": combo
+							}
+						}
+					}
+				}
+			}
+		}
 	}
-	for(let i=0;i<board.length;i=i+1){
-		cards.push(board[i])
+	return best
+}
+
+// ── hi-lo（O8）的低牌 ──────────────────────────────────────────────────
+// 規則與高牌同樣是「底牌剛好 2 張 + 公共牌剛好 3 張」，但另外要求：
+//   1. 五張的點數都要 8 或更小（A 算 1）
+//   2. 五張的點數不能重複（同花與順子不影響低牌）
+// 兩手低牌比大小時由最大的那張往下比，越小越好；湊不出合格低牌就是沒有低牌，
+// 該手的低池由高牌的贏家全拿（scoop）。
+// 高低分池的牌型：O8（4 張底牌）與 BO（Big O，5 張底牌）。
+// 兩者的低牌規則完全一樣，besthandomahalow() 本來就是「從底牌任選 2 張」，
+// 底牌 4 張或 5 張只影響組合數，不用另外分支。
+function showdownhiloed(hand){
+	let g=String((hand||{})["gametype"]||"").toUpperCase()
+	return g=="O8"||g=="BO"
+}
+
+// A 當 1，其餘照點數。9 以上不合格，回 0。
+function lowrankvalue(item){
+	let rank=(item||{})["rank"]||0
+	if(rank==14){
+		return 1
 	}
-	let best=besthand(cards)
+	if(rank>=2&&rank<=8){
+		return rank
+	}
+	return 0
+}
+
+// 回傳由大到小排好的五個點數；不合格回 null
+function lowcombovalue(combo){
+	let value=[]
+	let seen={}
+	for(let i=0;i<combo.length;i=i+1){
+		let rank=lowrankvalue(combo[i])
+		if(rank<1){
+			return null
+		}
+		if(seen[rank]){
+			return null
+		}
+		seen[rank]=true
+		value.push(rank)
+	}
+	value.sort(function(a,b){ return b-a })
+	return value
+}
+
+// a 比 b 好（更小）回正數，一樣回 0，較差回負數
+function comparelowvalue(a,b){
+	for(let i=0;i<a.length;i=i+1){
+		if(a[i]!=b[i]){
+			return b[i]-a[i]
+		}
+	}
+	return 0
+}
+
+function besthandomahalow(holecards,boardcards){
+	let hole=[]
+	let i=0
+	for(i=0;i<holecards.length;i=i+1){
+		let item=parsecardvalue(holecards[i])
+		if(item){
+			hole.push(item)
+		}
+	}
+	let board=[]
+	for(i=0;i<boardcards.length;i=i+1){
+		let item=parsecardvalue(boardcards[i])
+		if(item){
+			board.push(item)
+		}
+	}
+	if(hole.length<2||board.length<3){
+		return null
+	}
+	let best=null
+	for(let a=0;a<hole.length-1;a=a+1){
+		for(let b=a+1;b<hole.length;b=b+1){
+			for(let c=0;c<board.length-2;c=c+1){
+				for(let d=c+1;d<board.length-1;d=d+1){
+					for(let e=d+1;e<board.length;e=e+1){
+						let combo=[hole[a],hole[b],board[c],board[d],board[e]]
+						let value=lowcombovalue(combo)
+						if(value&&(!best||0<comparelowvalue(value,best["value"]))){
+							best={
+								"value": value,
+								"cards": combo
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return best
+}
+
+// 低牌的文字標示：由小到大唸，例如 8-6-4-3-A。A 顯示成 A 不是 1。
+function lowlabel(low){
+	if(!low){
+		return ""
+	}
+	let parts=[]
+	for(let i=low["value"].length-1;i>=0;i=i-1){
+		parts.push(low["value"][i]==1?"A":String(low["value"][i]))
+	}
+	return "("+hdt("lowhand")+" "+parts.join("-")+")"
+}
+
+function showdowninfo(row,board,hand){
+	let handcards=handcardsarray(row["handcard"])
+	if(handcards.length<2){
+		return null
+	}
+	let best=null
+	if(showdownomahaed(hand)){
+		best=besthandomaha(handcards,board)
+	}else{
+		let cards=[]
+		for(let i=0;i<handcards.length;i=i+1){
+			cards.push(handcards[i])
+		}
+		for(let i=0;i<board.length;i=i+1){
+			cards.push(board[i])
+		}
+		best=besthand(cards)
+	}
 	if(!best){
 		return null
 	}
+	// hi-lo 才算低牌。非 hi-lo 的牌型 low 一律是 null，highlight 也就只有綠光，
+	// 顯示與之前完全相同。
+	let low=null
+	if(showdownhiloed(hand)){
+		low=besthandomahalow(handcards,board)
+	}
 	return {
 		"best": best,
-		"highlight": highlitemap(best["cards"]),
-		"label": handlabel(best)
+		"low": low,
+		"highlight": mergehighlight(highlitemap(best["cards"]),low?highlitemap(low["cards"],"low"):null),
+		"label": handlabel(best),
+		"lowlabel": lowlabel(low)
 	}
 }
 
+// 公共牌上的光暈：高牌用到的發綠光，hi-lo 的低牌用到的發黃光，
+// 兩邊都用到的那張上綠下黃。
 function boardhighlightfromshowdown(showdown){
-	let data={}
+	let high={}
+	let low={}
 	for(let seat in showdown){
 		let cards=showdown[seat]["best"]["cards"]||[]
 		for(let i=0;i<cards.length;i=i+1){
-			data[cardkey(cards[i]["card"])]=true
+			high[cardkey(cards[i]["card"])]=true
+		}
+		let lowcards=(showdown[seat]["low"]||{})["cards"]||[]
+		for(let i=0;i<lowcards.length;i=i+1){
+			low[cardkey(lowcards[i]["card"])]=true
 		}
 	}
-	return data
+	return mergehighlight(high,low)
 }
 
 function bestshowdownseat(showdown){
@@ -1061,19 +1160,41 @@ function actiondisplay(hand,row,running){
 	return `Seat ${seat} ${actionname(action)}${chiptext}`
 }
 
+// 亮出來的底牌。**不可以只取 card1/card2** —— 奧馬哈是 4 張、O5/BO 是 5 張，
+// 截成兩張送去算勝率，等於拿別人的牌在算（實測 hand 1453 轉牌把 92.5% 的領先者顯示成 0%）。
 function knownhandcards(row){
-	if(row&&row["handcard"]&&row["handcard"]["card1"]&&row["handcard"]["card2"]){
-		return [row["handcard"]["card1"],row["handcard"]["card2"]]
+	let cards=holecardsof((row||{})["handcard"])
+	if(cards.length<2){
+		return null
 	}
-	return null
+	return cards
 }
 
+// 與後端 hand.py 的 HANDGAMECODELIST / normalizehandgametype 對齊：認得的代碼原樣送出，
+// 認不得的一律當德州。原本這裡只分「短牌 / 其他」，OM 會被送成 HE，
+// 後端就用七張任選五算奧馬哈，領先方可能整個顛倒。
+const EQUITYGAMECODELIST=["HE","OM","O5","O8","BO","SD","ST","RA","AS","AD","AT","DS","DD","DT"]
+
 function equitygametype(hand){
-	let g=String(hand["gametype"]||"").toUpperCase()
-	if(g=="SD"||g.indexOf("SHORT")>=0){
+	let code=String((hand||{})["gametype"]||"").toUpperCase()
+	if(EQUITYGAMECODELIST.indexOf(code)>=0){
+		return code
+	}
+	if(code.indexOf("SHORT")>=0){
 		return "SD"
 	}
 	return "HE"
+}
+
+// 與後端 equityholecount() 對齊：O5 / BO 是 5 張，其餘奧馬哈家族 4 張，其他 2 張。
+function equityholecount(gametype){
+	if(gametype=="O5"||gametype=="BO"){
+		return 5
+	}
+	if(gametype=="OM"||gametype=="O8"){
+		return 4
+	}
+	return 2
 }
 
 // 找出「有人 all-in 並被跟注」最早成立的街（≥2 人未蓋牌且至少 1 人 all-in），找不到回 -1
@@ -1145,6 +1266,8 @@ function buildallinequityplan(hand){
 	let folded=foldedseatsmap(hand)
 	let potinvest=potinvestmap(hand)
 	let seating=hand["seatingdata"]||[]
+	let gamecode=equitygametype(hand)
+	let holecount=equityholecount(gamecode)
 	let seats=[]
 	for(let i=0;i<seating.length;i=i+1){
 		let seatno=parseInt(seating[i]["seatno"]||0,10)
@@ -1157,6 +1280,11 @@ function buildallinequityplan(hand){
 		let cards=knownhandcards(seating[i])
 		// 只要有任一位未蓋牌的選手沒亮牌，勝率就無法誠實計算，直接不顯示
 		if(!cards){
+			return null
+		}
+		// 張數與牌型對不上時也不顯示。後端對底牌張數是有驗的（會回 400），
+		// 而 400 之後只會安靜地什麼都不顯示 —— 寧可一開始就不顯示，也不要顯示算錯的數字。
+		if(cards.length!=holecount){
 			return null
 		}
 		seats.push({ seatno: seatno,name: seating[i]["name"],cards: cards })
@@ -1185,13 +1313,8 @@ function buildallinequityplan(hand){
 		}
 	}
 	let board=hand["boardcard"]||{}
-	let flop=[]
-	let rawflop=board["flop"]||[]
-	for(let i=0;i<rawflop.length;i=i+1){
-		if(rawflop[i]){
-			flop.push(rawflop[i])
-		}
-	}
+	// TASK-037 起共用 initialize.js 的解析
+	let flop=ptboardobject(board)["flop"]
 	let streetlist=["preflop","flop","turn","river"]
 	let streets=[]
 	for(let s=aistreet;s<streetlist.length;s=s+1){
@@ -1219,7 +1342,7 @@ function buildallinequityplan(hand){
 	if(!streets.length){
 		return null
 	}
-	return { gametype: equitygametype(hand),seats: seats,streets: streets,blocked: blocked }
+	return { gametype: gamecode,seats: seats,streets: streets,blocked: blocked }
 }
 
 function streethasequity(plan,street){
@@ -1234,13 +1357,16 @@ function streethasequity(plan,street){
 	return false
 }
 
+// 下注歷程裡的全押勝率小標籤是 handdetail 另一套「純文字」牌面呈現，不走 .pt-card。
+// 原本在這裡用 JS 寫死四色（TASK-014），於是使用者在個人設定選了兩色時，牌面變兩色、
+// 這裡卻還是四色。改成只吐 data-suit，顏色一律交給 carddisplay.css 的
+// .deckface-two / .deckface-four 規則決定，與 .pt-card 同一個開關、同一組色值。
 function equityminicard(card){
 	let parts=cardparts(card)
 	if(parts["rank"]=="?"){
 		return ""
 	}
-	let colorclass=parts["reded"]?"text-red-400":"text-zinc-100"
-	return `<span class="${colorclass}">${parts["rank"]}${parts["symbol"]}</span>`
+	return `<span class="pt-suittext" data-suit="${parts["symbol"]}">${parts["rank"]}${parts["symbol"]}</span>`
 }
 
 // 與勝率解算器 pctformat 規則一致：0 顯示 0、0~0.1 顯示 <0.1、<10 取小數一位、>=10 取整數
@@ -1265,9 +1391,8 @@ function renderoutchips(cardlist,blocked){
 		if(parts["rank"]=="?"){
 			continue
 		}
-		let colorclass=parts["reded"]?"text-[#f87171]":"text-zinc-100"
 		let blockedclass=(blocked&&blocked[cardkey(cardlist[i])])?" pt-card-x":""
-		html=html+`<span class="px-1 py-px rounded bg-zinc-800 border border-zinc-700 ${colorclass} text-[10px] leading-none${blockedclass}">${parts["rank"]}${parts["symbol"]}</span>`
+		html=html+`<span class="pt-suittext px-1 py-px rounded bg-zinc-800 border border-zinc-700 text-[10px] leading-none${blockedclass}" data-suit="${parts["symbol"]}">${parts["rank"]}${parts["symbol"]}</span>`
 	}
 	html=html+`</span>`
 	return html
@@ -1452,7 +1577,7 @@ function renderhand(hand){
 		if(folded[row["seatno"]]){
 			continue
 		}
-		let info=showdowninfo(row,board)
+		let info=showdowninfo(row,board,hand)
 		if(info){
 			showdown[row["seatno"]]=info
 		}
@@ -1488,7 +1613,7 @@ function renderhand(hand){
 	}
 	innerhtml("#cards",`
 		${herohtml}
-		<div class="mb-3"><span class="text-zinc-400 block mb-1">${hdt("board")}</span>${renderboardgroup(hand["boardcard"],boardhighlight,rabbitmap)}</div>
+		<div class="mb-3"><span class="text-zinc-400 block mb-1">${hdt("board")}</span>${ptmultiboarded(hand)?renderboardrunlist(hand,boardhighlight,rabbitmap):renderboardgroup(hand["boardcard"],boardhighlight,rabbitmap)}</div>
 		<div><span class="text-zinc-400 block mb-1">${hdt("burn")}</span>${burntext(hand["boardcard"])}</div>
 	`,false)
 	// 有翻牌才給 GTO 參考連結：帶這手牌實際的翻牌過去，情境/位置還是要使用者自己選
@@ -1548,7 +1673,7 @@ function renderhand(hand){
 				<td class="py-2 px-2">${handhtml}</td>
 				<td class="py-2 px-2">${starttext}</td>
 				<td class="py-2 px-2 ${endclass}">${endtext}</td>
-				<td class="py-2 px-2 ${resultclass} font-bold">${resulttext}${info?`<div class="text-xs text-zinc-300 mt-1">${info["label"]}</div>`:""}</td>
+				<td class="py-2 px-2 ${resultclass} font-bold">${resulttext}${info?`<div class="text-xs text-zinc-300 mt-1">${info["label"]}</div>`:""}${info&&info["lowlabel"]?`<div class="text-xs text-amber-300 mt-1">${info["lowlabel"]}</div>`:""}</td>
 			</tr>
 		`
 		seatingcardhtml=seatingcardhtml+`
@@ -1565,6 +1690,7 @@ function renderhand(hand){
 				<div class="mb-3 flex gap-3 items-end">
 					${handhtml}
 					${info?`<div class="text-xs text-zinc-300">${info["label"]}</div>`:""}
+					${info&&info["lowlabel"]?`<div class="text-xs text-amber-300">${info["lowlabel"]}</div>`:""}
 				</div>
 				<div class="flex items-center gap-4 text-xs">
 					<span class="text-zinc-400">${hdt("start")} <span class="text-zinc-200">${starttext}</span></span>
@@ -1809,55 +1935,63 @@ function handprintboardtext(boardcard){
 
 function handprintstreetname(street){
 	if(street=="preflop"){
-		return "翻前"
+		return hdt("streetpreflop")
 	}
 	if(street=="flop"){
-		return "翻牌"
+		return hdt("streetflop")
 	}
 	if(street=="turn"){
-		return "轉牌"
+		return hdt("streetturn")
 	}
 	if(street=="river"){
-		return "河牌"
+		return hdt("streetriver")
 	}
 	return street
 }
 
 function handprintactionname(action){
-	let map={ ante: "Ante",blind: "盲注",check: "Check",call: "Call",bet: "Bet",raise: "Raise",fold: "Fold",allin: "ALLIN" }
+	let map={ ante: "Ante",blind: hdt("actionblind"),check: "Check",call: "Call",bet: "Bet",raise: "Raise",fold: "Fold",allin: "ALLIN" }
 	return map[action]||action||"-"
 }
 
 function printhand(){
 	let hand=currenthand
 	if(!hand){
-		pttoast("手牌資料尚未載入","warning")
+		pttoast(hdt("printnotloaded"),"warning")
 		return
 	}
 	let heroed=parseInt(hand["selfseating"]||0,10)>0
 	let infohtml=ptprintinfogrid([
-		["手牌",hand["token"]||"-"],
-		["日期",ptformatdatetimeminute(hand["createtime"]||hand["handtime"])],
-		["莊家座位","Seat "+(hand["dealerseat"]||"-")],
-		["紀錄",heroed?"Seat "+hand["selfseating"]:"公開紀錄"],
-		["盲注",money(hand["smallblind"])+"/"+money(hand["bigblind"])+" ("+money(hand["ante"]||hand["bigblindante"])+")"],
-		["總底池",money(hand["totalpot"])]
+		[hdt("printhand"),hand["token"]||"-"],
+		[hdt("printdate"),ptformatdatetimeminute(hand["createtime"]||hand["handtime"])],
+		[hdt("printdealerseat"),"Seat "+(hand["dealerseat"]||"-")],
+		[hdt("printrecord"),heroed?"Seat "+hand["selfseating"]:hdt("printpublicrecord")],
+		[hdt("printblind"),money(hand["smallblind"])+"/"+money(hand["bigblind"])+" ("+money(hand["ante"]||hand["bigblindante"])+")"],
+		[hdt("printtotalpot"),money(hand["totalpot"])]
 	])
 	let cardpairs=[]
 	if(heroed){
-		cardpairs.push(["英雄手牌",handprintcardstext(hand["handcard"])||"-"])
+		cardpairs.push([hdt("printherohand"),handprintcardstext(hand["handcard"])||"-"])
 	}
-	cardpairs.push(["公牌",handprintboardtext(hand["boardcard"])])
+	// TASK-038：多 board 時每個 run 各印一行，單 board 時維持原本的一行
+	let printboardlist=ptboardlistof(hand)
+	if(printboardlist.length>1){
+		for(let i=0;i<printboardlist.length;i=i+1){
+			cardpairs.push([hdt("printboard")+" "+hdt("boardrun").replace("{n}",printboardlist[i]["runno"]),handprintboardtext(printboardlist[i]["board"])])
+		}
+	}else{
+		cardpairs.push([hdt("printboard"),handprintboardtext(hand["boardcard"])])
+	}
 	let cardhtml=ptprintinfogrid(cardpairs)
 
 	let seatcols=[
-		{"title": "座位","align": "center"},
-		{"title": "選手"},
-		{"title": "手牌"},
-		{"title": "起始","align": "right"},
-		{"title": "結束","align": "right"},
-		{"title": "淨額","align": "right"},
-		{"title": "得標","align": "center"}
+		{"title": hdt("printcolseat"),"align": "center"},
+		{"title": hdt("printcolplayer")},
+		{"title": hdt("printcolhand")},
+		{"title": hdt("printcolstart"),"align": "right"},
+		{"title": hdt("printcolend"),"align": "right"},
+		{"title": hdt("printcolnet"),"align": "right"},
+		{"title": hdt("printcolwon"),"align": "center"}
 	]
 	let seating=hand["seatingdata"]||[]
 	let seatrows=[]
@@ -1873,16 +2007,16 @@ function printhand(){
 			money(start),
 			money(end),
 			(0<=result?"+":"")+money(result),
-			row["winnered"]?"是":"-"
+			row["winnered"]?hdt("printwonyes"):"-"
 		])
 	}
-	let seathtml=ptprinttable(seatcols,seatrows,"無座位資料")
+	let seathtml=ptprinttable(seatcols,seatrows,hdt("printnoseating"))
 
 	let actioncols=[
-		{"title": "街","align": "center"},
-		{"title": "座位","align": "center"},
-		{"title": "動作"},
-		{"title": "金額","align": "right"}
+		{"title": hdt("printcolstreet"),"align": "center"},
+		{"title": hdt("printcolseat"),"align": "center"},
+		{"title": hdt("printcolaction")},
+		{"title": hdt("printcolamount"),"align": "right"}
 	]
 	let bitting=hand["bittingdata"]||[]
 	let streetlist=["preflop","flop","turn","river"]
@@ -1904,20 +2038,20 @@ function printhand(){
 			}
 		}
 	}
-	let actionhtml=ptprinttable(actioncols,actionrows,"無行動資料")
+	let actionhtml=ptprinttable(actioncols,actionrows,hdt("printnoaction"))
 
 	let note=hand["ps"]||hand["note"]||""
 	let notehtml=""
 	if(note){
-		notehtml=ptprintsectiontitle("備註")+`<div class="ptprintnote">${ptprintescape(note)}</div>`
+		notehtml=ptprintsectiontitle(hdt("printsectionnote"))+`<div class="ptprintnote">${ptprintescape(note)}</div>`
 	}
 
-	let bodyhtml=infohtml+ptprintsectiontitle("牌面")+cardhtml+ptprintsectiontitle("座位結果")+seathtml+ptprintsectiontitle("行動")+actionhtml+notehtml
+	let bodyhtml=infohtml+ptprintsectiontitle(hdt("printsectionboard"))+cardhtml+ptprintsectiontitle(hdt("printsectionseating"))+seathtml+ptprintsectiontitle(hdt("printsectionaction"))+actionhtml+notehtml
 	ptprintrun(ptprintbuild({
 		"eyebrow": "Hand",
-		"title": "手牌 "+(hand["token"]||"")+" 明細",
-		"subtitle": "單筆手牌存底",
-		"meta": "列印時間 "+ptprinttimestamp()
+		"title": hdt("printtitleprefix")+" "+(hand["token"]||"")+" "+hdt("printtitlesuffix"),
+		"subtitle": hdt("printsubtitle"),
+		"meta": hdt("printmeta")+" "+ptprinttimestamp()
 	},bodyhtml))
 }
 

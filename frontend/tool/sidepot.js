@@ -176,3 +176,17 @@ onclick("#spaddplayer",function(){
 applysplanguage()
 renderplayers()
 renderresults()
+
+// TASK-019：選手列是動態產生的、沒有 id，見 initialize.js 的 pttoolstatecustom 說明。
+function pttoolstatecustom(){
+	return { "spplayers": spplayers }
+}
+
+function pttoolstatecustomapply(data){
+	if(!data||!Array.isArray(data["spplayers"])){
+		return
+	}
+	spplayers=data["spplayers"]
+	renderplayers()
+	renderresults()
+}

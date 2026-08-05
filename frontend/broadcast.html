@@ -23,24 +23,25 @@
 		<div class="mx-auto max-w-5xl px-4 py-6">
 			<header class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
 				<div>
-					<div class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400" id="bckicker">現場轉播 · LIVE BROADCAST</div>
+					<div class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400" data-i18n="broadcastpage.kicker" id="bckicker">現場轉播 · LIVE BROADCAST</div>
 					<h1 class="mt-1 text-2xl font-extrabold" id="bcname">—</h1>
 					<div class="mt-1 flex flex-wrap gap-2 text-xs" id="bcbadge"></div>
 				</div>
 				<div class="flex items-center gap-3">
-					<button type="button" id="bcbbtoggle" class="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold text-zinc-300 outline-none transition hover:bg-zinc-800" aria-label="切換大盲(BB)單位顯示">BB</button>
-						<select id="bcskin" class="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold text-zinc-200 outline-none" aria-label="選擇牌面牌背樣式">
-						<option value="classic" id="bcskinclassic">經典藍</option>
-						<option value="crimson" id="bcskincrimson">緋紅</option>
-						<option value="midnight" id="bcskinmidnight">午夜綠</option>
-						<option value="royal" id="bcskinroyal">皇家紫</option>
-						<option value="ocean" id="bcskinocean">海洋青</option>
-						<option value="sunset" id="bcskinsunset">暮橙</option>
-						<option value="rose" id="bcskinrose">玫瑰紅</option>
-						<option value="graphite" id="bcskingraphite">石墨黑</option>
+					<button type="button" id="bcbbtoggle" class="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold text-zinc-300 outline-none transition hover:bg-zinc-800" data-i18n-aria-label="broadcastpage.bbtogglelabel" aria-label="切換大盲(BB)單位顯示">BB</button>
+						<select id="bcskin" class="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold text-zinc-200 outline-none" data-i18n-aria-label="broadcastpage.skinlabel" aria-label="選擇牌面牌背樣式">
+						<option value="classic" data-i18n="broadcastpage.skinclassic" id="bcskinclassic">經典藍</option>
+						<option value="crimson" data-i18n="broadcastpage.skincrimson" id="bcskincrimson">緋紅</option>
+						<option value="midnight" data-i18n="broadcastpage.skinmidnight" id="bcskinmidnight">午夜綠</option>
+						<option value="royal" data-i18n="broadcastpage.skinroyal" id="bcskinroyal">皇家紫</option>
+						<option value="ocean" data-i18n="broadcastpage.skinocean" id="bcskinocean">海洋青</option>
+						<option value="sunset" data-i18n="broadcastpage.skinsunset" id="bcskinsunset">暮橙</option>
+						<option value="rose" data-i18n="broadcastpage.skinrose" id="bcskinrose">玫瑰紅</option>
+						<option value="graphite" data-i18n="broadcastpage.skingraphite" id="bcskingraphite">石墨黑</option>
+						<option value="minimal" data-i18n="broadcastpage.skinminimal" id="bcskinminimal">極簡</option>
 					</select>
 					<span class="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-sm font-bold">
-						<span class="livedot" id="bcdot"></span><span id="bcstatus">連線中…</span>
+						<span class="livedot" id="bcdot"></span><span data-i18n="broadcastpage.statusconnecting" id="bcstatus">連線中…</span>
 					</span>
 				</div>
 			</header>
@@ -48,16 +49,16 @@
 			<div id="bcnotice" class="mb-6 hidden rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm text-amber-200"></div>
 
 			<section id="bclatestwrap" class="mb-8 hidden">
-				<div class="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500" id="bclatesttitle">最新一手</div>
+				<div class="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500" data-i18n="broadcastpage.latesttitle" id="bclatesttitle">最新一手</div>
 				<div class="rounded-[22px] border border-zinc-800 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-5 md:p-6" id="bclatest"></div>
 			</section>
 
 			<section>
-				<div class="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500" id="bclisttitle">近期手牌</div>
+				<div class="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500" data-i18n="broadcastpage.listtitle" id="bclisttitle">近期手牌</div>
 				<div class="flex flex-col gap-2" id="bclist"></div>
 			</section>
 
-			<footer class="mt-10 border-t border-zinc-800 pt-4 text-center text-xs text-zinc-600" id="bcfoot">
+			<footer class="mt-10 border-t border-zinc-800 pt-4 text-center text-xs text-zinc-600" data-i18n="broadcastpage.foot" id="bcfoot">
 				唯讀觀看 · 手牌紀錄同步自主辦端
 			</footer>
 		</div>

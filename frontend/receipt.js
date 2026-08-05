@@ -21,10 +21,10 @@ const RECEIPTSAMPLE={
 
 // 每一聯要顯示哪些區塊。共通抬頭（logo / 標題 / 賽事 / 選手 / 號碼 / QR）四聯都有。
 const COPYLIST=[
-	{"key": "house","label": "HOUSE COPY","zh": "店家聯","sections": ["buyin","issue","stamp"]},
-	{"key": "player","label": "PLAYER COPY","zh": "選手聯","sections": ["buyin","issue","attention"]},
-	{"key": "dealer","label": "DEALER COPY","zh": "發牌聯","sections": ["seat","issue","stamp"]},
-	{"key": "table","label": "TABLE COPY","zh": "桌面聯","sections": ["tablenotice"]}
+	{"key": "house","label": "HOUSE COPY","sections": ["buyin","issue","stamp"]},
+	{"key": "player","label": "PLAYER COPY","sections": ["buyin","issue","attention"]},
+	{"key": "dealer","label": "DEALER COPY","sections": ["seat","issue","stamp"]},
+	{"key": "table","label": "TABLE COPY","sections": ["tablenotice"]}
 ]
 
 // 開始時間只取到分鐘（YYYY-MM-DD HH:mm），不顯示秒。
@@ -137,7 +137,6 @@ function receiptattentionsection(){
 function receipttablenoticesection(){
 	return `
 		<div class="receipttablenotice">--ALWAYS SHOW ON TABLE--</div>
-		<div class="receipttablenotice">請常時放在桌上--</div>
 	`
 }
 
@@ -248,8 +247,8 @@ function receiptprint(data){
 
 // ===== 獎金發放收據（2 聯：店家聯 + 選手聯），供員工在報到頁列印 =====
 const PRIZECOPYLIST=[
-	{"key": "house","label": "HOUSE COPY","zh": "店家聯","sections": ["sign","stamp"]},
-	{"key": "player","label": "PLAYER COPY","zh": "選手聯","sections": ["sign"]}
+	{"key": "house","label": "HOUSE COPY","sections": ["sign","stamp"]},
+	{"key": "player","label": "PLAYER COPY","sections": ["sign"]}
 ]
 
 function receiptsignsection(){

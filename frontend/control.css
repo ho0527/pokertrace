@@ -11,6 +11,13 @@
 
 :root {
 	color-scheme: dark;
+
+	/* 狀態色（TASK-027 修復）。
+	   本檔引用 --color-warning 與 --color-danger 共 10 次，但它們從來沒有被定義過，
+	   所以 .timer-display.warn / .danger 這些狀態一直沒有真的變色。
+	   色值與 display.css 定義的同一組，兩邊的計時器警示狀態才會一致。 */
+	--color-warning: #eab308;
+	--color-danger: #fca5a5;
 }
 
 html,

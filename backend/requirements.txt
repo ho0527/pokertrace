@@ -27,6 +27,12 @@ google-auth==2.35.0
 firebase-admin==7.3.0
 requests==2.32.2
 
+# Scheduling
+# 「場次即將開始」通知用 (TASK-028)。MIT 授權, 必要相依只有 tzlocal。
+# 跑在 ASGI 行程內, 6 個 worker 會各有一份; 重複發送靠 session.startnotifiedtime
+# 的原子認領擋掉, 不依賴分散式鎖。
+APScheduler==3.11.3
+
 # Poker / calculation
 eval7==0.1.10
 numpy==2.2.6

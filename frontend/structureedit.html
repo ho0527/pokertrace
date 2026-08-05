@@ -34,7 +34,7 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                     <a href="control.html" class="btn btn-ghost btn-sm" id="btnBack">Back</a>
                     <a href="structure.html" class="btn btn-ghost btn-sm" id="btnView">View Structure</a>
-                    <input type="button" class="btn btn-primary btn-sm" id="btnSaveStruct" value="Save Structure">
+                    <input type="button" class="btn btn-primary btn-sm" data-entersubmit id="btnSaveStruct" value="Save Structure">
                 </div>
             </div>
 
@@ -53,12 +53,12 @@
                     <div class="struct-tool-row">
                         <label for="structLevelDur" id="levelDurLabel">Level Duration</label>
                         <input type="number" class="txt" id="structLevelDur" min="1" inputmode="numeric" value="20">
-                        <input type="button" class="btn btn-sm struct-apply-btn" id="btnApplyLevelDur" value="Apply">
+                        <input type="button" class="btn btn-sm struct-apply-btn" data-entersubmit id="btnApplyLevelDur" value="Apply">
                     </div>
                     <div class="struct-tool-row">
                         <label for="structBreakDur" id="breakDurLabel">Break Duration</label>
                         <input type="number" class="txt" id="structBreakDur" min="1" inputmode="numeric" value="10">
-                        <input type="button" class="btn btn-sm btn-warn struct-apply-btn" id="btnApplyBreakDur" value="Apply">
+                        <input type="button" class="btn btn-sm btn-warn struct-apply-btn" data-entersubmit id="btnApplyBreakDur" value="Apply">
                     </div>
                 </div>
             </div>
@@ -118,7 +118,7 @@
             <div class="card">
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
                     <input type="button" class="btn btn-sm btn-ghost" id="btnExportStruct" value="Export JSON">
-                    <input type="button" class="btn btn-sm btn-ghost" id="btnImportStruct" value="Import JSON">
+                    <input type="button" class="btn btn-sm btn-ghost" data-entersubmit id="btnImportStruct" value="Import JSON">
                     <label for="structFileIn" class="btn btn-sm btn-ghost" id="btnImportFile">Import File</label>
                     <input type="file" id="structFileIn" accept="application/json,.json" style="display:none">
                 </div>

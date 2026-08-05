@@ -319,13 +319,16 @@ function guidescrolltohash(hashid,behavior){
 		let chapter=guidechapterbyid(targetid)
 		if(chapter){
 			target=domgetid(chapter["id"])
-			targetid=chapter["id"]
+			// 這裡原本還有一行 targetid=chapter["id"]，但 targetid 在這之後
+			// 沒有任何地方會再讀它（下面用的是 target 與 target.dataset），
+			// 移除的那段 #start fallback 也只是賦值。是死賦值，一併清掉。
 		}
 	}
-	if(!target){
-		target=domgetid("start")
-		targetid="start"
-	}
+	// 這裡原本還有一段「都找不到就捲到 #start」的 fallback，
+	// 但 guide.html 從來沒有 id="start" 的元素（所有備份都沒有），
+	// 章節是 JS 動態塞進 #guidesections 的、各有自己的 id，
+	// 所以那段永遠不成立，等於直接落到下面的 return。行為完全不變，只是把死路拿掉。
+	// （tools/audit/scandeadreference.js 掃出來的）
 	if(!target){
 		return
 	}

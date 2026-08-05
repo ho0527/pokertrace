@@ -64,6 +64,7 @@ function bcapplytexts(){
 	setid("bcskinsunset",bctext("skinsunset"))
 	setid("bcskinrose",bctext("skinrose"))
 	setid("bcskingraphite",bctext("skingraphite"))
+	setid("bcskinminimal",bctext("skinminimal"))
 	setid("bcstatus",bctext("statusconnecting"))
 }
 
@@ -154,27 +155,9 @@ function bccardsfixed(cards,count,small){
 	return html
 }
 
-// 把 boardcard 物件 {flop:[],turn,river} 攤平成陣列
+// 把 boardcard 物件 {flop:[],turn,river} 攤平成陣列（TASK-037 起共用 initialize.js 的解析）
 function bcboardcards(hand){
-	let board=hand["boardcard"]||{}
-	if(typeof board=="string"){
-		board=json(board)||{}
-	}
-	let cards=[]
-	if(board["flop"]){
-		for(let i=0;i<board["flop"].length;i=i+1){
-			if(board["flop"][i]){
-				cards.push(board["flop"][i])
-			}
-		}
-	}
-	if(board["turn"]){
-		cards.push(board["turn"])
-	}
-	if(board["river"]){
-		cards.push(board["river"])
-	}
-	return cards
+	return ptboardcardlist(hand["boardcard"])
 }
 
 function bcseatcards(seat){
@@ -182,7 +165,14 @@ function bcseatcards(seat){
 	if(typeof handcard=="string"){
 		handcard=json(handcard)||{}
 	}
-	return [handcard["card1"]||"",handcard["card2"]||""]
+	// 底牌依牌型而定（Hold'em 2、Omaha 4…），讀實際存在的 card1..card5。
+	let cards=[]
+	for(let i=1;i<=5;i=i+1){
+		if(handcard["card"+i]){
+			cards.push(handcard["card"+i])
+		}
+	}
+	return cards
 }
 
 function bcesc(text){
@@ -353,8 +343,18 @@ function bcseatposhtml(seat,seatno,x,y,isdealer,folded,actionmeta,invested){
 	// 目前碼量 = 起始碼扣掉本手已投入(例: 43000-5000=38000)
 	let chip=bcint(seat["chip"])-bcint(invested)
 	if(chip<0){ chip=0 }
-	// 蓋牌後底牌收回, 一律顯示牌背
-	let cardshtml=folded?(bccardback(true)+bccardback(true)):bccardsfixed(bcseatcards(seat),2,true)
+	// 蓋牌後底牌收回, 一律顯示牌背；牌背張數依牌型底牌數（Hold'em 2 / Omaha 4）。
+	let holecards=bcseatcards(seat)
+	let holecount=holecards.length>0?holecards.length:2
+	let cardshtml
+	if(folded){
+		cardshtml=""
+		for(let i=0;i<holecount;i=i+1){
+			cardshtml=cardshtml+bccardback(true)
+		}
+	}else{
+		cardshtml=bccardsfixed(holecards,holecount,true)
+	}
 	let actionhtml=actionmeta?`<div class="bc-action ${actionmeta["cls"]}">${bcesc(actionmeta["label"])}</div>`:""
 	return `
 		<div class="bc-seatpos" style="left:${x}%;top:${y}%">
@@ -402,7 +402,7 @@ function bctablehtml(hand){
 		<div class="bc-tablewrap">
 			<div class="bc-felt"></div>
 			<div class="bc-center">
-				<div class="bc-board">${bccardsfixed(board,5)}</div>
+				<div class="bc-board">${ptmultiboarded(hand)?bcboardrunhtml(hand,5):bccardsfixed(board,5)}</div>
 				<div class="bc-pot">${bctext("pot")} ${bcesc(bcfmtamt(bcpot(hand)))}</div>
 			</div>
 			${bethtml}
@@ -419,6 +419,32 @@ function bclatesthtml(hand){
 		${bctablehtml(hand)}`
 }
 
+// TASK-038 顯示 A：多 board 時每個 board 一列，左邊標「第 n 次」。
+// 單 board 時不走這裡，畫面與之前完全相同。
+function bcboardrunhtml(hand,fixedcount){
+	let boardlist=ptboardlistof(hand)
+	let html=""
+	for(let i=0;i<boardlist.length;i=i+1){
+		let item=boardlist[i]
+		let cards=[]
+		for(let k=0;k<item["board"]["flop"].length;k=k+1){
+			cards.push(item["board"]["flop"][k])
+		}
+		if(item["board"]["turn"]){
+			cards.push(item["board"]["turn"])
+		}
+		if(item["board"]["river"]){
+			cards.push(item["board"]["river"])
+		}
+		html=html+`
+			<div class="flex items-center gap-2">
+				<span class="shrink-0 rounded-full bg-zinc-700 px-2 py-0.5 text-xs text-zinc-300">${bcesc(bctext("boardrun","Run {n}").replace("{n}",item["runno"]))}</span>
+				<span class="flex items-center gap-1">${bccardsfixed(cards,fixedcount)}</span>
+			</div>`
+	}
+	return html
+}
+
 function bcrowhtml(hand,index){
 	let board=bcboardcards(hand)
 	return `
@@ -428,7 +454,7 @@ function bcrowhtml(hand,index){
 				<span class="text-sm text-zinc-300">${bcesc(hand["tablename"]||hand["tabletoken"]||"-")}</span>
 				<span class="text-xs text-zinc-500">${bcesc(bcblindtext(hand))}</span>
 			</div>
-			<div class="flex items-center gap-1">${bccardsfixed(board,5)}</div>
+			<div class="flex flex-col items-end gap-1">${ptmultiboarded(hand)?bcboardrunhtml(hand,5):`<div class="flex items-center gap-1">${bccardsfixed(board,5)}</div>`}</div>
 		</div>`
 }
 
@@ -529,14 +555,20 @@ function bcconnectws(){
 
 // 牌面牌背皮膚(觀眾偏好, 存 localStorage)
 function bcapplyskin(skin){
-	let valid=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite"]
+	let valid=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite","minimal"]
 	if(valid.indexOf(skin)<0){
 		skin="classic"
 	}
-	document.body.classList.remove("deck-classic","deck-crimson","deck-midnight","deck-royal","deck-ocean","deck-sunset","deck-rose","deck-graphite")
+	// 這一行是逐一列舉的，新增 skin 時漏加會讓切換時舊 class 沒被移除（兩套樣式疊在一起）
+	document.body.classList.remove("deck-classic","deck-crimson","deck-midnight","deck-royal","deck-ocean","deck-sunset","deck-rose","deck-graphite","deck-minimal")
 	document.body.classList.add("deck-"+skin)
+	// TASK-046：轉播頁的下拉是「整套一起換」，所以牌背與牌面都設成同一個值。
+	// 真正要分開選是在 profile 的燈箱裡。
+	ptcardskinapply(document.body,skin,skin)
 	try{
 		localStorage.setItem("bc-deck",skin)
+		localStorage.setItem(CARDBACKKEY,skin)
+		localStorage.setItem(CARDSKINKEY,skin)
 	}catch(error){
 		// localStorage 不可用時忽略, 皮膚仍會套用於本次瀏覽
 	}
@@ -564,7 +596,8 @@ function bcsavedecktoaccount(skin){
 function bcinitskin(){
 	let saved="classic"
 	try{
-		saved=localStorage.getItem("bc-deck")||"classic"
+		// TASK-046：拆分後以牌背為準（下拉本來就是整套換），沒拆分過時 bc-deck 仍是來源
+		saved=localStorage.getItem(CARDBACKKEY)||localStorage.getItem("bc-deck")||"classic"
 	}catch(error){
 		saved="classic"
 	}

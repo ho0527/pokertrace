@@ -35,9 +35,9 @@
 
 			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
 				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crsmalllabel" for="crsmall">移除面額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crsmall" min="1" inputmode="numeric" value="25"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crsmalllabel" for="crsmall">移除面額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crsmall" min="1" inputmode="numeric" value="25"><div id="crsmallstrip" class="chipstrip"></div></div>
 					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crcountlabel" for="crcount">桌上該面額總顆數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crcount" min="0" inputmode="numeric" value="74"></div>
-					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crnewlabel" for="crnew">換發面額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crnew" min="1" inputmode="numeric" value="100"></div>
+					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="crnewlabel" for="crnew">換發面額</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="crnew" min="1" inputmode="numeric" value="100"><div id="crnewstrip" class="chipstrip"></div></div>
 				</div>
 				<div class="mt-4 flex flex-wrap gap-2">
 					<input type="button" class="min-h-10 rounded-2xl border border-emerald-600/60 bg-emerald-600/10 px-4 text-sm font-bold text-emerald-300 transition hover:bg-emerald-600/20" id="crprofilechips" value="從個人資料載入面額">
@@ -54,8 +54,8 @@
 
 		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
 			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
-				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">Chip Race 怎麼做？</h2>
-				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">移除小面額時，湊不滿一顆大計分牌的零頭傳統上用發牌比大小（chip race）決定歸屬。這個工具幫你算出全桌要準備多少顆新計分牌，以及換不完的全桌餘值；實際發牌時再依「一人最多得一顆、不會因 race 出局」等標準規則處理各家零頭。</p>
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white" data-i18n="toolseo.chipracetitle">Chip Race 怎麼做？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400" data-i18n="toolseo.chipracebody">移除小面額時，湊不滿一顆大計分牌的零頭傳統上用發牌比大小（chip race）決定歸屬。這個工具幫你算出全桌要準備多少顆新計分牌，以及換不完的全桌餘值；實際發牌時再依「一人最多得一顆、不會因 race 出局」等標準規則處理各家零頭。</p>
 			</div>
 		</section>
 		<div id="footer"></div>

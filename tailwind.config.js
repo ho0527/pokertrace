@@ -21,6 +21,37 @@ module.exports = {
 		"./frontend/**/*.html",
 		"./frontend/**/*.js",
 	],
-	theme: { extend: {} },   // 全站沿用 Tailwind 預設主題（原本 Play CDN 也沒有 tailwind.config）
+	// 全站沿用 Tailwind 預設主題（原本 Play CDN 也沒有 tailwind.config），
+	// 只覆寫字體堆疊（TASK-012）。
+	//
+	// Tailwind 預設的 sans 是 ui-sans-serif, system-ui, sans-serif, ...，完全沒有中文字體。
+	// 在沒有安裝合適中文字型的環境（部分 Windows、Linux、某些行動裝置），中文會落到
+	// 系統預設字型，字重與字寬和設計不符——這是「看起來廉價」最常見的成因之一。
+	// ai/skills/design-craft.md 紀律 5 明文要求中文專案的 stack 必須含
+	// 'PingFang TC'（Apple）與 'Microsoft JhengHei'（Windows）。
+	//
+	// 放在 extend 底下而不是直接覆寫 theme.fontFamily：這樣 mono/serif 仍沿用 Tailwind 預設，
+	// 只有 sans 被換掉。中文字體排在英文字體之後，讓拉丁字母仍走系統 UI 字型。
+	theme: {
+		extend: {
+			fontFamily: {
+				sans: [
+					"ui-sans-serif",
+					"system-ui",
+					"-apple-system",
+					"Segoe UI",
+					"Roboto",
+					"PingFang TC",
+					"Microsoft JhengHei",
+					"Noto Sans TC",
+					"sans-serif",
+					"Apple Color Emoji",
+					"Segoe UI Emoji",
+					"Segoe UI Symbol",
+					"Noto Color Emoji"
+				]
+			}
+		}
+	},
 	plugins: [],
 }

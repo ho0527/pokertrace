@@ -39,8 +39,8 @@
 					<div class="block">
 						<label class="mb-2 block text-sm font-bold text-zinc-100" id="bomodelabel" for="bomode">賞金模式</label>
 						<select id="bomode" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
-							<option value="normal">一般 Bounty（全額入袋）</option>
-							<option value="pko">PKO（一半入袋、一半進頭上）</option>
+							<option data-i18n="bountypage.modenormal" value="normal">一般 Bounty（全額入袋）</option>
+							<option data-i18n="bountypage.modepko" value="pko">PKO（一半入袋、一半進頭上）</option>
 						</select>
 					</div>
 					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="bokoslabel" for="bokos">擊倒數</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="bokos" min="0" inputmode="numeric" value="3"></div>
@@ -57,8 +57,8 @@
 
 		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
 			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
-				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">賞金值多少計分牌？</h2>
-				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">在賞金賽（尤其 PKO）裡，跟注全下時不只算底池賠率，還要把對手頭上的賞金換算成計分牌價值。常用估算是把賞金金額換算成等值的起始計分牌加進底池。這個工具幫你把一般與 PKO 賞金換算成額外賠率，判斷搶賞金的跟注划不划算。</p>
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white" data-i18n="toolseo.bountytitle">賞金值多少計分牌？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400" data-i18n="toolseo.bountybody">在賞金賽（尤其 PKO）裡，跟注全下時不只算底池賠率，還要把對手頭上的賞金換算成計分牌價值。常用估算是把賞金金額換算成等值的起始計分牌加進底池。這個工具幫你把一般與 PKO 賞金換算成額外賠率，判斷搶賞金的跟注划不划算。</p>
 			</div>
 		</section>
 		<div id="footer"></div>

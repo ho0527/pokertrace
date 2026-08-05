@@ -5,6 +5,9 @@ function num(value){
 
 let cndenoms=[25,100,500,1000,5000,25000]
 
+// 已載入的個人牌組（[{value,color,shape,label}]）。空陣列代表沒載入過，格上就不顯示色塊。
+let cnloadedchiplist=[]
+
 function cntext(key){
 	if(!TRANSLATE[LANGUAGE]||!TRANSLATE[LANGUAGE]["chipcountpage"]){
 		return key
@@ -23,16 +26,24 @@ function rendercngrid(){
 		let row=document.createElement("div")
 		row.className="flex items-center gap-2"
 		row.innerHTML=`
+			${ptchipswatchhtml(cndenoms[i])}
 			<input type="number" min="0" inputmode="numeric" value="${cndenoms[i]}" data-cndenom="${i}" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
 			<input type="number" min="0" inputmode="numeric" value="0" data-cncount="${i}" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
 			<span class="flex-1 text-right font-mono text-zinc-300" data-cnsub="${i}">$0</span>
 		`
 		host.appendChild(row)
 	}
+	ptchipswatchapply(host,cnloadedchiplist)
 	let denomlist=host.querySelectorAll("[data-cndenom]")
 	for(let i=0;i<denomlist.length;i=i+1){
 		denomlist[i].addEventListener("input",function(){
 			cndenoms[parseInt(this.getAttribute("data-cndenom"),10)]=num(this.value)
+			// 面額改了色塊要跟著換；改成牌組裡沒有的值時 ptchipswatchapply() 會把色塊隱藏
+			let swatch=this.parentElement.querySelector("[data-chipswatch]")
+			if(swatch){
+				swatch.setAttribute("data-chipswatch",num(this.value))
+				ptchipswatchapply(this.parentElement,cnloadedchiplist)
+			}
 			calccn()
 		})
 	}
@@ -43,11 +54,16 @@ function rendercngrid(){
 }
 
 function loadcnprofilechips(){
-	ptloadprofilechipdenoms(function(denoms){
-		if(!denoms||denoms.length<1){
+	ptloadprofilechiplist(function(chiplist){
+		if(!chiplist||chiplist.length<1){
 			return
 		}
-		cndenoms=denoms
+		cnloadedchiplist=chiplist
+		let denomlist=[]
+		for(let i=0;i<chiplist.length;i=i+1){
+			denomlist.push(chiplist[i]["value"])
+		}
+		cndenoms=denomlist
 		rendercngrid()
 		calccn()
 	})
@@ -90,3 +106,17 @@ onclick("#cnprofilechips",loadcnprofilechips)
 applycnlanguage()
 rendercngrid()
 calccn()
+
+// TASK-019：點碼格是動態產生的、沒有 id，見 initialize.js 的 pttoolstatecustom 說明。
+function pttoolstatecustom(){
+	return { "cndenoms": cndenoms }
+}
+
+function pttoolstatecustomapply(data){
+	if(!data||!Array.isArray(data["cndenoms"])){
+		return
+	}
+	cndenoms=data["cndenoms"]
+	rendercngrid()
+	calccn()
+}

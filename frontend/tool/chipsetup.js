@@ -11,6 +11,9 @@ let csdenoms=[
 	{denom:5000,count:2}
 ]
 
+// 已載入的個人牌組（[{value,color,shape,label}]）。空陣列代表沒載入過，列上就不顯示色塊。
+let csloadedchiplist=[]
+
 function cstext(key){
 	if(!TRANSLATE[LANGUAGE]||!TRANSLATE[LANGUAGE]["chipsetuppage"]){
 		return key
@@ -76,6 +79,7 @@ function rendercsrows(){
 		row.className="flex items-center gap-2"
 		let sub=csdenoms[i].denom*csdenoms[i].count
 		row.innerHTML=`
+			${ptchipswatchhtml(csdenoms[i].denom)}
 			<input type="number" min="0" inputmode="numeric" value="${csdenoms[i].denom}" data-csdenom="${i}" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
 			<input type="number" min="0" inputmode="numeric" value="${csdenoms[i].count}" data-cscount="${i}" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
 			<span class="flex-1 text-right font-mono text-zinc-300" data-cssub="${i}">$${moneyfmt(sub)}</span>
@@ -83,10 +87,17 @@ function rendercsrows(){
 		`
 		host.appendChild(row)
 	}
+	ptchipswatchapply(host,csloadedchiplist)
 	let denomlist=host.querySelectorAll("[data-csdenom]")
 	for(let i=0;i<denomlist.length;i=i+1){
 		denomlist[i].addEventListener("input",function(){
 			csdenoms[parseInt(this.getAttribute("data-csdenom"),10)].denom=num(this.value)
+			// 面額改了色塊要跟著換；改成牌組裡沒有的值時 ptchipswatchapply() 會把色塊隱藏
+			let swatch=this.parentElement.querySelector("[data-chipswatch]")
+			if(swatch){
+				swatch.setAttribute("data-chipswatch",num(this.value))
+				ptchipswatchapply(this.parentElement,csloadedchiplist)
+			}
 			rendercstotals()
 		})
 	}
@@ -136,13 +147,14 @@ function rendercstotals(){
 }
 
 function loadcsprofilechips(){
-	ptloadprofilechipdenoms(function(denoms){
-		if(!denoms||denoms.length<1){
+	ptloadprofilechiplist(function(chiplist){
+		if(!chiplist||chiplist.length<1){
 			return
 		}
+		csloadedchiplist=chiplist
 		let newlist=[]
-		for(let i=0;i<denoms.length;i=i+1){
-			newlist.push({denom:denoms[i],count:0})
+		for(let i=0;i<chiplist.length;i=i+1){
+			newlist.push({denom:chiplist[i]["value"],count:0})
 		}
 		csdenoms=newlist
 		csautofill()
@@ -183,3 +195,18 @@ oninput("#csstack",rendercstotals)
 applycslanguage()
 rendercsrows()
 rendercstotals()
+
+// TASK-019：面額列是動態產生的、沒有 id，共用的工具頁狀態保存抓不到，
+// 而且列數本身也是狀態。共用層改成 opt-in，這裡提供本頁的資料形狀。
+function pttoolstatecustom(){
+	return { "csdenoms": csdenoms }
+}
+
+function pttoolstatecustomapply(data){
+	if(!data||!Array.isArray(data["csdenoms"])){
+		return
+	}
+	csdenoms=data["csdenoms"]
+	rendercsrows()
+	rendercstotals()
+}

@@ -10,6 +10,47 @@
 
 :root {
 	color-scheme: dark;
+
+	/* 大螢幕主色（TASK-021）。
+	   原本這一族色值硬寫在 14 個地方，改主色必須改原始碼。
+	   這裡把它們收成自訂屬性，變數預設值就是改版前的色值，
+	   因此在 display.js 套用品牌主色（TASK-022）之前，畫面必須與改版前完全一致。
+
+	   六個變數都是同一族的不同用途，不是六個獨立的顏色：
+	   accent        主強調（文字、指示點）
+	   accentstrong  實心填滿（進度條、獎金池數字）
+	   accentborder  邊框
+	   accentsurface 淡底
+	   accentgradientfrom / accentgradientto  ITM 橫幅的漸層兩端
+
+	   注意 display.css 不使用 Tailwind，也不套用站台的 design token，走自己一套視覺語言。 */
+	--accent: #4ade80;
+	--accentstrong: #22c55e;
+	--accentborder: #166534;
+	--accentsurface: #1a2a1a;
+	--accentgradientfrom: #14391f;
+	--accentgradientto: #0a1f10;
+	/* accentstrong 的 6% 透明版，用在 in-money 列的底色漸層。
+	   寫成獨立變數而不是 color-mix()，是因為 color-mix 在較舊的顯示器內建瀏覽器上支援度不確定，
+	   而大螢幕常常就是插在電視或看板上的老舊裝置。 */
+	--accentwash: rgba(34, 197, 94, 0.06);
+
+	/* 狀態色（TASK-027 修復）。
+	   這兩個變數在本檔被引用 8 次、在 control.css 被引用 10 次，但**從來沒有被定義過**——
+	   不在本檔、不在其他專案 CSS、也不在 display.html 唯一載入的外部樣式表
+	   https://chrisplugin.pages.dev/css/chrisplugin.css（已實際抓下來確認）。
+
+	   影響不只是外觀：display.js:1138 會在倒數進入最後階段時加上 .timer-red / .timer-amber，
+	   但因為變數沒有值，**計時器從來不會真的變色**，一直維持白色。
+	   #breakTimerDisplay 是 clamp(90px,16vw,190px) 的休息倒數，同樣受影響。
+
+	   色值沿用本檔既有的同族色，不新增顏色：
+	   #eab308 是 .ante-big 與 .marquee-text 在用的警示黃
+	   #fca5a5 是 .h4h-banner 的危險紅文字色
+
+	   狀態色不隨品牌主色改變——「警告」與「危險」的顏色語意不該被自訂主色覆蓋。 */
+	--color-warning: #eab308;
+	--color-danger: #fca5a5;
 }
 
 body {
@@ -56,7 +97,9 @@ body {
 	overflow: hidden;
 	background: #0d0d0d;
 	color: #e2e8f0;
-	font-family: 'Inter', system-ui, sans-serif;
+	/* 中文 fallback（TASK-012）。display.html 本身維持英文不做中譯，
+	   但品牌名稱是使用者資料、可能是中文，沒有 fallback 會落到系統預設字型。 */
+	font-family: 'Inter', system-ui, 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
 }
 
 .display-shell {
@@ -75,9 +118,13 @@ body {
 	justify-content: space-between;
 }
 
+/* 桌機／大螢幕用 flex 而不是 grid (TASK-023)。
+   改用 flex 的原因：欄位順序要可調, 而 grid 的 grid-template-columns 是「位置對寬度」,
+   一旦順序可變就得為 6 種排列各寫一組寬度, 隱藏欄位時又要再乘一輪。
+   flex 讓每一欄自己帶著寬度走, order 換位置時寬度自動跟著, 隱藏時也自然收合不留空隙。
+   ≤900px 的 media query 仍然把它改回 grid, 那邊的版面邏輯完全沒有變動。 */
 .display-main {
-	display: grid;
-	grid-template-columns: 375px 1fr 375px;
+	display: flex;
 	flex: 1 1 auto;
 	gap: 12px;
 	min-height: 0;
@@ -86,8 +133,10 @@ body {
 .payout-column,
 .info-column {
 	display: flex;
+	flex: 0 0 375px;
 	flex-direction: column;
 	gap: 10px;
+	min-width: 0;
 }
 
 .info-column {
@@ -97,9 +146,11 @@ body {
 .center-panel {
 	position: relative;
 	display: flex;
+	flex: 1 1 auto;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	min-width: 0;
 	padding: 18px;
 	transition: background 0.3s;
 }
@@ -170,7 +221,7 @@ section{
 }
 
 .status-running {
-	color: #4ade80;
+	color: var(--accent);
 	font-weight: 700;
 }
 
@@ -185,7 +236,7 @@ section{
 }
 
 .green-stat {
-	color: #4ade80;
+	color: var(--accent);
 }
 
 .gold-stat {
@@ -222,9 +273,9 @@ section{
 	z-index: 999;
 	width: 10px;
 	height: 10px;
-	background: #4ade80;
+	background: var(--accent);
 	border-radius: 50%;
-	box-shadow: 0 0 8px #4ade80;
+	box-shadow: 0 0 8px var(--accent);
 	animation: blink 2s infinite;
 }
 
@@ -262,8 +313,8 @@ section{
 }
 
 .prow.in-money {
-	background: linear-gradient(90deg, rgba(34, 197, 94, 0.06), transparent);
-	border-bottom-color: #1a2a1a;
+	background: linear-gradient(90deg, var(--accentwash), transparent);
+	border-bottom-color: var(--accentsurface);
 }
 
 .prow.below-bubble {
@@ -273,10 +324,10 @@ section{
 .itm-banner {
 	margin-bottom: 8px;
 	padding: 7px 9px;
-	background: linear-gradient(135deg, #14391f 0%, #0a1f10 100%);
-	border: 1px solid #166534;
+	background: linear-gradient(135deg, var(--accentgradientfrom) 0%, var(--accentgradientto) 100%);
+	border: 1px solid var(--accentborder);
 	border-radius: 8px;
-	color: #4ade80;
+	color: var(--accent);
 	font-size: 11px;
 	font-weight: 700;
 	letter-spacing: 0.5px;
@@ -285,7 +336,7 @@ section{
 }
 
 .itm-banner .big {
-	color: #4ade80;
+	color: var(--accent);
 	font-family: 'JetBrains Mono', monospace;
 	font-size: 18px;
 	font-weight: 900;
@@ -293,7 +344,7 @@ section{
 }
 
 .itm-banner .pct {
-	color: #4ade80;
+	color: var(--accent);
 	font-family: 'JetBrains Mono', monospace;
 	font-size: 11px;
 	opacity: 0.7;
@@ -306,7 +357,7 @@ section{
 }
 
 .prize-pool-value {
-	color: #22c55e;
+	color: var(--accentstrong);
 	font-size: 45px;
 }
 
@@ -450,7 +501,7 @@ section{
 
 .progress-bar {
 	height: 100%;
-	background: #22c55e;
+	background: var(--accentstrong);
 	border-radius: 3px;
 	transition:
 		width 1s linear,
@@ -597,8 +648,8 @@ body.cursor-idle * {
 }
 
 .lvl-row.active {
-	background: #1a2a1a;
-	border: 1px solid #166534;
+	background: var(--accentsurface);
+	border: 1px solid var(--accentborder);
 }
 
 .lvl-row.active.is-break {
@@ -968,4 +1019,106 @@ body.cursor-idle * {
 */
 .hidden {
 	display: none;
+}
+
+/* ==========================================================================
+   Brand block (TASK-022, 變體 A 標題列內嵌)
+   決策: ai/artifacts/現場體驗客製化/mockup-decision-大螢幕品牌.md
+   由 display.js 的 applybranding() 動態插入; 沒有品牌時整組不渲染,
+   .tournament-block 也不會有 .has-brand, 版面回到改版前 (AC-1)。
+   ========================================================================== */
+
+.tournament-block.has-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.brand-inline {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 10px;
+}
+
+/* 34px 是 mockup 決策定的上限; max-width 一併限制, 避免超寬 logo 把賽事名稱擠掉 */
+.brand-logo {
+	flex: 0 0 auto;
+	max-height: 34px;
+	max-width: 120px;
+	width: auto;
+	object-fit: contain;
+}
+
+.brand-name {
+	flex: 0 1 auto;
+	overflow: hidden;
+	max-width: 160px;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.brand-divider {
+	flex: 0 0 auto;
+	width: 1px;
+	height: 26px;
+	background: #2a2a2a;
+}
+
+/* ==========================================================================
+   Column order (TASK-023)
+   data-columnorder 由 display.js 依後端的 session.columnorder 設定，值是
+   payout / center / info 三個代號的排列；沒有設定時屬性不存在，走 DOM 原順序。
+
+   只在 >900px 生效是刻意的：≤900px 時 .payout-column / .info-column 是
+   display: contents，外框會溶解、卡片直接變成 grid 子項，那個版面根本沒有
+   「三欄」這個東西可以重排，套 order 只會讓卡片亂跳。
+
+   用 ^= / $= / *=",x," 三種比對分別對應「排第一 / 排最後 / 夾在中間」，
+   9 條規則就涵蓋全部 6 種排列，不必逐一列舉。
+   columnorder 已由後端 normalizecolumnorder 保證是完整排列，不會有殘缺值。
+
+   欄位隱藏不需要額外規則：flex 下被 display:none 的欄位不佔空間，
+   中央面板 flex:1 會自動吃掉騰出的寬度（FR-6）。
+   ========================================================================== */
+
+@media (min-width: 901px) {
+	.display-main[data-columnorder^="payout"] .payout-column {
+		order: 1;
+	}
+
+	.display-main[data-columnorder^="center"] .center-panel {
+		order: 1;
+	}
+
+	.display-main[data-columnorder^="info"] .info-column {
+		order: 1;
+	}
+
+	.display-main[data-columnorder*=",payout,"] .payout-column {
+		order: 2;
+	}
+
+	.display-main[data-columnorder*=",center,"] .center-panel {
+		order: 2;
+	}
+
+	.display-main[data-columnorder*=",info,"] .info-column {
+		order: 2;
+	}
+
+	.display-main[data-columnorder$="payout"] .payout-column {
+		order: 3;
+	}
+
+	.display-main[data-columnorder$="center"] .center-panel {
+		order: 3;
+	}
+
+	.display-main[data-columnorder$="info"] .info-column {
+		order: 3;
+	}
 }

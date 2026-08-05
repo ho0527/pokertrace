@@ -34,20 +34,28 @@
 .bc-card.back{background:#1e3a8a;border-color:#16296b;position:relative;overflow:hidden}
 .bc-card.back .bc-emblem{position:absolute;inset:3px;border-radius:3px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.16) 0 5px,transparent 5px 10px),repeating-linear-gradient(-45deg,rgba(255,255,255,.10) 0 5px,transparent 5px 10px)}
 .bc-card.back .r,.bc-card.back .s{display:none}
-.deck-crimson .bc-card.back{background:#7f1d1d;border-color:#5c1414}
-.deck-midnight .bc-card{background:#20262e;color:#e9eef2;border-color:#39424d}
-.deck-midnight .bc-card.red{color:#ff9a9a}
-.deck-midnight .bc-card.back{background:#0f5d43;border-color:#0a4231}
-.deck-midnight .bc-card.unknown{background:linear-gradient(135deg,#28323b,#1a2129)}
+/* TASK-046：牌背與牌面分開選。
+   .bc-card.back 是牌背 -> .cardback-<key>；其餘 .bc-card 規則是牌面 -> .cardface-<key>，
+   而且要加 :not(.back)，否則選了不同牌面時會把牌背的底色一起蓋掉。
+   .deck-<key> 一律保留，色票預覽與舊的單一設定都還要用。 */
+.deck-crimson .bc-card.back,.cardback-crimson .bc-card.back{background:#7f1d1d;border-color:#5c1414}
+.deck-midnight .bc-card,.cardface-midnight .bc-card:not(.back){background:#20262e;color:#e9eef2;border-color:#39424d}
+.deck-midnight .bc-card.red,.cardface-midnight .bc-card.red:not(.back){color:#ff9a9a}
+.deck-midnight .bc-card.back,.cardback-midnight .bc-card.back{background:#0f5d43;border-color:#0a4231}
+.deck-midnight .bc-card.unknown,.cardface-midnight .bc-card.unknown:not(.back){background:linear-gradient(135deg,#28323b,#1a2129)}
 /* 追加牌背皮膚(royal/ocean/sunset/rose 換牌背色;graphite 連牌面也做深色) */
-.deck-royal .bc-card.back{background:#6d28d9;border-color:#4c1d95}
-.deck-ocean .bc-card.back{background:#0e7490;border-color:#0b5566}
-.deck-sunset .bc-card.back{background:#c2410c;border-color:#9a3412}
-.deck-rose .bc-card.back{background:#be185d;border-color:#9d174e}
-.deck-graphite .bc-card{background:#242428;color:#e9eef2;border-color:#3a3a42}
-.deck-graphite .bc-card.red{color:#ff9a9a}
-.deck-graphite .bc-card.back{background:#3f3f46;border-color:#27272a}
-.deck-graphite .bc-card.unknown{background:linear-gradient(135deg,#33333a,#1e1e22)}
+.deck-royal .bc-card.back,.cardback-royal .bc-card.back{background:#6d28d9;border-color:#4c1d95}
+.deck-ocean .bc-card.back,.cardback-ocean .bc-card.back{background:#0e7490;border-color:#0b5566}
+.deck-sunset .bc-card.back,.cardback-sunset .bc-card.back{background:#c2410c;border-color:#9a3412}
+.deck-rose .bc-card.back,.cardback-rose .bc-card.back{background:#be185d;border-color:#9d174e}
+.deck-graphite .bc-card,.cardface-graphite .bc-card:not(.back){background:#242428;color:#e9eef2;border-color:#3a3a42}
+.deck-graphite .bc-card.red,.cardface-graphite .bc-card.red:not(.back){color:#ff9a9a}
+.deck-graphite .bc-card.back,.cardback-graphite .bc-card.back{background:#3f3f46;border-color:#27272a}
+.deck-graphite .bc-card.unknown,.cardface-graphite .bc-card.unknown:not(.back){background:linear-gradient(135deg,#33333a,#1e1e22)}
+/* minimal（極簡，TASK-011）：牌面靠左側機能色帶辨識，牌背用 45 度細斜紋。 */
+.deck-minimal .bc-card,.cardface-minimal .bc-card:not(.back){background:#141417;border-color:#2e2e33;border-left:4px solid currentColor;border-radius:4px}
+.deck-minimal .bc-card.unknown,.cardface-minimal .bc-card.unknown:not(.back){background:linear-gradient(135deg,#1f1f24,#141417);border-left-color:#3f3f46}
+.deck-minimal .bc-card.back,.cardback-minimal .bc-card.back{background-color:#141417;background-image:repeating-linear-gradient(45deg,#1c1c21 0 6px,#141417 6px 12px);border-color:#2e2e33;border-left:4px solid #3f3f46}
 /* 燈箱內每款皮膚各自預覽: 用更高特異度(.hr-lbopt.deck-*), 避免覆蓋層當前 deck class 從外層滲入把所有預覽變同色 */
 .hr-lbopt.deck-classic .bc-card.back{background:#1e3a8a;border-color:#16296b}
 .hr-lbopt.deck-crimson .bc-card.back{background:#7f1d1d;border-color:#5c1414}
@@ -61,6 +69,8 @@
 .hr-lbopt.deck-graphite .bc-card{background:#242428;color:#e9eef2;border-color:#3a3a42}
 .hr-lbopt.deck-graphite .bc-card.red{color:#ff9a9a}
 .hr-lbopt.deck-graphite .bc-card.back{background:#3f3f46;border-color:#27272a}
+.hr-lbopt.deck-minimal .bc-card{background:#141417;border-color:#2e2e33;border-left:4px solid currentColor;border-radius:4px}
+.hr-lbopt.deck-minimal .bc-card.back{background-color:#141417;background-image:repeating-linear-gradient(45deg,#1c1c21 0 6px,#141417 6px 12px);border-color:#2e2e33;border-left:4px solid #3f3f46}
 
 /* 蓋牌暗化 */
 .bc-seatbox.folded{opacity:.42;filter:grayscale(.4)}

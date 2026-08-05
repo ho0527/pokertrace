@@ -57,6 +57,10 @@ let state={
     showdowndata: {},
     winner: {},
     winnerprice: {},
+    // TASK-038 輸入 A：run it twice 以上時，第 2 個以後的 board 放這裡。
+    // 第 1 個 board 仍然是既有的 boardcard / winner，所以單 board 完全不受影響。
+    // 每一筆為 { cardlist: [5 張],winner: { 座位: true } }
+    runlist: [],
     defaulttimebankseconds: 15,
     timebanksoundon: true,
     timebankconfigured: false,
@@ -284,20 +288,20 @@ function ensurenavigationbar(){
         <nav class="newhand-fallbacknav">
             <a href="main.html" class="newhand-navbrand"><img src="../material/icon/logo.png" alt="PokerTrace" draggable="false"></a>
             <div class="newhand-navlinks">
-                <a href="main.html">首頁</a>
-                <a href="profile.html">個人資料</a>
-                <a href="clublist.html">協會管理</a>
-                <a href="sessionlist.html">場次列表</a>
-                <a href="benefit.html">收益折線圖</a>
-                <a href="contact.html">聯絡訊息</a>
+                <a href="main.html">${newedithandtext("navindex","首頁")}</a>
+                <a href="profile.html">${newedithandtext("navprofile","個人資料")}</a>
+                <a href="clublist.html">${newedithandtext("navclub","協會管理")}</a>
+                <a href="sessionlist.html">${newedithandtext("navsession","場次列表")}</a>
+                <a href="benefit.html">${newedithandtext("navbenefit","收益折線圖")}</a>
+                <a href="contact.html">${newedithandtext("navcontact","聯絡訊息")}</a>
             </div>
         </nav>
         <nav class="newhand-mobilebottom">
-            <a href="main.html">首頁</a>
-            <a href="clublist.html">協會</a>
-            <a href="sessionlist.html">場次</a>
-            <a href="benefit.html">收益</a>
-            <a href="profile.html">個人</a>
+            <a href="main.html">${newedithandtext("navindex","首頁")}</a>
+            <a href="clublist.html">${newedithandtext("navclubshort","協會")}</a>
+            <a href="sessionlist.html">${newedithandtext("navsessionshort","場次")}</a>
+            <a href="benefit.html">${newedithandtext("navbenefitshort","收益")}</a>
+            <a href="profile.html">${newedithandtext("navprofileshort","個人")}</a>
         </nav>
     `
 }
@@ -394,6 +398,16 @@ function chipsToBb(chipvalue){
 
 function dom(id){
     return domgetid(id)
+}
+
+// 本頁的動態文案（TASK-006）。
+// 靜態 HTML 由 initialize.js 的 pageauto 機制翻譯，但 settext() 動態寫入的字串它抓不到，
+// 所以那些必須各自走這支。fallback 保留中文，字典缺 key 時至少畫面不會空白。
+function newedithandtext(key,fallback){
+    if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["newedithandpage"]&&TRANSLATE[LANGUAGE]["newedithandpage"][key]!=undefined){
+        return TRANSLATE[LANGUAGE]["newedithandpage"][key]
+    }
+    return fallback
 }
 
 function settext(id,value){
@@ -570,14 +584,52 @@ function cacheget(key){
 
 function cacheset(key,value){
     weblsset(cachekey(key),value)
+    // TASK-060：草稿是「每張牌桌各十幾把 key」，沒送出就永遠留著。
+    // 登記進回收索引，超過保留天數會被自動清掉。
+    ptkeytouch(cachekey(key))
 }
 
+// weblsset 的刪除條件是「value 必須是 null」。原本寫成 cachekey(key,null)，
+// null 跑進了 cachekey 的第二個參數（該函式只吃一個，直接忽略），
+// weblsset 只收到一個參數、value 是 undefined，所以完全沒有刪除 ——
+// clearcache() 走訪的 21 個 subkey 一個都清不掉，每記一手牌就永久留下 21 把 key。
 function cachedelete(key){
-    weblsset(cachekey(key,null))
+    weblsset(cachekey(key),null)
+}
+
+// 修正 cachedelete 之前留下的殘留不會自己消失，這裡在載入時清一次。
+// 只刪「值是字串 undefined」的，正常草稿值不可能長這樣，誤刪風險極低。
+function cleanupbrokencache(){
+    let prefixlist=[WEBLSNAME+"newedithand_",WEBLSNAME+"quickhand_"]
+    let removelist=[]
+    try{
+        for(let i=0;i<localStorage.length;i=i+1){
+            let key=localStorage.key(i)
+            if(!key){
+                continue
+            }
+            let matched=false
+            for(let j=0;j<prefixlist.length;j=j+1){
+                if(key.indexOf(prefixlist[j])==0){
+                    matched=true
+                }
+            }
+            if(matched&&localStorage.getItem(key)=="undefined"){
+                removelist.push(key)
+            }
+        }
+        // 先收集再刪除：邊走訪邊 removeItem 會讓 localStorage.key(i) 的索引位移而漏刪
+        for(let i=0;i<removelist.length;i=i+1){
+            localStorage.removeItem(removelist[i])
+        }
+    }catch(error){
+        // localStorage 不可用時略過，清理失敗不該影響記牌
+    }
+    return removelist.length
 }
 
 function clearcache(){
-    let keys=["cacheversion","handstep","step2view","dealerseat","selfseating","heromanual","handcard","boardcard","bittingdata","draws","showdowndata","winner","winnerprice","winnerauto","handgametype","blindlevel","handsmallblind","handbigblind","handante","emptybutton","deadsmallblind"]
+    let keys=["cacheversion","handstep","step2view","dealerseat","selfseating","heromanual","handcard","boardcard","bittingdata","draws","showdowndata","winner","winnerprice","runlist","winnerauto","handgametype","blindlevel","handsmallblind","handbigblind","handante","emptybutton","deadsmallblind"]
     for(let i=0;i<keys.length;i=i+1){
         cachedelete(keys[i])
         weblsset(WEBLSNAME+keys[i],null)
@@ -605,6 +657,7 @@ function savecache(){
     cacheset("showdowndata",str(state.showdowndata))
     cacheset("winner",str(state.winner))
     cacheset("winnerprice",str(state.winnerprice))
+    cacheset("runlist",str(state.runlist))
     cacheset("winnerauto",str(state.winnerauto||{}))
     cacheset("handgametype",state.handgametype)
     cacheset("blindlevel",state.blindlevel)
@@ -656,6 +709,12 @@ function loadcache(){
     }
     if(cacheget("winnerprice")){
         state.winnerprice=json(cacheget("winnerprice"))||state.winnerprice
+    }
+    if(cacheget("runlist")){
+        state.runlist=json(cacheget("runlist"))||state.runlist
+    }
+    if(!Array.isArray(state.runlist)){
+        state.runlist=[]
     }
     if(cacheget("winnerauto")){
         state.winnerauto=json(cacheget("winnerauto"))||{}
@@ -960,11 +1019,11 @@ function openHeroPicker(){
         return
     }
     if(publicrecorded()){
-        pttoast("公共紀錄不指定 Hero，請改在攤牌補各家牌","warn")
+        pttoast(newedithandtext("toastpublicnohero","公共紀錄不指定 Hero，請改在攤牌補各家牌"),"warn")
         return
     }
     let current=herocardlist().filter(function(card){ return !!card })
-    showCardModal("我的手牌",current,herogamecount(),function(arr){
+    showCardModal(newedithandtext("myhand","我的手牌"),current,herogamecount(),function(arr){
         setherocardlist(arr)
         syncHeroShowdown()
         savecache()
@@ -985,11 +1044,11 @@ function renderHeroPicker(){
             }
         }
         if(publicrecorded()){
-            bettingbtn.value="公共紀錄"
+            bettingbtn.value=newedithandtext("publicrecord","公共紀錄")
         }else if(anyed){
-            bettingbtn.value="我的手牌 "+cardsjoinlabel(herolist)
+            bettingbtn.value=newedithandtext("myhand","我的手牌")+" "+cardsjoinlabel(herolist)
         }else{
-            bettingbtn.value="選擇手牌"
+            bettingbtn.value=newedithandtext("selecthand","選擇手牌")
         }
     }
 }
@@ -1024,15 +1083,15 @@ function showCardModal(title,current,max,callback){
             <div class="newhand-panelhead">
                 <div>
                     <h2>${title}</h2>
-                    <p>請點選牌面</p>
+                    <p>${newedithandtext("tapcard","請點選牌面")}</p>
                 </div>
-                <input type="button" class="closemodal" value="關閉">
+                <input type="button" class="closemodal" value="${newedithandtext("close","關閉")}">
             </div>
             <div class="newhand-selected" id="modal-selected"></div>
             <div class="card-picker" id="modal-picker"></div>
             <div class="newhand-actions">
-                <input type="button" class="cancelmodal" value="取消">
-                <input type="button" class="primary confirmmodal" value="確認">
+                <input type="button" class="cancelmodal" value="${newedithandtext("cancel","取消")}">
+                <input type="button" class="primary confirmmodal" value="${newedithandtext("confirm","確認")}">
             </div>
         </div>
     `
@@ -1070,8 +1129,8 @@ function showCardModal(title,current,max,callback){
 
 function renderCards(){
     if(publicrecorded()){
-        settext("selected-card1","公共")
-        settext("selected-card2","紀錄")
+        settext("selected-card1",newedithandtext("selectedcard1","公共"))
+        settext("selected-card2",newedithandtext("selectedcard2","紀錄"))
     }else{
         settext("selected-card1",state.handcard.card1||"?")
         settext("selected-card2",state.handcard.card2||"?")
@@ -1079,11 +1138,11 @@ function renderCards(){
     for(let i=0;i<3;i=i+1){
         settext("flop"+i,state.boardcard.flop[i]||"?")
     }
-    settext("burnflop","燒 "+(state.boardcard.burnflop||"?"))
+    settext("burnflop",newedithandtext("burn","燒 ")+(state.boardcard.burnflop||"?"))
     settext("turncard",state.boardcard.turn||"?")
-    settext("burnturn","燒 "+(state.boardcard.burnturn||"?"))
+    settext("burnturn",newedithandtext("burn","燒 ")+(state.boardcard.burnturn||"?"))
     settext("rivercard",state.boardcard.river||"?")
-    settext("burnriver","燒 "+(state.boardcard.burnriver||"?"))
+    settext("burnriver",newedithandtext("burn","燒 ")+(state.boardcard.burnriver||"?"))
 }
 
 function rebuildDefaultBets(){
@@ -1582,7 +1641,7 @@ function manualActionSeats(street){
 function streetnextname(street){
     let next=nextstreet(street)
     if(!next){
-        return "攤牌 / 送出"
+        return newedithandtext("showdownsubmit","攤牌 / 送出")
     }
     return handstreetname(next)
 }
@@ -1604,12 +1663,12 @@ function roundFinishInfo(street){
         if(seats.length==1){
             return {
                 finished: true,
-                message: "其他選手都已蓋牌，只剩 "+seatlabel(seats[0])+"，手牌已結束。"
+                message: newedithandtext("msgfoldedprefix","其他選手都已蓋牌，只剩 ")+seatlabel(seats[0])+newedithandtext("msgfoldedsuffix","，手牌已結束。")
             }
         }
         return {
             finished: true,
-            message: "所有選手都已蓋牌，請檢查手牌結果。"
+            message: newedithandtext("msgallfolded","所有選手都已蓋牌，請檢查手牌結果。")
         }
     }
     if(bettingseats.length==0){
@@ -1635,7 +1694,7 @@ function roundFinishInfo(street){
     }
     return {
         finished: true,
-        message: "本輪都已跟注 / 過牌，請切換到"+streetnextname(street)+"。"
+        message: newedithandtext("msgstreetdoneprefix","本輪都已跟注 / 過牌，請切換到")+streetnextname(street)+newedithandtext("msgstreetdonesuffix","。")
     }
 }
 
@@ -1815,7 +1874,7 @@ function openBoardCard(key){
         autoOpenBoardPicker("flop")
         return
     }
-    let titles={ turn: "Turn",river: "River",burnflop: "燒牌（翻牌）",burnturn: "燒牌（轉牌）",burnriver: "燒牌（河牌）" }
+    let titles={ turn: "Turn",river: "River",burnflop: newedithandtext("burnflop","燒牌（翻牌）"),burnturn: newedithandtext("burnturn","燒牌（轉牌）"),burnriver: newedithandtext("burnriver","燒牌（河牌）") }
     let current=state.boardcard[key]?[state.boardcard[key]]:[]
     showCardModal(titles[key]||key,current,1,function(arr){
         state.boardcard[key]=arr[0]||""
@@ -1831,11 +1890,11 @@ function openBoardEditor(){
     let flopcards=(state.boardcard.flop||[]).filter(function(card){ return !!card })
     let rows=[
         ["flop","Flop",flopcards.length?flopcards.join(" "):"?"],
-        ["burnflop","燒牌（翻牌）",state.boardcard.burnflop||"?"],
+        ["burnflop",newedithandtext("burnflop","燒牌（翻牌）"),state.boardcard.burnflop||"?"],
         ["turn","Turn",state.boardcard.turn||"?"],
-        ["burnturn","燒牌（轉牌）",state.boardcard.burnturn||"?"],
+        ["burnturn",newedithandtext("burnturn","燒牌（轉牌）"),state.boardcard.burnturn||"?"],
         ["river","River",state.boardcard.river||"?"],
-        ["burnriver","燒牌（河牌）",state.boardcard.burnriver||"?"]
+        ["burnriver",newedithandtext("burnriver","燒牌（河牌）"),state.boardcard.burnriver||"?"]
     ]
     let rowhtml=""
     for(let i=0;i<rows.length;i=i+1){
@@ -1847,10 +1906,10 @@ function openBoardEditor(){
         <div class="card-modal-body">
             <div class="newhand-panelhead">
                 <div>
-                    <h2>公共牌</h2>
-                    <p>點選要編輯的牌</p>
+                    <h2>${newedithandtext("boardeditortitle","公共牌")}</h2>
+                    <p>${newedithandtext("tapeditcard","點選要編輯的牌")}</p>
                 </div>
-                <input type="button" class="closemodal" value="關閉">
+                <input type="button" class="closemodal" value="${newedithandtext("close","關閉")}">
             </div>
             <div class="board-editor-list">${rowhtml}</div>
         </div>
@@ -1912,7 +1971,7 @@ function runRevealQueue(seats,afterDone){
         }else{
             current=handcardobjtolist(state.showdowndata[seat]||{},count).filter(function(card){ return !!card })
         }
-        showCardModal(seatlabel(seat)+" 開牌",current,count,function(arr){
+        showCardModal(seatlabel(seat)+newedithandtext("showcards"," 開牌"),current,count,function(arr){
             if(ishero){
                 setherocardlist(arr)
                 syncHeroShowdown()
@@ -1951,7 +2010,7 @@ function addQuickAction(action,amount,allined){
     let street=val("actionstreet")||firststreet()
     let seat=nextActionSeat(street)
     if(!seat){
-        pttoast("找不到可操作座位","error")
+        pttoast(newedithandtext("toastnoseat","找不到可操作座位"),"error")
         return
     }
     // 投入額把剩餘計分牌跟光時自動視為 all-in，不必只靠手動勾選
@@ -2087,7 +2146,7 @@ function openStudDealModal(streetkey){
         }
         let hint=[]
         for(let i=0;i<exposed.length;i=i+1){
-            hint.push(exposed[i]=="up"?"明":"暗")
+            hint.push(exposed[i]=="up"?newedithandtext("exposedup","明"):newedithandtext("exposeddown","暗"))
         }
         let title=seatlabel(seat)+" · "+handstreetname(streetkey)+"（"+hint.join("/")+"）"
         showCardModal(title,current,slots.length,function(arr){
@@ -2124,7 +2183,7 @@ function openDrawModal(streetkey){
         idx=idx+1
         let obj=seatcardobject(seat)
         let before=handcardobjtolist(obj,count).filter(function(card){ return !!card })
-        let label=isdraw?"換牌後手牌":"起手牌"
+        let label=isdraw?newedithandtext("drawnhand","換牌後手牌"):newedithandtext("starthand","起手牌")
         showCardModal(seatlabel(seat)+" · "+handstreetname(streetkey)+" "+label,before,count,function(arr){
             let after=arr.filter(function(card){ return !!card })
             let filled=after.length==count
@@ -2175,7 +2234,7 @@ function dealdrawlabel(){
     let family=handfamily()
     if(family=="stud"){
         let hero=herocardlist().filter(function(card){ return !!card })
-        return hero.length?("我: "+hero.join(" ")):"點此發牌"
+        return hero.length?(newedithandtext("heroprefix","我: ")+hero.join(" ")):newedithandtext("tapdeal","點此發牌")
     }
     if(family=="draw"){
         let rounds=0
@@ -2184,7 +2243,7 @@ function dealdrawlabel(){
                 rounds=rounds+1
             }
         }
-        return rounds?("已換 "+rounds+" 街"):"點此換牌"
+        return rounds?(newedithandtext("drawnprefix","已換 ")+rounds+newedithandtext("drawnsuffix"," 街")):newedithandtext("tapdraw","點此換牌")
     }
     return "-"
 }
@@ -2193,7 +2252,7 @@ function showRaiseModal(){
     let street=val("actionstreet")||firststreet()
     let seat=nextActionSeat(street)
     if(!seat){
-        pttoast("找不到可操作座位","error")
+        pttoast(newedithandtext("toastnoseat","找不到可操作座位"),"error")
         return
     }
     let call=callAmount(street,seat)
@@ -2203,7 +2262,7 @@ function showRaiseModal(){
     let minimum=minimumRaiseTarget(street,seat)
     let maximum=maximumRaiseTarget(street,seat)
     let calltarget=current+call
-    let maxtext=unknownchip(seat)?"未知":money(maximum)
+    let maxtext=unknownchip(seat)?newedithandtext("unknown","未知"):money(maximum)
     let allinvalue=unknownchip(seat)?minimum:maximum
     let preset=[minimum,roundchip(num(state.bigblind)*2),roundchip(num(state.bigblind)*3),roundchip(calltarget+Math.floor(totalPot()/2)),roundchip(calltarget+Math.floor(totalPot()*3/4)),roundchip(calltarget+totalPot()),maximum]
     let raisedchips=raisedChipValues()
@@ -2215,7 +2274,7 @@ function showRaiseModal(){
         }
     }
     let quickhtml=""
-    let quicknames=["最低","2BB","3BB","1/2 Pot","3/4 Pot","Pot","All-in"]
+    let quicknames=[newedithandtext("quicklowest","最低"),"2BB","3BB","1/2 Pot","3/4 Pot","Pot","All-in"]
     for(let i=0;i<preset.length;i=i+1){
         let value=num(preset[i])
         if(0<value){
@@ -2232,13 +2291,13 @@ function showRaiseModal(){
             <div class="newhand-panelhead">
                 <div>
                     <h2>${seatlabel(seat)} Bet / Raise</h2>
-                    <p>已投入 ${money(current)}，目前跟注到 ${money(calltarget)}，剩餘 ${money(remain)}，最小計分牌 ${money(unit)}</p>
+                    <p>${newedithandtext("raiseinvested","已投入 ")}${money(current)}${newedithandtext("raisecalltarget","，目前跟注到 ")}${money(calltarget)}${newedithandtext("raiseremain","，剩餘 ")}${money(remain)}${newedithandtext("raiseminchip","，最小計分牌 ")}${money(unit)}</p>
                 </div>
-                <input type="button" class="closeraisemodal" value="關閉">
+                <input type="button" class="closeraisemodal" value="${newedithandtext("close","關閉")}">
             </div>
             <div class="chipcalc-display">
                 <div>
-                    <span>下注 / 加注到</span>
+                    <span>${newedithandtext("betraiseto","下注 / 加注到")}</span>
                     <strong id="raiseamounttext">${money(minimum)}</strong>
                 </div>
                 <input type="number" id="raiseamount" min="0" step="${unit}" inputmode="numeric" value="${minimum}">
@@ -2250,11 +2309,11 @@ function showRaiseModal(){
                 <input type="button" class="chipcalc-key" data-key="7" value="7">
                 <input type="button" class="chipcalc-key" data-key="8" value="8">
                 <input type="button" class="chipcalc-key" data-key="9" value="9">
-                <input type="button" class="chipcalc-clear" value="清除">
+                <input type="button" class="chipcalc-clear" value="${newedithandtext("keyclear","清除")}">
                 <input type="button" class="chipcalc-key" data-key="4" value="4">
                 <input type="button" class="chipcalc-key" data-key="5" value="5">
                 <input type="button" class="chipcalc-key" data-key="6" value="6">
-                <input type="button" class="chipcalc-back" value="退格">
+                <input type="button" class="chipcalc-back" value="${newedithandtext("keyback","退格")}">
                 <input type="button" class="chipcalc-key" data-key="1" value="1">
                 <input type="button" class="chipcalc-key" data-key="2" value="2">
                 <input type="button" class="chipcalc-key" data-key="3" value="3">
@@ -2266,8 +2325,8 @@ function showRaiseModal(){
                 <label class="newhand-checkline raise-allinline">
                     <input type="checkbox" id="raiseallined"> All-in
                 </label>
-                <input type="button" class="cancelraise" value="取消">
-                <input type="button" class="primary confirmraise" value="確認">
+                <input type="button" class="cancelraise" value="${newedithandtext("cancel","取消")}">
+                <input type="button" class="primary confirmraise" value="${newedithandtext("confirm","確認")}">
             </div>
         </div>
     `
@@ -2342,7 +2401,7 @@ function showRaiseModal(){
             if(maximum<target){
                 target=maximum
             }
-            pttoast("已依最小計分牌調整為 "+money(target),"warn")
+            pttoast(newedithandtext("toastminchipadjust","已依最小計分牌調整為 ")+money(target),"warn")
         }
         let amount=targetAmountToChip(street,seat,target)
         if(!allined&&!validRaiseAmount(street,seat,amount)){
@@ -2368,11 +2427,11 @@ function showFirstSeat(){
 }
 
 function renderStatus(){
-    settext("pagetitle",quickmode?"快速手牌紀錄":(handid?"編輯手牌":"新增手牌"))
+    settext("pagetitle",quickmode?newedithandtext("pagetitlequick","快速手牌紀錄"):(handid?newedithandtext("pagetitleedit","編輯手牌"):newedithandtext("pagetitlenew","新增手牌")))
     settext("handtablename",state.row["no"]||state.row["token"]||"-")
     settext("dealerlabel",seatlabel(state.dealerseat))
     settext("blindlabel",money(state.smallblind)+"/"+money(state.bigblind)+" ("+money(state.ante)+")")
-    settext("playercountlabel",activeSeats().length+" 人")
+    settext("playercountlabel",activeSeats().length+newedithandtext("playercountunit"," 人"))
     dom("saveandnext").classList.toggle("hidden",!!handid)
 }
 
@@ -2506,17 +2565,17 @@ function renderSeatSelects(){
 		html=html+`<option value="${seats[i]}">${seatlabel(seats[i])}</option>`
 	}
 	if(unifiedpublicallowed()){
-		html=`<option value="0">公共紀錄</option>`+html
+		html=`<option value="0">${newedithandtext("publicrecord","公共紀錄")}</option>`+html
 	}
 	sethtml("dealerseat",dealerhtml)
 	sethtml("selfseating",html)
 	setval("dealerseat",state.dealerseat)
 	setval("selfseating",state.selfseating)
 	if(dom("selfseatinglabel")){
-		settext("selfseatinglabel",publicrecorded()?"紀錄類型":"Hero 座位")
+		settext("selfseatinglabel",publicrecorded()?newedithandtext("recordtype","紀錄類型"):newedithandtext("heroseat","Hero 座位"))
 	}
 	if(dom("herocardtitle")){
-		settext("herocardtitle",publicrecorded()?"公共紀錄":"Hero 手牌")
+		settext("herocardtitle",publicrecorded()?newedithandtext("publicrecord","公共紀錄"):newedithandtext("herocards","Hero 手牌"))
 	}
 }
 
@@ -2529,7 +2588,7 @@ function renderSeats(){
     let html=""
     for(let i=1;i<=state.maxseat;i=i+1){
         let activeed=state.seatinglist[i]&&state.seatinglist[i]!=false&&(unknownchip(i)||0<num(state.seatinglist[i]["chip"]))
-        let chiptext=unknownchip(i)?"未知":money(chip(i))
+        let chiptext=unknownchip(i)?newedithandtext("unknown","未知"):money(chip(i))
         let badges=""
         if(i==state.dealerseat){
             badges=badges+`<span class="newhand-badge dealer">DEALER</span>`
@@ -2622,7 +2681,7 @@ function feltCardHtml(c){
 }
 function feltBoardHtml(){
     if(handfamily()!="board"){
-        return `<div class="felt-boardnote" data-board="1">${handfamily()=="stud"?"點此發牌":"點此換牌"}</div>`
+        return `<div class="felt-boardnote" data-board="1">${handfamily()=="stud"?newedithandtext("tapdeal","點此發牌"):newedithandtext("tapdraw","點此換牌")}</div>`
     }
     let flop=state.boardcard.flop||["","",""]
     let cards=[flop[0],flop[1],flop[2],state.boardcard.turn,state.boardcard.river]
@@ -2643,7 +2702,7 @@ function renderFeltSeats(){
         let activeed=s&&s!=false&&(unknownchip(i)||0<num(s["chip"]))
         let style=`left:${pos.x.toFixed(2)}%;top:${pos.y.toFixed(2)}%`
         if(!activeed){
-            seatshtml=seatshtml+`<div class="felt-seat empty" style="${style}"><div class="felt-tile empty" data-seat="${i}"><div class="felt-plus">＋</div><div class="felt-emptylbl">入座</div></div></div>`
+            seatshtml=seatshtml+`<div class="felt-seat empty" style="${style}"><div class="felt-tile empty" data-seat="${i}"><div class="felt-plus">＋</div><div class="felt-emptylbl">${newedithandtext("feltsitin","入座")}</div></div></div>`
             continue
         }
         let badges=""
@@ -2653,10 +2712,10 @@ function renderFeltSeats(){
         if(i==state.bigblindseat){ badges=badges+`<span class="felt-b bb">BB</span>` }
         let name=s["name"]||("座位 "+i)
         let acct=s["userid"]?`<span class="felt-acct">＠</span>`:""
-        let stack=unknownchip(i)?`未知`:(money(chip(i))+`<span class="felt-bb">${chipsToBb(num(s["chip"]))} BB</span>`)
+        let stack=unknownchip(i)?`${newedithandtext("feltunknown","未知")}`:(money(chip(i))+`<span class="felt-bb">${chipsToBb(num(s["chip"]))} BB</span>`)
         seatshtml=seatshtml+`<div class="felt-seat${i==toact?" toact":""}" style="${style}"><div class="felt-tile" data-seat="${i}"><div class="felt-badges">${badges}</div><div class="felt-name">${feltesc(name)}${acct}</div><div class="felt-stack">${stack}</div></div></div>`
     }
-    let html=`<div class="felt-table"><div class="felt"><div class="felt-center"><div class="felt-pot">底池 ${money(totalPot())}</div><div class="felt-board" id="feltboard">${feltBoardHtml()}</div></div>${seatshtml}</div><div class="felt-hint">點空位加入選手・點選手可改碼量與設定・下方按鍵記錄動作（可移除復原）</div></div>`
+    let html=`<div class="felt-table"><div class="felt"><div class="felt-center"><div class="felt-pot">${newedithandtext("felttotalpot","底池 ")}${money(totalPot())}</div><div class="felt-board" id="feltboard">${feltBoardHtml()}</div></div>${seatshtml}</div><div class="felt-hint">${newedithandtext("felthint","點空位加入選手・點選手可改碼量與設定・下方按鍵記錄動作（可移除復原）")}</div></div>`
     sethtml("seatlist",html)
     bindFeltSeats()
 }
@@ -2709,16 +2768,16 @@ function openAddPlayer(seat){
     let prename=exActive?(ex["name"]||""):""
     let prestake=exActive&&!unknownchip(seat)?(unitref.u=="bb"?chipsToBb(num(ex["chip"])):num(ex["chip"])):"100"
     let modal=openFeltPopover(`
-        <h3 class="felt-pop-title">座位 ${seat} · ${exActive?"編輯選手":"入座"}</h3>
-        <p class="felt-pop-desc">邊記邊設定，不必回牌桌頁。</p>
+        <h3 class="felt-pop-title">${newedithandtext("seatprefix","座位 ")}${seat} · ${exActive?newedithandtext("editplayer","編輯選手"):newedithandtext("sitin","入座")}</h3>
+        <p class="felt-pop-desc">${newedithandtext("feltdesc","邊記邊設定，不必回牌桌頁。")}</p>
         <div class="felt-tabs">
-            <div class="felt-tab on" data-mode="name">輸入名字</div>
-            <div class="felt-tab" data-mode="acct">搜尋帳號</div>
+            <div class="felt-tab on" data-mode="name">${newedithandtext("tabname","輸入名字")}</div>
+            <div class="felt-tab" data-mode="acct">${newedithandtext("tabaccount","搜尋帳號")}</div>
         </div>
-        <div class="felt-pane" data-pane="name"><input class="felt-inp feltname" placeholder="例：黑衣哥、光頭" value="${feltesc(prename)}" autocomplete="off"></div>
-        <div class="felt-pane hidden" data-pane="acct"><input class="felt-inp feltacct" placeholder="輸入名字或選手 ID…" autocomplete="off"><div class="felt-results feltresults"></div></div>
-        <div class="felt-field"><label>起始碼量</label><div class="felt-stakerow"><input type="number" class="felt-inp felt-stake" min="0" step="any" inputmode="decimal" value="${prestake}"><span class="felt-unit ${unitref.u=="bb"?"on":""}" data-unit="bb">BB</span><span class="felt-unit ${unitref.u=="chip"?"on":""}" data-unit="chip">計分牌</span></div></div>
-        <div class="felt-pop-foot"><input type="button" class="felt-btn feltcancel" value="取消"><input type="button" class="felt-btn primary feltadd" value="${exActive?"更新":"加入座位"}"></div>
+        <div class="felt-pane" data-pane="name"><input class="felt-inp feltname" placeholder="${newedithandtext("nameplaceholder","例：黑衣哥、光頭")}" value="${feltesc(prename)}" autocomplete="off"></div>
+        <div class="felt-pane hidden" data-pane="acct"><input class="felt-inp feltacct" placeholder="${newedithandtext("acctplaceholder","輸入名字或選手 ID…")}" autocomplete="off"><div class="felt-results feltresults"></div></div>
+        <div class="felt-field"><label>${newedithandtext("startstack","起始碼量")}</label><div class="felt-stakerow"><input type="number" class="felt-inp felt-stake" min="0" step="any" inputmode="decimal" value="${prestake}"><span class="felt-unit ${unitref.u=="bb"?"on":""}" data-unit="bb">BB</span><span class="felt-unit ${unitref.u=="chip"?"on":""}" data-unit="chip">${newedithandtext("chipunit","計分牌")}</span></div></div>
+        <div class="felt-pop-foot"><input type="button" class="felt-btn feltcancel" value="${newedithandtext("cancel","取消")}"><input type="button" class="felt-btn primary feltadd" value="${exActive?newedithandtext("update","更新"):newedithandtext("addseat","加入座位")}"></div>
     `)
     let mode={ m:"name" }
     let tabs=modal.querySelectorAll(".felt-tab")
@@ -2744,7 +2803,7 @@ function openAddPlayer(seat){
                 let row=rows[r]
                 h=h+`<div class="felt-result" data-id="${row["id"]}" data-name="${feltesc(row["name"]||"")}" data-spid="${row["sessionplayerid"]||""}"><div><div class="felt-rn">${feltesc(row["name"]||"-")}</div><div class="felt-rid">${feltesc(row["playerid"]||"")}</div></div></div>`
             }
-            if(!h){ h=`<div class="felt-result" style="cursor:default;color:#87998f">找不到，改用「輸入名字」。</div>` }
+            if(!h){ h=`<div class="felt-result" style="cursor:default;color:#87998f">${newedithandtext("searchnotfound","找不到，改用「輸入名字」。")}</div>` }
             results.innerHTML=h
             let picks=results.querySelectorAll(".felt-result[data-id]")
             for(let p=0;p<picks.length;p=p+1){
@@ -2778,16 +2837,16 @@ function openSeatMenu(seat){
     let stakeval=unknownchip(seat)?"":(unitref.u=="bb"?chipsToBb(num(s["chip"])):num(s["chip"]))
     let modal=openFeltPopover(`
         <h3 class="felt-pop-title">${feltesc(name)}</h3>
-        <p class="felt-pop-desc">座位 ${seat}${s["userid"]?" · 已綁帳號":" · 臨時名字"}</p>
-        <div class="felt-field"><label>起始碼量</label><div class="felt-stakerow"><input type="number" class="felt-inp felt-stake" min="0" step="any" inputmode="decimal" value="${stakeval}"><span class="felt-unit ${unitref.u=="bb"?"on":""}" data-unit="bb">BB</span><span class="felt-unit ${unitref.u=="chip"?"on":""}" data-unit="chip">計分牌</span><input type="button" class="felt-btn feltstakesave" value="更新" style="flex:none;padding:8px 14px"></div></div>
+        <p class="felt-pop-desc">${newedithandtext("seatprefix","座位 ")}${seat}${s["userid"]?newedithandtext("boundaccount"," · 已綁帳號"):newedithandtext("tempname"," · 臨時名字")}</p>
+        <div class="felt-field"><label>${newedithandtext("startstack","起始碼量")}</label><div class="felt-stakerow"><input type="number" class="felt-inp felt-stake" min="0" step="any" inputmode="decimal" value="${stakeval}"><span class="felt-unit ${unitref.u=="bb"?"on":""}" data-unit="bb">BB</span><span class="felt-unit ${unitref.u=="chip"?"on":""}" data-unit="chip">${newedithandtext("chipunit","計分牌")}</span><input type="button" class="felt-btn feltstakesave" value="${newedithandtext("update","更新")}" style="flex:none;padding:8px 14px"></div></div>
         <div class="felt-menu" style="margin-top:12px">
-            <div class="felt-mi feltrename">✎ 改名 / 綁定帳號</div>
-            <div class="felt-mi felthero">⭐ 設為 Hero</div>
-            <div class="felt-mi feltdealer">🔘 設為 Dealer</div>
-            <div class="felt-mi feltunknown">❓ 標記未知碼量</div>
-            <div class="felt-mi danger feltvacate">✕ 離座</div>
+            <div class="felt-mi feltrename">${newedithandtext("menurename","✎ 改名 / 綁定帳號")}</div>
+            <div class="felt-mi felthero">${newedithandtext("menuhero","⭐ 設為 Hero")}</div>
+            <div class="felt-mi feltdealer">${newedithandtext("menudealer","🔘 設為 Dealer")}</div>
+            <div class="felt-mi feltunknown">${newedithandtext("menuunknown","❓ 標記未知碼量")}</div>
+            <div class="felt-mi danger feltvacate">${newedithandtext("menuvacate","✕ 離座")}</div>
         </div>
-        <div class="felt-pop-foot"><input type="button" class="felt-btn feltclose" value="關閉"></div>
+        <div class="felt-pop-foot"><input type="button" class="felt-btn feltclose" value="${newedithandtext("close","關閉")}"></div>
     `)
     feltBindUnits(modal,unitref)
     modal.querySelector(".feltstakesave").addEventListener("click",function(){
@@ -2850,7 +2909,7 @@ function renderGameTypes(){
         // 已實作的用 handgame 註冊表的中文名；未實作的退回後端 description（中文）並標記未支援、disabled
         let label=enableded?handgamename(code):(row["description"]||row["name"]||code)
         if(!enableded){
-            label=label+"（未支援）"
+            label=label+newedithandtext("unsupported","（未支援）")
         }
         html=html+`<option value="${escapehtml(code)}"${enableded?"":" disabled"}>${escapehtml(label)}</option>`
     }
@@ -2936,7 +2995,7 @@ function matchBlindLevel(){
 }
 
 function renderBlindLevels(){
-    let html=`<option value="custom">自填</option>`
+    let html=`<option value="custom">${newedithandtext("customlevel","自填")}</option>`
     let idmatch=false
     let levelno=0
     for(let i=0;i<state.blindstructures.length;i=i+1){
@@ -3053,7 +3112,7 @@ function syncurrenttimebankseat(silented){
 function starttimebank(){
     let seat=timebankseat()
     if(!seat){
-        pttoast("目前沒有可操作座位","warn")
+        pttoast(newedithandtext("toastnoseatnow","目前沒有可操作座位"),"warn")
         return
     }
     if(num(state.timebank["seatno"])!=seat){
@@ -3180,10 +3239,10 @@ function actionLabel(action){
         return "Ante"
     }
     if(action=="blind"){
-        return "盲注"
+        return newedithandtext("blindlabel","盲注")
     }
     if(action=="bringin"){
-        return "帶入注"
+        return newedithandtext("bringinlabel","帶入注")
     }
     if(action=="deadsmallblind"){
         return "DEAD SMALL BLIND"
@@ -3232,7 +3291,7 @@ function renderActions(){
             let timebanktext=""
             if(action["action"]=="deadsmallblind"){
                 if(0<num(action["deadamount"])){
-                    chiptext=" · 死錢 "+money(num(action["deadamount"]))
+                    chiptext=newedithandtext("deadmoney"," · 死錢 ")+money(num(action["deadamount"]))
                 }
             }else if(action["action"]!="ante"){
                 seatpot[num(action["seat"])]=num(seatpot[num(action["seat"])])+chip
@@ -3247,14 +3306,14 @@ function renderActions(){
             }
             html=html+`
                 <div class="newhand-actionitem">
-                    <div>${seatlabel(action["seat"])} · ${actionLabel(action["action"])}${chiptext}${timebanktext}${action["isBlind"]?" · 預設":""}</div>
-                    <input type="button" class="removeaction" data-street="${streets[s][0]}" data-index="${i}" value="移除">
+                    <div>${seatlabel(action["seat"])} · ${actionLabel(action["action"])}${chiptext}${timebanktext}${action["isBlind"]?newedithandtext("defaultaction"," · 預設"):""}</div>
+                    <input type="button" class="removeaction" data-street="${streets[s][0]}" data-index="${i}" value="${newedithandtext("removeaction","移除")}">
                 </div>
             `
         }
     }
     if(!html){
-        html=`<div class="newhand-actionitem">尚未有下注動作</div>`
+        html=`<div class="newhand-actionitem">${newedithandtext("noaction","尚未有下注動作")}</div>`
     }
     sethtml("actionlist",html)
     renderQuickAction()
@@ -3292,23 +3351,199 @@ function renderQuickAction(){
     let call=callAmount(street,seat)
     if(!seat){
         settext("currentactionseat","Seat -")
-        settext("currentactionmeta","目前沒有可操作座位")
+        settext("currentactionmeta",newedithandtext("noactionseat","目前沒有可操作座位"))
         setval("quickcheckcall","Check / Call")
         setval("quickraise","Bet / Raise")
         renderTimebank()
         return
     }
     settext("currentactionseat",seatlabel(seat))
-    settext("currentactionmeta","已投入 "+money(streetPot(street)[seat]||0)+"，需跟注 "+money(call))
+    settext("currentactionmeta",newedithandtext("actionmeta","已投入 {put}，需跟注 {call}").replace("{put}",money(streetPot(street)[seat]||0)).replace("{call}",money(call)))
     setval("quickcheckcall",call>0?"Call "+money(call):"Check")
     setval("quickraise",maxStreetBet(street)>0?"Raise":"Bet")
     renderTimebank()
 }
 
+function runboardcount(){
+    return state.runlist.length+1
+}
+
+// 獎池平均拆給各 board，除不盡的餘數給前面的 board —— 與後端 splitpotbyrun() 同一套規則。
+function runpotshare(index){
+    let count=runboardcount()
+    let total=rewardPot()
+    let base=Math.floor(total/count)
+    let remain=total-base*count
+    let share=base
+    if(index<remain){
+        share=share+1
+    }
+    return share
+}
+
+// 某個 board 的贏家座位清單。index 0 是第 1 個 board（用既有的 state.winner），
+// 之後的用 state.runlist。
+function runwinnerseats(index){
+    let source=state.winner
+    if(index>0){
+        source=(state.runlist[index-1]||{})["winner"]||{}
+    }
+    let seats=[]
+    let active=activeSeats()
+    for(let i=0;i<active.length;i=i+1){
+        if(source[active[i]]==true||source[String(active[i])]==true){
+            seats.push(active[i])
+        }
+    }
+    return seats
+}
+
+// 某個 board 中某座位分到多少：該 board 的獎池由該 board 的贏家平分，
+// 除不盡的餘數給排在前面的贏家。
+function runseatamount(index,seat){
+    let seats=runwinnerseats(index)
+    if(seats.length<1){
+        return 0
+    }
+    let potshare=runpotshare(index)
+    let share=Math.floor(potshare/seats.length)
+    let remain=potshare-share*seats.length
+    let amount=0
+    for(let i=0;i<seats.length;i=i+1){
+        if(seats[i]==seat){
+            amount=share
+            if(i<remain){
+                amount=amount+1
+            }
+        }
+    }
+    return amount
+}
+
+// 多 board 時 handseating 要存的是**各 board 加總後**的分配。
+// 這裡刻意只算不寫：state.winner 是「第 1 個 board 的贏家」，寫回去會讓
+// 第 2 個 board 的贏家也被當成第 1 個 board 的贏家，金額就會算錯。
+// 單 board 時直接回傳既有的手動輸入值，行為完全不變。
+function seatwinnerprice(seat){
+    if(state.runlist.length<1){
+        return num(state.winnerprice[seat])
+    }
+    let total=0
+    for(let r=0;r<runboardcount();r=r+1){
+        total=total+runseatamount(r,seat)
+    }
+    return total
+}
+
+// 第 1 個 board 的牌來自既有的 boardcard，第 2 個以後來自 runlist。
+function runboardcardlist(index){
+    if(index<1){
+        let flop=state.boardcard.flop||["","",""]
+        return [flop[0]||"",flop[1]||"",flop[2]||"",state.boardcard.turn||"",state.boardcard.river||""]
+    }
+    let item=state.runlist[index-1]||{}
+    let list=item["cardlist"]||[]
+    let result=[]
+    for(let i=0;i<5;i=i+1){
+        result.push(list[i]||"")
+    }
+    return result
+}
+
+// TASK-038 輸入 A：按「＋ 再發一次」才長出下一個 board，不用先決定要跑幾次，
+// 也不寫死上限。沒有按過的時候這個面板只有一顆按鈕，畫面與之前幾乎相同。
+function renderRunBoard(){
+    let host=domgetid("runboardpanel")
+    if(!host){
+        return
+    }
+    let html=""
+    if(state.runlist.length>0){
+        for(let index=0;index<runboardcount();index=index+1){
+            let cardstext=cardsjoinlabel(runboardcardlist(index))
+            let seats=runwinnerseats(index)
+            let active=activeSeats()
+            let winnerhtml=""
+            for(let i=0;i<active.length;i=i+1){
+                let checked=""
+                if(seats.indexOf(active[i])>=0){
+                    checked=" checked"
+                }
+                winnerhtml=winnerhtml+`<label><input type="checkbox" class="runwinnercheck" data-run="${index}" data-seat="${active[i]}"${checked}> ${seatlabel(active[i])}</label>`
+            }
+            let headhtml=""
+            if(index>0){
+                headhtml=`<input type="button" class="runboardpick" data-run="${index}" value="${newedithandtext("selectcards","選牌")}"><input type="button" class="runboardremove" data-run="${index}" value="${newedithandtext("runboardremove","移除")}">`
+            }
+            html=html+`
+                <div class="runboard-row">
+                    <div class="runboard-head">
+                        <strong>${newedithandtext("boardrun","第 {n} 次").replace("{n}",index+1)}</strong>
+                        <span class="runboard-pot">${newedithandtext("runboardpot","獎池 {amount}").replace("{amount}",money(runpotshare(index)))}</span>
+                        ${headhtml}
+                    </div>
+                    <div class="runboard-cards">${cardstext}</div>
+                    <div class="runboard-winner">${winnerhtml}</div>
+                </div>`
+        }
+    }
+    html=html+`<div class="newhand-actions"><input type="button" id="runboardadd" value="${newedithandtext("runboardadd","＋ 再發一次")}"></div>`
+    sethtml("runboardpanel",html)
+    bindRunBoard()
+}
+
+function bindRunBoard(){
+    let addbtn=domgetid("runboardadd")
+    if(addbtn){
+        addbtn.addEventListener("click",function(){
+            state.runlist.push({ "cardlist": ["","","","",""],"winner": {} })
+            savecache()
+            renderRunBoard()
+            renderShowdown()
+        })
+    }
+    let removebtns=document.querySelectorAll(".runboardremove")
+    for(let i=0;i<removebtns.length;i=i+1){
+        removebtns[i].addEventListener("click",function(){
+            state.runlist.splice(num(this.getAttribute("data-run"))-1,1)
+            savecache()
+            renderRunBoard()
+            renderShowdown()
+        })
+    }
+    let pickbtns=document.querySelectorAll(".runboardpick")
+    for(let i=0;i<pickbtns.length;i=i+1){
+        pickbtns[i].addEventListener("click",function(){
+            let index=num(this.getAttribute("data-run"))
+            let current=runboardcardlist(index).filter(function(card){ return !!card })
+            showCardModal(newedithandtext("boardrun","第 {n} 次").replace("{n}",index+1),current,5,function(arr){
+                state.runlist[index-1]["cardlist"]=[arr[0]||"",arr[1]||"",arr[2]||"",arr[3]||"",arr[4]||""]
+                savecache()
+                renderRunBoard()
+            })
+        })
+    }
+    let winnerchecks=document.querySelectorAll(".runwinnercheck")
+    for(let i=0;i<winnerchecks.length;i=i+1){
+        winnerchecks[i].addEventListener("change",function(){
+            let index=num(this.getAttribute("data-run"))
+            let seat=this.getAttribute("data-seat")
+            if(index<1){
+                state.winner[seat]=this.checked
+            }else{
+                state.runlist[index-1]["winner"][seat]=this.checked
+            }
+            savecache()
+            renderRunBoard()
+            renderShowdown()
+        })
+    }
+}
+
 function renderShowdown(){
     syncHeroShowdown()
     let first=showFirstSeat()
-    settext("showorderhint","建議 "+seatlabel(first)+" 先 show；現場可選擇其他選手 show 或 muck。")
+    settext("showorderhint",newedithandtext("showorderhint","建議 {seat} 先 show；現場可選擇其他選手 show 或 muck。").replace("{seat}",seatlabel(first)))
     let seats=activeSeats()
     let pot=positionPot()
     let html=""
@@ -3316,21 +3551,21 @@ function renderShowdown(){
         let seat=seats[i]
         let data=state.showdowndata[seat]||{ shown: false,mucked: false }
         let cardstext=data["mucked"]?"MUCK":cardsjoinlabel(handcardobjtolist(data,herogamecount()))
-        let syncedtext=seat==state.selfseating&&num(state.selfseating)>0?" · Hero 同步":""
-        let endtext=money(chip(seat)-num(pot[seat])+num(state.winnerprice[seat]))
+        let syncedtext=seat==state.selfseating&&num(state.selfseating)>0?newedithandtext("herosync"," · Hero 同步"):""
+        let endtext=money(chip(seat)-num(pot[seat])+seatwinnerprice(seat))
         if(unknownchip(seat)){
-            let result=num(state.winnerprice[seat])-num(pot[seat])
+            let result=seatwinnerprice(seat)-num(pot[seat])
             endtext="inf."+(0<=result?"+":"")+money(result)
         }
         html=html+`
             <div class="showdown-row">
                 <div>${seatlabel(seat)}</div>
                 <div class="showdown-cards">${cardstext}${syncedtext}</div>
-                <input type="button" class="showcards" data-seat="${seat}" value="選牌">
+                <input type="button" class="showcards" data-seat="${seat}" value="${newedithandtext("selectcards","選牌")}">
                 <input type="button" class="muckcards" data-seat="${seat}" value="Muck">
-                <label><input type="checkbox" class="winnercheck" data-seat="${seat}" ${state.winner[seat]?"checked":""}> 贏家</label>
-                <input type="number" class="winneramount" data-seat="${seat}" value="${num(state.winnerprice[seat])}" min="0" step="${minchip()}" inputmode="numeric" placeholder="分配">
-                <div class="text-zinc-400 text-xs">投入 ${money(pot[seat]||0)} / 結束 ${endtext}</div>
+                <label><input type="checkbox" class="winnercheck" data-seat="${seat}" ${state.winner[seat]?"checked":""}> ${newedithandtext("winner","贏家")}</label>
+                <input type="number" class="winneramount" data-seat="${seat}" value="${seatwinnerprice(seat)}" min="0" step="${minchip()}" inputmode="numeric" placeholder="${newedithandtext("allocation","分配")}"${state.runlist.length>0?" readonly":""}>
+                <div class="text-zinc-400 text-xs">${newedithandtext("invested","投入 ")}${money(pot[seat]||0)}${newedithandtext("ended"," / 結束 ")}${endtext}</div>
             </div>
         `
     }
@@ -3345,7 +3580,7 @@ function bindShowdown(){
             let seat=this.getAttribute("data-seat")
             let count=herogamecount()
             let current=state.showdowndata[seat]||{ shown: false,mucked: false }
-            showCardModal(seatlabel(seat)+" show 牌",handcardobjtolist(current,count).filter(function(card){ return !!card }),count,function(arr){
+            showCardModal(seatlabel(seat)+newedithandtext("showcardmodal"," show 牌"),handcardobjtolist(current,count).filter(function(card){ return !!card }),count,function(arr){
                 if(num(seat)==num(state.selfseating)&&num(state.selfseating)>0){
                     setherocardlist(arr)
                     syncHeroShowdown()
@@ -3391,7 +3626,7 @@ function bindShowdown(){
 }
 
 function endChip(seat){
-    return chip(seat)-num(positionPot()[seat]||0)+num(state.winnerprice[seat])
+    return chip(seat)-num(positionPot()[seat]||0)+seatwinnerprice(seat)
 }
 
 function unifiedeliminateallowed(){
@@ -3436,13 +3671,13 @@ function allinShowdownBoardMissing(){
     let flop=bc.flop||[]
     let missing=[]
     if(!flop[0]||!flop[1]||!flop[2]){
-        missing.push({ label: "翻牌",burnkey: "burnflop",burnlabel: "燒牌（翻牌）" })
+        missing.push({ label: newedithandtext("streetflop","翻牌"),burnkey: "burnflop",burnlabel: newedithandtext("burnflop","燒牌（翻牌）") })
     }
     if(!bc.turn){
-        missing.push({ label: "轉牌",burnkey: "burnturn",burnlabel: "燒牌（轉牌）" })
+        missing.push({ label: newedithandtext("streetturn","轉牌"),burnkey: "burnturn",burnlabel: newedithandtext("burnturn","燒牌（轉牌）") })
     }
     if(!bc.river){
-        missing.push({ label: "河牌",burnkey: "burnriver",burnlabel: "燒牌（河牌）" })
+        missing.push({ label: newedithandtext("streetriver","河牌"),burnkey: "burnriver",burnlabel: newedithandtext("burnriver","燒牌（河牌）") })
     }
     return missing
 }
@@ -3450,14 +3685,14 @@ function allinShowdownBoardMissing(){
 function warnings(){
     let list=[]
     if(activeSeats().length<2){
-        list.push("有效選手少於 2 人。")
+        list.push(newedithandtext("warnfewseat","有效選手少於 2 人。"))
     }
     let busted=bustedSeats()
     for(let i=0;i<busted.length;i=i+1){
-        list.push(seatlabel(busted[i])+" 計分牌歸 0，送出後將自動淘汰該選手，不需再由裁判處理。")
+        list.push(seatlabel(busted[i])+newedithandtext("warnbusted"," 計分牌歸 0，送出後將自動淘汰該選手，不需再由裁判處理。"))
     }
     if(!publicrecorded()&&!herofilled()){
-        list.push("Hero 手牌尚未選完整。")
+        list.push(newedithandtext("warnheroincomplete","Hero 手牌尚未選完整。"))
     }
     let haswinner=false
     for(let seat in state.winner){
@@ -3466,31 +3701,31 @@ function warnings(){
         }
     }
     if(!haswinner){
-        list.push("尚未選擇贏家。")
+        list.push(newedithandtext("warnnowinner","尚未選擇贏家。"))
     }
     if(totalPot()<=0){
-        list.push("下注紀錄目前沒有任何底池。")
+        list.push(newedithandtext("warnnopot","下注紀錄目前沒有任何底池。"))
     }
     if(minchip()>1&&totalPot()%minchip()!=0){
-        list.push("總底池不是最小計分牌 "+money(minchip())+" 的倍數。")
+        list.push(newedithandtext("warnpotprefix","總底池不是最小計分牌 ")+money(minchip())+newedithandtext("warnmultiplesuffix"," 的倍數。"))
     }
     let pot=positionPot()
     let seats=activeSeats()
     for(let i=0;i<seats.length;i=i+1){
-        if(!unknownchip(seats[i])&&chip(seats[i])-num(pot[seats[i]])+num(state.winnerprice[seats[i]])<0){
-            list.push(seatlabel(seats[i])+" 結束碼量小於 0。")
+        if(!unknownchip(seats[i])&&chip(seats[i])-num(pot[seats[i]])+seatwinnerprice(seats[i])<0){
+            list.push(seatlabel(seats[i])+newedithandtext("warnnegativestack"," 結束碼量小於 0。"))
         }
-        if(minchip()>1&&num(state.winnerprice[seats[i]])%minchip()!=0){
-            list.push(seatlabel(seats[i])+" 分配金額不是最小計分牌 "+money(minchip())+" 的倍數。")
+        if(minchip()>1&&seatwinnerprice(seats[i])%minchip()!=0){
+            list.push(seatlabel(seats[i])+newedithandtext("warnallocprefix"," 分配金額不是最小計分牌 ")+money(minchip())+newedithandtext("warnmultiplesuffix"," 的倍數。"))
         }
     }
     let allinmissing=allinShowdownBoardMissing()
     for(let i=0;i<allinmissing.length;i=i+1){
         let m=allinmissing[i]
         if(state.boardcard&&state.boardcard[m.burnkey]){
-            list.push("有選手 all-in 攤牌，但「"+m.label+"」未填、卻已填「"+m.burnlabel+"」("+state.boardcard[m.burnkey]+")，是否誤把公共牌點成燒牌？")
+            list.push(newedithandtext("warnallinprefix","有選手 all-in 攤牌，但「")+m.label+newedithandtext("warnallinburnmid","」未填、卻已填「")+m.burnlabel+"」("+state.boardcard[m.burnkey]+newedithandtext("warnallinburnsuffix",")，是否誤把公共牌點成燒牌？"))
         }else{
-            list.push("有選手 all-in 攤牌，但「"+m.label+"」尚未填，請確認牌面是否完整。")
+            list.push(newedithandtext("warnallinprefix","有選手 all-in 攤牌，但「")+m.label+newedithandtext("warnallinmissingsuffix","」尚未填，請確認牌面是否完整。"))
         }
     }
     return list
@@ -3500,7 +3735,7 @@ function renderWarnings(){
     let list=warnings()
     let html=""
     if(!list.length){
-        html=`<div class="newhand-ok">檢查通過，可以送出。</div>`
+        html=`<div class="newhand-ok">${newedithandtext("checkpass","檢查通過，可以送出。")}</div>`
     }else{
         for(let i=0;i<list.length;i=i+1){
             html=html+`<div class="newhand-warning">${list[i]}</div>`
@@ -3519,9 +3754,9 @@ function renderSummary(){
         }
     }
     for(let seat in state.winnerprice){
-        totalwin=totalwin+num(state.winnerprice[seat])
+        totalwin=totalwin+seatwinnerprice(seat)
     }
-    sethtml("summarybox","有效選手："+seats.length+" 人<br>總底池："+money(totalPot())+"<br>收益底池："+money(rewardPot())+"<br>贏家數："+winnercount+"<br>已分配："+money(totalwin)+"<br>第一次送出若有提醒會停下，再點一次可強制送出。")
+    sethtml("summarybox",newedithandtext("summaryseat","有效選手：")+seats.length+newedithandtext("summarypot","人<br>總底池：")+money(totalPot())+newedithandtext("summaryreward","<br>收益底池：")+money(rewardPot())+newedithandtext("summarywinner","<br>贏家數：")+winnercount+newedithandtext("summaryalloc","<br>已分配：")+money(totalwin)+newedithandtext("summaryhint","<br>第一次送出若有提醒會停下，再點一次可強制送出。"))
 }
 
 function setloading(loadinged){
@@ -3531,7 +3766,7 @@ function setloading(loadinged){
 
 function loadingguard(){
     if(state.loadinged){
-        pttoast("資料載入中","warn")
+        pttoast(newedithandtext("toastloading","資料載入中"),"warn")
         return true
     }
     return false
@@ -3561,7 +3796,7 @@ function renderLoadingLock(){
             dom(fields[i]).disabled=state.loadinged
         }
     }
-    settext("savestatus",state.loadinged?"載入中...":(handid?"尚未更新":"尚未儲存"))
+    settext("savestatus",state.loadinged?newedithandtext("statusloading","載入中..."):(handid?newedithandtext("statusnotupdated","尚未更新"):newedithandtext("statusnotsaved","尚未儲存")))
 }
 
 function renderAll(){
@@ -3581,6 +3816,7 @@ function renderAll(){
     renderHeroPicker()
     renderActions()
     renderShowdown()
+    renderRunBoard()
     renderHubStatus()
     renderWarnings()
     renderSummary()
@@ -3592,7 +3828,7 @@ function renderAll(){
 // 其餘（盲注制）維持小盲 / 大盲。前注欄位標籤仍由 renderBlindLevels 依 antemode 設定。
 function renderBlindFieldLabels(){
     let stud=handgameblindtype(state.handgametype)=="ante-bringin"
-    settext("smallblindlabel",stud?"帶入注":"小盲")
+    settext("smallblindlabel",stud?newedithandtext("bringin","帶入注"):newedithandtext("smallblind","小盲"))
     if(dom("bigblindfield")){
         dom("bigblindfield").classList.toggle("hidden",stud)
     }
@@ -3638,7 +3874,7 @@ function renderStep2View(){
 
 function herocardlabel(){
     if(publicrecorded()){
-        return "公共紀錄"
+        return newedithandtext("publicrecord","公共紀錄")
     }
     return cardsjoinlabel(herocardlist())
 }
@@ -3657,7 +3893,7 @@ function boardcardlabel(){
     if(state.boardcard.river){
         parts.push(state.boardcard.river)
     }
-    return parts.length?parts.join(" "):"未選"
+    return parts.length?parts.join(" "):newedithandtext("noselect","未選")
 }
 
 function renderHubStatus(){
@@ -3665,24 +3901,30 @@ function renderHubStatus(){
     let streetname=handstreetname(street)
     let info=roundFinishInfo(street)
     let seat=nextActionSeat(street)
-    let betinfo=info["finished"]?"本街已結束":(seat?seatlabel(seat)+" 行動中":"-")
+    let betinfo=info["finished"]?newedithandtext("streetfinished","本街已結束"):(seat?seatlabel(seat)+newedithandtext("acting"," 行動中"):"-")
     let family=handfamily()
-    settext("hubboardtitle",family=="board"?"公共牌":(family=="stud"?"發牌":"換牌"))
+    settext("hubboardtitle",family=="board"?newedithandtext("boardtitle","公共牌"):(family=="stud"?newedithandtext("dealtitle","發牌"):newedithandtext("drawtitle","換牌")))
     settext("hubherocards",herocardlabel())
     settext("hubboardcards",family=="board"?boardcardlabel():dealdrawlabel())
     settext("hubbetinfo",streetname+"・"+betinfo)
     sethtml("hubstatus",`
-        <div class="newhand-hubstatusitem"><span>街別</span><strong>${streetname}</strong></div>
-        <div class="newhand-hubstatusitem"><span>底池</span><strong>${money(totalPot())}</strong></div>
-        <div class="newhand-hubstatusitem"><span>剩餘選手</span><strong>${activeActionSeats().length}</strong></div>
-        <div class="newhand-hubstatusitem"><span>下一位</span><strong>${seat?seatlabel(seat):"-"}</strong></div>
+        <div class="newhand-hubstatusitem"><span>${newedithandtext("hubstreet","街別")}</span><strong>${streetname}</strong></div>
+        <div class="newhand-hubstatusitem"><span>${newedithandtext("hubpot","底池")}</span><strong>${money(totalPot())}</strong></div>
+        <div class="newhand-hubstatusitem"><span>${newedithandtext("hubremain","剩餘選手")}</span><strong>${activeActionSeats().length}</strong></div>
+        <div class="newhand-hubstatusitem"><span>${newedithandtext("hubnext","下一位")}</span><strong>${seat?seatlabel(seat):"-"}</strong></div>
     `)
 }
 
+// handseating.winnered：單 board 時就是勾選狀態；多 board 時只要在任何一個
+// board 分到錢就算贏家（分頭贏的兩人都會是 true）。
 function collectWinnerArray(){
     let data=[null]
     for(let i=1;i<=state.maxseat;i=i+1){
-        data.push(state.winner[i]==true||state.winner[String(i)]==true)
+        if(state.runlist.length<1){
+            data.push(state.winner[i]==true||state.winner[String(i)]==true)
+        }else{
+            data.push(seatwinnerprice(i)>0)
+        }
     }
     return data
 }
@@ -3690,7 +3932,37 @@ function collectWinnerArray(){
 function collectWinnerPrice(){
     let data=[null]
     for(let i=1;i<=state.maxseat;i=i+1){
-        data.push(num(state.winnerprice[i]||state.winnerprice[String(i)]))
+        data.push(seatwinnerprice(i))
+    }
+    return data
+}
+
+// TASK-038：多 board 時每個 board 各送一筆 { board, winner, winnerprice }，
+// winner / winnerprice 與最外層同樣以座位號為索引。單 board 時回傳空陣列，
+// 後端看到空陣列就走原本的單一 runno=1 路徑，行為完全不變。
+function collectRunList(){
+    if(state.runlist.length<1){
+        return []
+    }
+    let data=[]
+    for(let index=0;index<runboardcount();index=index+1){
+        let cardlist=runboardcardlist(index)
+        let winner=[null]
+        let winnerprice=[null]
+        for(let seat=1;seat<=state.maxseat;seat=seat+1){
+            let amount=runseatamount(index,seat)
+            winner.push(amount>0)
+            winnerprice.push(amount)
+        }
+        data.push({
+            "board": {
+                "flop": [cardlist[0],cardlist[1],cardlist[2]],
+                "turn": cardlist[3],
+                "river": cardlist[4]
+            },
+            "winner": winner,
+            "winnerprice": winnerprice
+        })
     }
     return data
 }
@@ -3778,6 +4050,7 @@ function payload(){
         showdowndata: state.showdowndata,
         winner: collectWinnerArray(),
         winnerprice: collectWinnerPrice(),
+        runlist: collectRunList(),
         ps: val("ps"),
         note: val("ps"),
         totalpot: totalPot(),
@@ -3804,24 +4077,24 @@ function saveHand(nexted){
     if(warnings().length&&confirmkey!=key){
         confirmkey=key
         renderWarnings()
-        pttoast("有提醒事項，再點一次送出可強制儲存","warn")
+        pttoast(newedithandtext("toastforcesubmit","有提醒事項，再點一次送出可強制儲存"),"warn")
         return
     }
     if(handsubmitting){
         return
     }
     setsubmitlock(true)
-    settext("savestatus",handid?"更新中...":"儲存中...")
+    settext("savestatus",handid?newedithandtext("statusupdating","更新中..."):newedithandtext("statussaving","儲存中..."))
     let data=payload()
     if(handid){
         api("PUT","edithand/"+handid,data,function(result){
             if(result["success"]){
                 leaveguard.clear()
-                pttoast("已更新","success")
+                pttoast(newedithandtext("toastupdated","已更新"),"success")
                 href("table.html?id="+tableid+"#2")
             }else{
                 setsubmitlock(false)
-                settext("savestatus","更新失敗")
+                settext("savestatus",newedithandtext("updatefailed","更新失敗"))
                 pttoast(result["data"]||"更新失敗","error")
             }
         })
@@ -3834,7 +4107,7 @@ function saveHand(nexted){
             if(nexted){
                 keepblindcache()
             }
-            pttoast("已儲存","success")
+            pttoast(newedithandtext("toastsaved","已儲存"),"success")
             if(nexted){
                 href("newedithand.html?tableid="+tableid)
             }else{
@@ -3842,7 +4115,7 @@ function saveHand(nexted){
             }
         }else{
             setsubmitlock(false)
-            settext("savestatus","儲存失敗")
+            settext("savestatus",newedithandtext("savefailed","儲存失敗"))
             pttoast(result["data"]||"儲存失敗","error")
         }
     })
@@ -3880,13 +4153,17 @@ function maybeAutoSolve(){
 }
 
 // 把單一底池的金額分給贏家（依座位順序補足最小單位餘額）
-function distributePot(pot,winners){
+// overrideamount 有值時分配那個金額而不是整池，供高低分池（O8 / BO）各自呼叫一次。
+function distributePot(pot,winners,overrideamount){
     if(!winners.length){
         return
     }
     let unit=minchip()
     winners=winnerOrder(winners)
     let amount=num(pot["amount"])
+    if(overrideamount!=undefined){
+        amount=num(overrideamount)
+    }
     let share=Math.floor(amount/winners.length/unit)*unit
     for(let i=0;i<winners.length;i=i+1){
         state.winner[winners[i]]=true
@@ -3902,28 +4179,50 @@ function distributePot(pot,winners){
 
 // 依序解算每個（邊）池：每池把有完整 show 牌的合格座位丟給 equity 後端，bested 者即贏家。
 // 與 tool 勝率解算器共用同一個 equity 端點，奧馬哈「必用 2 張」與短牌牌型都由後端正確處理。
-function solvePotQueue(queue,index,gametype,board){
+// splited 一路傳下去，只為了最後那句 toast 要不要提「這池被拆成高低兩半」——
+// 分池是看不見的（攤牌區目前沒有區分高池與低池贏家），不講操作者會以為兩人平分高牌。
+function solvePotQueue(queue,index,gametype,board,splited){
     if(index>=queue.length){
         savecache()
         renderAll()
         if(selectedWinnerSeats().length){
-            pttoast("已套用建議贏家","success")
+            if(splited==true){
+                pttoast(newedithandtext("toastwinnerappliedsplit","已套用建議贏家（高低分池：低池金額已分給合格低牌）"),"success")
+            }else{
+                pttoast(newedithandtext("toastwinnerapplied","已套用建議贏家"),"success")
+            }
         }else{
-            pttoast("沒有足夠 show 牌可解算","warn")
+            pttoast(newedithandtext("toastnotenoughshow","沒有足夠 show 牌可解算"),"warn")
         }
         return
     }
     let item=queue[index]
-    function advance(winners){
-        distributePot(item["pot"],winners)
-        solvePotQueue(queue,index+1,gametype,board)
+    // lowwinners 只有 hi-lo 牌型（O8 / BO）且這手真的有人湊出合格低牌時才會有內容。
+    // 空的時候整池歸高牌贏家 —— 這正是「沒有合格低牌」與「非 hi-lo 牌型」該有的行為，
+    // 判斷依據是後端 equity 回傳的 lowwinnered，前端不重算低牌規則。
+    function advance(winners,lowwinners){
+        let unit=minchip()
+        let amount=num(item["pot"]["amount"])
+        // 低池減半後不足一個最小單位就不拆（例如整池只有一個籌碼），整池歸高牌
+        let lowamount=Math.floor(amount/2/unit)*unit
+        let thissplited=false
+        if(lowwinners!=undefined&&lowwinners.length&&lowamount>=unit){
+            // 單顆奇數籌碼歸高牌，這是標準撲克慣例
+            distributePot(item["pot"],winners,amount-lowamount)
+            distributePot(item["pot"],lowwinners,lowamount)
+            thissplited=true
+        }else{
+            distributePot(item["pot"],winners)
+        }
+        solvePotQueue(queue,index+1,gametype,board,splited==true||thissplited)
     }
     if(item["elig"].length==0){
-        advance([])
+        advance([],[])
         return
     }
     if(item["elig"].length==1){
-        advance([item["elig"][0]])
+        // 只有一家合格時高低兩半都是同一人，不必拆池
+        advance([item["elig"][0]],[])
         return
     }
     let handlist=[]
@@ -3939,19 +4238,23 @@ function solvePotQueue(queue,index,gametype,board){
         }
         let resultlist=(result["data"]&&(result["data"]["resultlist"]||result["data"]["results"]))||[]
         let winners=[]
+        let lowwinners=[]
         for(let i=0;i<resultlist.length;i=i+1){
             let idx=num(resultlist[i]["index"])
             if(resultlist[i]["bested"]==true&&item["elig"][idx]!=undefined){
                 winners.push(item["elig"][idx])
             }
+            if(resultlist[i]["lowwinnered"]==true&&item["elig"][idx]!=undefined){
+                lowwinners.push(item["elig"][idx])
+            }
         }
-        advance(winners)
+        advance(winners,lowwinners)
     })
 }
 
 function solveWinner(){
     if(selectedWinnerSeats().length){
-        ptconfirm("快速解算會覆蓋目前手動設定的贏家與分配金額，確定要繼續嗎？",function(ok){
+        ptconfirm(newedithandtext("confirmquicksolve","快速解算會覆蓋目前手動設定的贏家與分配金額，確定要繼續嗎？"),function(ok){
             if(ok){
                 runSolveWinner()
             }
@@ -3963,7 +4266,7 @@ function solveWinner(){
 
 function runSolveWinner(){
     if(!boardcompleteforsolve()){
-        pttoast("請先補齊公共牌（翻牌、轉牌、河牌）再解算","warn")
+        pttoast(newedithandtext("toastneedboard","請先補齊公共牌（翻牌、轉牌、河牌）再解算"),"warn")
         return
     }
     let gametype=state.handgametype||"HE"
@@ -4019,7 +4322,7 @@ function bindEvents(){
         href("table.html?id="+tableid+"#2")
     })
     dom("cleardata").addEventListener("click",function(){
-        ptconfirm("確定清空暫存？",function(okayed){
+        ptconfirm(newedithandtext("confirmcleartemp","確定清空暫存？"),function(okayed){
             if(okayed){
                 clearcache()
                 href("newedithand.html?tableid="+tableid)
@@ -4146,7 +4449,7 @@ function bindEvents(){
             renderAll()
         }
         if(prevfamily!=newfamily&&hasUserBettingActions()){
-            ptconfirm("切換遊戲家族會清空已輸入的下注動作與換牌 / 發牌紀錄，確定要切換嗎？",function(ok){
+            ptconfirm(newedithandtext("confirmswitchfamily","切換遊戲家族會清空已輸入的下注動作與換牌 / 發牌紀錄，確定要切換嗎？"),function(ok){
                 if(ok){
                     apply()
                 }else{
@@ -4270,10 +4573,10 @@ function bindEvents(){
             if(loadingguard()){
                 return
             }
-            ptconfirm("清空本桌尚未送出的暫存手牌資料？此動作無法復原。",function(ok){
+            ptconfirm(newedithandtext("confirmcleartable","清空本桌尚未送出的暫存手牌資料？此動作無法復原。"),function(ok){
                 if(ok){
                     clearcache()
-                    pttoast("已清空暫存","success")
+                    pttoast(newedithandtext("toasttempcleared","已清空暫存"),"success")
                     href("newedithand.html?tableid="+tableid)
                 }
             })
@@ -4374,6 +4677,8 @@ function init(){
     bindEvents()
     starttimebankloops()
     setloading(true)
+    // 殘留清理不分新增或編輯都要跑：殘留是以「牌桌」為單位累積的
+    cleanupbrokencache()
     if(!handid){
         loadcache()
     }

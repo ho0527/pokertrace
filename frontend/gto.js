@@ -1849,7 +1849,8 @@ gtoinit()
 	文案內嵌雙語（讀 language），頁面 chrome 走 translate/initialize。
 */
 
-let FSSUITS=[["s","♠","#e5e7eb"],["h","♥","#f87171"],["d","♦","#60a5fa"],["c","♣","#34d399"]]
+// 花色代號與符號。原本第三欄放色碼，但沒有任何地方讀它（顏色一直是 CSS 決定的），已移除。
+let FSSUITS=[["s","♠"],["h","♥"],["d","♦"],["c","♣"]]
 let FSACTIONBASE={ check:"#38bdf8", fold:"#18181b", call:"#10b981", raise:"#a855f7" }
 let FSBETCOLOR={ "33":"#fb923c", "50":"#fb7185", "66":"#f43f5e", "75":"#f43f5e", "100":"#e11d48", "125":"#be123c", "150":"#9f1239", "200":"#881337" }
 function fsactioncolor(a){
@@ -1877,17 +1878,17 @@ let FSTXT={
 		theoev:"理論 EV（GTO 混合）",
 		colaction:"動作", colfreq:"頻率", colloss:"偏離 EV",
 		errboard:"請選 3 張不重複的翻牌", errrange:"請填寫雙方範圍", errfail:"求解失敗，請確認後端與輸入",
-		fslibtitle:"本地批次結果（gtoworker.py 算好的）",
+		fslibtitle:"預先算好的策略庫",
 		fslibopenerlabel:"開池方位置", fslibscenariolabel:"對位",
 		fslibhint:"選位置對位、點翻牌選牌，選好會自動載入已經算好的策略，不用重新求解。",
-		fslibempty:"目前沒有離線批次結果，請先在本地執行 gtoworker.py。",
+		fslibempty:"這個環境沒有提供預先算好的策略庫。你可以改用下方「自己輸入範圍即時求解」直接算。",
 		fslibfail:"讀取失敗",
-		fslibnotready:"這組位置對位還沒算到這張翻牌，稍後 gtoworker.py 跑完再回來看。",
-		thirdlabel:"背景玩家範圍（多人池，選填，最多 7 家）",
-		thirdplaceholder:"留空＝雙人求解；每填一格＝多一個背景玩家（固定範圍、一般下注會跟、一被加注就當作蓋牌，非嚴謹多人均衡）",
+		fslibnotready:"策略庫還沒有這組對位在這張翻牌的結果。你可以改用下方的即時求解。",
+		thirdlabel:"背景選手範圍（多人池，選填，最多 7 家）",
+		thirdplaceholder:"留空＝雙人求解；每填一格＝多一個背景選手（固定範圍、一般下注會跟、一被加注就當作蓋牌，非嚴謹多人均衡）",
 		advancedtitle:"自己輸入範圍即時求解（多人池、overbet、再加注全下）",
-		bgadd:"＋ 加一家", bgcount:"共 {n} 家（OOP＋IP＋{k} 個背景玩家）",
-		multiwaynote:"簡化多人模型：背景玩家固定範圍、一般下注會跟、但一被加注就視為蓋牌；非嚴謹多人 Nash 均衡，僅供參考。",
+		bgadd:"＋ 加一家", bgcount:"共 {n} 家（OOP＋IP＋{k} 個背景選手）",
+		multiwaynote:"簡化多人模型：背景選手固定範圍、一般下注會跟、但一被加注就視為蓋牌；非嚴謹多人 Nash 均衡，僅供參考。",
 		street_flop:"翻牌", street_turn:"轉牌", street_river:"河牌",
 		deal_turn:"抽轉牌", deal_river:"抽河牌",
 		term_fold:"這步棄牌，對手直接贏得底池，行動結束。", term_call:"這步跟注，雙方直接攤牌比大小，行動結束。",
@@ -1915,12 +1916,12 @@ let FSTXT={
 		theoev:"Theoretical EV (GTO mix)",
 		colaction:"Action", colfreq:"Freq", colloss:"EV-loss",
 		errboard:"Pick 3 distinct flop cards", errrange:"Fill in both ranges", errfail:"Solve failed — check backend and inputs",
-		fslibtitle:"Local batch results (from gtoworker.py)",
+		fslibtitle:"Prebuilt strategy library",
 		fslibopenerlabel:"Opener position", fslibscenariolabel:"Matchup",
 		fslibhint:"Pick a matchup and click the flop to pick cards — it loads the already-solved strategy automatically, no re-solving.",
-		fslibempty:"No offline batch results yet — run gtoworker.py locally first.",
+		fslibempty:"This environment does not provide a prebuilt strategy library. You can use the range solver below instead.",
 		fslibfail:"Failed to load",
-		fslibnotready:"This matchup hasn't reached this flop yet — check back once gtoworker.py has run further.",
+		fslibnotready:"The library does not have this matchup on this flop yet. You can use the range solver below instead.",
 		thirdlabel:"Background player ranges (multiway, optional, up to 7)",
 		thirdplaceholder:"Leave empty for a heads-up solve. Each box adds one background player (fixed range that calls a normal bet but is assumed to fold to any raise — not a rigorous multiway equilibrium).",
 		advancedtitle:"Solve your own ranges live (multiway, overbets, re-raise all-in)",
@@ -1998,8 +1999,9 @@ function fscardglyph(cardtext){
 	for(let i=0;i<FSSUITS.length;i=i+1){
 		if(FSSUITS[i][0]==suit){ symbol=FSSUITS[i][1] }
 	}
-	let colorclass=(suit=="h"||suit=="d")?"cardred":"cardblack"
-	return `<span class="cardslot filled ${colorclass}">${rank}${symbol}</span>`
+	// 顏色交給 carddisplay.css 的 .deckface-two / .deckface-four 決定，跟牌桌上的牌面同一個開關；
+	// 原本寫死 cardred / cardblack，等於這裡永遠是兩色，使用者選四色時對不起來。
+	return `<span class="cardslot filled pt-suittext" data-suit="${symbol}">${rank}${symbol}</span>`
 }
 
 function fsshowcardpicker(titletext,currentcardlist,maxcount,confirmcallback,disabledcardlist){
@@ -2050,8 +2052,7 @@ function fsshowcardpicker(titletext,currentcardlist,maxcount,confirmcallback,dis
 					if(event.key=="Enter"||event.key==" "){ event.preventDefault(); this.click() }
 				})
 				button.className="cardbtn"+(selecteded?" selected":"")+(disableded?" disabled":"")
-				let colorclass=(FSSUITS[s][0]=="h"||FSSUITS[s][0]=="d")?"cardred":"cardblack"
-				button.innerHTML=`<span class="r">${gtoranks[r]}</span><span class="s ${colorclass}">${FSSUITS[s][1]}</span>`
+				button.innerHTML=`<span class="r">${gtoranks[r]}</span><span class="s pt-suittext" data-suit="${FSSUITS[s][1]}">${FSSUITS[s][1]}</span>`
 				button.addEventListener("click",function(){
 					if(disableded){ return }
 					let idx=selectedcardlist.indexOf(cardtext)
@@ -2516,8 +2517,8 @@ function fsrenderresult(){
 	domgetid("fsresult").style.display="block"
 }
 
-let FSBGMAX=7   // 背景玩家上限（OOP+IP+7 ＝ 最多 9 人）
-// 目前所有背景玩家範圍欄位（第一格 #fsthirdrange ＋ #fsbgextra 內動態新增的）
+let FSBGMAX=7   // 背景選手上限（OOP+IP+7 ＝ 最多 9 人）
+// 目前所有背景選手範圍欄位（第一格 #fsthirdrange ＋ #fsbgextra 內動態新增的）
 function fsbgranges(){
 	let out=[]
 	let els=document.querySelectorAll(".fsbgrange")
@@ -2528,7 +2529,7 @@ function fsbgranges(){
 	return out.slice(0,FSBGMAX)
 }
 function fsbgcount(){ return document.querySelectorAll(".fsbgrange").length }
-// 新增一個背景玩家範圍欄位（含移除鈕）
+// 新增一個背景選手範圍欄位（含移除鈕）
 function fsbgaddrow(){
 	if(fsbgcount()>=FSBGMAX){ return }
 	let wrap=domgetid("fsbgextra")
@@ -2551,7 +2552,7 @@ function fsbgaddrow(){
 }
 // 更新「共 N 家」提示與 ＋ 鈕的可用狀態
 function fsbgupdatecount(){
-	let filled=fsbgranges().length   // 只算「有填內容」的背景玩家，空欄位不灌水
+	let filled=fsbgranges().length   // 只算「有填內容」的背景選手，空欄位不灌水
 	let el=domgetid("fsbgcount")
 	if(el){ el.textContent=fstext("bgcount").replace("{k}",filled).replace("{n}",filled+2) }
 	let rows=fsbgcount()             // 欄位總數（含空的）用來擋上限
@@ -2559,7 +2560,7 @@ function fsbgupdatecount(){
 	if(add){ add.disabled=rows>=FSBGMAX; add.style.opacity=rows>=FSBGMAX?"0.4":"" }
 }
 
-// ── 翻後輸入記憶（localStorage）：翻牌、雙方範圍、底池/計分牌、下注尺寸、背景玩家，重整後還原 ──
+// ── 翻後輸入記憶（localStorage）：翻牌、雙方範圍、底池/計分牌、下注尺寸、背景選手，重整後還原 ──
 const FSINPUTKEY=(typeof WEBLSNAME!="undefined"?WEBLSNAME:"")+"fsinputs"
 function fssaveinputs(){
 	try{
@@ -2580,7 +2581,7 @@ function fssaveinputs(){
 	}catch(e){}
 }
 // 還原上次翻後輸入。回傳 { ranges:bool }：ranges=true 表示已還原範圍（fsinit 就不用再套預設）。
-// 範圍/牌面/背景玩家跟遊戲類型綁定（短牌 vs 標準牌），只有同類型才還原；底池/計分牌/下注尺寸則一律還原。
+// 範圍/牌面/背景選手跟遊戲類型綁定（短牌 vs 標準牌），只有同類型才還原；底池/計分牌/下注尺寸則一律還原。
 function fsloadinputs(){
 	try{
 		let raw=localStorage.getItem(FSINPUTKEY)
@@ -2617,7 +2618,7 @@ function fssolve(){
 	let iprange=(domgetid("fsiprange").value||"").trim()
 	if(!ooprange||!iprange){ pttoast(fstext("errrange"),"error"); return }
 	let sd=gtostate.gametype=="SD"
-	// 背景玩家（多人池）：蒐集所有 .fsbgrange 欄位，最多 7 家（共 9 人）。標準/短牌都支援。
+	// 背景選手（多人池）：蒐集所有 .fsbgrange 欄位，最多 7 家（共 9 人）。標準/短牌都支援。
 	let bgranges=fsbgranges()
 	let body={
 		board:board,
@@ -2649,8 +2650,12 @@ function fssolve(){
 }
 
 function fsapplylanguage(){
-	// 翻後求解器現在是「建議範圍參考」頁裡的一個區塊，不再覆蓋整頁 title（由 gtoapplylanguage 設定）
-	innertext("#fstitle",fstext("title"),false)
+	// 翻後求解器現在是「建議範圍參考」頁裡的一個區塊，不再覆蓋整頁 title（由 gtoapplylanguage 設定）。
+	// 2026-07-30：連帶把 `innertext("#fstitle",fstext("title"),false)` 一起刪掉 ——
+	// 改成不覆蓋整頁 title 時 `id="fstitle"` 的元素就拿掉了，這一行留著只是對著不存在的
+	// 元素寫字。range.html 的 #gtostreetflop 區塊只有 #fssubtitle，沒有標題元素；
+	// 下面 21 個 #fs* 在 range.html 都找得到，只有 #fstitle 沒有。
+	// （tools/audit/scandeadreference.js 掃出來的）
 	innertext("#fssubtitle",fstext("subtitle"),false)
 	innertext("#fsadvancedtitle",fstext("advancedtitle"),false)
 	innertext("#fsboardlabel",fstext("boardlabel"),false)
@@ -2704,7 +2709,7 @@ function fsinit(){
 	onclick("#fssolve",function(){ fssolve() })
 	onclick("#fsbgadd",function(){ fsbgaddrow() })
 	onenterclick("#fspot,#fsstack",function(){ fssolve() })
-	// 進階區任何輸入變動（範圍、底池、計分牌、背景玩家）都即時存檔；背景玩家欄位另外更新「共 N 家」
+	// 進階區任何輸入變動（範圍、底池、計分牌、背景選手）都即時存檔；背景選手欄位另外更新「共 N 家」
 	let adv=domgetid("fsadvanced")
 	if(adv){ adv.addEventListener("input",function(e){
 		if(e.target&&e.target.classList&&e.target.classList.contains("fsbgrange")){ fsbgupdatecount() }
@@ -2723,7 +2728,29 @@ fsinit()
 	（同構去重只留 1755 張代表花色），所以用花色重新標號的方式算出「牌型指紋」去配對
 	（跟 gtoflops.py 的 canon_key 是同一套算法），而不是要求使用者剛好點出存檔用的那組花色。
 */
-let fslibmanifest=[]
+/*
+	TASK-086：manifest 的格式改過了，這裡的三個變數是「正規化之後」的形態。
+
+	舊格式是一列一筆的陣列（7.3 MB / 56,160 筆），每筆帶 id / scenario / board /
+	pot / stack / betsizes。實際上：id 恆等於 scenario+"_"+翻牌（所以 scenario 與
+	board 冗餘），而 pot / stack / betsizes **這裡從來沒有用到** ——
+	畫面上那三個值是從各翻牌自己的結果 JSON（fsstate.data）讀的。
+	而且全部對位共用同一份 1755（德州）／573（短牌）個翻牌的清單。
+	新格式因此只有「共用翻牌清單 + 對位名稱」，7.3 MB → 約 17 KB。
+
+	`cache:"no-store"` 刻意保留：17 KB 每次重抓可以忽略，
+	而保留它就完全沒有「為了快取而讓資料更新失效」的風險。
+
+	fslibnormalize() 同時吃得下新舊兩種格式 —— 正式機的靜態檔是人工同步的，
+	一定會有前端已經更新、manifest 還是舊格式的時間差。
+*/
+let fslibscenarionamelist=[]
+let fslibfloplist=[]
+// canonkey → 翻牌字串。載入時算一次；以前是每次查詢都對 1755 筆各算一次
+// fslibcanonkey（裡面還有花色全排列），那是白花的。
+let fslibflopkeymap={}
+// 對位 → null（擁有全部翻牌）或 { 翻牌字串: true }（批次沒跑完時只有部分）
+let fslibscenariohave={}
 let fslibstate={ scenario:"", board:["As","Kh","7c"] }
 
 // 批次結果目錄依遊戲類型：標準版 gtoworker.py → gtoresults；短牌 shortdeckworker.py → shortdeckresults
@@ -2775,12 +2802,57 @@ function fslibcanonkey(board){
 }
 
 function fslibscenarios(){
-	let names=[]
-	for(let i=0;i<fslibmanifest.length;i=i+1){
-		let sc=fslibmanifest[i].scenario
-		if(names.indexOf(sc)<0){ names.push(sc) }
+	return fslibscenarionamelist
+}
+
+// 把 manifest.json 讀進來的東西正規化成 fslibscenarionamelist / fslibfloplist /
+// fslibflopkeymap / fslibscenariohave 四個變數。新舊兩種格式都吃。
+function fslibnormalize(data){
+	fslibscenarionamelist=[]
+	fslibfloplist=[]
+	fslibflopkeymap={}
+	fslibscenariohave={}
+	if(Array.isArray(data)){
+		// 舊格式（陣列）：正式機還沒同步新 manifest 時會走到這裡
+		let seen={}
+		for(let i=0;i<data.length;i=i+1){
+			let row=data[i]
+			let name=row&&row.scenario
+			let flop=(row&&row.board&&row.board.join(""))||""
+			if(!name||!flop){ continue }
+			if(fslibscenarionamelist.indexOf(name)<0){
+				fslibscenarionamelist.push(name)
+				fslibscenariohave[name]={}
+			}
+			fslibscenariohave[name][flop]=true
+			if(!seen[flop]){ seen[flop]=true; fslibfloplist.push(flop) }
+		}
+	}else{
+		if(data&&data.scenario&&Array.isArray(data.flop)){
+			fslibfloplist=data.flop.slice()
+			for(let name in data.scenario){
+				fslibscenarionamelist.push(name)
+				let own=data.scenario[name]
+				if(Array.isArray(own)){
+					// 索引清單：批次還沒跑完，這個對位只有部分翻牌
+					let map={}
+					for(let i=0;i<own.length;i=i+1){
+						let flop=fslibfloplist[own[i]]
+						if(flop!=undefined){ map[flop]=true }
+					}
+					fslibscenariohave[name]=map
+				}else{
+					fslibscenariohave[name]=null
+				}
+			}
+		}
 	}
-	return names
+	// 指紋索引只算一次
+	for(let i=0;i<fslibfloplist.length;i=i+1){
+		let flop=fslibfloplist[i]
+		let cardlist=[flop.slice(0,2),flop.slice(2,4),flop.slice(4,6)]
+		fslibflopkeymap[fslibcanonkey(cardlist)]=flop
+	}
 }
 
 let GTOPOSORDER=["UTG","UTG1","MP","LJ","HJ","CO","BTN","SB","BB"]
@@ -2873,17 +2945,22 @@ function fslibrenderboard(){
 
 function fslibtryload(){
 	if(!fslibstate.scenario||fslibstate.board.filter(function(c){ return !!c }).length!=3){ return }
-	let key=fslibcanonkey(fslibstate.board)
-	let match=null
-	for(let i=0;i<fslibmanifest.length;i=i+1){
-		let m=fslibmanifest[i]
-		if(m.scenario==fslibstate.scenario&&fslibcanonkey(m.board)==key){ match=m; break }
+	// 使用者選的花色不一定等於存檔用的那組代表花色，所以用牌型指紋（canonkey）去查
+	let flop=fslibflopkeymap[fslibcanonkey(fslibstate.board)]
+	let have=fslibscenariohave[fslibstate.scenario]
+	// 不能寫 have!=undefined —— null==undefined 在 JS 是成立的，那樣會把
+	// 「擁有全部翻牌」（null）的對位一起排除掉。用有沒有這個 key 來判斷。
+	let known=Object.prototype.hasOwnProperty.call(fslibscenariohave,fslibstate.scenario)
+	let matchid=""
+	// have==null 表示這個對位擁有全部翻牌；是物件時要逐一確認有沒有這一個
+	if(flop!=undefined&&known&&(have==null||have[flop]==true)){
+		matchid=fslibstate.scenario+"_"+flop
 	}
-	if(!match){
+	if(!matchid){
 		innertext("#fslibhint",fstext("fslibnotready"),false)
 		return
 	}
-	fetch("../"+fslibresultsdir()+"/"+match.id+".json",{cache:"no-store"}).then(function(r){
+	fetch("../"+fslibresultsdir()+"/"+matchid+".json",{cache:"no-store"}).then(function(r){
 		if(!r.ok){ throw new Error("http "+r.status) }
 		return r.json()
 	}).then(function(data){
@@ -2917,15 +2994,15 @@ function fslibapplyqueryboard(){
 
 // 讀（或重讀）目前遊戲類型的批次結果清單。切遊戲類型時要重讀（HE→gtoresults、SD→shortdeckresults）。
 function fslibloadmanifest(){
-	fslibmanifest=[]
+	fslibnormalize(null)
 	fslibrenderopeners()
 	fslibrenderscenarios()
 	fetch("../"+fslibresultsdir()+"/manifest.json",{cache:"no-store"}).then(function(r){
 		if(!r.ok){ throw new Error("http "+r.status) }
 		return r.json()
 	}).then(function(data){
-		fslibmanifest=data||[]
-		if(fslibmanifest.length==0){
+		fslibnormalize(data)
+		if(fslibscenarionamelist.length==0){
 			innertext("#fslibhint",fstext("fslibempty"),false)
 			return
 		}
@@ -3002,7 +3079,7 @@ function gtostreetapplyforgame(){
 	}
 	let adv=domgetid("fsadvanced")
 	if(adv){ adv.style.display="block" }
-	// 多人池（背景玩家 range）標準與短牌都支援，欄位一律顯示
+	// 多人池（背景選手 range）標準與短牌都支援，欄位一律顯示
 	let third=domgetid("fsthirdwrap")||(domgetid("fsthirdrange")?domgetid("fsthirdrange").closest("div"):null)
 	if(third){ third.style.display="block" }
 	gtostreetapply()

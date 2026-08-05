@@ -177,6 +177,7 @@ function handfields(){
 		SUB("selfseating","int","自家座位。","Own seat."),
 		SUB("handcard","string","自家底牌。","Own hole cards."),
 		SUB("boardcard","string","公共牌。","Board cards."),
+		SUB("boardlist","array","每個 board 的公共牌與獎池分配（run it twice 以上）。單 board 時只有一筆，內容與 boardcard 相同。","Per-board community cards and pot allocation (run it twice or more). A single-board hand has exactly one entry, matching boardcard."),
 		SUB("gametype","string","遊戲類型。","Game type."),
 		SUB("blindlevel","string","級別標籤。","Level label."),
 		SUB("smallblind","int","小盲。","Small blind."),
@@ -291,6 +292,8 @@ const APICATEGORIES=[
 						SUB("playerid","string","選手代碼。","Player code."),
 						R("chipcolors","object[]","計分牌色票陣列。","Chip color tickets.",[SUB("name","string","顏色名稱／面額標籤。","Color/denomination label."),SUB("color","string","HEX 色碼。","HEX color.")]),
 						SUB("carddeck","string","牌背皮膚(classic/crimson/midnight)。","Card back skin (classic/crimson/midnight)."),
+						SUB("cardback","string","牌背皮膚。尚未分開設定過的帳號會回傳與 carddeck 相同的值。","Card back skin. Accounts that have not set them separately return the same value as carddeck."),
+						SUB("cardface","string","牌面皮膚。尚未分開設定過的帳號會回傳與 carddeck 相同的值。","Card face skin. Accounts that have not set them separately return the same value as carddeck."),
 						SUB("potmainside","string","回放主池位置(left/right)。","Replay main pot side (left/right)."),
 						R("chipset","object[]","計分牌組陣列。","Chip sets.",[SUB("name","string","組合名稱。","Set name."),R("chips","object[]","計分牌陣列。","Chips.",[SUB("shape","string","形狀。","Shape."),SUB("value","int","面額。","Value."),SUB("color","string","顏色。","Color.")])])
 					]),
@@ -355,11 +358,19 @@ const APICATEGORIES=[
 				errors: [ETOKEN,EREQ]
 			},
 			{
-				id: "editusercarddeck",method: "PUT",path: "/editusercarddeck",title: { z: "修改牌背皮膚",e: "Update card deck skin" },
-				desc: { z: "更新牌背皮膚偏好，供手牌回放與現場轉播讀取。",e: "Update card back skin preference used by hand replay and live broadcast." },
+				id: "editusercarddeck",method: "PUT",path: "/editusercarddeck",title: { z: "修改牌背／牌面皮膚",e: "Update card back / face skin" },
+				desc: { z: "更新牌背與牌面的皮膚偏好，供手牌回放、現場轉播與手牌明細讀取。三個參數都可省略：只給 carddeck 是舊行為（牌背與牌面一起換），給 cardback / cardface 則只換那一邊。",e: "Update the card back and card face skin preferences, read by hand replay, live broadcast and hand detail. All three parameters are optional: passing carddeck alone keeps the old behaviour (changes both), while cardback / cardface change only that side." },
 				auth: AUTHTOKEN,
-				params: [P("carddeck","string",true,"classic / crimson / midnight / royal / ocean / sunset / rose / graphite，非法值一律回退 classic。","One of classic / crimson / midnight / royal / ocean / sunset / rose / graphite; invalid values fall back to classic.",{ ex: "royal" })],
-				response: [R("data","string","更新後的牌背皮膚。","The updated card deck skin.",null)],
+				params: [
+					P("carddeck","string",false,"classic / crimson / midnight / royal / ocean / sunset / rose / graphite / minimal。給了就牌背與牌面一起換（舊行為）。非法值忽略。","classic / crimson / midnight / royal / ocean / sunset / rose / graphite / minimal. Changes both back and face (legacy behaviour). Invalid values are ignored.",{ ex: "royal" }),
+					P("cardback","string",false,"只換牌背。值域同上。","Change the card back only. Same value set as above.",{ ex: "crimson" }),
+					P("cardface","string",false,"只換牌面。值域同上。","Change the card face only. Same value set as above.",{ ex: "midnight" })
+				],
+				response: [
+					R("data","string","更新後的 carddeck（舊欄位，舊版前端仍讀這個）。","The updated carddeck (legacy field; older clients still read this).",null),
+					R("cardback","string","更新後的牌背皮膚。","The updated card back skin.",null),
+					R("cardface","string","更新後的牌面皮膚。","The updated card face skin.",null)
+				],
 				errors: [ETOKEN,EREQ]
 			},
 			{
@@ -368,6 +379,20 @@ const APICATEGORIES=[
 				auth: AUTHTOKEN,
 				params: [P("potmainside","string",true,"left / right，非法值一律回退 right。","left / right; invalid values fall back to right.",{ ex: "left" })],
 				response: [R("data","string","更新後的主池位置。","The updated main pot side.",null)],
+				errors: [ETOKEN,EREQ]
+			},
+			{
+				id: "edituserdisplaydefault",method: "PUT",path: "/edituserdisplaydefault",title: { z: "修改大螢幕品牌預設",e: "Update display brand defaults" },
+				desc: { z: "更新大螢幕品牌的個人預設值。建立新場次時會帶入這組值當初值，之後在單場修改不會回寫這裡。所有欄位都會正規化，不合法的值一律存成空字串（＝沒有設定）。",e: "Update the personal defaults for display branding. New sessions inherit these as their initial values; editing a single session never writes back here. All fields are normalized; invalid values are stored as an empty string (meaning unset)." },
+				auth: AUTHTOKEN,
+				params: [
+					P("brandname","string",false,"品牌／協會名稱，上限 120 字。","Brand or club name, max 120 characters.",{ ex: "金城撲克協會" }),
+					P("brandcolor","string",false,"主色，只接受 #rgb 或 #rrggbb，其他一律存成空字串。","Accent color; only #rgb or #rrggbb accepted, anything else is stored as an empty string.",{ ex: "#a78bfa" }),
+					P("brandlogo","string",false,"Logo 圖片網址，只接受 http／https 開頭且長度不超過 255。","Logo image URL; only http/https and at most 255 characters are accepted.",{ ex: "https://example.com/logo.png" }),
+					P("displayfields","string",false,"要隱藏的區塊，逗號分隔，只接受 payout / stack / nextblind / marquee。留空代表全部顯示。","Comma-separated blocks to hide; only payout / stack / nextblind / marquee are accepted. Empty means show everything.",{ ex: "payout,marquee" }),
+					P("columnorder","string",false,"三欄順序，必須是 payout / center / info 的完整排列，殘缺值一律存成空字串。只在寬度大於 900px 的螢幕生效。","Column order; must be a full permutation of payout / center / info, otherwise stored as an empty string. Only applies above 900px width.",{ ex: "info,center,payout" })
+				],
+				response: [R("data","object","正規化後實際存入的五個欄位。","The five fields as actually stored after normalization.",null)],
 				errors: [ETOKEN,EREQ]
 			},
 			{
@@ -459,10 +484,24 @@ const APICATEGORIES=[
 				response: dataok(),errors: [ETOKEN,EPERM,EREQ]
 			},
 			{
+				id: "unbanuser",method: "POST",path: "/unbanuser/{userid}",title: { z: "解除封鎖",e: "Unban user" },
+				desc: { z: "管理員解除使用者的永久封鎖：刪除該使用者在封鎖名單中的紀錄，登入檢查不再判定為封鎖。硬刪除，沒有軟刪欄位。",e: "Admin lifts a permanent ban: the user's row in the ban list is deleted so the login check no longer treats them as banned. A hard delete — the table has no soft-delete column." },
+				auth: AUTHADMIN,params: [pathparam("userid","使用者 id。","User id.",7)],
+				response: dataok(),errors: [ETOKEN,EPERM]
+			},
+			{
 				id: "deleteuser",method: "DELETE",path: "/deleteuser/{userid}",title: { z: "刪除使用者",e: "Delete user" },
 				desc: { z: "管理員軟刪除使用者。",e: "Admin soft-deletes a user." },
 				auth: AUTHADMIN,params: [pathparam("userid","使用者 id。","User id.",7)],
 				response: dataok(),errors: [ETOKEN,EPERM]
+			},
+			{
+				id: "deleteuseraccount",method: "DELETE",path: "/deleteuseraccount",title: { z: "自行刪除帳號",e: "Delete own account" },
+				desc: { z: "使用者刪除自己的帳號。**硬刪除、無法復原**，且只作用在 token 擁有者自己身上（與管理員的 deleteuser 軟刪除別人不同）。自己建立的場次、牌桌、手牌整棵資料樹會真的被刪掉；出現在別人場次裡的歷史手牌與座位列會保留但去識別化；auditlog 與 apilog 屬系統稽核紀錄，保留不刪。",e: "The user deletes their own account. **A hard delete that cannot be undone**, and it only ever affects the token owner (unlike the admin deleteuser, which soft-deletes someone else). The whole tree of sessions, tables and hands they created is really deleted; historical hand and seat rows inside other people's sessions are kept but anonymised; auditlog and apilog are system audit records and are kept." },
+				auth: AUTHTOKEN,
+				params: [P("confirmtext","string",true,"必須**完全等於**自己的 playerid（純編號，沒有前綴）。不相等就回 ERROR_confirm_text_error，什麼都不會刪。前端已經二次確認，後端仍獨立檢查一次。","Must be **exactly equal** to your own playerid (a plain number, no prefix). Anything else returns ERROR_confirm_text_error and nothing is deleted. The frontend already double-confirms; the backend still checks independently.",{ ex: "10287" })],
+				response: dataok(),
+				errors: [ETOKEN,ERR("400","ERROR_confirm_text_error","confirmtext 與自己的 playerid 不一致，未執行任何刪除。","confirmtext does not match your own playerid; nothing was deleted."),ERR("404","ERROR_user_not_found","找不到使用者。","User not found.")]
 			},
 			{
 				id: "getauditlog",method: "GET",path: "/getauditlog",title: { z: "操作稽核紀錄",e: "Audit log" },
@@ -494,7 +533,9 @@ const APICATEGORIES=[
 					queryparam("keyword","string","比對使用者姓名／Email／選手代碼／API 路徑／方法／IP。","Match against user name / email / player code / API path / method / IP."),
 					queryparam("erroronly","string","帶 1 時只列狀態碼非 200 的紀錄（含無狀態碼）。","Pass 1 to list only entries whose status code is not 200 (including missing status codes)."),
 					queryparam("page","int","頁碼，預設 1。","Page number, default 1."),
-					queryparam("limit","int","每頁筆數，預設 20，上限 200。","Page size, default 20, max 200.")
+					queryparam("limit","int","每頁筆數，預設 20，上限 200。","Page size, default 20, max 200."),
+					queryparam("order","string","排序欄位，只接受 <code>createtime</code> / <code>username</code> / <code>path</code> / <code>statuscode</code>；其他值一律忽略、退回預設（最新的在前）。<b>欄位名走寫死的白名單</b>，不是拿參數去組 SQL。","Sort column; only <code>createtime</code> / <code>username</code> / <code>path</code> / <code>statuscode</code> are accepted. Any other value is ignored and the default (newest first) is used. <b>The column name comes from a hardcoded whitelist</b>, never from the parameter itself."),
+					queryparam("direction","string","排序方向，<code>desc</code> 為降冪，其餘一律視為升冪。取不到值的列一律排最後（NULLS LAST），與前端表格一致。","Sort direction; <code>desc</code> for descending, anything else is treated as ascending. Rows with no value always sort last (NULLS LAST), matching the front-end tables.")
 				],
 				response: [
 					R("data.logs","object[]","呼叫紀錄陣列。","Array of API call log rows.",[
@@ -721,7 +762,9 @@ const APICATEGORIES=[
 					queryparam("name","string","依名稱過濾。","Filter by name."),
 					queryparam("quickfilter","string","快速過濾：registerable / owned / joined。","Quick filter: registerable / owned / joined."),
 					queryparam("page","int","頁碼，預設 1。","Page number, default 1."),
-					queryparam("limit","int","每頁筆數，預設 40。","Page size, default 40.")
+					queryparam("limit","int","每頁筆數，預設 40。","Page size, default 40."),
+					queryparam("order","string","排序欄位，只接受 <code>starttime</code> / <code>name</code> / <code>profit</code>；其他值一律忽略、退回預設（開始時間新的在前）。<b>欄位名走寫死的白名單</b>。刻意不開放「買入」與「名次」—— 那兩欄的顯示值是前端由多個欄位算出來的，用任何單一欄位排都會與畫面不一致。","Sort column; only <code>starttime</code> / <code>name</code> / <code>profit</code> are accepted. Any other value is ignored and the default (newest start time first) is used. <b>The column name comes from a hardcoded whitelist.</b> Buy-in and place are deliberately not sortable — those displayed values are computed on the client from several columns, so ordering by any single column would disagree with what is shown."),
+					queryparam("direction","string","排序方向，<code>desc</code> 為降冪，其餘一律視為升冪。取不到值的列一律排最後（NULLS LAST）。","Sort direction; <code>desc</code> for descending, anything else is treated as ascending. Rows with no value always sort last (NULLS LAST).")
 				],
 				response: [
 					R("data.sessions","object[]","場次陣列（每筆另含 myregistration）。","Array of sessions (each also includes myregistration).",sessionfields().concat([R("myregistration","object","登入者在此場次的報名（未報名為 null）。","The signed-in user's registration in this session (null if none).",registrationfields())]),"limit"),
@@ -1133,6 +1176,14 @@ const APICATEGORIES=[
 				auth: AUTHOWNER,
 				params: [pathparam("tableid","來源牌桌 id。","Source table id.",55),P("targettableid","int",true,"目標牌桌 id。","Target table id.",{ ex: 56 })],
 				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),EPERM]
+			},
+			{
+				id: "closetable",method: "POST",path: "/closetable/{tableid}",title: { z: "關閉／重新開放牌桌",e: "Close or reopen a table" },
+				desc: { z: "切換牌桌的開放狀態。關閉只是不再讓新選手進桌，**不影響已在桌的選手、也不刪任何資料**；重新開放就是把關閉時間清掉。同一個端點負責兩個方向，由 closed 決定。",e: "Toggle whether a table accepts new players. Closing only stops new players from being seated — **players already at the table and all data are untouched**; reopening simply clears the closed timestamp. One endpoint handles both directions, selected by closed." },
+				auth: AUTHOWNER,
+				params: [pathparam("tableid","牌桌 id。","Table id.",55),P("closed","bool",true,"true 關閉、false 重新開放。","true closes the table, false reopens it.",{ ex: true })],
+				response: [R("data.closed","bool","切換後的狀態，與送出的 closed 相同。","The resulting state, same as the closed value sent.",null)],
+				errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
 			},
 			{
 				id: "deletetable",method: "DELETE",path: "/deletetable/{tableid}",title: { z: "刪除牌桌",e: "Delete table" },
@@ -1634,6 +1685,7 @@ const APICATEGORIES=[
 					P("exceptiontype","string",false,"recordtype 非 hand 時必填。","Required when recordtype is not hand.",{ ex: "" }),
 					P("handcard","object",false,"自家底牌 { card1, card2 }。","Own hole cards { card1, card2 }.",{ ex: { card1: "As",card2: "Kd" } }),
 					P("boardcard","object",false,"公共牌 { flop, turn, river }。","Board { flop, turn, river }.",{ ex: { flop: ["Qs","Js","2c"],turn: "",river: "" } }),
+					P("runlist","array",false,"run it twice 以上時各 board 的資料，每筆為 { board, winner, winnerprice }；winner / winnerprice 與最外層同樣以座位號為索引。不傳則視為單一 board，行為與之前完全相同。board 數不限。","Per-board data when running it twice or more. Each entry is { board, winner, winnerprice }; winner and winnerprice are seat-indexed like the top-level ones. Omit for a single board (unchanged behaviour). The number of boards is not capped.",{ ex: [{ board: { flop: ["Qs","Js","2c"],turn: "8d",river: "3h" },winner: [],winnerprice: [] }] }),
 					P("bittingdata","object",false,"各街下注動作資料。","Per-street betting action data.",{ ex: {} }),
 					P("showdowndata","object",false,"各座位攤牌資料。","Per-seat showdown data.",{ ex: {} }),
 					P("winner","object",false,"贏家資料。","Winner data.",{ ex: {} }),
@@ -1676,6 +1728,7 @@ const APICATEGORIES=[
 					P("levelid","int",false,"計時器級別 id。","Timer level id.",{ ex: 3 }),
 					P("handcard","object",false,"自家底牌 { card1, card2 }。","Own hole cards { card1, card2 }.",{ ex: { card1: "As",card2: "Kd" } }),
 					P("boardcard","object",false,"公共牌 { flop, turn, river }。","Board { flop, turn, river }.",{ ex: { flop: ["Qs","Js","2c"],turn: "",river: "" } }),
+					P("runlist","array",false,"run it twice 以上時各 board 的資料，每筆為 { board, winner, winnerprice }；winner / winnerprice 與最外層同樣以座位號為索引。不傳則視為單一 board，行為與之前完全相同。board 數不限。","Per-board data when running it twice or more. Each entry is { board, winner, winnerprice }; winner and winnerprice are seat-indexed like the top-level ones. Omit for a single board (unchanged behaviour). The number of boards is not capped.",{ ex: [{ board: { flop: ["Qs","Js","2c"],turn: "8d",river: "3h" },winner: [],winnerprice: [] }] }),
 					P("actionsjson","object",false,"各街下注動作（JSON）。","Per-street betting actions (JSON).",{ ex: {} })
 				],
 				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_hand_not_found","找不到手牌。","Hand not found."),ERR("400","ERROR_request_data_not_found","request body 非合法 JSON。","Request body is not valid JSON."),EPERM]
@@ -1827,11 +1880,11 @@ const APICATEGORIES=[
 				method: "POST",
 				path: "/equity",
 				title: { z: "勝率解算器",e: "Equity solver" },
-				desc: { z: "輸入 2~15 手明確手牌、（可選的）公共牌與（可選的）燒牌/棄牌，回傳每一手的勝率、outs 與牌力狀態。支援德州撲克 (HE)、奧馬哈 (OM)、5 張奧馬哈 (O5)、短牌 (SD，36 張牌)。無需登入：Token 選填，未帶時走速率限制（同一 IP 每 60 秒最多 12 次，超限回 429），帶了有效 Token 則略過限流。",e: "Provide 2–15 known hands, an optional board and optional burn/muck (dead) cards to get each hand's equity, outs and status. Supports Hold'em (HE), Omaha (OM), 5-card Omaha (O5) and Short Deck (SD, 36 cards). No login required: the token is optional — without one the call is rate limited (at most 12 per IP per 60 seconds, returning 429 when exceeded); a valid token skips the rate limit." },
+				desc: { z: "輸入 2~15 手明確手牌、（可選的）公共牌與（可選的）燒牌/棄牌，回傳每一手的勝率、outs 與牌力狀態。支援德州撲克 (HE)、奧馬哈 (OM)、5 張奧馬哈 (O5)、奧馬哈高低 (O8)、5 張奧馬哈高低 / Big O (BO)、短牌 (SD，36 張牌)。高低分池的兩種牌型（O8、BO）回傳的 win / tie 語意不同，見下方說明。無需登入：Token 選填，未帶時走速率限制（同一 IP 每 60 秒最多 12 次，超限回 429），帶了有效 Token 則略過限流。",e: "Provide 2–15 known hands, an optional board and optional burn/muck (dead) cards to get each hand's equity, outs and status. Supports Hold'em (HE), Omaha (OM), 5-card Omaha (O5), Omaha Hi-Lo (O8), 5-card Omaha Hi-Lo / Big O (BO) and Short Deck (SD, 36 cards). For the two split-pot types (O8, BO) the meaning of win / tie differs — see the notes below. No login required: the token is optional — without one the call is rate limited (at most 12 per IP per 60 seconds, returning 429 when exceeded); a valid token skips the rate limit." },
 				auth: AUTHOPEN,
 				params: [
-					P("gametype","string",true,"<code>HE</code> 德州（每手 2 張）、<code>OM</code> 奧馬哈（每手 4 張）、<code>O5</code> 5 張奧馬哈（每手 5 張）、<code>SD</code> 短牌（每手 2 張、36 張牌、點數 6~A）。其餘值預設以 HE 處理。","<code>HE</code> Hold'em (2 cards each), <code>OM</code> Omaha (4 each), <code>O5</code> 5-card Omaha (5 each), <code>SD</code> Short Deck (2 each, 36-card deck, ranks 6~A). Other values default to HE.",{ ex: "HE" }),
-					P("handlist","string[][]",true,"2~15 手，每手是牌字串陣列（HE/SD 2 張、OM 4 張、O5 5 張）。牌不可重複。亦相容舊欄位 <code>hands</code>。實際可解算手數仍受牌堆限制（手數 × 每手張數 + 公共牌 + 燒牌不得超過牌堆）。","2–15 hands, each an array of card strings (HE/SD 2, OM 4, O5 5). No duplicate cards. The legacy field <code>hands</code> is also accepted. The solvable hand count is still bounded by the deck (hands × cards-per-hand + board + dead must fit the deck).",{ ex: [["As","Ah"],["Ks","Kh"]] }),
+					P("gametype","string",true,"<code>HE</code> 德州（每手 2 張）、<code>OM</code> 奧馬哈（每手 4 張）、<code>O5</code> 5 張奧馬哈（每手 5 張）、<code>O8</code> 奧馬哈高低（每手 4 張、高低分池）、<code>BO</code> 5 張奧馬哈高低 Big O（每手 5 張、高低分池）、<code>SD</code> 短牌（每手 2 張、36 張牌、點數 6~A）。其餘值預設以 HE 處理。","<code>HE</code> Hold'em (2 cards each), <code>OM</code> Omaha (4 each), <code>O5</code> 5-card Omaha (5 each), <code>O8</code> Omaha Hi-Lo (4 each, split pot), <code>BO</code> 5-card Omaha Hi-Lo / Big O (5 each, split pot), <code>SD</code> Short Deck (2 each, 36-card deck, ranks 6~A). Other values default to HE.",{ ex: "HE" }),
+					P("handlist","string[][]",true,"2~15 手，每手是牌字串陣列（HE/SD 2 張、OM/O8 4 張、O5/BO 5 張）。牌不可重複。亦相容舊欄位 <code>hands</code>。實際可解算手數仍受牌堆限制（手數 × 每手張數 + 公共牌 + 燒牌不得超過牌堆）。","2–15 hands, each an array of card strings (HE/SD 2, OM/O8 4, O5/BO 5). No duplicate cards. The legacy field <code>hands</code> is also accepted. The solvable hand count is still bounded by the deck (hands × cards-per-hand + board + dead must fit the deck).",{ ex: [["As","Ah"],["Ks","Kh"]] }),
 					P("board","object",false,"公共牌物件，可空字串、可只填部分；合計最多 5 張。","The board object; values may be empty strings or partial; up to 5 cards total.",{ fields: [
 						SUB("flop","string[]","翻牌 3 張，例如 [\"Qs\",\"Js\",\"2c\"]。","Flop, 3 cards, e.g. [\"Qs\",\"Js\",\"2c\"]."),
 						SUB("turn","string","轉牌 1 張，可空字串。","Turn, 1 card, may be empty."),
@@ -1842,18 +1895,21 @@ const APICATEGORIES=[
 				notes: [
 					{ title: { z: "牌字串格式",e: "Card-string format" },body: { z: "點數 <span class=\"font-mono text-emerald-300\">A K Q J T 9 8 7 6 5 4 3 2</span>（10 用 T）＋花色 <span class=\"font-mono text-emerald-300\">s h d c</span>，例如 As、Td、9h。短牌 (SD) 僅接受點數 6~A。",e: "Rank <span class=\"font-mono text-emerald-300\">A K Q J T 9 8 7 6 5 4 3 2</span> (10 is T) + suit <span class=\"font-mono text-emerald-300\">s h d c</span>, e.g. As, Td, 9h. Short Deck (SD) only accepts ranks 6~A." } },
 					{ title: { z: "短牌 (SD) 牌力",e: "Short Deck (SD) ranking" },body: { z: "36 張牌（移除 2~5）。僅同花 &gt; 葫蘆有別於標準，其餘照標準（順子仍 &gt; 三條）；最小順子為 A-6-7-8-9。",e: "36-card deck (2~5 removed). Only flush &gt; full house differs from standard; otherwise standard (straight still &gt; trips); the lowest straight is A-6-7-8-9." } },
+					{ title: { z: "高低分池（O8 / BO）",e: "Split pot (O8 / BO)" },body: { z: "底池拆成高牌與低牌兩半。低牌採 8-or-better：五張點數都 8 或更小（A 算 1）且不重複，同樣受奧馬哈「底牌剛好 2 張 + 公共牌剛好 3 張」限制，高低兩邊可各挑不同組合。沒有任何一家湊得出合格低牌時，整池歸高牌贏家。此時回傳的 <code>win</code> 是平均分池份額、<code>tie</code> 是通吃率；<code>bestcardlist</code> 只給高牌那五張，低牌那五張走 <code>lowcardlist</code>，低池贏家看 <code>lowwinnered</code>。",e: "The pot splits into a high half and a low half. The low uses 8-or-better: five distinct ranks all 8 or lower (A counts as 1), still subject to the Omaha rule of exactly 2 hole + 3 board cards, and the high and low may use different combinations. When nobody qualifies for low, the whole pot goes to the high winner. In this mode <code>win</code> is the average pot share and <code>tie</code> is the scoop rate; <code>bestcardlist</code> covers the high five only — the low five come back in <code>lowcardlist</code>, and low-pot winners are flagged by <code>lowwinnered</code>." } },
 					{ title: { z: "燒牌 / 棄牌（dead）",e: "Burn / muck (dead)" },body: { z: "<code>dead</code> 內的牌會在計算前從牌堆移除：因此不會被當成任一手的 out（例如燒掉 <span class=\"font-mono text-emerald-300\">5s</span>，則所有手的 outs/chopoutlist 都不會出現 5s），剩餘牌的抽樣與精算也會排除它們，等同於把那幾張牌「拿出牌堆」。",e: "Cards in <code>dead</code> are removed from the deck before computing: they never count as an out for any hand (e.g. burning <span class=\"font-mono text-emerald-300\">5s</span> means 5s appears in no hand's outs/chopoutlist), and remaining-card sampling/enumeration excludes them — effectively pulling those cards out of the deck." } }
 				],
 				response: [
 					R("data.results / data.resultlist","object[]","兩者內容相同，可擇一使用；每一手一個物件。","Identical content, use either; one object per hand.",[
 						SUB("index","int","對應 request handlist 的索引（0 起算）。","Index into the request handlist (0-based)."),
 						SUB("gametype","string","本次計算的遊戲類型。","The game type used."),
-						SUB("win","float","獲勝勝率（0~100，兩位小數）。","Win equity (0–100, two decimals)."),
-						SUB("tie","float","平手勝率（0~100）。敗率 = 100 − win − tie。","Tie equity (0–100). Lose = 100 − win − tie."),
+						SUB("win","float","獲勝勝率（0~100，兩位小數）。<b>高低分池（O8 / BO）時改為「平均分池份額」</b>——包含只拿一半底池的情況。","Win equity (0–100, two decimals). <b>For split-pot types (O8 / BO) this is the average share of the pot</b>, including halves."),
+						SUB("tie","float","平手勝率（0~100）。敗率 = 100 − win − tie。<b>高低分池（O8 / BO）時改為「通吃率」</b>（高低兩半都拿下的比例），此時 win 與 tie 不互斥，兩者相加沒有意義。","Tie equity (0–100). Lose = 100 − win − tie. <b>For split-pot types (O8 / BO) this is the scoop rate</b> (taking both halves); win and tie are then not mutually exclusive and must not be summed."),
 						SUB("outs / outlist","string[]","使該手成為「唯一最佳」的下一張牌。","Next cards that make this hand the sole best."),
 						SUB("chopoutlist","string[]","使該手變成「並列最佳（打平）」的下一張牌。","Next cards that make this hand tie for best."),
 						SUB("bested","bool","目前公共牌下是否為（並列）最佳高牌。","Whether it is the (tied) best high hand on the current board."),
 						SUB("bestcardlist","string[]","目前最佳 5 張牌組合（公共牌 ≥3 張才有）。","The current best 5-card combo (only with board ≥3)."),
+						SUB("lowwinnered","bool","是否為（並列）最佳合格低牌，即低池贏家。<b>僅高低分池（O8 / BO）且公共牌滿 5 張時才可能為 true</b>；其餘牌型、公共牌未發完、或這手湊不出合格低牌，一律 false。","Whether it is the (tied) best qualifying low, i.e. a low-pot winner. <b>Only ever true for split-pot types (O8 / BO) with a full 5-card board</b>; false for all other game types, incomplete boards, or hands with no qualifying low."),
+						SUB("lowcardlist","string[]","該手的最佳合格低牌 5 張組合；<code>lowwinnered</code> 之外的手若湊得出合格低牌也會回傳，湊不出或非高低分池時為空陣列。","The hand's best qualifying low 5-card combo; also returned for hands that qualify for low without winning it. Empty array when the hand has no qualifying low or the type is not split-pot."),
 						SUB("status","string","牌力狀態，見下方。","Hand status, see below.")
 					],6)
 				],
@@ -1874,7 +1930,7 @@ const APICATEGORIES=[
 					ERR("429","ERROR_too_many_requests","匿名（未帶 Token）呼叫時，同一 IP 60 秒內超過 12 次。帶有效 Token 則不受此限。","More than 12 anonymous (token-less) calls from the same IP within 60 seconds; calls with a valid token are exempt.")
 				],
 				requestexample: 'POST /backendapi/equity\nAuthorization: Bearer <token>   (選填 optional：帶了可略過限流 / skips the rate limit)\nContent-Type: application/json\n\n{\n  "gametype": "HE",\n  "handlist": [["As","Ah"], ["Ks","Kh"]],\n  "board": { "flop": ["Qs","Js","2c"], "turn": "", "river": "" },\n  "dead": ["5s","Jd"]\n}',
-				responseexample: '{\n  "success": true,\n  "data": {\n    "resultlist": [\n      {\n        "index": 0, "gametype": "HE",\n        "win": 91.2, "tie": 0.0,\n        "outs": [], "outlist": [], "chopoutlist": [],\n        "bested": true, "bestcardlist": ["As","Ah","Qs","Js","2c"],\n        "status": "ahead"\n      },\n      {\n        "index": 1, "gametype": "HE",\n        "win": 8.8, "tie": 0.0,\n        "outs": ["Ks","Kc","Kd","Th","Td"],\n        "chopoutlist": [], "bested": false,\n        "bestcardlist": ["Ks","Kh","Qs","Js","2c"],\n        "status": "out"\n      }\n    ],\n    "results": [ "...與 resultlist 相同..." ]\n  }\n}'
+				responseexample: '{\n  "success": true,\n  "data": {\n    "resultlist": [\n      {\n        "index": 0, "gametype": "HE",\n        "win": 91.2, "tie": 0.0,\n        "outs": [], "outlist": [], "chopoutlist": [],\n        "bested": true, "bestcardlist": ["As","Ah","Qs","Js","2c"],\n        "lowwinnered": false, "lowcardlist": [],\n        "status": "ahead"\n      },\n      {\n        "index": 1, "gametype": "HE",\n        "win": 8.8, "tie": 0.0,\n        "outs": ["Ks","Kc","Kd","Th","Td"],\n        "chopoutlist": [], "bested": false,\n        "bestcardlist": ["Ks","Kh","Qs","Js","2c"],\n        "status": "out"\n      }\n    ],\n    "results": [ "...與 resultlist 相同..." ]\n  }\n}'
 			},
 			{
 				id: "solvehandwinner",method: "POST",path: "/solvehandwinner",title: { z: "攤牌贏家判定",e: "Showdown winner" },
@@ -1886,13 +1942,15 @@ const APICATEGORIES=[
 						SUB("turn","string","轉牌 1 張，可空字串。","Turn, 1 card, may be empty."),
 						SUB("river","string","河牌 1 張，可空字串。","River, 1 card, may be empty.")
 					],ex: { flop: ["Ah","Kd","7s"],turn: "2c",river: "9h" } }),
-					P("handcard","object",false,"自家底牌。","Own hole cards.",{ fields: [
+					P("handcard","object",false,"自家底牌（Hold em 2 張；Omaha 用 card1~card4；Omaha5 用 card1~card5）。","Own hole cards (Holdem 2; Omaha card1-card4; Omaha5 card1-card5).",{ fields: [
 						SUB("card1","string","第一張牌，例如 As。","First card, e.g. As."),
-						SUB("card2","string","第二張牌，例如 Kc。","Second card, e.g. Kc.")
+						SUB("card2","string","第二張牌，例如 Kc。","Second card, e.g. Kc."),
+						SUB("card3","string","第三張牌（Omaha 起）。","Third card (Omaha and up)."),
+						SUB("card4","string","第四張牌（Omaha 起）。","Fourth card (Omaha and up).")
 					],ex: { card1: "As",card2: "Kc" } }),
 					P("selfseating","int",false,"自家座位號。","Own seat number.",{ ex: 5 }),
 					P("showdowndata","object",false,"各座位攤牌資料；以座位號為鍵（shown 為 true 才計入）。","Per-seat showdown data, keyed by seat number (only counted when shown is true).",{ fields: [
-						R("<座位號>","object","以座位號為鍵的攤牌物件。","Showdown object keyed by seat number.",[SUB("card1","string","第一張牌。","First card."),SUB("card2","string","第二張牌。","Second card."),SUB("shown","bool","是否亮牌（true 才計入）。","Whether shown (only counted when true).")])
+						R("<座位號>","object","以座位號為鍵的攤牌物件。","Showdown object keyed by seat number.",[SUB("card1","string","第一張牌。","First card."),SUB("card2","string","第二張牌。","Second card."),SUB("card3","string","第三張牌（Omaha 起）。","Third card (Omaha and up)."),SUB("card4","string","第四張牌（Omaha 起）。","Fourth card (Omaha and up)."),SUB("shown","bool","是否亮牌（true 才計入）。","Whether shown (only counted when true).")])
 					],ex: { "1": { card1: "Qh",card2: "Qc",shown: true },"3": { card1: "Ad",card2: "Kh",shown: true } } })
 				],
 				response: [

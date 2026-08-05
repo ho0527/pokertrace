@@ -47,6 +47,7 @@
 						<label class="mb-2 block text-sm font-bold text-zinc-100" id="spchiplabel" for="spchip">最小面額</label>
 						<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="spchip" min="1" inputmode="numeric" value="25">
 						<input type="button" class="mt-2 min-h-10 rounded-2xl border border-emerald-600/60 bg-emerald-600/10 px-4 text-sm font-bold text-emerald-300 transition hover:bg-emerald-600/20" id="spprofilechips" value="從個人資料載入面額">
+						<div id="spchipstrip" class="chipstrip"></div>
 					</div>
 				</div>
 
@@ -56,14 +57,14 @@
 					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center"><div class="text-sm text-zinc-400" id="spremainderlabel">不可分配餘額</div><div class="mt-1 text-3xl font-extrabold" id="spremainder">-</div></div>
 				</div>
 				<div id="sprows" class="mt-4 space-y-2"></div>
-				<div class="mt-3 text-xs text-zinc-500" id="spnote">每人先拿可整除最小面額的相同金額，剩下無法均分的計分牌（odd chips）依習慣分給距離莊家左手最近的玩家。</div>
+				<div class="mt-3 text-xs text-zinc-500" id="spnote">每人先拿可整除最小面額的相同金額，剩下無法均分的計分牌（odd chips）依習慣分給距離莊家左手最近的選手。</div>
 			</section>
 		</div>
 
 		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
 			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
-				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">平分彩池與零頭計分牌</h2>
-				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">兩家以上攤牌同牌力時底池均分，除不盡的零頭（odd chip）通常給最接近按鈕左邊的玩家。輸入底池與人數，工具算出每人分得金額與零頭歸屬，處理 split pot 快又標準。</p>
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white" data-i18n="toolseo.splitpottitle">平分彩池與零頭計分牌</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400" data-i18n="toolseo.splitpotbody">兩家以上攤牌同牌力時底池均分，除不盡的零頭（odd chip）通常給最接近按鈕左邊的選手。輸入底池與人數，工具算出每人分得金額與零頭歸屬，處理 split pot 快又標準。</p>
 			</div>
 		</section>
 		<div id="footer"></div>

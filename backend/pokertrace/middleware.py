@@ -4,10 +4,34 @@
 import json
 import logging
 
-from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.http import Http404, JsonResponse
 from rest_framework import status
 
 logger = logging.getLogger("pokertrace")
+
+# Django 用這幾個例外做**流程控制**，不是「出錯了」：
+#   Http404            → 找不到資源
+#   PermissionDenied   → 沒權限
+#   SuspiciousOperation→ 請求本身不合法
+# 原本的 process_exception 一律吃掉並回 500 + ERROR_unknow_error_pls_tell_the_admin，
+# 導致 `raise Http404()` 在前端看起來是伺服器爆掉（實測 /swagger/ 與 /swagger.json
+# 兩個刻意在非 DEBUG 下 404 的端點，回的都是 500），而且每一次都在 error.log
+# 寫一筆帶 traceback 的 "Unhandled exception"，把真正的錯誤洗掉。
+#
+# 這裡把它們對到正確的狀態碼，但**仍然回專案統一的 JSON 封包** ——
+# 不能直接 return None 交給 Django 預設處理，那會回一頁 HTML，
+# 前端的 ajax 包裝在解析 JSON 時會炸。
+#
+# 錯誤碼沿用 function.py 既有的鍵，不新增：
+#   ERROR_api_not_found            → 404
+#   ERROR_no_permission            → 403
+#   ERROR_request_data_type_error  → 400
+CONTROLFLOWEXCEPTION=(
+	(Http404, "ERROR_api_not_found", status.HTTP_404_NOT_FOUND),
+	(PermissionDenied, "ERROR_no_permission", status.HTTP_403_FORBIDDEN),
+	(SuspiciousOperation, "ERROR_request_data_type_error", status.HTTP_400_BAD_REQUEST),
+)
 
 
 class ExceptionMiddleware:
@@ -25,6 +49,22 @@ class ExceptionMiddleware:
 		return self.get_response(request)
 
 	def process_exception(self, request, exception):
+		# 流程控制型例外先處理：對到正確狀態碼，用 info 記一行而不是 error + traceback。
+		for exceptionclass, errorkey, statuscode in CONTROLFLOWEXCEPTION:
+			if isinstance(exception, exceptionclass):
+				logger.info(
+					"%s on %s %s",
+					exceptionclass.__name__,
+					request.method,
+					request.get_full_path(),
+				)
+				return JsonResponse(
+					{
+						"success": False,
+						"data": errorkey,
+					},
+					status=statuscode,
+				)
 		# 完整細節只進後端 log；exc_info=True 會附上 traceback。
 		logger.error(
 			"Unhandled exception on %s %s",

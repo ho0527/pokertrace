@@ -32,7 +32,7 @@
 				</header>
 
 				<main class="display-main">
-					<section class="payout-column" aria-label="Payout information">
+					<section class="payout-column" id="payoutColumn" aria-label="Payout information">
 						<div class="card payout-card">
 							<div class="lbl">Payouts</div>
 							<div id="payoutList"></div>
@@ -96,7 +96,7 @@
 							<div class="sub-stat hidden" id="regCloseAfterLabel"></div>
 						</div>
 
-						<div class="card players-card">
+						<div class="card players-card" id="playersCard">
 							<div class="lbl">Players Remaining</div>
 							<div class="stat-num large-stat">
 								<span id="playersDisplay">9</span><span id="entriesLabel">/9</span>
@@ -104,7 +104,7 @@
 							<div class="bubble-status hidden" id="bubbleStatus"></div>
 						</div>
 
-						<div class="card avg-card">
+						<div class="card avg-card" id="avgStackCard">
 							<div class="lbl">Avg Stack</div>
 							<div class="stat-num large-stat" id="avgStack"></div>
 						</div>

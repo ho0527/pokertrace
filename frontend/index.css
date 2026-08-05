@@ -448,3 +448,87 @@ select:not([multiple]) {
 		transform: translateX(0);
 	}
 }
+
+/* 計分牌色塊 (chip swatch) — 變體 A 圓點前綴
+   決策: ai/artifacts/現場體驗客製化/mockup-decision-計分牌色塊.md
+   色值來自使用者資料, 一律由 ptchipswatchapply() 以 element.style 指派;
+   不可寫成 Tailwind class, Tailwind 掃不到會靜默無樣式 */
+.chipswatch {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.chipswatch-dot {
+	height: 28px;
+	width: 28px;
+	flex: 0 0 28px;
+	border-radius: 9999px;
+	border: 1px solid #52525b;
+	background: transparent;
+}
+
+.chipswatch-name {
+	font-size: 14px;
+	font-weight: 700;
+	color: #d4d4d8;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 140px;
+}
+
+/* 已載入牌組色帶 */
+.chipstrip {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.chippill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	border-radius: 9999px;
+	border: 1px solid #27272a;
+	background: rgba(9,9,11,0.7);
+	padding: 6px 12px 6px 6px;
+}
+
+.chippill .chipswatch-dot {
+	height: 20px;
+	width: 20px;
+	flex: 0 0 20px;
+}
+
+.chippill-value {
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 13px;
+	color: #d4d4d8;
+}
+
+/* 可點選的色帶 (chiprace / splitpot 用來挑面額) */
+.chippill[role="button"] {
+	cursor: pointer;
+	transition: border-color 0.15s, background-color 0.15s;
+}
+
+.chippill[role="button"]:hover {
+	border-color: #3f3f46;
+	background: rgba(24,24,27,0.9);
+}
+
+.chippill[role="button"]:focus-visible {
+	outline: none;
+	border-color: #34d399;
+}
+
+.chippill[role="button"].is-selected {
+	border-color: #34d399;
+	background: rgba(5,150,105,0.12);
+}
+
+.chippill[role="button"].is-selected .chippill-value {
+	color: #6ee7b7;
+}

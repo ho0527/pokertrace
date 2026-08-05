@@ -138,6 +138,8 @@
 	min-height: 54px;
 	min-width: 42px;
 	padding: 4px 8px;
+	/* 高低分池的上下半光暈要用絕對定位的偽元素，所以本體必須是定位基準 */
+	position: relative;
 	transition: border-color .15s ease, background .15s ease;
 }
 
@@ -155,14 +157,46 @@
 	transform: translateY(-1px);
 }
 
-/* 牌面文字顏色 */
-.cardred {
-	color: #f87171;
+/* 高低分池（O8 / BO）的低牌：黃光。與 .cardslotbest 的綠光同一組尺寸只換顏色，
+   這樣同一張牌同時入選高低兩邊時，兩半看起來才是對稱的。
+   與 handdetail 的 carddisplay.css 是同一套視覺語彙，只是那邊的元素是 .pt-card。 */
+.cardslotlow {
+	border-color: #facc15;
+	box-shadow: 0 0 0 2px rgba(250, 204, 21, .55), 0 0 16px rgba(234, 179, 8, .45);
+	transform: translateY(-1px);
 }
 
-.cardblack {
-	color: #e5e7eb;
+/* 同一張牌同時被高牌與低牌用到：上半綠、下半黃。
+   box-shadow 沒辦法只套半張牌，所以本體陰影拿掉，改用兩個偽元素各帶完整光暈，
+   再用 clip-path 各切一半。inset() 的上下用負值讓左右的光暈不被裁掉，只在中線切開。 */
+.cardslotbest.cardslotlow {
+	box-shadow: none;
 }
+
+.cardslotbest.cardslotlow::before,
+.cardslotbest.cardslotlow::after {
+	border-radius: inherit;
+	bottom: 0;
+	content: "";
+	left: 0;
+	pointer-events: none;
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+
+.cardslotbest.cardslotlow::before {
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, .55), 0 0 16px rgba(16, 185, 129, .45);
+	clip-path: inset(-100% -100% 50% -100%);
+}
+
+.cardslotbest.cardslotlow::after {
+	box-shadow: 0 0 0 2px rgba(250, 204, 21, .55), 0 0 16px rgba(234, 179, 8, .45);
+	clip-path: inset(50% -100% -100% -100%);
+}
+
+/* 牌面文字顏色改由 carddisplay.css 的 .pt-suittext 依 deckface 兩色/四色決定，
+   原本寫死的 .cardred / .cardblack 已無人使用，移除以免又有人接回去而繞過設定。 */
 
 /* 全螢幕選牌燈箱 */
 .toolmodal {

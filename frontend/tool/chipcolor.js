@@ -1,3 +1,4 @@
+// 未登入 / 沒有個人牌組時顯示的通用對照表（業界現金桌慣例，非使用者個人設定）
 let CHIPCOLORS=[
 	{zh:"白色",en:"White",hex:"#f8fafc",val:"1"},
 	{zh:"紅色",en:"Red",hex:"#ef4444",val:"5"},
@@ -11,6 +12,9 @@ let CHIPCOLORS=[
 	{zh:"淺藍",en:"Light Blue",hex:"#38bdf8",val:"25,000"}
 ]
 
+// 個人牌組（登入且有設定時才有內容）。空陣列代表要顯示通用對照表。
+let profilechiplist=[]
+
 function cctext(key){
 	if(!TRANSLATE[LANGUAGE]||!TRANSLATE[LANGUAGE]["chipcolorpage"]){
 		return key
@@ -20,30 +24,56 @@ function cctext(key){
 
 function rendercc(){
 	let html=""
-	for(let i=0;i<CHIPCOLORS.length;i=i+1){
-		let c=CHIPCOLORS[i]
-		let name=(function(){if(LANGUAGE=="en"){return c.en}return c.zh})()
-		html=html+`
-			<div class="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
-				<span class="h-7 w-7 rounded-full border border-zinc-600" data-cccolor="${c.hex}"></span>
-				<span class="flex-1 font-bold text-white">${name}</span>
-				<span class="font-mono text-emerald-400">$${c.val}</span>
-			</div>
-		`
+	if(profilechiplist.length>0){
+		// 個人牌組：色塊與名稱由 ptchipswatchapply() 以 DOM 指派，使用者資料不進 HTML 字串
+		for(let i=0;i<profilechiplist.length;i=i+1){
+			html=html+`
+				<div class="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+					${ptchipswatchhtml(profilechiplist[i]["value"])}
+					<span class="ml-auto font-mono text-emerald-400">$${profilechiplist[i]["value"].toLocaleString("en-US")}</span>
+				</div>
+			`
+		}
+		innerhtml("#ccrows",html,false)
+		ptchipswatchapply(domgetid("ccrows"),profilechiplist)
+		innertext("#ccnote",cctext("profilenote"),false)
+	}else{
+		for(let i=0;i<CHIPCOLORS.length;i=i+1){
+			let c=CHIPCOLORS[i]
+			let name=(function(){if(LANGUAGE=="en"){return c.en}return c.zh})()
+			html=html+`
+				<div class="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+					<span class="h-7 w-7 rounded-full border border-zinc-600" data-cccolor="${c.hex}"></span>
+					<span class="flex-1 font-bold text-white">${name}</span>
+					<span class="font-mono text-emerald-400">$${c.val}</span>
+				</div>
+			`
+		}
+		innerhtml("#ccrows",html,false)
+		let colorlist=document.querySelectorAll("[data-cccolor]")
+		for(let i=0;i<colorlist.length;i=i+1){
+			colorlist[i].style.background=colorlist[i].getAttribute("data-cccolor")
+		}
+		innertext("#ccnote",cctext("note"),false)
 	}
-	innerhtml("#ccrows",html,false)
-	let colorlist=document.querySelectorAll("[data-cccolor]")
-	for(let i=0;i<colorlist.length;i=i+1){
-		colorlist[i].style.background=colorlist[i].getAttribute("data-cccolor")
-	}
+}
+
+function loadccprofilechips(){
+	// 本頁定位是免登入工具，未登入或讀取失敗都靜默退回通用表，不彈 toast、不打斷閱讀
+	ptloadprofilechiplist(function(chiplist){
+		if(chiplist.length>0){
+			profilechiplist=chiplist
+			rendercc()
+		}
+	},true)
 }
 
 function applycclanguage(){
 	document.title=cctext("title")+" - PokerTrace"
 	innertext("#cctitle",cctext("title"),false)
 	innertext("#back",cctext("back"),false)
-	innertext("#ccnote",cctext("note"),false)
 	rendercc()
 }
 
 applycclanguage()
+loadccprofilechips()

@@ -58,6 +58,100 @@ function escapehtml(value){
 const LANGUAGE=weblsget(WEBLSNAME+"language")||"zhtw"
 const CURRENTPAGENAME=(location.pathname.split("/").pop()||"").toLowerCase()
 
+/* 牌面配色（兩色 / 四色）。掛在 <html> 上而不是 <body>，這樣在 body 還沒解析完之前
+   就已經生效，不會先閃一下預設配色再跳成使用者選的。
+
+   刻意用 localStorage 直接讀而不等 getuser 回來：那是一次 ajax，會有明顯閃爍。
+   getuser 回來後若值不同會再套一次（見 loadbackendadminlinks）。
+
+   全站每一頁都吃得到，因為 initialize.js 是所有頁面共用的。這正是先前
+   deck skin 只影響 broadcast / handreplay 的原因 —— 那兩處各自套 class，其他頁沒人套。 */
+const CARDBACKKEY="bc-cardback"
+const CARDSKINKEY="bc-cardface"
+const CARDSKINLIST=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite","minimal"]
+
+// TASK-046：牌背與牌面分開套用。
+// 在此之前 .deck-<key> 一個 class 同時決定牌背與牌面，所以兩者只能一起換。
+// 現在拆成 .cardback-<key> 與 .cardface-<key> 兩組，各自獨立。
+// .deck-<key> 沒有移除：色票預覽要一次顯示整套，仍然用得到。
+//
+// 注意這與「兩色 / 四色」(deckface-two / deckface-four) 是**不同的軸**：
+// 那個決定花色用幾種顏色，這個決定卡片的底色與外框皮膚，兩者互不影響。
+function ptcardskinvalid(value){
+    if(CARDSKINLIST.indexOf(value)>=0){
+        return value
+    }
+    return "classic"
+}
+
+function ptcardskinapply(element,back,face){
+    if(!element){
+        return
+    }
+    for(let i=0;i<CARDSKINLIST.length;i=i+1){
+        element.classList.remove("cardback-"+CARDSKINLIST[i])
+        element.classList.remove("cardface-"+CARDSKINLIST[i])
+    }
+    element.classList.add("cardback-"+ptcardskinvalid(back))
+    element.classList.add("cardface-"+ptcardskinvalid(face))
+}
+
+// 讀本機儲存的牌背 / 牌面。沒有拆分過的舊資料仍存在 bc-deck，兩者都沿用它。
+function ptcardskinget(){
+    let deck=""
+    let back=""
+    let face=""
+    try{
+        deck=localStorage.getItem("bc-deck")||""
+        back=localStorage.getItem(CARDBACKKEY)||""
+        face=localStorage.getItem(CARDSKINKEY)||""
+    }catch(error){
+        deck=""
+    }
+    return {
+        "back": ptcardskinvalid(back||deck),
+        "face": ptcardskinvalid(face||deck)
+    }
+}
+
+const CARDFACEKEY="bc-face"
+
+function ptcardfaceapply(face){
+	let root=document.documentElement
+	if(!root){
+		return
+	}
+	root.classList.remove("deckface-two","deckface-four")
+	if(face=="two"){
+		root.classList.add("deckface-two")
+		return
+	}
+	root.classList.add("deckface-four")
+}
+
+function ptcardfaceget(){
+	let saved=""
+	try{
+		saved=localStorage.getItem(CARDFACEKEY)||""
+	}catch(error){
+		saved=""
+	}
+	if(saved=="two"){
+		return "two"
+	}
+	return "four"
+}
+
+ptcardfaceapply(ptcardfaceget())
+
+// TASK-046：牌背 / 牌面皮膚套在 <html> 上，全站都吃得到。
+// 在此之前 .deck-<key> 只加在現場轉播的 body 與手牌回放的覆蓋層上，
+// 所以 carddisplay.css 為 .pt-card 寫的那 8 套牌面配色在 handdetail / session / table
+// 這些真正用 .pt-card 的頁面上其實不會生效。改成全站套用後才符合
+// 使用者要的「牌面全站同步」。
+ptcardskinapply(document.documentElement,ptcardskinget()["back"],ptcardskinget()["face"])
+
+
 // 給沒有暫存/自動保存功能的表單頁面使用：追蹤欄位是否有未保存的變更，
 // 離開頁面(返回/重整/關閉)或按下站內的返回按鈕時跳出確認提示，避免資料遺失。
 let CURRENTLEAVEGUARD=null
@@ -1223,6 +1317,13 @@ function loadbackendadminlinks(){
 			try{
 				localStorage.setItem("bc-deck",data["data"]["carddeck"]||"classic")
 				localStorage.setItem("bc-potside",data["data"]["potmainside"]||"right")
+				// TASK-046：cardback / cardface 是**牌背與牌面的皮膚**。
+				// 舊帳號沒分開設定時後端會回傳與 carddeck 相同的值，所以外觀不變。
+				localStorage.setItem(CARDBACKKEY,data["data"]["cardback"]||data["data"]["carddeck"]||"classic")
+				localStorage.setItem(CARDSKINKEY,data["data"]["cardface"]||data["data"]["carddeck"]||"classic")
+				// 兩色 / 四色是另一個軸，後端還沒有對應欄位，維持只存本機。
+				// 這裡刻意不再讀 data["cardface"] 當成兩色/四色——那個欄位現在是皮膚名稱，
+				// 直接餵給 ptcardfaceapply() 會讓使用者選的兩色設定被吃掉。
 			}catch(error){
 				// localStorage 不可用時忽略
 			}
@@ -1262,6 +1363,99 @@ function markactivenavigation(){
 if(!DISPLAYONLYPAGEED){
 	markactivenavigation()
 }
+
+// 全站表單:在單行輸入框按 Enter 自動觸發該區塊的主要送出按鈕
+// 已用 onenterclick/onenterkeydown 綁過 onkeydown 的輸入框會被跳過,避免重複觸發
+function ptenterfindsubmit(input){
+	var submitwords=["登入","登錄","註冊","建立","新增","儲存","保存","送出","確定","確認","查詢","搜尋","加入","繼續","下一步","完成","申請","邀請","更新","變更","綁定","發送","寄送","匯入","付款","下單"]
+	var cancelwords=["取消","關閉","刪除","移除","返回","上一頁","上一步","登出","×"]
+	// 英文介面下按鈕文字會變成 Save / Cancel / Sign In，上面兩份中文清單一個都比對不到，
+	// Enter 送出就只剩 type=submit 與 emerald/blue class 兩條後備判斷，時好時壞。
+	// 英文不能沿用中文的 indexOf 子字串比對：英文字會互相包含（back 在 backup 裡、
+	// add 在 address 裡），會把不相干的按鈕誤判成取消鈕而擋掉 Enter。所以英文一律整字比對。
+	var submitworden=["save","submit","confirm","create","add","search","join","continue","next","done","finish","apply","invite","update","change","bind","send","import","pay","order","ok"]
+	var cancelworden=["cancel","close","delete","remove","back","previous"]
+	// 這幾個是跨字的片語，整字比對抓不到，改用「去掉非英文字母後」的字串比對。
+	// 例如 "Sign In" -> "signin"、"Log Out" -> "logout"。
+	var submitphraseen=["signin","login","signup","register"]
+	var cancelphraseen=["signout","logout"]
+	function labelof(btn){ return String(btn.value||btn.textContent||"").trim() }
+	function matchworden(wordlist,list){
+		var i=0
+		var j=0
+		for(i=0;i<list.length;i=i+1){
+			for(j=0;j<wordlist.length;j=j+1){
+				if(wordlist[j]==list[i]){ return true }
+			}
+		}
+		return false
+	}
+	function matchphraseen(squashed,list){
+		var i=0
+		for(i=0;i<list.length;i=i+1){
+			if(squashed.indexOf(list[i])>=0){ return true }
+		}
+		return false
+	}
+	function iscandidate(btn){
+		if(!btn||btn.disabled){ return false }
+		if(btn.offsetParent==null){ return false }
+		var tag=btn.tagName.toLowerCase()
+		var t=String(btn.getAttribute("type")||"").toLowerCase()
+		if(tag=="input"&&t!="button"&&t!="submit"){ return false }
+		var label=labelof(btn)
+		var lower=label.toLowerCase()
+		var squashed=lower.replace(/[^a-z]/g,"")
+		var wordlist=lower.split(/[^a-z]+/)
+		var i=0
+		// TASK-061：明確標記優先於任何文字比對。
+		// 原本這行排在取消字詞之後，所以像「確認刪除」這種標了 data-entersubmit
+		// 卻含有取消字詞的按鈕會被擋掉 —— 宣告應該勝過猜測。
+		if(btn.hasAttribute("data-entersubmit")){ return true }
+		for(i=0;i<cancelwords.length;i=i+1){ if(label.indexOf(cancelwords[i])>=0){ return false } }
+		if(matchphraseen(squashed,cancelphraseen)){ return false }
+		if(matchworden(wordlist,cancelworden)){ return false }
+		if(t=="submit"){ return true }
+		for(i=0;i<submitwords.length;i=i+1){ if(label.indexOf(submitwords[i])>=0){ return true } }
+		if(matchphraseen(squashed,submitphraseen)){ return true }
+		if(matchworden(wordlist,submitworden)){ return true }
+		var c=String(btn.className||"")
+		return c.indexOf("bg-emerald-6")>=0||c.indexOf("bg-emerald-7")>=0||c.indexOf("bg-blue-6")>=0||c.indexOf("bg-blue-7")>=0
+	}
+	var node=input
+	var hops=0
+	while(node&&node!=document.body&&hops<8){
+		if(node.querySelectorAll){
+			var btns=node.querySelectorAll("input[type=button],input[type=submit],button")
+			var j=0
+			for(j=0;j<btns.length;j=j+1){
+				if(iscandidate(btns[j])){ return btns[j] }
+			}
+		}
+		node=node.parentElement
+		hops=hops+1
+	}
+	return null
+}
+
+document.addEventListener("keydown",function(event){
+	if(event.key!="Enter"||event.isComposing||event.keyCode==229){ return }
+	if(event.ctrlKey||event.metaKey||event.altKey){ return }
+	var el=event.target
+	if(!el||!el.tagName){ return }
+	if(el.tagName.toLowerCase()!="input"){ return }
+	if(el.onkeydown){ return }
+	if(event.defaultPrevented){ return }
+	if(el.hasAttribute("data-noentersubmit")){ return }
+	var type=String(el.getAttribute("type")||"text").toLowerCase()
+	var allowed=["text","number","password","email","tel","search","url","date","time","month","week","datetime-local"]
+	if(allowed.indexOf(type)<0){ return }
+	var submit=ptenterfindsubmit(el)
+	if(submit){
+		event.preventDefault()
+		submit.click()
+	}
+})
 
 function currentpagepath(){
 	let page=location.pathname.split("/").pop()||""
@@ -1482,6 +1676,219 @@ function initpagebackbutton(){
 	})
 }
 
+/* ── 工具頁通用行為：輸入狀態保存 + 複製結果 / 重設 ────────────────────────
+   以 <body data-backfallback="toollist.html"> 判定工具頁。2026-07-28 實測 frontend/tool/
+   底下 85 個頁面全部都有這個屬性，因此不需要維護頁面白名單，新增工具頁也會自動吃到。
+   刻意做成通用自動接線而非逐頁改：85 頁逐一加程式碼不但工作量大，日後每加一頁都要記得補。
+   ───────────────────────────────────────────────────────────────────── */
+
+const TOOLPAGEED=(function(){
+	if(!document.body){
+		return false
+	}
+	return (document.body.getAttribute("data-backfallback")||"").trim()=="toollist.html"
+})()
+
+const TOOLSTATEPREFIX=WEBLSNAME+"toolstate:"
+
+// 只保存「使用者填的值」。按鈕類、檔案、密碼、隱藏欄位都不存；沒有 id 的也不存，
+// 因為重新載入後無法穩定對應回同一個欄位。
+function pttoolstatefieldlist(){
+	let output=[]
+	let candidatelist=document.querySelectorAll("input[id],select[id],textarea[id]")
+	for(let i=0;i<candidatelist.length;i=i+1){
+		let field=candidatelist[i]
+		let type=(field.getAttribute("type")||"").toLowerCase()
+		let skipped=false
+		if(type=="button"||type=="submit"||type=="reset"||type=="file"||type=="password"||type=="hidden"){
+			skipped=true
+		}
+		if(field.closest("#navigationbar")||field.closest("#footer")||field.closest("#pttoolactionbar")){
+			skipped=true
+		}
+		if(!skipped){
+			output.push(field)
+		}
+	}
+	return output
+}
+
+function pttoolstatesave(){
+	if(!TOOLPAGEED){
+		return
+	}
+	let state={}
+	let fieldlist=pttoolstatefieldlist()
+	for(let i=0;i<fieldlist.length;i=i+1){
+		let field=fieldlist[i]
+		let type=(field.getAttribute("type")||"").toLowerCase()
+		if(type=="checkbox"||type=="radio"){
+			state[field.id]=field.checked
+		}else{
+			state[field.id]=field.value
+		}
+	}
+	// 動態產生的輸入（chipsetup 的面額列、icm 的名次列等）沒有 id，上面那圈抓不到，
+	// 而且列數本身也是狀態 —— 共用層無從得知每一頁的資料形狀。因此改成 opt-in：
+	// 有動態列的頁面自己定義 pttoolstatecustom()，回傳可序列化的物件即可。
+	if(typeof pttoolstatecustom=="function"){
+		state["_custom"]=pttoolstatecustom()
+	}
+	try{
+		localStorage.setItem(TOOLSTATEPREFIX+CURRENTPAGENAME,JSON.stringify(state))
+		// 納入 TASK-060 的過期回收。工具頁有 85 個（其中 66 個有可保存欄位），
+		// 每頁一個 key，不記進索引的話 ptkeysweep() 永遠回收不到它們 ——
+		// 那正是 TASK-060 要解決的無上限累積，只是換一族 key。
+		ptkeytouch(TOOLSTATEPREFIX+CURRENTPAGENAME)
+	}catch(error){
+		// 無痕模式或容量已滿時 setItem 會丟例外。保存失敗不該影響工具本身能不能用。
+	}
+}
+
+function pttoolstaterestore(){
+	if(!TOOLPAGEED){
+		return
+	}
+	let state=null
+	try{
+		state=JSON.parse(localStorage.getItem(TOOLSTATEPREFIX+CURRENTPAGENAME)||"null")
+	}catch(error){
+		state=null
+	}
+	if(!state){
+		return
+	}
+	// 動態列必須先還原，否則下面那圈跑的時候那些欄位還不存在。
+	// 各頁的 apply 內部會重新算繪，所以還原完 DOM 就是完整的。
+	if(state["_custom"]!=undefined&&typeof pttoolstatecustomapply=="function"){
+		pttoolstatecustomapply(state["_custom"])
+	}
+	let fieldlist=pttoolstatefieldlist()
+	let restoreded=false
+	for(let i=0;i<fieldlist.length;i=i+1){
+		let field=fieldlist[i]
+		if(state[field.id]!=undefined){
+			let type=(field.getAttribute("type")||"").toLowerCase()
+			if(type=="checkbox"||type=="radio"){
+				field.checked=state[field.id]==true
+			}else{
+				field.value=state[field.id]
+			}
+			restoreded=true
+		}
+	}
+	// 各頁的計算是掛在 input / change 上的，直接改 value 不會觸發，
+	// 因此還原後補派事件讓該頁自己重算，否則畫面會停在預設值的舊結果。
+	if(restoreded){
+		for(let i=0;i<fieldlist.length;i=i+1){
+			fieldlist[i].dispatchEvent(new Event("input",{"bubbles":true}))
+			fieldlist[i].dispatchEvent(new Event("change",{"bubbles":true}))
+		}
+	}
+}
+
+// 複製用的純文字：把主卡片整個複製一份，把每個輸入控制項換成它「目前的值」，
+// 再取 textContent。這樣不必知道任何一頁的結構，就能同時帶出標籤與使用者填的數字。
+function pttoolresulttext(){
+	let card=document.querySelector("section[class*=\"rounded-[28px]\"]")
+	if(!card){
+		return ""
+	}
+	let clone=card.cloneNode(true)
+	let actionbar=clone.querySelector("#pttoolactionbar")
+	if(actionbar){
+		actionbar.remove()
+	}
+	let originallist=card.querySelectorAll("input,select,textarea")
+	let clonelist=clone.querySelectorAll("input,select,textarea")
+	for(let i=0;i<clonelist.length;i=i+1){
+		let text=""
+		if(originallist[i]){
+			let type=(originallist[i].getAttribute("type")||"").toLowerCase()
+			if(type=="button"||type=="submit"||type=="reset"){
+				text=""
+			}else if(type=="checkbox"||type=="radio"){
+				if(originallist[i].checked){
+					text=" [v] "
+				}else{
+					text=" [ ] "
+				}
+			}else{
+				text=" "+originallist[i].value+" "
+			}
+		}
+		clonelist[i].replaceWith(document.createTextNode(text))
+	}
+	let rawlist=String(clone.textContent||"").split("\n")
+	let linelist=[]
+	for(let i=0;i<rawlist.length;i=i+1){
+		let line=rawlist[i].replace(/\s+/g," ").trim()
+		if(line!=""){
+			linelist.push(line)
+		}
+	}
+	return document.title.replace(" - PokerTrace","")+"\n"+linelist.join("\n")
+}
+
+function pttoolactionbar(){
+	if(!TOOLPAGEED){
+		return
+	}
+	let card=document.querySelector("section[class*=\"rounded-[28px]\"]")
+	if(!card){
+		return
+	}
+	// 純參考頁（glossary、rules、tdarules 這類）沒有任何可保存欄位，
+	// 對它們顯示「重設輸入」沒有意義，只留「複製結果」。
+	let resetbuttonhtml=""
+	if(pttoolstatefieldlist().length>0){
+		resetbuttonhtml=`<input type="button" class="min-h-10 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="pttoolreset" value="${ptcommontext("resetinput","重設輸入")}">`
+	}
+	let wrap=doccreate("div")
+	wrap.id="pttoolactionbar"
+	wrap.className="mx-auto mt-4 flex w-full max-w-6xl flex-wrap gap-2 px-4"
+	wrap.innerHTML=`
+		<input type="button" class="min-h-10 rounded-2xl border border-emerald-600/60 bg-emerald-600/10 px-4 text-sm font-bold text-emerald-300 transition hover:bg-emerald-600/20" id="pttoolcopy" value="${ptcommontext("copyresult","複製結果")}">
+		${resetbuttonhtml}
+	`
+	card.insertAdjacentElement("afterend",wrap)
+	onclick("#pttoolcopy",function(){
+		let text=pttoolresulttext()
+		if(text==""){
+			return
+		}
+		if(navigator.clipboard&&navigator.clipboard.writeText){
+			navigator.clipboard.writeText(text).then(function(){
+				pttoast(ptcommontext("copied","已複製到剪貼簿"),"success")
+			}).catch(function(){
+				pttoast(ptcommontext("copyfailed","複製失敗，請手動選取"),"warning")
+			})
+		}else{
+			pttoast(ptcommontext("copyfailed","複製失敗，請手動選取"),"warning")
+		}
+	})
+	onclick("#pttoolreset",function(){
+		try{
+			localStorage.removeItem(TOOLSTATEPREFIX+CURRENTPAGENAME)
+		}catch(error){
+			// 清不掉也要照樣重新載入，讓使用者至少回到預設值
+		}
+		location.reload()
+	})
+}
+
+if(TOOLPAGEED){
+	// 保存用事件委派掛在 document 上，各頁動態新增的欄位（例如 chipsetup 的「+ 面額」）也會被涵蓋
+	document.addEventListener("input",pttoolstatesave)
+	document.addEventListener("change",pttoolstatesave)
+	// 還原必須等各頁自己的 script 跑完並綁好 handler，否則補派的事件沒有人接。
+	// initialize.js 在各工具頁是最後幾支 script 之一，DOMContentLoaded 會在全部同步 script 執行完才觸發。
+	document.addEventListener("DOMContentLoaded",function(){
+		pttoolactionbar()
+		pttoolstaterestore()
+	})
+}
+
 function ptdataurltarget(node){
 	let target=node
 	if(node&&node.target){
@@ -1693,6 +2100,70 @@ function applypagelanguage(){
 
 applypagelanguage()
 
+/*
+	標記式翻譯（TASK-069 選項 B）。
+
+	`pageauto` 用 CSS selector 從外面指向 HTML 節點，selector 綁死版面結構，
+	改版就靜默失效（`.mb-6 .grid div:nth-child(1) .text-sm` 這種）。
+	這裡改成把標記寫在元素身上，標記跟著元素走：
+
+	    <h1 data-i18n="sessionlist.title">場次管理</h1>
+	    <input type="text" data-i18n-placeholder="sessionlist.name" placeholder="名稱">
+	    <select data-i18n-aria-label="sessionlist.gametypefilter" aria-label="遊戲類型">
+
+	鍵是「區段.鍵名」，直接對應 TRANSLATE[語言][區段][鍵名]，
+	沿用各頁既有的區段（sessionlist、gametype…），不另立命名空間。
+	點記法讓跨區段引用很自然 —— 遊戲類型的選項屬於共用的 gametype 區段，
+	不屬於 sessionlist。
+
+	**找不到鍵時不覆寫**，讓 HTML 原本的字留著。
+	這一點跟 xxxtext() 那套刻意不同：那套查無會回傳鍵名本身，
+	畫面就顯示 indextoollistlink 這種東西（TASK-085 實際發生過）。
+	缺鍵退化成原本的中文，比退化成一個鍵名好得多，
+	而缺鍵本身由 npm run verify:i18n 抓。
+
+	屬性用白名單而不是掃所有 data-i18n-*：
+	CSS 沒辦法比對「屬性名稱前綴」，要掃全部元素才做得到，成本不划算。
+	白名單以外的寫法會被 verify:i18n 報出來，不會靜默失效。
+*/
+const I18NATTRLIST=["placeholder","value","title","alt","aria-label"]
+
+function i18ntext(key){
+	let out=undefined
+	let at=String(key||"").indexOf(".")
+	if(at>0){
+		let pack=TRANSLATE[LANGUAGE][key.slice(0,at)]
+		if(pack){
+			out=pack[key.slice(at+1)]
+		}
+	}
+	return out
+}
+
+function applydatai18n(){
+	if(TRANSLATE&&TRANSLATE[LANGUAGE]){
+		let textlist=document.querySelectorAll("[data-i18n]")
+		for(let i=0;i<textlist.length;i=i+1){
+			let text=i18ntext(textlist[i].getAttribute("data-i18n"))
+			if(text!=undefined){
+				textlist[i].textContent=text
+			}
+		}
+		for(let a=0;a<I18NATTRLIST.length;a=a+1){
+			let name=I18NATTRLIST[a]
+			let attrlist=document.querySelectorAll("[data-i18n-"+name+"]")
+			for(let i=0;i<attrlist.length;i=i+1){
+				let text=i18ntext(attrlist[i].getAttribute("data-i18n-"+name))
+				if(text!=undefined){
+					attrlist[i].setAttribute(name,text)
+				}
+			}
+		}
+	}
+}
+
+applydatai18n()
+
 function pttoolfavoritehref(){
 	let path=(location.pathname||"").replace(/\\/g,"/").toLowerCase()
 	if(path.indexOf("/tool/")<0){
@@ -1786,7 +2257,11 @@ function pttoolfavoritesend(list){
 		if(!data||data["success"]!=true){
 			return
 		}
-		localStorage.setItem(pttoolfavoritekey(),JSON.stringify(pttoolfavoritesanitize(data["data"]||[])))
+		try{
+			localStorage.setItem(pttoolfavoritekey(),JSON.stringify(pttoolfavoritesanitize(data["data"]||[])))
+		}catch(error){
+			// 無痕模式或容量已滿時 setItem 會丟例外，保存失敗不該中斷流程
+		}
 	},str({
 		"favorites": pttoolfavoritesanitize(list)
 	}),[
@@ -1796,7 +2271,11 @@ function pttoolfavoritesend(list){
 
 function pttoolfavoritesave(list,synced){
 	let output=pttoolfavoritesanitize(list)
-	localStorage.setItem(pttoolfavoritekey(),JSON.stringify(output))
+	try{
+		localStorage.setItem(pttoolfavoritekey(),JSON.stringify(output))
+	}catch(error){
+		// 無痕模式或容量已滿時 setItem 會丟例外，保存失敗不該中斷流程
+	}
 	if(synced!=false){
 		pttoolfavoritesend(output)
 	}
@@ -1991,6 +2470,163 @@ function ptloadprofilechipdenoms(done,silented){
 	])
 }
 
+// 把個人資料的計分牌整理成帶樣式的清單 [{value,color,shape,label}]，面額去重、由小到大。
+// label 取自 chipcolors 調色盤的顏色名稱；該顏色不在調色盤裡時退回 hex 本身，不留空白。
+// 與 ptprofilechipdenoms() 併存：那支只回傳數字陣列，已有 7 個呼叫點依賴，不可改其形狀。
+function ptprofilechiplist(userdata){
+	let palettelist=[]
+	if(userdata&&Array.isArray(userdata["chipcolors"])){
+		palettelist=userdata["chipcolors"]
+	}
+	let chipsetlist=[]
+	if(userdata&&Array.isArray(userdata["chipset"])){
+		chipsetlist=userdata["chipset"]
+	}
+	let output=[]
+	for(let i=0;i<chipsetlist.length;i=i+1){
+		let chiplist=chipsetlist[i]["chips"]||[]
+		for(let j=0;j<chiplist.length;j=j+1){
+			let value=parseInt(chiplist[j]["value"],10)||0
+			let existed=false
+			for(let k=0;k<output.length;k=k+1){
+				if(output[k]["value"]==value){
+					existed=true
+				}
+			}
+			if(value>0&&!existed){
+				let color=chiplist[j]["color"]||""
+				let label=color
+				for(let k=0;k<palettelist.length;k=k+1){
+					if(String(palettelist[k]["color"]).toLowerCase()==String(color).toLowerCase()){
+						label=palettelist[k]["name"]||color
+					}
+				}
+				output.push({
+					"value": value,
+					"color": color,
+					"shape": chiplist[j]["shape"]||"circle",
+					"label": label
+				})
+			}
+		}
+	}
+	output.sort(function(a,b){
+		return a["value"]-b["value"]
+	})
+	return output
+}
+
+// 載入個人資料的計分牌帶樣式清單，done 收到 [{value,color,shape,label}]。
+// 未登入 / 請求失敗 / 沒有設定時一律 done([])，讓呼叫端沿用自己的預設面額，不得因此崩頁。
+function ptloadprofilechiplist(done,silented){
+	if(!weblsget(WEBLSNAME+"signin")||!weblsget(WEBLSNAME+"token")){
+		if(!silented){
+			pttoast(pttoolchiptext("needsignin"),"warning")
+		}
+		if(done){
+			done([])
+		}
+		return
+	}
+	ajax("GET",AJAXURL+"getuser",function(event,data){
+		if(!data||data["success"]!=true){
+			if(done){
+				done([])
+			}
+			return
+		}
+		let chiplist=ptprofilechiplist(data["data"]||{})
+		if(chiplist.length<1){
+			if(!silented){
+				pttoast(pttoolchiptext("empty"),"warning")
+			}
+		}else{
+			if(!silented){
+				pttoast(pttoolchiptext("loaded").replace("{n}",chiplist.length),"success")
+			}
+		}
+		if(done){
+			done(chiplist)
+		}
+	},null,[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	])
+}
+
+// 計分牌色塊（chip swatch）的佔位標記；變體 A 圓點前綴，樣式在 index.css。
+// 這裡只寫入面額（整數，我們自己控制的值），使用者的顏色與名稱一律不進 HTML 字串，
+// 改由 ptchipswatchapply() 以 element.style 與 textContent 指派，從根本避免自我 XSS。
+function ptchipswatchhtml(value){
+	return "<span class=\"chipswatch\" data-chipswatch=\""+(parseInt(value,10)||0)+"\"><span class=\"chipswatch-dot\"></span><span class=\"chipswatch-name\"></span></span>"
+}
+
+// 「已載入牌組」色帶的佔位標記。selectabled 為 true 時每顆膠囊做成可點選（需要子元素，
+// 依 AGENTS.md 慣例用 role="button" 而非 input type="button"）。
+function ptchipstriphtml(chiplist,selectabled){
+	let html=""
+	for(let i=0;i<chiplist.length;i=i+1){
+		let value=parseInt(chiplist[i]["value"],10)||0
+		let pickattribute=""
+		if(selectabled){
+			pickattribute=" role=\"button\" tabindex=\"0\" data-chippick=\""+value+"\""
+		}
+		html=html+"<span class=\"chippill\""+pickattribute+">"+ptchipswatchhtml(value)+"<span class=\"chippill-value\">"+value.toLocaleString("en-US")+"</span></span>"
+	}
+	return html
+}
+
+// 把 root 底下所有色塊佔位標記填上顏色與名稱。
+// 找不到對應面額時整顆色塊隱藏，避免殘留上一次的顏色造成現場抓錯牌。
+function ptchipswatchapply(root,chiplist){
+	let boxlist=root.querySelectorAll("[data-chipswatch]")
+	for(let i=0;i<boxlist.length;i=i+1){
+		let value=parseInt(boxlist[i].getAttribute("data-chipswatch"),10)
+		let matched=null
+		for(let j=0;j<chiplist.length;j=j+1){
+			if(chiplist[j]["value"]==value){
+				matched=chiplist[j]
+			}
+		}
+		let dot=boxlist[i].querySelector(".chipswatch-dot")
+		let name=boxlist[i].querySelector(".chipswatch-name")
+		if(matched){
+			boxlist[i].style.display=""
+			dot.style.background=matched["color"]
+			name.textContent=matched["label"]
+		}else{
+			boxlist[i].style.display="none"
+		}
+	}
+}
+
+// 綁定可點選色帶：點擊或鍵盤 Enter／空白鍵都會把該面額回傳給 done。
+function ptchipstripbind(root,done){
+	let picklist=root.querySelectorAll("[data-chippick]")
+	for(let i=0;i<picklist.length;i=i+1){
+		picklist[i].addEventListener("click",function(){
+			done(parseInt(this.getAttribute("data-chippick"),10))
+		})
+		picklist[i].addEventListener("keydown",function(event){
+			if(event.key=="Enter"||event.key==" "){
+				event.preventDefault()
+				done(parseInt(this.getAttribute("data-chippick"),10))
+			}
+		})
+	}
+}
+
+// 標記色帶中目前選中的面額；value 不在色帶內時全部取消選取。
+function ptchipstripselect(root,value){
+	let picklist=root.querySelectorAll("[data-chippick]")
+	for(let i=0;i<picklist.length;i=i+1){
+		if(parseInt(picklist[i].getAttribute("data-chippick"),10)==value){
+			picklist[i].classList.add("is-selected")
+		}else{
+			picklist[i].classList.remove("is-selected")
+		}
+	}
+}
+
 // 把個人資料的每個計分牌組合（類別）各自整理成 {name,denoms}，不合併
 function ptprofilechipsetlist(userdata){
 	let chipsets=[]
@@ -2053,7 +2689,7 @@ if(!TIMERPAGEED){
 innerhtml("#footer",`
 	<footer class="sitefooter bg-zinc-950 border-t border-zinc-800 py-8 mt-8">
 		<div class="sitefooterinner max-w-6xl mx-auto px-4 text-center text-zinc-400 text-sm space-y-2">
-			<div>&copy; 2025 PokerTrace. All rights reserved.</div>
+			<div>&copy; 2025-2026 PokerTrace. All rights reserved.</div>
 			<div class="sitefooterlinks flex justify-center gap-4 text-gray-400">
 				<a href="privacy.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["privacy"]}</a>
 				<span class="sitefooterdivider">|</span>
@@ -2062,7 +2698,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				系統版本 a1.2.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} a1.3.0 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>
@@ -3385,6 +4021,212 @@ function ptapplytoolseo(){
 	}
 }
 
+// 共用公共牌解析（TASK-037）
+// 在此之前 broadcast.js / handdetail.js / handreplay.js / session.js / table.js
+// 各自寫了一份幾乎一樣的攤平邏輯，改動時很容易漏掉其中一兩個，而漏掉的地方
+// 只會在那一頁顯示錯誤、不會報任何錯。集中在這裡之後只需要改一個地方。
+// 後端回傳的格式仍是 {"flop": [...],"turn": "","river": ""}（TASK-037 改成從
+// 正規化表組出來，但欄位格式沒變），偶爾會是尚未 parse 的 JSON 字串，兩種都吃。
+function ptboardobject(value){
+	let board=value||{}
+	if(typeof board=="string"){
+		try{
+			board=JSON.parse(board)||{}
+		}catch(error){
+			board={}
+		}
+	}
+	let flop=[]
+	if(board["flop"]){
+		for(let i=0;i<board["flop"].length;i=i+1){
+			if(board["flop"][i]){
+				flop.push(board["flop"][i])
+			}
+		}
+	}
+	return {
+		"flop": flop,
+		"turn": board["turn"]||"",
+		"river": board["river"]||""
+	}
+}
+
+// 攤平成單一陣列，順序固定為 flop、turn、river
+function ptboardcardlist(value){
+	let board=ptboardobject(value)
+	let cards=[]
+	for(let i=0;i<board["flop"].length;i=i+1){
+		cards.push(board["flop"][i])
+	}
+	if(board["turn"]){
+		cards.push(board["turn"])
+	}
+	if(board["river"]){
+		cards.push(board["river"])
+	}
+	return cards
+}
+
+// ── 會無限增長的 localStorage key 的過期回收（TASK-060）────────────────────
+// 有幾類 key 是「每個場次 / 每張牌桌各一份」，使用者用越久越多：
+//   session-setting-tab-<sessionid>   場次設定頁記住的分頁
+//   registrationquery<sessionid>       報名查詢頁的查詢條件
+//   newedithand_<tableid>_<欄位>       手牌草稿（quickhand_ 同理，每桌十幾個 key）
+//   stackadjust_<id>                   計分牌校正草稿
+//
+// 這些在登出時會被 ptclearlocalstorage() 一次清掉，但**不登出的人永遠不會清**。
+// localStorage 有容量上限，滿了之後 setItem 會丟例外——而全站的 setItem 幾乎都
+// 包在 try/catch 裡靜默忽略，所以滿了不會有任何症狀，只會有功能默默不生效。
+//
+// 做法：寫入端呼叫 ptkeytouch() 記一筆「最後寫入時間」到單一索引 key，
+// 每次載入時 ptkeysweep() 把超過保留天數的 key 連同索引一起刪掉。
+// 只回收有登記在索引裡的 key，沒登記的一律不碰——寧可漏收也不要誤刪。
+const PTKEYINDEXNAME=WEBLSNAME+"keyindex"
+const PTKEYKEEPDAY=60
+
+function ptkeyindexread(){
+	try{
+		let raw=localStorage.getItem(PTKEYINDEXNAME)
+		if(!raw){
+			return {}
+		}
+		let data=JSON.parse(raw)
+		if(data&&typeof data=="object"&&!Array.isArray(data)){
+			return data
+		}
+		return {}
+	}catch(error){
+		return {}
+	}
+}
+
+function ptkeyindexwrite(index){
+	try{
+		localStorage.setItem(PTKEYINDEXNAME,JSON.stringify(index))
+	}catch(error){
+		// 連索引都寫不進去代表已經滿了，這時回收更重要，但也只能等下一次載入
+	}
+}
+
+// 寫入端每次寫這類 key 時呼叫一次，把最後寫入時間記進索引。
+function ptkeytouch(key){
+	if(!key){
+		return
+	}
+	let index=ptkeyindexread()
+	index[key]=Date.now()
+	ptkeyindexwrite(index)
+}
+
+// 回收：超過保留天數的 key 直接刪；已經不存在的 key 從索引移除，索引本身才不會長。
+function ptkeysweep(){
+	let index=ptkeyindexread()
+	let now=Date.now()
+	let limit=PTKEYKEEPDAY*24*60*60*1000
+	let next={}
+	let removed=0
+	for(let key in index){
+		let stamp=index[key]
+		let exists=false
+		try{
+			exists=localStorage.getItem(key)!=null
+		}catch(error){
+			exists=false
+		}
+		if(!exists){
+			continue
+		}
+		if(typeof stamp!="number"||now-stamp>limit){
+			try{
+				localStorage.removeItem(key)
+				removed=removed+1
+			}catch(error){
+				next[key]=stamp
+			}
+			continue
+		}
+		next[key]=stamp
+	}
+	ptkeyindexwrite(next)
+	return removed
+}
+
+// TASK-060：每次載入回收一次過期的動態 key。
+// **這個呼叫必須放在上面那幾個 const 之後**：函式宣告會提升，但 const 不會，
+// 放在檔案前段呼叫會踩到暫時死區（TDZ），丟 ReferenceError 並讓 initialize.js
+// 從那一行整個中斷 —— 2026-07-29 實際發生過一次。
+ptkeysweep()
+
+// 共用對比度計算（TASK-052）
+// 在此之前 control.js / session.js / profile.js 各有一份一模一樣的 WCAG 相對亮度
+// 與對比度公式（只有函式名稱不同），改一處另外兩處不會跟著動，也沒有任何檢查會發現。
+// 這三頁都已經載入 initialize.js，收攏在這裡不需要多載入任何東西。
+//
+// backluminance 預設是深色底 #0d0d0d 的相對亮度。要跟別的底色比就自己傳。
+// 注意 display.js 的 brandcontrastborder() **不是**這個的重複實作：它用的是簡易
+// luma 判斷要挑哪一個外框色，不是 WCAG 對比度，兩者刻意不同，不要合併。
+const DARKBACKLUMINANCE=0.00477
+
+function ptcontrastratio(hex,backluminance){
+    let value=String(hex||"").replace("#","")
+    if(value.length==3){
+        value=value[0]+value[0]+value[1]+value[1]+value[2]+value[2]
+    }
+    if(value.length!=6){
+        return 0
+    }
+    let channel=[]
+    let i=0
+    for(i=0;i<3;i=i+1){
+        let part=parseInt(value.substring(i*2,i*2+2),16)/255
+        if(part<=0.03928){
+            channel.push(part/12.92)
+        }else{
+            channel.push(Math.pow((part+0.055)/1.055,2.4))
+        }
+    }
+    let lum=0.2126*channel[0]+0.7152*channel[1]+0.0722*channel[2]
+    let backlum=DARKBACKLUMINANCE
+    if(backluminance!=undefined&&backluminance!=null){
+        backlum=backluminance
+    }
+    return (Math.max(lum,backlum)+0.05)/(Math.min(lum,backlum)+0.05)
+}
+
+// 共用多 board 讀取（TASK-038）
+// 後端從 TASK-038 起在手牌物件上附加 boardlist：每個 run 一筆
+// {"runno":1,"board":{...},"amount":0,"allocationlist":[{"seatno","amount"}]}。
+// 舊資料或舊回應沒有這個欄位時，用 boardcard / totalpot 組成單一筆，
+// 所以呼叫端可以一律當作陣列處理，不必兩種寫法都防。
+function ptboardlistof(hand){
+	let source=(hand||{})["boardlist"]
+	if(Array.isArray(source)&&source.length>0){
+		let list=[]
+		for(let i=0;i<source.length;i=i+1){
+			let item=source[i]||{}
+			list.push({
+				"runno": item["runno"]||(i+1),
+				"board": ptboardobject(item["board"]),
+				"amount": item["amount"]||0,
+				"allocationlist": item["allocationlist"]||[]
+			})
+		}
+		return list
+	}
+	return [{
+		"runno": 1,
+		"board": ptboardobject((hand||{})["boardcard"]),
+		"amount": (hand||{})["totalpot"]||0,
+		"allocationlist": []
+	}]
+}
+
+// 是否為多 board 手牌。單 board 時所有畫面都必須維持原樣，所以每個顯示端
+// 都用這個判斷來決定要不要走新的堆疊版面。
+function ptmultiboarded(hand){
+	return ptboardlistof(hand).length>1
+}
+
 // 共用日期時間格式化：全站統一輸出 YYYY-MM-DD HH:MM:SS，不含 T 與 Z。
 // 後端 timestamptz 會回傳像 "2026-07-12T14:30:00.123456Z" 或帶 "+08:00" 位移的字串，
 // 這裡以字串處理保留資料庫原始時間（不做瀏覽器時區換算），全站顯示才會一致。
@@ -3479,6 +4321,15 @@ function ptbindsort(containerselector,state,rerender){
 	}
 	let ths=container.querySelectorAll(".ptsortth")
 	for(let i=0;i<ths.length;i=i+1){
+		// 有些頁面每次 render 會把整個 thead 重畫（例如 clublist），
+		// 那種情況必須在 render 後重新呼叫 ptbindsort。但 addEventListener
+		// 不會解除舊的，重複呼叫就會**疊加**監聽器 —— 點一下切換兩次方向，
+		// 看起來像「排序壞掉」而不是「綁了兩次」。用標記擋掉重複綁定。
+		// 重畫產生的是新元素，不會帶著這個標記，所以新的 thead 仍然綁得到。
+		if(ths[i].getAttribute("data-ptsortbound")=="1"){
+			continue
+		}
+		ths[i].setAttribute("data-ptsortbound","1")
 		ths[i].style.cursor="pointer"
 		ths[i].addEventListener("click",function(){
 			let key=this.getAttribute("data-sortkey")

@@ -898,48 +898,118 @@ function averagestacktotal() {
 }
 
 // 顯示端品牌化（檢查表 3.3）：品牌名稱、主色、logo、可選顯示欄位
+// 四組可關閉的區塊 -> 實際要隱藏的元素。後端 displayFields 送的是群組代號,
+// 對應關係寫在前端, 因為「哪些元素算同一組」是版面知識不是資料知識。
+// payout 是整個左欄, 其餘是欄內的個別卡片。
+let BLOCKELEMENT={
+	"payout": ["payoutColumn"],
+	"stack": ["avgStackCard", "playersCard"],
+	"nextblind": ["nextBlindsCard", "progressBar"],
+	"marquee": ["marqueeWrap", "otherRewardBlock"]
+}
+
+// 依亮度決定 logo 旁分隔線要偏亮還偏暗, 讓品牌色不論深淺都看得出分隔
+function brandcontrastborder(hex) {
+	let value=String(hex || "").replace("#", "")
+	if (value.length==3) {
+		value=value[0]+value[0]+value[1]+value[1]+value[2]+value[2]
+	}
+	if (value.length!=6) {
+		return "#2a2a2a"
+	}
+	let r=parseInt(value.substring(0,2),16)
+	let g=parseInt(value.substring(2,4),16)
+	let b=parseInt(value.substring(4,6),16)
+	let luma=(0.2126*r+0.7152*g+0.0722*b)/255
+	if (luma<0.4) {
+		return "#3f3f46"
+	}
+	return "#2a2a2a"
+}
+
 function applybranding() {
 	let color=state["brandColor"] || ""
 	let name=state["brandName"] || ""
 	let logo=state["brandLogo"] || ""
-	let nameEl=domgetid("tournName")
-	if (nameEl) {
-		nameEl.style.color=color || ""
-		let host=nameEl.parentNode
-		if (host) {
-			let brand=document.getElementById("brandHeader")
-			if (name) {
-				if (!brand) {
-					brand=document.createElement("div")
-					brand.id="brandHeader"
-					brand.style.fontWeight="800"
-					brand.style.letterSpacing="0.04em"
-					host.insertBefore(brand, host.firstChild)
-				}
-				brand.textContent=name
-				brand.style.color=color || ""
-				brand.style.display=""
-			} else if (brand) {
-				brand.style.display="none"
+
+	// 主色套用: display.css 已把主色族收成 CSS 自訂屬性(TASK-021),
+	// 這裡只要覆寫 --accent 一個變數, 全畫面的強調元素就跟著換。
+	// 沒設定就把 inline 覆寫清掉, 回到 display.css 的預設值(AC-1)。
+	let rootEl=document.documentElement
+	if (color) {
+		rootEl.style.setProperty("--accent", color)
+		rootEl.style.setProperty("--accentstrong", color)
+	} else {
+		rootEl.style.removeProperty("--accent")
+		rootEl.style.removeProperty("--accentstrong")
+	}
+
+	// 變體 A 標題列內嵌: logo 與品牌名放在既有標題列左側, 標題列仍是一列,
+	// 不佔用垂直空間, 中央時鐘維持原本大小。決策見 mockup-decision-大螢幕品牌.md
+	let block=document.querySelector(".tournament-block")
+	if (block) {
+		let brandwrap=document.getElementById("brandInline")
+		if (name || logo) {
+			if (!brandwrap) {
+				brandwrap=document.createElement("div")
+				brandwrap.id="brandInline"
+				brandwrap.className="brand-inline"
+				block.insertBefore(brandwrap, block.firstChild)
+				block.classList.add("has-brand")
 			}
+			brandwrap.style.display=""
 			let img=document.getElementById("brandLogoImg")
 			if (logo) {
 				if (!img) {
 					img=document.createElement("img")
 					img.id="brandLogoImg"
-					img.alt="brand"
-					img.style.maxHeight="56px"
-					img.style.marginBottom="8px"
-					host.insertBefore(img, host.firstChild)
+					img.className="brand-logo"
+					img.alt=""
+					// logo 是外部 URL, 載不到時整個藏起來, 不讓瀏覽器的破圖圖示出現在大螢幕上(FR-3)
+					img.onerror=function() {
+						this.style.display="none"
+					}
+					brandwrap.insertBefore(img, brandwrap.firstChild)
 				}
-				img.src=logo
-				img.style.display=""
+				if (img.getAttribute("src")!=logo) {
+					img.style.display=""
+					img.src=logo
+				}
 			} else if (img) {
 				img.style.display="none"
 			}
+			let label=document.getElementById("brandName")
+			if (name) {
+				if (!label) {
+					label=document.createElement("span")
+					label.id="brandName"
+					label.className="brand-name"
+					brandwrap.appendChild(label)
+				}
+				// 品牌名稱是使用者資料, 用 textContent 寫入不進 HTML 字串(FR-10)
+				label.textContent=name
+				label.style.color=color || ""
+				label.style.display=""
+			} else if (label) {
+				label.style.display="none"
+			}
+			let divider=document.getElementById("brandDivider")
+			if (!divider) {
+				divider=document.createElement("span")
+				divider.id="brandDivider"
+				divider.className="brand-divider"
+				brandwrap.appendChild(divider)
+			}
+			divider.style.background=brandcontrastborder(color)
+			divider.style.display=""
+		} else if (brandwrap) {
+			// 沒有品牌時整組藏起來且移除 has-brand, 版面回到改版前(FR-2 / AC-1)
+			brandwrap.style.display="none"
+			block.classList.remove("has-brand")
 		}
 	}
-	// displayFields：要隱藏的欄位元素 id，以逗號分隔（留空＝全部顯示）
+
+	// displayFields：要隱藏的「區塊群組」代號，以逗號分隔（留空＝全部顯示）
 	let raw=String(state["displayFields"] || "")
 	let hideset={}
 	let parts=raw.split(",")
@@ -949,13 +1019,29 @@ function applybranding() {
 			hideset[key]=true
 		}
 	}
-	let known=["avgStack", "payoutList", "prizePoolDisplay", "playersDisplay", "nextBlindsCard", "anteDisplay", "regCountdownCard", "breakCountdownCard"]
-	for (let i=0;i<known.length;i=i+1) {
-		let el=document.getElementById(known[i])
-		if (!el) {
-			continue
+	let groupname=Object.keys(BLOCKELEMENT)
+	for (let i=0;i<groupname.length;i=i+1) {
+		let idlist=BLOCKELEMENT[groupname[i]]
+		for (let j=0;j<idlist.length;j=j+1) {
+			let el=document.getElementById(idlist[j])
+			if (!el) {
+				continue
+			}
+			el.style.display=hideset[groupname[i]] ? "none" : ""
 		}
-		el.style.display=hideset[known[i]] ? "none" : ""
+	}
+	// 三欄順序(TASK-023)。實際換位在 CSS 做, 這裡只把值掛成屬性,
+	// 因為順序只在 >900px 生效, 而 media query 只有 CSS 管得到; 若在 JS 直接寫 inline
+	// order, 會連 ≤900px 的版面一起被套到, 那邊的欄位外框是 display:contents 沒有欄可排。
+	// 欄位隱藏不需要在這裡處理: flex 下 display:none 的欄位不佔空間, 中央面板會自動撐開(FR-6)。
+	let main=document.querySelector(".display-main")
+	if (main) {
+		let columnorder=String(state["columnOrder"] || "")
+		if (columnorder) {
+			main.setAttribute("data-columnorder", columnorder)
+		} else {
+			main.removeAttribute("data-columnorder")
+		}
 	}
 }
 

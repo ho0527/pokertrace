@@ -45,7 +45,7 @@
     {href:"tool/handsest.html",category:"operation",ztitle:"每小時手數估算",etitle:"Hands Estimate",zdesc:"桌數、dealer 與每小時手數",edesc:"Hands per hour estimate"},
     {href:"tool/effstack.html",category:"chip strategy",ztitle:"有效計分牌",etitle:"Effective Stack",zdesc:"雙方較小計分牌與 BB 數",edesc:"Effective stack in BB"},
     {href:"tool/bankroll.html",category:"operation strategy",ztitle:"Bankroll 建議",etitle:"Bankroll",zdesc:"依賽制建議買入數",edesc:"Buy-in guidance by format"},
-    {href:"tool/tipshare.html",category:"operation",ztitle:"小費分配",etitle:"Tip Share",zdesc:"floor 抽成與發牌員分配",edesc:"Tip split for staff"},
+    {href:"tool/tipshare.html",category:"operation",ztitle:"小費分配",etitle:"Tip Share",zdesc:"floor 抽成與計分員分配",edesc:"Tip split for staff"},
     {href:"tool/levelclock.html",category:"live",ztitle:"級數時刻表",etitle:"Level Clock",zdesc:"每級與休息的時刻",edesc:"Level and break timeline"},
     {href:"tool/chipcount.html",category:"chip live",ztitle:"點碼計算",etitle:"Chip Count",zdesc:"各面額顆數即時加總",edesc:"Add chip counts by value"},
     {href:"tool/cbet.html",category:"strategy",ztitle:"C-bet 參考卡",etitle:"C-bet Card",zdesc:"依牌面頻率與尺寸",edesc:"C-bet sizing by board texture"},

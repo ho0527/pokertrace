@@ -192,7 +192,14 @@ function hrseatcards(seat){
 	if(typeof handcard=="string"){
 		handcard=(typeof json=="function"?json(handcard):null)||{}
 	}
-	return [handcard["card1"]||"",handcard["card2"]||""]
+	// 底牌依牌型而定（Hold'em 2、Omaha 4…），讀實際存在的 card1..card5。
+	let cards=[]
+	for(let i=1;i<=5;i=i+1){
+		if(handcard["card"+i]){
+			cards.push(handcard["card"+i])
+		}
+	}
+	return cards
 }
 
 // 盲注: 記錄端 action 皆為 "blind", 用下注金額對照該手 bb 判斷小盲/大盲
@@ -257,23 +264,17 @@ function hrstreetrows(hand,street){
 	return rows
 }
 
+// TASK-037 起 flop/turn/river 共用 initialize.js 的解析；burn 三張是重播專用，留在這裡
 function hrboardcards(hand){
 	let board=hand["boardcard"]||{}
 	if(typeof board=="string"){
 		board=(typeof json=="function"?json(board):null)||{}
 	}
-	let flop=[]
-	if(board["flop"]){
-		for(let i=0;i<board["flop"].length;i=i+1){
-			if(board["flop"][i]){
-				flop.push(board["flop"][i])
-			}
-		}
-	}
+	let parsed=ptboardobject(board)
 	return {
-		flop: flop,
-		turn: board["turn"]||"",
-		river: board["river"]||"",
+		flop: parsed["flop"],
+		turn: parsed["turn"],
+		river: parsed["river"],
 		burnflop: board["burnflop"]||"",
 		burnturn: board["burnturn"]||"",
 		burnriver: board["burnriver"]||""
@@ -498,6 +499,26 @@ function hrbuildframes(hand){
 	state.showdown=true
 	frames.push(hrsnapshot(state,hrtext("showdown"),0))
 
+	// TASK-038：run it twice 以上時，攤牌後逐個把後面的 board 發出來，
+	// 每個 board 一個 frame，標籤標「第 n 次」。單 board 時這個迴圈不會執行，
+	// 重播內容與之前完全相同。
+	let replayboardlist=ptboardlistof(hand)
+	for(let ri=1;ri<replayboardlist.length;ri=ri+1){
+		let runboard=replayboardlist[ri]["board"]
+		let runcards=[]
+		for(let k=0;k<runboard["flop"].length;k=k+1){
+			runcards.push(runboard["flop"][k])
+		}
+		if(runboard["turn"]){
+			runcards.push(runboard["turn"])
+		}
+		if(runboard["river"]){
+			runcards.push(runboard["river"])
+		}
+		state.board=runcards
+		frames.push(hrsnapshot(state,hrtext("boardrun").replace("{n}",replayboardlist[ri]["runno"]),0))
+	}
+
 	// 派彩: 先分邊池(反方向那側)再分主池。每個池分給該池「有資格且有贏得毛額」的贏家。
 	// 各座位贏得毛額 wpot: 贏家 = endchip - chip + chipchange(chipchange 即本手投入), 輸家 = 0。
 	let wpot={}
@@ -624,12 +645,17 @@ function hrseatposhtml(seat,seatno,x,y,isdealer,frame){
 	if(remain<0){ remain=0 }
 	let visible=hrcardvisible(seatno,ss,frame)
 	let cards=hrseatcards(seat)
-	// 蓋牌者預設收牌(牌背); 但「顯示所有底牌」時仍亮出(座位維持暗化)
-	let cardshtml
+	// 底牌張數依牌型（Hold'em 2 / Omaha 4）；蓋牌者預設收牌(牌背); 但「顯示所有底牌」時仍亮出(座位維持暗化)
+	let holecount=cards.length>0?cards.length:2
+	let cardshtml=""
 	if(ss.folded&&!visible){
-		cardshtml=hrcardback(true)+hrcardback(true)
+		for(let i=0;i<holecount;i=i+1){
+			cardshtml=cardshtml+hrcardback(true)
+		}
 	}else{
-		cardshtml=hrcard(cards[0],true,visible)+hrcard(cards[1],true,visible)
+		for(let i=0;i<holecount;i=i+1){
+			cardshtml=cardshtml+hrcard(cards[i],true,visible)
+		}
 	}
 	let actionhtml=ss.action?`<div class="bc-action ${ss.action.cls}">${hresc(ss.action.label)}</div>`:""
 	// all-in 持久標誌
@@ -758,13 +784,16 @@ function hrbuildoverlay(){
 	}
 	let saveddeck="classic"
 	try{
-		saveddeck=localStorage.getItem("bc-deck")||"classic"
+		// TASK-046：覆蓋層的 deck class 以牌背為準（維持既有行為），
+		// 牌背與牌面各自的皮膚再用 cardback- / cardface- 疊上去。
+		saveddeck=localStorage.getItem(CARDBACKKEY)||localStorage.getItem("bc-deck")||"classic"
 	}catch(error){
 		saveddeck="classic"
 	}
 	let root=document.createElement("div")
 	root.id="hroverlay"
 	root.className="hr-overlay deck-"+saveddeck
+	ptcardskinapply(root,ptcardskinget()["back"],ptcardskinget()["face"])
 	root.setAttribute("hidden","")
 	root.innerHTML=`
 		<div class="hr-top">
@@ -839,16 +868,20 @@ function hrbuildoverlay(){
 
 // 牌面牌背皮膚(與現場轉播共用 localStorage bc-deck)
 function hrapplyskin(skin){
-	let valid=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite"]
+	let valid=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite","minimal"]
 	if(valid.indexOf(skin)<0){
 		skin="classic"
 	}
 	let root=document.getElementById("hroverlay")
 	if(root){
 		root.className="hr-overlay deck-"+skin
+		// 選單是整套換，所以牌背與牌面都設成同一個值
+		ptcardskinapply(root,skin,skin)
 	}
 	try{
 		localStorage.setItem("bc-deck",skin)
+		localStorage.setItem(CARDBACKKEY,skin)
+		localStorage.setItem(CARDSKINKEY,skin)
 	}catch(error){
 		// localStorage 不可用時忽略
 	}
@@ -880,7 +913,8 @@ function hrlbbuild(){
 		{ key: "ocean",name: hrtext("skinocean") },
 		{ key: "sunset",name: hrtext("skinsunset") },
 		{ key: "rose",name: hrtext("skinrose") },
-		{ key: "graphite",name: hrtext("skingraphite") }
+		{ key: "graphite",name: hrtext("skingraphite") },
+		{ key: "minimal",name: hrtext("skinminimal") }
 	]
 	let html=""
 	for(let i=0;i<skins.length;i=i+1){

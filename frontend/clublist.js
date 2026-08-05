@@ -114,7 +114,25 @@ function main(){
 	bindclubbuttons()
 }
 
+// 協會清單的排序狀態。key 為空字串時維持後端回傳的順序。
+let clubsortstate={ "key": "","ascended": true }
+
+// 排序取值。三個可排序欄位都是字串；取不到就回 null，由 ptsortcompare 排到最後。
+function clubsortvalue(item,key){
+    let value=null
+    let text=""
+    if(item[key]!=null){
+        text=String(item[key]).trim()
+    }
+    if(text!=""){
+        value=text
+    }
+    return value
+}
+
 function renderclublist(filtered){
+    // **排序要在分頁之前**：先切片再排只會排到當前頁，那是假的排序
+    filtered=ptsortlist(filtered,clubsortstate["key"],clubsortstate["ascended"],clubsortvalue)
 	let showcount=filtered.length
 	let totalpages=Math.ceil(showcount/clubpagelimit)
 	if(totalpages<1){
@@ -213,11 +231,11 @@ function renderclubtable(pageclubs,start){
 		<div class="max-h-[50vh] overflow-auto md:rounded-2xl md:border md:border-zinc-800 md:bg-zinc-900/40">
 			<table class="w-full text-sm border-separate border-spacing-0">
 				<thead>
-					<tr class="text-zinc-300">
+					<tr class="text-zinc-300" id="clublisthead">
 						<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4">#</th>
-						<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4">${clubtext("name")}</th>
-						<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4">${clubtext("address")}</th>
-						<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4">${clubtext("note")}</th>
+						<th class="ptsortth select-none sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4" data-sortkey="name"><span>${clubtext("name")}</span><span class="ptsortarrow text-emerald-400" data-sortkey="name"></span></th>
+						<th class="ptsortth select-none sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4" data-sortkey="address"><span>${clubtext("address")}</span><span class="ptsortarrow text-emerald-400" data-sortkey="address"></span></th>
+						<th class="ptsortth select-none sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4" data-sortkey="ps"><span>${clubtext("note")}</span><span class="ptsortarrow text-emerald-400" data-sortkey="ps"></span></th>
 						<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-3 px-4">${clubtext("action")}</th>
 					</tr>
 				</thead>
@@ -225,11 +243,17 @@ function renderclubtable(pageclubs,start){
 			</table>
 		</div>
 	`,false)
+    // 這一頁每次 render 會把整個 thead 重畫，所以箭頭與點擊都要在這裡重來一次
+    ptsortarrow("#clublisthead",clubsortstate["key"],clubsortstate["ascended"])
+    ptbindsort("#clublisthead",clubsortstate,function(){
+        clubpage=1
+        main()
+    })
 }
 
 function renderclubpagination(){
 	let html=`
-		<input type="button" class="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 px-3 py-2 rounded-xl cursor-pointer transition" id="clubprevpage" value="上一頁" ${clubpagination["hasprev"]?"":"disabled"}>
+		<input type="button" class="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 px-3 py-2 rounded-xl cursor-pointer transition" id="clubprevpage" value="${clubtext("prevpage")}" ${clubpagination["hasprev"]?"":"disabled"}>
 	`
 	for(let i=1;i<=clubpagination["totalpages"];i=i+1){
 		if(i==1||i==clubpagination["totalpages"]||Math.abs(i-clubpagination["page"])<=2){
@@ -239,8 +263,8 @@ function renderclubpagination(){
 		}
 	}
 	html=html+`
-		<input type="button" class="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 px-3 py-2 rounded-xl cursor-pointer transition" id="clubnextpage" value="下一頁" ${clubpagination["hasnext"]?"":"disabled"}>
-		<span class="text-zinc-400 text-sm px-2">共 ${clubpagination["total"]||0} 筆</span>
+		<input type="button" class="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 px-3 py-2 rounded-xl cursor-pointer transition" id="clubnextpage" value="${clubtext("nextpage")}" ${clubpagination["hasnext"]?"":"disabled"}>
+		<span class="text-zinc-400 text-sm px-2">${clubtext("totalcount").replace("%s",clubpagination["total"]||0)}</span>
 	`
 	innerhtml("#clubpagination",html,false)
 	onclick("#clubprevpage",function(element,event){

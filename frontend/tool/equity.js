@@ -5,6 +5,9 @@ let equityrequestid=0
 let equitysolvetimer=null
 
 const EQUITYMAXHAND=15
+// 合法的牌型代碼。代碼與資料庫 gametype 表對齊：
+// HE 德州 / OM 奧馬哈 / O5 5張奧馬哈 / O8 奧馬哈高低 / BO 5張奧馬哈高低(Big O) / SD 短牌。
+const EQUITYGAMETYPELIST=["HE","OM","O5","O8","BO","SD"]
 const EQUITYSOLVEDELAYMS=300
 
 let equitystate={
@@ -28,13 +31,23 @@ function equitytext(key){
 }
 
 function holecount(){
-	if(equitystate.gametype=="O5"){
+	if(equitystate.gametype=="O5"||equitystate.gametype=="BO"){
 		return 5
 	}
-	if(equitystate.gametype=="OM"){
+	if(equitystate.gametype=="OM"||equitystate.gametype=="O8"){
 		return 4
 	}
 	return 2
+}
+
+// 高低分池（8-or-better）：底池拆成高牌與低牌兩半。
+// O8 是 4 張底牌、BO（Big O）是 5 張，選牌限制都一樣是「底牌剛好 2 張 + 公共牌剛好 3 張」，
+// 高低兩邊可以各挑不同的組合。
+function equityhiloed(){
+	if(equitystate.gametype=="O8"||equitystate.gametype=="BO"){
+		return true
+	}
+	return false
 }
 
 function maxhandcount(){
@@ -100,7 +113,7 @@ function loadpersistedstate(){
 	try{
 		let saved=JSON.parse(raw)
 		let savedgametype=String(saved["gametype"]||"").toUpperCase()
-		if(savedgametype=="HE"||savedgametype=="OM"||savedgametype=="O5"||savedgametype=="SD"){
+		if(EQUITYGAMETYPELIST.indexOf(savedgametype)>=0){
 			equitystate.gametype=savedgametype
 		}
 		let allowedranklist=ranklist()
@@ -149,14 +162,6 @@ function loadpersistedstate(){
 	}
 }
 
-function cardisred(cardtext){
-	let suit=String(cardtext||"").slice(-1).toLowerCase()
-	if(suit=="h"||suit=="d"){
-		return true
-	}
-	return false
-}
-
 function cardinlist(cardtext,cardlist){
 	for(let i=0;i<cardlist.length;i=i+1){
 		if(cardlist[i]==cardtext){
@@ -166,7 +171,9 @@ function cardinlist(cardtext,cardlist){
 	return false
 }
 
-function cardglyph(cardtext,bested){
+// kind："" 無標記／"best" 最佳高牌（綠）／"low" 贏得低池（黃）／"both" 上綠下黃。
+// 原本第二個參數是布林 bested，只能表達兩種狀態；hi-lo 需要四種。
+function cardglyph(cardtext,kind){
 	if(!cardtext){
 		return `<span class="cardslot">?</span>`
 	}
@@ -178,15 +185,32 @@ function cardglyph(cardtext,bested){
 			symbol=SUITLISTALL[i][1]
 		}
 	}
-	let colorclass="cardblack"
-	if(cardisred(cardtext)){
-		colorclass="cardred"
+	let markclass=""
+	if(kind=="best"){
+		markclass=" cardslotbest"
 	}
-	let bestclass=""
+	if(kind=="low"){
+		markclass=" cardslotlow"
+	}
+	if(kind=="both"){
+		markclass=" cardslotbest cardslotlow"
+	}
+	// 顏色交給 carddisplay.css 的 .deckface-two / .deckface-four 決定，跟牌桌上的牌面同一個開關。
+	return `<span class="cardslot filled pt-suittext${markclass}" data-suit="${symbol}">${rank}${symbol}</span>`
+}
+
+// 把「有沒有入選最佳高牌」與「有沒有贏得低池」合成 cardglyph 的 kind。
+function glyphkind(bested,lowed){
+	if(bested&&lowed){
+		return "both"
+	}
 	if(bested){
-		bestclass=" cardslotbest"
+		return "best"
 	}
-	return `<span class="cardslot filled ${colorclass}${bestclass}">${rank}${symbol}</span>`
+	if(lowed){
+		return "low"
+	}
+	return ""
 }
 
 function getusedcardlist(exceptlist){
@@ -292,11 +316,7 @@ function showcardpicker(titletext,currentcardlist,maxcount,disabledcardlist,conf
 				if(disableded){
 					button.className=button.className+" disabled"
 				}
-				let colorclass="cardblack"
-				if(SUITLISTALL[suitindex][0]=="h"||SUITLISTALL[suitindex][0]=="d"){
-					colorclass="cardred"
-				}
-				button.innerHTML=`<span class="r">${availableranklist[rankindex]}</span><span class="s ${colorclass}">${SUITLISTALL[suitindex][1]}</span>`
+				button.innerHTML=`<span class="r">${availableranklist[rankindex]}</span><span class="s pt-suittext" data-suit="${SUITLISTALL[suitindex][1]}">${SUITLISTALL[suitindex][1]}</span>`
 				button.addEventListener("click",function(){
 					if(disableded){
 						return
@@ -526,6 +546,191 @@ function evaluatefive(cards){
 	return { category: 0,ranks: sortedranks,name: "high card",main: ranklabel(sortedranks[0]) }
 }
 
+// 目前公共牌的清單（只取已選的，順序是 flop → turn → river）。
+function equityboardcardlist(){
+	let cardlist=[]
+	for(let i=0;i<equitystate.board.floplist.length;i=i+1){
+		if(equitystate.board.floplist[i]){
+			cardlist.push(equitystate.board.floplist[i])
+		}
+	}
+	if(equitystate.board.turn){
+		cardlist.push(equitystate.board.turn)
+	}
+	if(equitystate.board.river){
+		cardlist.push(equitystate.board.river)
+	}
+	return cardlist
+}
+
+// 這五張是否構成合格的低牌：點數都 8 或更小（A 算 1）、且不能重複。
+// 不合格回 null，合格回由大到小排好的點數陣列（越小的陣列代表越好的低牌）。
+function lowcombovalue(cardtextlist){
+	let valuelist=[]
+	for(let i=0;i<cardtextlist.length;i=i+1){
+		let item=parsecardvalue(cardtextlist[i])
+		if(!item){
+			return null
+		}
+		let value=item["rank"]
+		if(value==14){
+			value=1
+		}
+		if(value>8){
+			return null
+		}
+		if(valuelist.indexOf(value)>=0){
+			return null
+		}
+		valuelist.push(value)
+	}
+	return sortdesc(valuelist)
+}
+
+// 這一手的最佳低牌組合。湊不出合格低牌時回 null。
+// 與後端 equitylowscore() 同一套規則：底牌剛好 2 張 + 公共牌剛好 3 張，
+// 五個層次的巢狀迴圈就是在窮舉這兩組組合，底牌最多 5 張、公共牌 5 張，共 100 組。
+//
+// 回傳的是**實際那五張牌**而不只是文字 —— 牌面要發黃光就必須知道是哪幾張，
+// 原本只回文字（bestlowlabel）拿不到牌，所以拆成這支加上 lowlabelof()。
+function bestlowcombo(handindex){
+	let holelist=[]
+	for(let i=0;i<(equitystate.handlist[handindex]||[]).length;i=i+1){
+		if(equitystate.handlist[handindex][i]){
+			holelist.push(equitystate.handlist[handindex][i])
+		}
+	}
+	let boardlist=equityboardcardlist()
+	let bestlow=null
+	let bestcard=[]
+	if(holelist.length>=2&&boardlist.length>=5){
+		for(let a=0;a<holelist.length;a=a+1){
+			for(let b=a+1;b<holelist.length;b=b+1){
+				for(let c=0;c<boardlist.length;c=c+1){
+					for(let d=c+1;d<boardlist.length;d=d+1){
+						for(let e=d+1;e<boardlist.length;e=e+1){
+							let combocard=[holelist[a],holelist[b],boardlist[c],boardlist[d],boardlist[e]]
+							let combovalue=lowcombovalue(combocard)
+							if(combovalue){
+								let betteredd=false
+								if(bestlow==null){
+									betteredd=true
+								}else{
+									for(let f=0;f<combovalue.length;f=f+1){
+										if(combovalue[f]!=bestlow[f]){
+											betteredd=combovalue[f]<bestlow[f]
+											break
+										}
+									}
+								}
+								if(betteredd){
+									bestlow=combovalue
+									bestcard=combocard
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if(!bestlow){
+		return null
+	}
+	return {
+		"cardlist": bestcard,
+		"value": bestlow
+	}
+}
+
+// 把低牌的點數陣列變成顯示文字，例如「(低牌 8-4-3-2-A)」。
+// 點數一定 ≤8，所以只有 1 要換成 A。
+function lowlabelof(combo){
+	if(!combo){
+		return ""
+	}
+	let labeltext=""
+	for(let i=0;i<combo["value"].length;i=i+1){
+		let piece=String(combo["value"][i])
+		if(combo["value"][i]==1){
+			piece="A"
+		}
+		if(labeltext){
+			labeltext=labeltext+"-"
+		}
+		labeltext=labeltext+piece
+	}
+	return "("+equitytext("lowlabel")+" "+labeltext+")"
+}
+
+// 贏得低池的那幾手，各自用到的牌。回傳 { handindex: {牌: true}, board: {牌: true} }。
+//
+// 語意刻意與高牌側的 bested 對齊：後端的 bested 是「達到全場最佳高牌分數」而不是
+// 「這一手自己的最佳五張」，所以低牌這邊也是「達到全場最好的低牌」才發光，
+// 不是每一手都把自己的低牌標起來 —— 否則畫面上會有一堆牌發黃光但其實沒贏到低池。
+function lowwinnermap(){
+	let output={
+		"hand": {},
+		"board": {}
+	}
+	if(equityhiloed()==false||boardcount()<5){
+		return output
+	}
+	let combolist=[]
+	let bestvalue=null
+	for(let i=0;i<equitystate.handlist.length;i=i+1){
+		let combo=bestlowcombo(i)
+		combolist.push(combo)
+		if(combo){
+			let betteredd=false
+			if(bestvalue==null){
+				betteredd=true
+			}else{
+				for(let k=0;k<combo["value"].length;k=k+1){
+					if(combo["value"][k]!=bestvalue[k]){
+						betteredd=combo["value"][k]<bestvalue[k]
+						break
+					}
+				}
+			}
+			if(betteredd){
+				bestvalue=combo["value"]
+			}
+		}
+	}
+	if(bestvalue==null){
+		return output
+	}
+	let boardlist=equityboardcardlist()
+	for(let i=0;i<combolist.length;i=i+1){
+		let combo=combolist[i]
+		if(!combo){
+			continue
+		}
+		let sameed=true
+		for(let k=0;k<combo["value"].length;k=k+1){
+			if(combo["value"][k]!=bestvalue[k]){
+				sameed=false
+			}
+		}
+		if(sameed==false){
+			continue
+		}
+		if(!output["hand"][i]){
+			output["hand"][i]={}
+		}
+		for(let k=0;k<combo["cardlist"].length;k=k+1){
+			let cardtext=combo["cardlist"][k]
+			if(cardinlist(cardtext,boardlist)){
+				output["board"][cardtext]=true
+			}else{
+				output["hand"][i][cardtext]=true
+			}
+		}
+	}
+	return output
+}
+
 function besthandlabel(bestcardlist){
 	let parsed=[]
 	for(let i=0;i<(bestcardlist||[]).length;i=i+1){
@@ -574,10 +779,6 @@ function pctformat(value){
 function renderoutcardgrid(cardlist){
 	let html=`<div class="w-full mt-1 flex flex-wrap items-center gap-[0.15rem]">`
 	for(let i=0;i<cardlist.length;i=i+1){
-		let colorclass="cardblack"
-		if(cardisred(cardlist[i])){
-			colorclass="cardred"
-		}
 		let rank=cardlist[i].slice(0,cardlist[i].length-1).toUpperCase()
 		let suit=cardlist[i].slice(-1).toLowerCase()
 		let symbol="?"
@@ -586,7 +787,7 @@ function renderoutcardgrid(cardlist){
 				symbol=SUITLISTALL[j][1]
 			}
 		}
-		html=html+`<span class="cardchip ${colorclass}">${rank}${symbol}</span>`
+		html=html+`<span class="cardchip pt-suittext" data-suit="${symbol}">${rank}${symbol}</span>`
 	}
 	html=html+`</div>`
 	return html
@@ -637,11 +838,41 @@ function renderhandresult(resultrow){
 	let labelhtml=""
 	if(boardcount()>=5){
 		let bestlabel=besthandlabel(resultrow["bestcardlist"]||[])
+		if(equityhiloed()){
+			// 後端的 bestcardlist 只有高牌那五張，低牌在這裡自己算（規則與後端相同）
+			let lowlabel=lowlabelof(bestlowcombo(resultrow["index"]))
+			if(!lowlabel){
+				lowlabel="("+equitytext("nolow")+")"
+			}
+			if(bestlabel){
+				bestlabel=bestlabel+" "+lowlabel
+			}else{
+				bestlabel=lowlabel
+			}
+		}
 		if(bestlabel){
 			labelhtml=`<div class="my-2 text-center text-sm font-bold text-zinc-300">${bestlabel}</div>`
 		}
 	}
 	let statushtml=statuslabel(resultrow["status"],resultrow["outlist"]||resultrow["outs"]||[],resultrow["chopoutlist"]||[])
+	if(equityhiloed()){
+		// hi-lo 的兩個數字是**平均分池份額**與**通吃率**，不是勝率與平手率。
+		// 兩者不互斥（份額 100% 必然通吃 100%），所以不能像高牌那樣疊在同一條進度條上，
+		// 也不能沿用「0% 勝 + 100% 平 = 平分底池」那條判斷。
+		return `
+			${labelhtml}
+			<div class="equityinline">
+				<div class="equitybar">
+					<div class="equitybar-win" data-equitywidth="${winvalue}"></div>
+				</div>
+				<div class="equitypct">
+					<span class="win">${equitytext("sharelabel")} ${pctformat(winvalue)}%</span>
+					<span class="tie">${equitytext("scooplabel")} ${pctformat(tievalue)}%</span>
+				</div>
+				<div class="equityout text-center">${statushtml}</div>
+			</div>
+		`
+	}
 	if(pctformat(winvalue)=="0"&&pctformat(tievalue)=="100"){
 		statushtml=equitytext("tieonly")
 	}
@@ -674,6 +905,11 @@ function handrowglowed(resultrow){
 	}
 	let winvalue=Number(resultrow["win"])||0
 	let tievalue=Number(resultrow["tie"])||0
+	if(equityhiloed()){
+		// hi-lo 拿滿 100% 份額就是每副牌都通吃，此時 tie（通吃率）也會是 100，
+		// 沿用高牌那條 tievalue<=0 的判斷會讓通吃永遠不發光。
+		return winvalue>=100
+	}
 	if(winvalue>=100&&tievalue<=0){
 		return true
 	}
@@ -683,6 +919,8 @@ function handrowglowed(resultrow){
 function renderhandlist(){
 	let host=domgetid("handlist")
 	host.innerHTML=""
+	// 整份算一次就好，不要每一手各算一次 —— lowwinnermap() 內部會對每一手窮舉 100 組
+	let lowmap=lowwinnermap()
 	for(let i=0;i<equitystate.handlist.length;i=i+1){
 		let row=document.createElement("div")
 		row.className="handrow"
@@ -696,13 +934,18 @@ function renderhandlist(){
 		if(resultrow&&resultrow["bested"]==true){
 			bestcardlist=resultrow["bestcardlist"]||[]
 		}
+		let lowhandmap=lowmap["hand"][i]||{}
 		for(let j=0;j<needcount;j=j+1){
 			let cardtext=equitystate.handlist[i][j]||""
 			let bested=false
 			if(cardtext&&cardinlist(cardtext,bestcardlist)){
 				bested=true
 			}
-			cardhtml=cardhtml+cardglyph(cardtext,bested)
+			let lowed=false
+			if(cardtext&&lowhandmap[cardtext]==true){
+				lowed=true
+			}
+			cardhtml=cardhtml+cardglyph(cardtext,glyphkind(bested,lowed))
 		}
 		let resulthtml=""
 		if(equitystate.solvinged){
@@ -769,26 +1012,39 @@ function renderboardcard(){
 	let host=domgetid("boardcard")
 	let flophtml=""
 	let bestmap=getboardbestmap()
+	let lowmap=lowwinnermap()
 	for(let i=0;i<3;i=i+1){
 		let cardtext=equitystate.board.floplist[i]||""
 		let bested=false
 		if(cardtext&&bestmap[cardtext]==true){
 			bested=true
 		}
-		flophtml=flophtml+cardglyph(cardtext,bested)
+		let lowed=false
+		if(cardtext&&lowmap["board"][cardtext]==true){
+			lowed=true
+		}
+		flophtml=flophtml+cardglyph(cardtext,glyphkind(bested,lowed))
 	}
 	let turnbest=false
 	if(equitystate.board.turn&&bestmap[equitystate.board.turn]==true){
 		turnbest=true
 	}
+	let turnlow=false
+	if(equitystate.board.turn&&lowmap["board"][equitystate.board.turn]==true){
+		turnlow=true
+	}
 	let riverbest=false
 	if(equitystate.board.river&&bestmap[equitystate.board.river]==true){
 		riverbest=true
 	}
+	let riverlow=false
+	if(equitystate.board.river&&lowmap["board"][equitystate.board.river]==true){
+		riverlow=true
+	}
 	host.innerHTML=`
 		<div class="boardstreet boardstreetflop handrowcard" data-boardslot="floplist">${flophtml}</div>
-		<div class="boardstreet boardstreetturn handrowcard" data-boardslot="turn">${cardglyph(equitystate.board.turn||"",turnbest)}</div>
-		<div class="boardstreet boardstreetriver handrowcard" data-boardslot="river">${cardglyph(equitystate.board.river||"",riverbest)}</div>
+		<div class="boardstreet boardstreetturn handrowcard" data-boardslot="turn">${cardglyph(equitystate.board.turn||"",glyphkind(turnbest,turnlow))}</div>
+		<div class="boardstreet boardstreetriver handrowcard" data-boardslot="river">${cardglyph(equitystate.board.river||"",glyphkind(riverbest,riverlow))}</div>
 	`
 
 	host.querySelector("[data-boardslot=\"floplist\"]").addEventListener("click",function(){
@@ -845,10 +1101,10 @@ function renderdeadcard(){
 	}
 	let cardhtml=""
 	for(let i=0;i<equitystate.deadlist.length;i=i+1){
-		cardhtml=cardhtml+cardglyph(equitystate.deadlist[i],false)
+		cardhtml=cardhtml+cardglyph(equitystate.deadlist[i],"")
 	}
 	if(equitystate.deadlist.length==0){
-		cardhtml=cardglyph("",false)
+		cardhtml=cardglyph("","")
 	}
 	host.innerHTML=`<div class="handrowcard deadcardslot" data-deadslot="1">${cardhtml}</div>`
 	host.querySelector("[data-deadslot]").addEventListener("click",function(){
@@ -1004,6 +1260,10 @@ function applyequitylanguage(){
 			buttonlist[i].textContent=equitytext("omaha")
 		}else if(gametype=="O5"){
 			buttonlist[i].textContent=equitytext("omaha5")
+		}else if(gametype=="O8"){
+			buttonlist[i].textContent=equitytext("omaha8")
+		}else if(gametype=="BO"){
+			buttonlist[i].textContent=equitytext("bigo")
 		}else if(gametype=="SD"){
 			buttonlist[i].textContent=equitytext("shortdeck")
 		}else{

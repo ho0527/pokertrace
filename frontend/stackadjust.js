@@ -36,6 +36,15 @@ function dom(id){
     return domgetid(id)
 }
 
+// 本頁的動態文案（TASK-006）。
+// 靜態 HTML 由 initialize.js 的 pageauto 機制翻譯，但 settext() 動態寫入的字串它抓不到。
+function stackadjusttext(key,fallback){
+    if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["stackadjustpage"]&&TRANSLATE[LANGUAGE]["stackadjustpage"][key]!=undefined){
+        return TRANSLATE[LANGUAGE]["stackadjustpage"][key]
+    }
+    return fallback
+}
+
 function settext(id,value){
     if(dom(id)){
         dom(id).textContent=String(value)
@@ -127,7 +136,7 @@ function publicallowed(){
 function render(){
     settext("tablename",state.row["name"]||state.row["token"]||"-")
     settext("dealerlabel","Seat "+state.dealerseat)
-    settext("playercount",activeSeats().length+" 人")
+    settext("playercount",stackadjusttext("playercount","{n} 人").replace("{n}",activeSeats().length))
     let total=0
     let seats=activeSeats()
     let selecthtml=""
@@ -143,7 +152,7 @@ function render(){
         total=total+adjust
         html=html+`
             <div class="newhand-seatcard">
-                <div>Seat ${seat}<br><span class="text-zinc-400 text-xs">目前 ${chip(seat).toLocaleString("en-US")} / 校正後 <span id="after-${seat}">${(chip(seat)+adjust).toLocaleString("en-US")}</span></span></div>
+                <div>Seat ${seat}<br><span class="text-zinc-400 text-xs">${stackadjusttext("nowlabel","目前")} ${chip(seat).toLocaleString("en-US")} / ${stackadjusttext("afterlabel","校正後")} <span id="after-${seat}">${(chip(seat)+adjust).toLocaleString("en-US")}</span></span></div>
                 <input type="number" class="adjustinput bg-zinc-700 text-white rounded px-2 py-2 w-32" data-seat="${seat}" inputmode="numeric" value="${adjust}" placeholder="+/-">
             </div>
         `
@@ -171,7 +180,7 @@ function render(){
         if(dom("dealerseat")){
             dom("dealerseat").disabled=true
         }
-        settext("adjustnote","這不是最新一筆紀錄，計分牌已鎖定，只能修改備註")
+        settext("adjustnote",stackadjusttext("lockednote","這不是最新一筆紀錄，計分牌已鎖定，只能修改備註"))
     }
     renderwarnings()
 }
@@ -209,11 +218,11 @@ function warnings(){
             }
         }
         if(!changed){
-            list.push("尚未填寫任何計分牌增減。")
+            list.push(stackadjusttext("warnnoadjust","尚未填寫任何計分牌增減。"))
         }
     }
     if(!val("ps").trim()){
-        list.push("請填寫備註。")
+        list.push(stackadjusttext("warnnonote","請填寫備註。"))
     }
     return list
 }
@@ -222,7 +231,7 @@ function renderwarnings(){
     let list=warnings()
     let html=""
     if(!list.length){
-        html=`<div class="newhand-ok">可以儲存。</div>`
+        html=`<div class="newhand-ok">${stackadjusttext("cansave","可以儲存。")}</div>`
     }else{
         for(let i=0;i<list.length;i=i+1){
             html=html+`<div class="newhand-warning">${list[i]}</div>`
@@ -294,11 +303,11 @@ function aftersave(result){
     }
     if(result["success"]){
         clearcache()
-        pttoast(editmode()?"已更新校正":"已儲存校正","success")
+        pttoast(editmode()?stackadjusttext("updated","已更新校正"):stackadjusttext("saved","已儲存校正"),"success")
         href("table.html?id="+tableid+"#2")
     }else{
-        settext("savestatus","儲存失敗")
-        pttoast(result["data"]||"儲存失敗","error")
+        settext("savestatus",stackadjusttext("savefailed","儲存失敗"))
+        pttoast(result["data"]||stackadjusttext("savefailed","儲存失敗"),"error")
     }
 }
 
@@ -319,7 +328,7 @@ function save(){
     if(savebtn){
         savebtn.disabled=true
     }
-    settext("savestatus","儲存中...")
+    settext("savestatus",stackadjusttext("saving","儲存中..."))
     if(editmode()){
         if(noteonly()){
             // 非最新一筆：只送備註，後端也只會更新不影響計分牌的欄位
@@ -361,7 +370,7 @@ function init(){
     }
     api("GET","gettable/"+tableid,null,function(result){
         if(!result["success"]){
-            pttoast(result["data"]||"讀取牌桌失敗","error")
+            pttoast(result["data"]||stackadjusttext("loadtablefailed","讀取牌桌失敗"),"error")
             return
         }
         state.row=result["data"]
@@ -382,17 +391,17 @@ function init(){
 }
 
 function loadexisting(){
-    settext("pagetitle","編輯計分牌校正")
-    settext("savestatus","載入中...")
+    settext("pagetitle",stackadjusttext("pagetitle","編輯計分牌校正"))
+    settext("savestatus",stackadjusttext("loading","載入中..."))
     api("GET","gethand/"+handid,null,function(result){
         if(!result["success"]){
-            settext("savestatus","載入失敗")
-            pttoast(result["data"]||"讀取紀錄失敗","error")
+            settext("savestatus",stackadjusttext("loadfailed","載入失敗"))
+            pttoast(result["data"]||stackadjusttext("loadrecordfailed","讀取紀錄失敗"),"error")
             return
         }
         let hand=result["data"]
         if((hand["recordtype"]||"hand")!="stackadjustment"){
-            pttoast("這不是計分牌校正紀錄","error")
+            pttoast(stackadjusttext("notadjustrecord","這不是計分牌校正紀錄"),"error")
             href("table.html?id="+tableid+"#2")
             return
         }
@@ -442,7 +451,7 @@ function loadexisting(){
         if(dom("ps")){
             dom("ps").value=hand["ps"]||hand["note"]||""
         }
-        settext("savestatus",noteonly()?"非最新紀錄，僅可改備註":"尚未更新")
+        settext("savestatus",noteonly()?stackadjusttext("noteonlystatus","非最新紀錄，僅可改備註"):stackadjusttext("notupdated","尚未更新"))
         render()
     })
 }

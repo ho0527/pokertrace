@@ -22,6 +22,9 @@ function moneyfmt(value){
 	return Math.round(value).toLocaleString("en-US")
 }
 
+// 已載入的個人牌組（[{value,color,shape,label}]）。空陣列代表沒載入過，列上就不顯示色塊。
+let ciloadedchiplist=[]
+
 function rendercigrid(){
 	let host=domgetid("cigrid")
 	host.innerHTML=""
@@ -29,16 +32,24 @@ function rendercigrid(){
 		let row=document.createElement("div")
 		row.className="flex items-center gap-2"
 		row.innerHTML=`
+			${ptchipswatchhtml(cidenoms[i].denom)}
 			<input type="number" min="0" inputmode="numeric" value="${cidenoms[i].denom}" data-cidenom="${i}" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
 			<input type="number" min="0" inputmode="numeric" value="${cidenoms[i].per}" data-ciper="${i}" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
 			<span class="flex-1 text-right font-mono text-emerald-400" data-citotal="${i}">-</span>
 		`
 		host.appendChild(row)
 	}
+	ptchipswatchapply(host,ciloadedchiplist)
 	let denomlist=host.querySelectorAll("[data-cidenom]")
 	for(let i=0;i<denomlist.length;i=i+1){
 		denomlist[i].addEventListener("input",function(){
 			cidenoms[parseInt(this.getAttribute("data-cidenom"),10)].denom=num(this.value)
+			// 面額改了色塊要跟著換；改成牌組裡沒有的值時 ptchipswatchapply() 會把色塊隱藏
+			let swatch=this.parentElement.querySelector("[data-chipswatch]")
+			if(swatch){
+				swatch.setAttribute("data-chipswatch",num(this.value))
+				ptchipswatchapply(this.parentElement,ciloadedchiplist)
+			}
 			calcci()
 		})
 	}
@@ -70,20 +81,21 @@ function calcci(){
 }
 
 function loadciprofilechips(){
-	ptloadprofilechipdenoms(function(denoms){
-		if(!denoms||denoms.length<1){
+	ptloadprofilechiplist(function(chiplist){
+		if(!chiplist||chiplist.length<1){
 			return
 		}
+		ciloadedchiplist=chiplist
 		let oldlist=cidenoms
 		let newlist=[]
-		for(let i=0;i<denoms.length;i=i+1){
+		for(let i=0;i<chiplist.length;i=i+1){
 			let per=0
 			for(let j=0;j<oldlist.length;j=j+1){
-				if(oldlist[j].denom==denoms[i]){
+				if(oldlist[j].denom==chiplist[i]["value"]){
 					per=oldlist[j].per
 				}
 			}
-			newlist.push({denom:denoms[i],per:per})
+			newlist.push({denom:chiplist[i]["value"],per:per})
 		}
 		cidenoms=newlist
 		rendercigrid()
@@ -111,3 +123,17 @@ onclick("#ciprofilechips",loadciprofilechips)
 applycilanguage()
 rendercigrid()
 calcci()
+
+// TASK-019：庫存列是動態產生的、沒有 id，見 initialize.js 的 pttoolstatecustom 說明。
+function pttoolstatecustom(){
+	return { "cidenoms": cidenoms }
+}
+
+function pttoolstatecustomapply(data){
+	if(!data||!Array.isArray(data["cidenoms"])){
+		return
+	}
+	cidenoms=data["cidenoms"]
+	rendercigrid()
+	calcci()
+}

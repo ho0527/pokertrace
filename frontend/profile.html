@@ -59,7 +59,7 @@
                     </div>
 
                     <div class="mb-6 flex flex-wrap gap-2">
-                        <input type="button" class="rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white transition" id="tab-month" value="月報表">
+                        <input type="button" class="rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white transition" data-entersubmit id="tab-month" value="月報表">
                         <input type="button" class="rounded-full bg-zinc-700 px-5 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-600" id="tab-year" value="年報表">
                         <input type="button" class="rounded-full bg-zinc-700 px-5 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-600" id="tab-all" value="生涯報表">
                     </div>
@@ -205,21 +205,28 @@
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
                             <div class="mb-2 text-base font-bold text-white" id="replaysettingscardtitle">手牌回放設定</div>
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="replaysettingscarddesc">牌背樣式與主池位置；點下方開啟預覽並選擇。</div>
-                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="openreplaysettings" value="管理">
+                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="profile.manage" id="openreplaysettings" value="管理">
                         </div>
 
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
                             <div class="mb-2 text-base font-bold text-white" id="chipcolorcardtitle">計分牌顏色種類</div>
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="chipcolorcarddesc">整理場次設定可用的顏色名稱。</div>
                             <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipcolorpreview">尚未設定計分牌顏色</div>
-                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="openchipcolormodal" value="管理">
+                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="profile.manage" id="openchipcolormodal" value="管理">
                         </div>
 
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
                             <div class="mb-2 text-base font-bold text-white" id="chipsetcardtitle">常用計分牌組合</div>
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="chipsetcarddesc">儲存常用面額組合，供場次快速匯入。</div>
                             <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipsetpreview">尚未設定常用計分牌組合</div>
-                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="openchipsetmodal" value="管理">
+                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="profile.manage" id="openchipsetmodal" value="管理">
+                        </div>
+
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                            <div class="mb-2 text-base font-bold text-white" id="displaydefaultcardtitle">大螢幕品牌預設</div>
+                            <div class="mb-4 text-sm leading-7 text-zinc-400" id="displaydefaultcarddesc">設定一次，之後每建一場賽事都會自動帶入。單場改動不會影響這裡。</div>
+                            <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="displaydefaultpreview">尚未設定大螢幕品牌預設</div>
+                            <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="opendisplaydefaultmodal" value="管理">
                         </div>
 
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
@@ -259,7 +266,7 @@
                 <div class="mb-4 text-sm leading-7 text-zinc-300" id="deleteaccountmodal1-message">此操作「無法復原」，將會「真刪除」所有跟這個帳號有關的資料。</div>
                 <div class="flex justify-end gap-3">
                     <input type="button" class="rounded-2xl bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="canceldeleteaccount1" value="取消">
-                    <input type="button" class="rounded-2xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-500" id="confirmdeleteaccount1" value="我了解，繼續">
+                    <input type="button" class="rounded-2xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-red-500" data-entersubmit id="confirmdeleteaccount1" value="我了解，繼續">
                 </div>
             </div>
         </div>
@@ -296,8 +303,8 @@
                     <input type="button" class="text-2xl leading-none text-zinc-400 transition hover:text-white" id="closestaffmodal" value="&times;">
                 </div>
                 <div class="mb-5 flex gap-2">
-                    <input type="text" id="staffid-input" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" placeholder="輸入使用者 ID（e.g. P-00099）" aria-label="使用者 ID">
-                    <input type="button" class="min-h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="addstaffbutton" value="新增">
+                    <input type="text" id="staffid-input" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="profile.staffidlabel" placeholder="輸入使用者 ID（e.g. P-00099）" aria-label="使用者 ID">
+                    <input type="button" class="min-h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="addstaffbutton" value="新增">
                 </div>
                 <div class="mb-2 text-xs text-zinc-400" id="staffmodallistlabel">目前名單</div>
                 <div class="flex-1 overflow-y-auto space-y-2" id="staffmodal-list"></div>

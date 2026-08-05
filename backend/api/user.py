@@ -20,6 +20,9 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from .authhelper import getuserbanned
+# 大螢幕品牌欄位的正規化與場次層共用同幾支, 避免兩處驗證強度不一致(TASK-026)。
+# timer.py 沒有 import user.py, 所以這個方向不會造成循環 import。
+from .timer import normalizeaccentcolor,normalizebrandlogourl,normalizehiddenblock,normalizecolumnorder
 
 # Google OAuth Web Client ID (跟 frontend signin.js 的 client_id 必須一致)
 GOOGLE_CLIENT_ID="676058961600-uo2cec3c18kiuipfci2tet1l67c8dmbl.apps.googleusercontent.com"
@@ -31,6 +34,7 @@ from function.sql import *
 from function.thing import *
 from function.function import *
 from .initialize import *
+from .authhelper import gettokenuser as commonauthuser
 from .sessionplayer import _attachfinance
 
 # main START
@@ -49,7 +53,13 @@ def defaultchipcolors():
 		{"name": "橘色","color": "#ffa500"},
 		{"name": "紫色","color": "#800080"},
 		{"name": "粉紅色","color": "#ffc0cb"},
-		{"name": "灰色","color": "#808080"}
+		{"name": "灰色","color": "#808080"},
+		# 以下四色是 defaultchipset() 預設牌組實際用到的色值。
+		# 少了它們, 使用者在個人檔案的顏色下拉裡選不回預設牌組自己的顏色。
+		{"name": "亮紅色","color": "#ef4444"},
+		{"name": "琥珀色","color": "#f59e0b"},
+		{"name": "亮綠色","color": "#22c55e"},
+		{"name": "亮藍色","color": "#3b82f6"}
 	]
 
 def parsechipcolors(value):
@@ -158,13 +168,32 @@ def ensureuserchipsettables():
 		deletetime timestamp with time zone
 	)""",[],SETTING["dbsetting"])
 
-CARDDECKLIST=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite"]
+CARDDECKLIST=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite","minimal"]
+
+def carddeckvalue(value,fallback):
+	"""取一個合法的皮膚值：自己沒設定就沿用 fallback（通常是舊的 carddeck），都不合法就 classic。"""
+	if value in CARDDECKLIST:
+		return value
+	if fallback in CARDDECKLIST:
+		return fallback
+	return "classic"
+
 POTMAINSIDELIST=["left","right"]
 
 def ensureusercarddeckcolumn():
-	# 手牌回放偏好: 牌背皮膚(carddeck) + 主池位置(potmainside), 供手牌回放與現場轉播讀取
+	# 手牌回放偏好: 牌背皮膚(cardback) + 牌面皮膚(cardface) + 主池位置(potmainside),
+	# 供手牌回放與現場轉播讀取。
+	#
+	# TASK-046：原本只有一個 carddeck 同時決定牌背與牌面，現在拆成兩個。
+	# 依專案規則 carddeck **保留不刪、不改名**，仍然繼續寫入，作為兩者的相容來源；
+	# 新欄位的預設值直接從 carddeck 回填，所以既有使用者拆分後外觀完全不變。
 	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS carddeck varchar(20) NOT NULL DEFAULT 'classic'""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS potmainside varchar(10) NOT NULL DEFAULT 'right'""",[],SETTING["dbsetting"])
+	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardback varchar(20)""",[],SETTING["dbsetting"])
+	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardface varchar(20)""",[],SETTING["dbsetting"])
+	# 只回填還沒設定過的（新欄位可為 NULL，NULL 就代表「沿用 carddeck」），
+	# 所以這行重複執行不會覆蓋使用者已經分開選過的設定。
+	query(SETTING["dbname"],"""UPDATE public."user" SET "cardback"=COALESCE("cardback","carddeck"),"cardface"=COALESCE("cardface","carddeck") WHERE "cardback" IS NULL OR "cardface" IS NULL""",[],SETTING["dbsetting"])
 
 def ensureusertoolfavoritetable():
 	query(SETTING["dbname"],"""CREATE TABLE IF NOT EXISTS "usertoolfavorite"(
@@ -439,284 +468,223 @@ def signincheck(request):
 
 @api_view(["GET"])
 def getuserlist(request):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
+	if 4<=int(tokenuserrow["permission"]):
+		data=[]
+		row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "deletetime" IS NULL""",None,SETTING["dbsetting"])
+
+		# 一次撈出所有封禁紀錄，於記憶體對應到各使用者，避免每位使用者各查一次 DB。
+		# block 是否仍有效比照 authhelper.getuserbanned：type='block' 且 time 為 19 字元時間戳且未到期。
+		# 同一被封者可能有多筆，ban（永久）優先於 block。
+		now=nowtime()
+		banmap={}
+		blockmap={}
+		blocktable=query(SETTING["dbname"],"""SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='blockbanuser'""",[],SETTING["dbsetting"])
+		if blocktable:
+			blockrows=query(SETTING["dbname"],f"""SELECT "blockbanuserid","type","reason","time" FROM "blockbanuser" """,None,SETTING["dbsetting"])
+			for b in (blockrows or []):
+				bid=b["blockbanuserid"]
+				if b["type"]=="ban":
+					banmap[bid]={"reason": b["reason"],"time": b["time"]}
+				elif b["type"]=="block" and len(str(b["time"]))==19 and str(b["time"])>now:
+					if bid not in blockmap:
+						blockmap[bid]={"reason": b["reason"],"time": b["time"]}
+
+		for i in range(len(row)):
+			uid=row[i]["id"]
+			blockstatus="active"
+			blockreason=""
+			blockexpiry=""
+			if uid in banmap:
+				blockstatus="banned"
+				blockreason=banmap[uid]["reason"]
+			elif uid in blockmap:
+				blockstatus="blocked"
+				blockreason=blockmap[uid]["reason"]
+				blockexpiry=blockmap[uid]["time"]
+			data.append({
+				"id": uid,
+				"name": row[i]["name"],
+				"email": row[i]["email"],
+				"playerid": row[i]["playerid"],
+				"permission": row[i]["permission"],
+				"status": blockstatus,
+				"blockreason": blockreason,
+				"blockexpiry": blockexpiry,
+				"createtime": row[i]["createtime"],
+				"updatetime": row[i]["updatetime"]
+			})
+
 		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserid=tokenrow[0]["userid"]
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenuserid],SETTING["dbsetting"])
-			if 4<=int(tokenuserrow[0]["permission"]):
-				data=[]
-				row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "deletetime" IS NULL""",None,SETTING["dbsetting"])
-
-				# 一次撈出所有封禁紀錄，於記憶體對應到各使用者，避免每位使用者各查一次 DB。
-				# block 是否仍有效比照 authhelper.getuserbanned：type='block' 且 time 為 19 字元時間戳且未到期。
-				# 同一被封者可能有多筆，ban（永久）優先於 block。
-				now=nowtime()
-				banmap={}
-				blockmap={}
-				blocktable=query(SETTING["dbname"],"""SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='blockbanuser'""",[],SETTING["dbsetting"])
-				if blocktable:
-					blockrows=query(SETTING["dbname"],f"""SELECT "blockbanuserid","type","reason","time" FROM "blockbanuser" """,None,SETTING["dbsetting"])
-					for b in (blockrows or []):
-						bid=b["blockbanuserid"]
-						if b["type"]=="ban":
-							banmap[bid]={"reason": b["reason"],"time": b["time"]}
-						elif b["type"]=="block" and len(str(b["time"]))==19 and str(b["time"])>now:
-							if bid not in blockmap:
-								blockmap[bid]={"reason": b["reason"],"time": b["time"]}
-
-				for i in range(len(row)):
-					uid=row[i]["id"]
-					blockstatus="active"
-					blockreason=""
-					blockexpiry=""
-					if uid in banmap:
-						blockstatus="banned"
-						blockreason=banmap[uid]["reason"]
-					elif uid in blockmap:
-						blockstatus="blocked"
-						blockreason=blockmap[uid]["reason"]
-						blockexpiry=blockmap[uid]["time"]
-					data.append({
-						"id": uid,
-						"name": row[i]["name"],
-						"email": row[i]["email"],
-						"playerid": row[i]["playerid"],
-						"permission": row[i]["permission"],
-						"status": blockstatus,
-						"blockreason": blockreason,
-						"blockexpiry": blockexpiry,
-						"createtime": row[i]["createtime"],
-						"updatetime": row[i]["updatetime"]
-					})
-
-				return Response({
-					"success": True,
-					"data": data
-				},status.HTTP_200_OK)
-			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
-		else:
-			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+			"success": True,
+			"data": data
+		},status.HTTP_200_OK)
 	else:
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"data": "ERROR_no_permission"
+		},status.HTTP_403_FORBIDDEN)
 
 @api_view(["GET"])
 def getuser(request):
 	ensureuserchipsettables()
 	ensureusertoolfavoritetable()
 	ensureusercarddeckcolumn()
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
+	row=tokenuserrow
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+	# includefee toggle (預設 true=含服務費)
+	includefee=True
+	includefeeparam=request.GET.get("includefee")
+	if includefeeparam=="false" or includefeeparam=="0":
+		includefee=False
 
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenrow=tokenrow[0]
-			row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow["userid"]],SETTING["dbsetting"])
-			if row:
-				row=row[0]
-
-				# includefee toggle (預設 true=含服務費)
-				includefee=True
-				includefeeparam=request.GET.get("includefee")
-				if includefeeparam=="false" or includefeeparam=="0":
-					includefee=False
-
-				# 計算個人成本的內部函式 (依 includefee 決定是否加 fee)
-				def calccost(s):
-					# 用 .get 寬容處理舊資料沒 fee 欄位的情況
-					buyin=s.get("buyin") or 0
-					bf=s.get("buyinfee") or 0
-					rebuybuyin=s.get("rebuybuyin") or 0
-					rf=s.get("rebuyfee") or 0
-					reentrybuyin=s.get("reentrybuyin") or 0
-					reentryfee=s.get("reentryfee") or 0
-					addonbuyin=s.get("addonbuyin") or 0
-					addonfee=s.get("addonfee") or 0
-					if 0>=reentrybuyin:
-						reentrybuyin=buyin
-					if 0>=reentryfee:
-						reentryfee=bf
-					if includefee:
-						return buyin+bf+(rebuybuyin+rf)*(s.get("rebuycount") or 0)+(reentrybuyin+reentryfee)*(s.get("reentrycount") or 0)+(addonbuyin+addonfee)*(s.get("addoncount") or 0)
-					else:
-						return buyin+rebuybuyin*(s.get("rebuycount") or 0)+reentrybuyin*(s.get("reentrycount") or 0)+addonbuyin*(s.get("addoncount") or 0)
-
-				# 取得當前時間
-				now=datetime.datetime.now()
-				today_start=now.replace(hour=0,minute=0,second=0,microsecond=0)
-				# 本週的開始(週一)和結束(週日)
-				week_start=(now-timedelta(days=now.weekday())).replace(hour=0,minute=0,second=0,microsecond=0)
-				week_end=(week_start+timedelta(days=6)).replace(hour=23,minute=59,second=59,microsecond=999999)
-				# 本月的開始(1號)和結束(最後一天)
-				month_start=now.replace(day=1,hour=0,minute=0,second=0,microsecond=0)
-				next_month=month_start+timedelta(days=32)  # 跳到下個月
-				month_end=(next_month.replace(day=1)-timedelta(days=1)).replace(hour=23,minute=59,second=59,microsecond=999999)
-				# 最近7天（含今天）
-				last_seven_days_start=today_start-timedelta(days=6)  # 往前推6天(加上今天共7天)
-
-				# 計算今日盈利 (主辦牌局不計入個人盈虧)
-				today_end=today_start.replace(hour=23,minute=59,second=59,microsecond=999999)
-				today_sessions=query(SETTING["dbname"],
-					"""SELECT winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL AND owned=false
-					   AND %s<=starttime AND starttime <= %s""",
-					[row["id"],today_start.strftime("%Y-%m-%d %H:%M:%S"),today_end.strftime("%Y-%m-%d %H:%M:%S")],
-					SETTING["dbsetting"]
-				)
-
-				# 計算各時段的盈利
-				today_profit=0
-				for s in today_sessions:
-					today_profit=today_profit+(s["winprice"]-calccost(s))
-
-				# 計算本週盈利 (週一到週日, 主辦牌局不計入個人盈虧)
-				week_sessions=query(SETTING["dbname"],
-					"""SELECT winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL AND owned=false
-					   AND starttime >= %s AND starttime <= %s""",
-					[row["id"],
-					 week_start.strftime("%Y-%m-%d %H:%M:%S"),
-					 week_end.strftime("%Y-%m-%d %H:%M:%S")],
-					SETTING["dbsetting"]
-				)
-				week_profit=0
-				for s in week_sessions:
-					week_profit=week_profit+(s["winprice"]-calccost(s))
-
-				# 計算本月盈利 (1號到月底, 主辦牌局不計入個人盈虧)
-				month_sessions=query(SETTING["dbname"],
-					"""SELECT winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL AND owned=false
-					   AND starttime >= %s AND starttime <= %s""",
-					[row["id"],
-					 month_start.strftime("%Y-%m-%d %H:%M:%S"),
-					 month_end.strftime("%Y-%m-%d %H:%M:%S")],
-					SETTING["dbsetting"]
-				)
-				month_profit=0
-				for s in month_sessions:
-					month_profit=month_profit+(s["winprice"]-calccost(s))
-
-				# 計算最近7天盈利 (含今天, 主辦牌局不計入個人盈虧)
-				last_week_sessions=query(SETTING["dbname"],
-					"""SELECT DATE(starttime) as date,
-					   winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL AND owned=false
-					   AND starttime >= %s AND starttime <= %s
-					   ORDER BY starttime ASC""",
-					[row["id"],
-					 last_seven_days_start.strftime("%Y-%m-%d %H:%M:%S"),
-					 today_start.strftime("%Y-%m-%d 23:59:59.999999")],
-					SETTING["dbsetting"]
-				)
-
-				# 將最近7天數據轉換為陣列 [前6天,前5天,前4天,前3天,前2天,前1天,今天]
-				last_week_daily=[0]*7
-				for session in last_week_sessions:
-					session_date=datetime.datetime.strptime(str(session["date"]),"%Y-%m-%d").date()
-					days_ago=(today_start.date()-session_date).days
-					if 0 <= days_ago < 7:  # 確保日期在最近7天內
-						array_index=6-days_ago  # 反轉索引,使今天在最後
-						profit=session["winprice"]-calccost(session)
-						last_week_daily[array_index] += profit
-
-				employedby=[]
-				if row["type"]!="player":
-					employedby=query(SETTING["dbname"],
-						f"""SELECT us.*, u."name" AS ownername, u."playerid" AS ownerplayerid, u."email" AS owneremail
-						   FROM "userstaff" us
-						   JOIN "user" u ON u."id"=us."userid"
-						   WHERE us."staffuserid"=%s AND us."status"='active' AND us."deletetime" IS NULL
-						   ORDER BY us."createtime" DESC""",
-						[row["id"]],
-						SETTING["dbsetting"]
-					)
-
-				return Response({
-					"success": True,
-					"data": {
-						**{k:v for k,v in row.items() if k not in ("token","verifytoken","uid")},
-						"chipcolors": parsechipcolors(row.get("chipcolors")),
-						"carddeck": row.get("carddeck") if row.get("carddeck") in CARDDECKLIST else "classic",
-						"potmainside": row.get("potmainside") if row.get("potmainside") in POTMAINSIDELIST else "right",
-						"chipset": loaduserchipset(row["id"]),
-						"toolfavorite": loadusertoolfavorite(row["id"]),
-						"todaytotalprofit": float(today_profit),
-						"weektotalprofit": float(week_profit),
-						"lastweekprofit": last_week_daily,
-						"monthtotalprofit": float(month_profit),
-						"employedby": employedby
-					}
-				},status.HTTP_200_OK)
-			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_user_not_found"
-				},status.HTTP_404_NOT_FOUND)
+	# 計算個人成本的內部函式 (依 includefee 決定是否加 fee)
+	def calccost(s):
+		# 用 .get 寬容處理舊資料沒 fee 欄位的情況
+		buyin=s.get("buyin") or 0
+		bf=s.get("buyinfee") or 0
+		rebuybuyin=s.get("rebuybuyin") or 0
+		rf=s.get("rebuyfee") or 0
+		reentrybuyin=s.get("reentrybuyin") or 0
+		reentryfee=s.get("reentryfee") or 0
+		addonbuyin=s.get("addonbuyin") or 0
+		addonfee=s.get("addonfee") or 0
+		if 0>=reentrybuyin:
+			reentrybuyin=buyin
+		if 0>=reentryfee:
+			reentryfee=bf
+		if includefee:
+			return buyin+bf+(rebuybuyin+rf)*(s.get("rebuycount") or 0)+(reentrybuyin+reentryfee)*(s.get("reentrycount") or 0)+(addonbuyin+addonfee)*(s.get("addoncount") or 0)
 		else:
-			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
-	else:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			return buyin+rebuybuyin*(s.get("rebuycount") or 0)+reentrybuyin*(s.get("reentrycount") or 0)+addonbuyin*(s.get("addoncount") or 0)
+
+	# 取得當前時間
+	now=datetime.datetime.now()
+	today_start=now.replace(hour=0,minute=0,second=0,microsecond=0)
+	# 本週的開始(週一)和結束(週日)
+	week_start=(now-timedelta(days=now.weekday())).replace(hour=0,minute=0,second=0,microsecond=0)
+	week_end=(week_start+timedelta(days=6)).replace(hour=23,minute=59,second=59,microsecond=999999)
+	# 本月的開始(1號)和結束(最後一天)
+	month_start=now.replace(day=1,hour=0,minute=0,second=0,microsecond=0)
+	next_month=month_start+timedelta(days=32)  # 跳到下個月
+	month_end=(next_month.replace(day=1)-timedelta(days=1)).replace(hour=23,minute=59,second=59,microsecond=999999)
+	# 最近7天（含今天）
+	last_seven_days_start=today_start-timedelta(days=6)  # 往前推6天(加上今天共7天)
+
+	# 計算今日盈利 (主辦牌局不計入個人盈虧)
+	today_end=today_start.replace(hour=23,minute=59,second=59,microsecond=999999)
+	today_sessions=query(SETTING["dbname"],
+		"""SELECT winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL AND owned=false
+		   AND %s<=starttime AND starttime <= %s""",
+		[row["id"],today_start.strftime("%Y-%m-%d %H:%M:%S"),today_end.strftime("%Y-%m-%d %H:%M:%S")],
+		SETTING["dbsetting"]
+	)
+
+	# 計算各時段的盈利
+	today_profit=0
+	for s in today_sessions:
+		today_profit=today_profit+(s["winprice"]-calccost(s))
+
+	# 計算本週盈利 (週一到週日, 主辦牌局不計入個人盈虧)
+	week_sessions=query(SETTING["dbname"],
+		"""SELECT winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL AND owned=false
+		   AND starttime >= %s AND starttime <= %s""",
+		[row["id"],
+		 week_start.strftime("%Y-%m-%d %H:%M:%S"),
+		 week_end.strftime("%Y-%m-%d %H:%M:%S")],
+		SETTING["dbsetting"]
+	)
+	week_profit=0
+	for s in week_sessions:
+		week_profit=week_profit+(s["winprice"]-calccost(s))
+
+	# 計算本月盈利 (1號到月底, 主辦牌局不計入個人盈虧)
+	month_sessions=query(SETTING["dbname"],
+		"""SELECT winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL AND owned=false
+		   AND starttime >= %s AND starttime <= %s""",
+		[row["id"],
+		 month_start.strftime("%Y-%m-%d %H:%M:%S"),
+		 month_end.strftime("%Y-%m-%d %H:%M:%S")],
+		SETTING["dbsetting"]
+	)
+	month_profit=0
+	for s in month_sessions:
+		month_profit=month_profit+(s["winprice"]-calccost(s))
+
+	# 計算最近7天盈利 (含今天, 主辦牌局不計入個人盈虧)
+	last_week_sessions=query(SETTING["dbname"],
+		"""SELECT DATE(starttime) as date,
+		   winprice, buyin, buyinfee, rebuybuyin, rebuyfee, rebuycount, reentrybuyin, reentryfee, reentrycount, addonbuyin, addonfee, addoncount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL AND owned=false
+		   AND starttime >= %s AND starttime <= %s
+		   ORDER BY starttime ASC""",
+		[row["id"],
+		 last_seven_days_start.strftime("%Y-%m-%d %H:%M:%S"),
+		 today_start.strftime("%Y-%m-%d 23:59:59.999999")],
+		SETTING["dbsetting"]
+	)
+
+	# 將最近7天數據轉換為陣列 [前6天,前5天,前4天,前3天,前2天,前1天,今天]
+	last_week_daily=[0]*7
+	for session in last_week_sessions:
+		session_date=datetime.datetime.strptime(str(session["date"]),"%Y-%m-%d").date()
+		days_ago=(today_start.date()-session_date).days
+		if 0 <= days_ago < 7:  # 確保日期在最近7天內
+			array_index=6-days_ago  # 反轉索引,使今天在最後
+			profit=session["winprice"]-calccost(session)
+			last_week_daily[array_index] += profit
+
+	employedby=[]
+	if row["type"]!="player":
+		employedby=query(SETTING["dbname"],
+			f"""SELECT us.*, u."name" AS ownername, u."playerid" AS ownerplayerid, u."email" AS owneremail
+			   FROM "userstaff" us
+			   JOIN "user" u ON u."id"=us."userid"
+			   WHERE us."staffuserid"=%s AND us."status"='active' AND us."deletetime" IS NULL
+			   ORDER BY us."createtime" DESC""",
+			[row["id"]],
+			SETTING["dbsetting"]
+		)
+
+	return Response({
+		"success": True,
+		"data": {
+			**{k:v for k,v in row.items() if k not in ("token","verifytoken","uid")},
+			"chipcolors": parsechipcolors(row.get("chipcolors")),
+			"carddeck": row.get("carddeck") if row.get("carddeck") in CARDDECKLIST else "classic",
+			# TASK-046：牌背與牌面分開。沒設定過（NULL）時沿用 carddeck，
+			# 所以舊帳號讀出來的三個值會一致，外觀不會變。
+			"cardback": carddeckvalue(row.get("cardback"),row.get("carddeck")),
+			"cardface": carddeckvalue(row.get("cardface"),row.get("carddeck")),
+			"potmainside": row.get("potmainside") if row.get("potmainside") in POTMAINSIDELIST else "right",
+			"chipset": loaduserchipset(row["id"]),
+			"toolfavorite": loadusertoolfavorite(row["id"]),
+			"todaytotalprofit": float(today_profit),
+			"weektotalprofit": float(week_profit),
+			"lastweekprofit": last_week_daily,
+			"monthtotalprofit": float(month_profit),
+			"employedby": employedby
+		}
+	},status.HTTP_200_OK)
 
 @api_view(["GET"])
 def searchusers(request):
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
-	operatorrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-	if not operatorrow:
-		return errorresponse("ERROR_user_not_found")
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 	keyword=(request.GET.get("keyword") or "").strip()
 	# sessionid 為空字串時綁 None (NULL): 帳號搜尋 (newedithand.js) 不帶 sessionid,
 	# 若直接把 "" 綁進 bigint 比較 (sp."sessionid"=%s 等) 會觸發 '' -> bigint 轉型錯誤,
@@ -755,7 +723,7 @@ def searchusers(request):
 	)
 	# 非管理員 (permission<4) 不回傳完整 email，改回遮罩後的 email，
 	# 報名搜尋畫面仍可顯示辨識用資訊，但避免任何登入者枚舉全站使用者信箱
-	if not (4<=int(operatorrow[0]["permission"])):
+	if not (4<=int(tokenuserrow["permission"])):
 		for row in (rows or []):
 			email=row.get("email") or ""
 			if "@" in email:
@@ -766,592 +734,465 @@ def searchusers(request):
 
 @api_view(["GET"])
 def getuserreport(request):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
+	row=tokenuserrow
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+	data=request.GET.dict()
 
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenrow=tokenrow[0]
-			row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow["userid"]],SETTING["dbsetting"])
-			if row:
-				row=row[0]
-				data=request.GET.dict()
+	requestdata=validate(data,{
+		"type": "string|in:month,year,all",
+		"year": "string",
+		"month": "string"
+	},{
+		"string": "ERROR_request_data_type_error",
+		"in": "ERROR_request_data_type_error"
+	})
 
-				requestdata=validate(data,{
-					"type": "string|in:month,year,all",
-					"year": "string",
-					"month": "string"
-				},{
-					"string": "ERROR_request_data_type_error",
-					"in": "ERROR_request_data_type_error"
-				})
+	if requestdata["error"] is None:
+		type=requestdata["data"].get("type") if requestdata["data"].get("type") else "month"
+		year=requestdata["data"].get("year") if requestdata["data"].get("year") else str(datetime.datetime.now().year)
+		month=requestdata["data"].get("month") if requestdata["data"].get("month") else str(datetime.datetime.now().month)
 
-				if requestdata["error"] is None:
-					type=requestdata["data"].get("type") if requestdata["data"].get("type") else "month"
-					year=requestdata["data"].get("year") if requestdata["data"].get("year") else str(datetime.datetime.now().year)
-					month=requestdata["data"].get("month") if requestdata["data"].get("month") else str(datetime.datetime.now().month)
+		# includefee toggle (預設 true=含服務費)
+		includefee=True
+		includefeeparam=request.GET.get("includefee")
+		if includefeeparam=="false" or includefeeparam=="0":
+			includefee=False
 
-					# includefee toggle (預設 true=含服務費)
-					includefee=True
-					includefeeparam=request.GET.get("includefee")
-					if includefeeparam=="false" or includefeeparam=="0":
-						includefee=False
-
-					# 1. 先計算時間區間 (保持不變或優化)
-					if type=="month":
-						startdate=f"{year}-{month}-01 00:00:00"
-						nextmonthdate=(datetime.datetime.strptime(startdate,"%Y-%m-%d %H:%M:%S")+timedelta(days=32)).replace(day=1)
-						startdate=f"{year}-{month}-01 00:00:00+08"
-						enddate=(nextmonthdate-timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")+"+08"
-					elif type=="year":
-						startdate=f"{year}-01-01 00:00:00+08"
-						enddate=f"{year}-12-31 23:59:59+08"
-					else:
-						startdate="1000-01-01 00:00:00+08"
-						enddate="3000-12-31 23:59:59+08"
-					# 2. 執行一條彙總查詢 (主辦牌局不計入個人盈虧)
-					# 依 includefee 決定 cost 公式是否加 buyinfee + rebuyfee
-					if includefee:
-						summary_sql = """
-							SELECT
-								"gametype",
-								COUNT(*) as count,
-								SUM(COALESCE("buyin", 0) + COALESCE("buyinfee", 0) + (COALESCE("rebuybuyin", 0) + COALESCE("rebuyfee", 0)) * COALESCE("rebuycount", 0) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) + COALESCE(NULLIF("reentryfee",0), "buyinfee", 0)) * COALESCE("reentrycount", 0) + (COALESCE("addonbuyin", 0) + COALESCE("addonfee", 0)) * COALESCE("addoncount", 0)) as buyin,
-								SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + COALESCE("buyinfee", 0) + (COALESCE("rebuybuyin", 0) + COALESCE("rebuyfee", 0)) * COALESCE("rebuycount", 0) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) + COALESCE(NULLIF("reentryfee",0), "buyinfee", 0)) * COALESCE("reentrycount", 0) + (COALESCE("addonbuyin", 0) + COALESCE("addonfee", 0)) * COALESCE("addoncount", 0))) as profit
-							FROM "session"
-							WHERE "userid" = %s AND "deletetime" IS NULL AND "owned"=false AND "starttime" >= %s AND "starttime" <= %s
-							GROUP BY "gametype"
-						"""
-					else:
-						summary_sql = """
-							SELECT
-								"gametype",
-								COUNT(*) as count,
-								SUM(COALESCE("buyin", 0)+COALESCE("rebuybuyin", 0)*COALESCE("rebuycount", 0)+COALESCE(NULLIF("reentrybuyin",0), "buyin", 0)*COALESCE("reentrycount", 0)+COALESCE("addonbuyin", 0)*COALESCE("addoncount", 0)) as buyin,
-								SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + (COALESCE("rebuybuyin", 0) * COALESCE("rebuycount", 0)) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) * COALESCE("reentrycount", 0)) + (COALESCE("addonbuyin", 0) * COALESCE("addoncount", 0)))) as profit
-							FROM "session"
-							WHERE "userid" = %s AND "deletetime" IS NULL AND "owned"=false AND "starttime" >= %s AND "starttime" <= %s
-							GROUP BY "gametype"
-						"""
-					raw_data = query(SETTING["dbname"], summary_sql, [row["id"], startdate, enddate], SETTING["dbsetting"])
-
-					# 3. 整理成需要的格式
-					stats = {
-						"cash": {"count": 0, "buyin": 0, "profit": 0},
-						"limited": {"count": 0, "buyin": 0, "profit": 0}, # 對應你原本的 tlt
-						"tournament": {"count": 0, "buyin": 0, "profit": 0} # 對應你原本的 mtt
-					}
-					total_profit = 0
-
-					for item in raw_data:
-						g_type = item["gametype"]
-						if g_type in stats:
-							stats[g_type]["count"] = item["count"]
-							stats[g_type]["buyin"] = float(item["buyin"] or 0)
-							stats[g_type]["profit"] = float(item["profit"] or 0)
-							total_profit=total_profit+float(item["profit"] or 0)
-
-					regsessionrow=query(SETTING["dbname"],
-						"""SELECT DISTINCT s.*
-						   FROM "sessionplayer" sp
-						   JOIN "session" s ON s."id"=sp."sessionid" AND s."deletetime" IS NULL
-						   WHERE sp."userid"=%s AND sp."deletetime" IS NULL AND sp."status" IN ('confirmed','advanced') AND s."starttime">=%s AND s."starttime"<=%s""",
-						[row["id"],startdate,enddate],
-						SETTING["dbsetting"]
-					)
-					for regsession in regsessionrow:
-						regrow=query(SETTING["dbname"],
-							"""SELECT sp.*, tp."place" AS timerplace, tp."status" AS timerstatus
-							   FROM "sessionplayer" sp
-							   LEFT JOIN "sessiontimerplayer" tp ON tp."sessionid"=sp."sessionid" AND tp."userid"=sp."userid" AND tp."deletetime" IS NULL
-							   WHERE sp."userid"=%s AND sp."sessionid"=%s AND sp."deletetime" IS NULL AND sp."status" IN ('confirmed','advanced')""",
-							[row["id"],regsession["id"]],
-							SETTING["dbsetting"]
-						)
-						regrow=_attachfinance(regsession,regrow)
-						for item in regrow:
-							g_type=regsession["gametype"]
-							if g_type in stats:
-								cost=item["cost"] or 0
-								if not includefee and item.get("paymenttype")!="ticket":
-									cost=cost-float(regsession.get("buyinfee") or 0)
-									cost=cost-(float(regsession.get("rebuyfee") or 0)*(item.get("rebuycount") or 0))
-									reentryfee=float(regsession.get("reentryfee") or 0)
-									if reentryfee<=0:
-										reentryfee=float(regsession.get("buyinfee") or 0)
-									cost=cost-(reentryfee*(item.get("reentrycount") or 0))
-									cost=cost-(float(regsession.get("addonfee") or 0)*(item.get("addoncount") or 0))
-								profit=(item["finalprize"] or 0)-cost
-								stats[g_type]["count"]=stats[g_type]["count"]+1
-								stats[g_type]["buyin"]=stats[g_type]["buyin"]+cost
-								stats[g_type]["profit"]=stats[g_type]["profit"]+profit
-								total_profit=total_profit+profit
-
-					typelist=["cash","limited","tournament"]
-					for stattype in typelist:
-						buyinval=stats[stattype]["buyin"] or 0
-						profitval=stats[stattype]["profit"] or 0
-						if 0<float(buyinval):
-							stats[stattype]["roi"]=round((float(profitval)/float(buyinval))*100,2)
-						else:
-							stats[stattype]["roi"]=0
-
-					# cashcount=query(SETTING["dbname"],"""SELECT COUNT(*) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='cash' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-					# cashbuyin=query(SETTING["dbname"],"""SELECT SUM("buyin") as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='cash' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-					# cashprofit=query(SETTING["dbname"],"""SELECT SUM("winprice"-("buyin"+("rebuybuyin"*"rebuycount"))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='cash' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-
-					# tltcount=query(SETTING["dbname"],"""SELECT COUNT(*) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='limited' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-					# tltbuyin=query(SETTING["dbname"],"""SELECT SUM("buyin") as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='limited' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-					# tltprofit=query(SETTING["dbname"],"""SELECT SUM("winprice"-("buyin"+("rebuybuyin"*"rebuycount"))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='limited' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-
-					mttbuyincount=query(SETTING["dbname"],"""SELECT SUM(1+COALESCE("rebuycount", 0)+COALESCE("reentrycount", 0)) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false AND "gametype"='tournament' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-					regmttbuyincount=query(SETTING["dbname"],"""SELECT SUM(1+COALESCE(sp."rebuycount",0)+COALESCE(sp."reentrycount",0)+COALESCE(sp."addoncount",0)) as count FROM "sessionplayer" sp JOIN "session" s ON s."id"=sp."sessionid" AND s."deletetime" IS NULL WHERE sp."userid"=%s AND sp."deletetime" IS NULL AND sp."status"='confirmed' AND s."gametype"='tournament' AND %s<=s."starttime" AND s."starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
-					stats["tournament"]["buyincount"]=(mttbuyincount[0]["count"] if mttbuyincount[0]["count"] else 0)+(regmttbuyincount[0]["count"] if regmttbuyincount and regmttbuyincount[0]["count"] else 0)
-
-					# MTT 進階統計: ROI% / ITM% / ft% / Top3%
-					mttstats=query(SETTING["dbname"],
-						"""SELECT
-							COUNT(CASE WHEN "inmoney"=true THEN 1 END) AS itm,
-							COUNT(CASE WHEN "inft"=true THEN 1 END) AS ft,
-							COUNT(CASE WHEN "place" IN ('1','2','3') THEN 1 END) AS top3
-						FROM "session"
-						WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false
-						AND "gametype"='tournament' AND %s<="starttime" AND "starttime"<=%s""",
-						[row["id"],startdate,enddate],
-						SETTING["dbsetting"]
-					)
-
-					mttcount=stats["tournament"]["count"] or 0
-					mttbuyinval=stats["tournament"]["buyin"] or 0
-					mttprofitval=stats["tournament"]["profit"] or 0
-					itmcount=(mttstats[0]["itm"] if mttstats and mttstats[0]["itm"] else 0) or 0
-					ftcount=(mttstats[0]["ft"] if mttstats and mttstats[0]["ft"] else 0) or 0
-					top3count=(mttstats[0]["top3"] if mttstats and mttstats[0]["top3"] else 0) or 0
-
-					# 算百分比, 沒場次的話一律 0
-					if 0<mttcount:
-						itmpct=round((float(itmcount)/float(mttcount))*100,2)
-						ftpct=round((float(ftcount)/float(mttcount))*100,2)
-						top3pct=round((float(top3count)/float(mttcount))*100,2)
-					else:
-						itmpct=0
-						ftpct=0
-						top3pct=0
-
-					if 0<float(mttbuyinval):
-						roipct=round((float(mttprofitval)/float(mttbuyinval))*100,2)
-					else:
-						roipct=0
-
-					stats["tournament"]["roi"]=roipct
-					stats["tournament"]["itm"]=itmpct
-					stats["tournament"]["ft"]=ftpct
-					stats["tournament"]["top3"]=top3pct
-
-					# 總盈虧 (依 includefee 決定 cost 是否含 fee)
-					if includefee:
-						profitsql="""SELECT SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + COALESCE("buyinfee", 0) + (COALESCE("rebuybuyin", 0) + COALESCE("rebuyfee", 0)) * COALESCE("rebuycount", 0) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) + COALESCE(NULLIF("reentryfee",0), "buyinfee", 0)) * COALESCE("reentrycount", 0) + (COALESCE("addonbuyin", 0) + COALESCE("addonfee", 0)) * COALESCE("addoncount", 0))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false AND %s<="starttime" AND "starttime"<=%s"""
-					else:
-						profitsql="""SELECT SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + (COALESCE("rebuybuyin", 0) * COALESCE("rebuycount", 0)) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) * COALESCE("reentrycount", 0)) + (COALESCE("addonbuyin", 0) * COALESCE("addoncount", 0)))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false AND %s<="starttime" AND "starttime"<=%s"""
-					profit=query(SETTING["dbname"],profitsql,[row["id"],startdate,enddate],SETTING["dbsetting"])
-					totalprofit=(profit[0]["count"] if profit[0]["count"] else Decimal("0")) + (Decimal(str(total_profit)) - (profit[0]["count"] if profit[0]["count"] else Decimal("0")))
-
-					# return Response({
-					# 	"success": True,
-					# 	"data": {
-					# 		"cash": {
-					# 			"count": cashcount[0]["count"],
-					# 			"buyin": cashbuyin[0]["count"] if cashbuyin[0]["count"] else 0,
-					# 			"profit": cashprofit[0]["count"] if cashprofit[0]["count"] else 0,
-					# 		},
-					# 		"tlt": {
-					# 			"count": tltcount[0]["count"],
-					# 			"buyin": tltbuyin[0]["count"] if tltbuyin[0]["count"] else 0,
-					# 			"profit": tltprofit[0]["count"] if tltprofit[0]["count"] else 0,
-					# 		},
-					# 		"mtt": {
-					# 			"count": mttcount[0]["count"],
-					# 			"buyin": mttbuyin[0]["count"] if mttbuyin[0]["count"] else 0,
-					# 			"profit": mttprofit[0]["count"] if mttprofit[0]["count"] else 0,
-					# 		},
-					# 		"profit": profit[0]["count"] if profit[0]["count"] else 0,
-					# 	}
-					# },status.HTTP_200_OK)
-					return Response({
-						"success": True,
-						"data": {
-							"cash": stats["cash"],
-							"tlt": stats["limited"],
-							"mtt": stats["tournament"],
-							"profit": totalprofit,
-						}
-					},status.HTTP_200_OK)
-				else:
-					return errorresponse(requestdata["error"])
-
-
-				# 取得當前時間
-				now=datetime.datetime.now()
-				today_start=now.replace(hour=0,minute=0,second=0,microsecond=0)
-				# 本週的開始(週一)和結束(週日)
-				week_start=(now-timedelta(days=now.weekday())).replace(hour=0,minute=0,second=0,microsecond=0)
-				week_end=(week_start+timedelta(days=6)).replace(hour=23,minute=59,second=59,microsecond=999999)
-				# 本月的開始(1號)和結束(最後一天)
-				month_start=now.replace(day=1,hour=0,minute=0,second=0,microsecond=0)
-				next_month=month_start+timedelta(days=32)  # 跳到下個月
-				month_end=(next_month.replace(day=1)-timedelta(days=1)).replace(hour=23,minute=59,second=59,microsecond=999999)
-				# 最近7天（含今天）
-				last_seven_days_start=today_start-timedelta(days=6)  # 往前推6天(加上今天共7天)
-
-				# 計算今日盈利
-				today_end=today_start.replace(hour=23,minute=59,second=59,microsecond=999999)
-				today_sessions=query(SETTING["dbname"],
-					"""SELECT winprice, buyin, rebuybuyin, rebuycount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL
-					   AND %s<=starttime AND starttime <= %s""",
-					[row["id"],today_start.strftime("%Y-%m-%d %H:%M:%S"),today_end.strftime("%Y-%m-%d %H:%M:%S")],
-					SETTING["dbsetting"]
-				)
-
-				# 計算各時段的盈利
-				today_profit=0
-				for s in today_sessions:
-					today_profit=today_profit+(s["winprice"]-(s["buyin"]+(s["rebuybuyin"]*s["rebuycount"])))
-
-				# 計算本週盈利 (週一到週日)
-				week_sessions=query(SETTING["dbname"],
-					"""SELECT winprice, buyin, rebuybuyin, rebuycount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL
-					   AND starttime >= %s AND starttime <= %s""",
-					[row["id"],
-					 week_start.strftime("%Y-%m-%d %H:%M:%S"),
-					 week_end.strftime("%Y-%m-%d %H:%M:%S")],
-					SETTING["dbsetting"]
-				)
-				week_profit=0
-				for s in week_sessions:
-					week_profit=week_profit+s["winprice"]-(s["buyin"]+(s["rebuybuyin"]*s["rebuycount"]))
-
-				# 計算本月盈利 (1號到月底)
-				month_sessions=query(SETTING["dbname"],
-					"""SELECT winprice, buyin, rebuybuyin, rebuycount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL
-					   AND starttime >= %s AND starttime <= %s""",
-					[row["id"],
-					 month_start.strftime("%Y-%m-%d %H:%M:%S"),
-					 month_end.strftime("%Y-%m-%d %H:%M:%S")],
-					SETTING["dbsetting"]
-				)
-				month_profit=0
-				for s in month_sessions:
-					month_profit=month_profit+s["winprice"]-(s["buyin"]+(s["rebuybuyin"]*s["rebuycount"]))
-
-				# 計算最近7天盈利 (含今天)
-				last_week_sessions=query(SETTING["dbname"],
-					"""SELECT DATE(starttime) as date,
-					   winprice, buyin, rebuybuyin, rebuycount
-					   FROM session
-					   WHERE userid=%s AND deletetime IS NULL
-					   AND starttime >= %s AND starttime <= %s
-					   ORDER BY starttime ASC""",
-					[row["id"],
-					 last_seven_days_start.strftime("%Y-%m-%d %H:%M:%S"),
-					 today_start.strftime("%Y-%m-%d 23:59:59.999999")],
-					SETTING["dbsetting"]
-				)
-
-				# 將最近7天數據轉換為陣列 [前6天,前5天,前4天,前3天,前2天,前1天,今天]
-				last_week_daily=[0]*7
-				for session in last_week_sessions:
-					session_date=datetime.datetime.strptime(str(session["date"]),"%Y-%m-%d").date()
-					days_ago=(today_start.date()-session_date).days
-					if 0 <= days_ago < 7:  # 確保日期在最近7天內
-						array_index=6-days_ago  # 反轉索引,使今天在最後
-						profit=session["winprice"]-(session["buyin"]+(session["rebuybuyin"]*session["rebuycount"]))
-						last_week_daily[array_index] += profit
-
-				return Response({
-					"success": True,
-					"data": {
-						**row,
-						"todaytotalprofit": float(today_profit),
-						"weektotalprofit": float(week_profit),
-						"lastweekprofit": last_week_daily,
-						"monthtotalprofit": float(month_profit),
-					}
-				},status.HTTP_200_OK)
-			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_user_not_found"
-				},status.HTTP_404_NOT_FOUND)
+		# 1. 先計算時間區間 (保持不變或優化)
+		if type=="month":
+			startdate=f"{year}-{month}-01 00:00:00"
+			nextmonthdate=(datetime.datetime.strptime(startdate,"%Y-%m-%d %H:%M:%S")+timedelta(days=32)).replace(day=1)
+			startdate=f"{year}-{month}-01 00:00:00+08"
+			enddate=(nextmonthdate-timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")+"+08"
+		elif type=="year":
+			startdate=f"{year}-01-01 00:00:00+08"
+			enddate=f"{year}-12-31 23:59:59+08"
 		else:
-			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
-	else:
+			startdate="1000-01-01 00:00:00+08"
+			enddate="3000-12-31 23:59:59+08"
+		# 2. 執行一條彙總查詢 (主辦牌局不計入個人盈虧)
+		# 依 includefee 決定 cost 公式是否加 buyinfee + rebuyfee
+		if includefee:
+			summary_sql="""
+				SELECT
+					"gametype",
+					COUNT(*) as count,
+					SUM(COALESCE("buyin", 0) + COALESCE("buyinfee", 0) + (COALESCE("rebuybuyin", 0) + COALESCE("rebuyfee", 0)) * COALESCE("rebuycount", 0) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) + COALESCE(NULLIF("reentryfee",0), "buyinfee", 0)) * COALESCE("reentrycount", 0) + (COALESCE("addonbuyin", 0) + COALESCE("addonfee", 0)) * COALESCE("addoncount", 0)) as buyin,
+					SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + COALESCE("buyinfee", 0) + (COALESCE("rebuybuyin", 0) + COALESCE("rebuyfee", 0)) * COALESCE("rebuycount", 0) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) + COALESCE(NULLIF("reentryfee",0), "buyinfee", 0)) * COALESCE("reentrycount", 0) + (COALESCE("addonbuyin", 0) + COALESCE("addonfee", 0)) * COALESCE("addoncount", 0))) as profit
+				FROM "session"
+				WHERE "userid" = %s AND "deletetime" IS NULL AND "owned"=false AND "starttime" >= %s AND "starttime" <= %s
+				GROUP BY "gametype"
+			"""
+		else:
+			summary_sql="""
+				SELECT
+					"gametype",
+					COUNT(*) as count,
+					SUM(COALESCE("buyin", 0)+COALESCE("rebuybuyin", 0)*COALESCE("rebuycount", 0)+COALESCE(NULLIF("reentrybuyin",0), "buyin", 0)*COALESCE("reentrycount", 0)+COALESCE("addonbuyin", 0)*COALESCE("addoncount", 0)) as buyin,
+					SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + (COALESCE("rebuybuyin", 0) * COALESCE("rebuycount", 0)) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) * COALESCE("reentrycount", 0)) + (COALESCE("addonbuyin", 0) * COALESCE("addoncount", 0)))) as profit
+				FROM "session"
+				WHERE "userid" = %s AND "deletetime" IS NULL AND "owned"=false AND "starttime" >= %s AND "starttime" <= %s
+				GROUP BY "gametype"
+			"""
+		raw_data=query(SETTING["dbname"], summary_sql, [row["id"], startdate, enddate], SETTING["dbsetting"])
+
+		# 3. 整理成需要的格式
+		stats={
+			"cash": {"count": 0, "buyin": 0, "profit": 0},
+			"limited": {"count": 0, "buyin": 0, "profit": 0}, # 對應你原本的 tlt
+			"tournament": {"count": 0, "buyin": 0, "profit": 0} # 對應你原本的 mtt
+		}
+		total_profit=0
+
+		for item in raw_data:
+			g_type=item["gametype"]
+			if g_type in stats:
+				stats[g_type]["count"] = item["count"]
+				stats[g_type]["buyin"] = float(item["buyin"] or 0)
+				stats[g_type]["profit"] = float(item["profit"] or 0)
+				total_profit=total_profit+float(item["profit"] or 0)
+
+		regsessionrow=query(SETTING["dbname"],
+			"""SELECT DISTINCT s.*
+			   FROM "sessionplayer" sp
+			   JOIN "session" s ON s."id"=sp."sessionid" AND s."deletetime" IS NULL
+			   WHERE sp."userid"=%s AND sp."deletetime" IS NULL AND sp."status" IN ('confirmed','advanced') AND s."starttime">=%s AND s."starttime"<=%s""",
+			[row["id"],startdate,enddate],
+			SETTING["dbsetting"]
+		)
+		for regsession in regsessionrow:
+			regrow=query(SETTING["dbname"],
+				"""SELECT sp.*, tp."place" AS timerplace, tp."status" AS timerstatus
+				   FROM "sessionplayer" sp
+				   LEFT JOIN "sessiontimerplayer" tp ON tp."sessionid"=sp."sessionid" AND tp."userid"=sp."userid" AND tp."deletetime" IS NULL
+				   WHERE sp."userid"=%s AND sp."sessionid"=%s AND sp."deletetime" IS NULL AND sp."status" IN ('confirmed','advanced')""",
+				[row["id"],regsession["id"]],
+				SETTING["dbsetting"]
+			)
+			regrow=_attachfinance(regsession,regrow)
+			for item in regrow:
+				g_type=regsession["gametype"]
+				if g_type in stats:
+					cost=item["cost"] or 0
+					if not includefee and item.get("paymenttype")!="ticket":
+						cost=cost-float(regsession.get("buyinfee") or 0)
+						cost=cost-(float(regsession.get("rebuyfee") or 0)*(item.get("rebuycount") or 0))
+						reentryfee=float(regsession.get("reentryfee") or 0)
+						if reentryfee<=0:
+							reentryfee=float(regsession.get("buyinfee") or 0)
+						cost=cost-(reentryfee*(item.get("reentrycount") or 0))
+						cost=cost-(float(regsession.get("addonfee") or 0)*(item.get("addoncount") or 0))
+					profit=(item["finalprize"] or 0)-cost
+					stats[g_type]["count"]=stats[g_type]["count"]+1
+					stats[g_type]["buyin"]=stats[g_type]["buyin"]+cost
+					stats[g_type]["profit"]=stats[g_type]["profit"]+profit
+					total_profit=total_profit+profit
+
+		typelist=["cash","limited","tournament"]
+		for stattype in typelist:
+			buyinval=stats[stattype]["buyin"] or 0
+			profitval=stats[stattype]["profit"] or 0
+			if 0<float(buyinval):
+				stats[stattype]["roi"]=round((float(profitval)/float(buyinval))*100,2)
+			else:
+				stats[stattype]["roi"]=0
+
+		# cashcount=query(SETTING["dbname"],"""SELECT COUNT(*) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='cash' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+		# cashbuyin=query(SETTING["dbname"],"""SELECT SUM("buyin") as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='cash' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+		# cashprofit=query(SETTING["dbname"],"""SELECT SUM("winprice"-("buyin"+("rebuybuyin"*"rebuycount"))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='cash' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+
+		# tltcount=query(SETTING["dbname"],"""SELECT COUNT(*) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='limited' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+		# tltbuyin=query(SETTING["dbname"],"""SELECT SUM("buyin") as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='limited' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+		# tltprofit=query(SETTING["dbname"],"""SELECT SUM("winprice"-("buyin"+("rebuybuyin"*"rebuycount"))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "gametype"='limited' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+
+		mttbuyincount=query(SETTING["dbname"],"""SELECT SUM(1+COALESCE("rebuycount", 0)+COALESCE("reentrycount", 0)) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false AND "gametype"='tournament' AND %s<="starttime" AND "starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+		regmttbuyincount=query(SETTING["dbname"],"""SELECT SUM(1+COALESCE(sp."rebuycount",0)+COALESCE(sp."reentrycount",0)+COALESCE(sp."addoncount",0)) as count FROM "sessionplayer" sp JOIN "session" s ON s."id"=sp."sessionid" AND s."deletetime" IS NULL WHERE sp."userid"=%s AND sp."deletetime" IS NULL AND sp."status"='confirmed' AND s."gametype"='tournament' AND %s<=s."starttime" AND s."starttime"<=%s""",[row["id"],startdate,enddate],SETTING["dbsetting"])
+		stats["tournament"]["buyincount"]=(mttbuyincount[0]["count"] if mttbuyincount[0]["count"] else 0)+(regmttbuyincount[0]["count"] if regmttbuyincount and regmttbuyincount[0]["count"] else 0)
+
+		# MTT 進階統計: ROI% / ITM% / ft% / Top3%
+		mttstats=query(SETTING["dbname"],
+			"""SELECT
+				COUNT(CASE WHEN "inmoney"=true THEN 1 END) AS itm,
+				COUNT(CASE WHEN "inft"=true THEN 1 END) AS ft,
+				COUNT(CASE WHEN "place" IN ('1','2','3') THEN 1 END) AS top3
+			FROM "session"
+			WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false
+			AND "gametype"='tournament' AND %s<="starttime" AND "starttime"<=%s""",
+			[row["id"],startdate,enddate],
+			SETTING["dbsetting"]
+		)
+
+		mttcount=stats["tournament"]["count"] or 0
+		mttbuyinval=stats["tournament"]["buyin"] or 0
+		mttprofitval=stats["tournament"]["profit"] or 0
+		itmcount=(mttstats[0]["itm"] if mttstats and mttstats[0]["itm"] else 0) or 0
+		ftcount=(mttstats[0]["ft"] if mttstats and mttstats[0]["ft"] else 0) or 0
+		top3count=(mttstats[0]["top3"] if mttstats and mttstats[0]["top3"] else 0) or 0
+
+		# 算百分比, 沒場次的話一律 0
+		if 0<mttcount:
+			itmpct=round((float(itmcount)/float(mttcount))*100,2)
+			ftpct=round((float(ftcount)/float(mttcount))*100,2)
+			top3pct=round((float(top3count)/float(mttcount))*100,2)
+		else:
+			itmpct=0
+			ftpct=0
+			top3pct=0
+
+		if 0<float(mttbuyinval):
+			roipct=round((float(mttprofitval)/float(mttbuyinval))*100,2)
+		else:
+			roipct=0
+
+		stats["tournament"]["roi"]=roipct
+		stats["tournament"]["itm"]=itmpct
+		stats["tournament"]["ft"]=ftpct
+		stats["tournament"]["top3"]=top3pct
+
+		# 總盈虧 (依 includefee 決定 cost 是否含 fee)
+		if includefee:
+			profitsql="""SELECT SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + COALESCE("buyinfee", 0) + (COALESCE("rebuybuyin", 0) + COALESCE("rebuyfee", 0)) * COALESCE("rebuycount", 0) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) + COALESCE(NULLIF("reentryfee",0), "buyinfee", 0)) * COALESCE("reentrycount", 0) + (COALESCE("addonbuyin", 0) + COALESCE("addonfee", 0)) * COALESCE("addoncount", 0))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false AND %s<="starttime" AND "starttime"<=%s"""
+		else:
+			profitsql="""SELECT SUM(COALESCE("winprice", 0) - (COALESCE("buyin", 0) + (COALESCE("rebuybuyin", 0) * COALESCE("rebuycount", 0)) + (COALESCE(NULLIF("reentrybuyin",0), "buyin", 0) * COALESCE("reentrycount", 0)) + (COALESCE("addonbuyin", 0) * COALESCE("addoncount", 0)))) as count FROM "session" WHERE "userid"=%s AND "deletetime" IS NULL AND "owned"=false AND %s<="starttime" AND "starttime"<=%s"""
+		profit=query(SETTING["dbname"],profitsql,[row["id"],startdate,enddate],SETTING["dbsetting"])
+		totalprofit=(profit[0]["count"] if profit[0]["count"] else Decimal("0")) + (Decimal(str(total_profit)) - (profit[0]["count"] if profit[0]["count"] else Decimal("0")))
+
+		# return Response({
+		# 	"success": True,
+		# 	"data": {
+		# 		"cash": {
+		# 			"count": cashcount[0]["count"],
+		# 			"buyin": cashbuyin[0]["count"] if cashbuyin[0]["count"] else 0,
+		# 			"profit": cashprofit[0]["count"] if cashprofit[0]["count"] else 0,
+		# 		},
+		# 		"tlt": {
+		# 			"count": tltcount[0]["count"],
+		# 			"buyin": tltbuyin[0]["count"] if tltbuyin[0]["count"] else 0,
+		# 			"profit": tltprofit[0]["count"] if tltprofit[0]["count"] else 0,
+		# 		},
+		# 		"mtt": {
+		# 			"count": mttcount[0]["count"],
+		# 			"buyin": mttbuyin[0]["count"] if mttbuyin[0]["count"] else 0,
+		# 			"profit": mttprofit[0]["count"] if mttprofit[0]["count"] else 0,
+		# 		},
+		# 		"profit": profit[0]["count"] if profit[0]["count"] else 0,
+		# 	}
+		# },status.HTTP_200_OK)
 		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"success": True,
+			"data": {
+				"cash": stats["cash"],
+				"tlt": stats["limited"],
+				"mtt": stats["tournament"],
+				"profit": totalprofit,
+			}
+		},status.HTTP_200_OK)
+	else:
+		return errorresponse(requestdata["error"])
+
+
+	# 取得當前時間
+	now=datetime.datetime.now()
+	today_start=now.replace(hour=0,minute=0,second=0,microsecond=0)
+	# 本週的開始(週一)和結束(週日)
+	week_start=(now-timedelta(days=now.weekday())).replace(hour=0,minute=0,second=0,microsecond=0)
+	week_end=(week_start+timedelta(days=6)).replace(hour=23,minute=59,second=59,microsecond=999999)
+	# 本月的開始(1號)和結束(最後一天)
+	month_start=now.replace(day=1,hour=0,minute=0,second=0,microsecond=0)
+	next_month=month_start+timedelta(days=32)  # 跳到下個月
+	month_end=(next_month.replace(day=1)-timedelta(days=1)).replace(hour=23,minute=59,second=59,microsecond=999999)
+	# 最近7天（含今天）
+	last_seven_days_start=today_start-timedelta(days=6)  # 往前推6天(加上今天共7天)
+
+	# 計算今日盈利
+	today_end=today_start.replace(hour=23,minute=59,second=59,microsecond=999999)
+	today_sessions=query(SETTING["dbname"],
+		"""SELECT winprice, buyin, rebuybuyin, rebuycount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL
+		   AND %s<=starttime AND starttime <= %s""",
+		[row["id"],today_start.strftime("%Y-%m-%d %H:%M:%S"),today_end.strftime("%Y-%m-%d %H:%M:%S")],
+		SETTING["dbsetting"]
+	)
+
+	# 計算各時段的盈利
+	today_profit=0
+	for s in today_sessions:
+		today_profit=today_profit+(s["winprice"]-(s["buyin"]+(s["rebuybuyin"]*s["rebuycount"])))
+
+	# 計算本週盈利 (週一到週日)
+	week_sessions=query(SETTING["dbname"],
+		"""SELECT winprice, buyin, rebuybuyin, rebuycount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL
+		   AND starttime >= %s AND starttime <= %s""",
+		[row["id"],
+		 week_start.strftime("%Y-%m-%d %H:%M:%S"),
+		 week_end.strftime("%Y-%m-%d %H:%M:%S")],
+		SETTING["dbsetting"]
+	)
+	week_profit=0
+	for s in week_sessions:
+		week_profit=week_profit+s["winprice"]-(s["buyin"]+(s["rebuybuyin"]*s["rebuycount"]))
+
+	# 計算本月盈利 (1號到月底)
+	month_sessions=query(SETTING["dbname"],
+		"""SELECT winprice, buyin, rebuybuyin, rebuycount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL
+		   AND starttime >= %s AND starttime <= %s""",
+		[row["id"],
+		 month_start.strftime("%Y-%m-%d %H:%M:%S"),
+		 month_end.strftime("%Y-%m-%d %H:%M:%S")],
+		SETTING["dbsetting"]
+	)
+	month_profit=0
+	for s in month_sessions:
+		month_profit=month_profit+s["winprice"]-(s["buyin"]+(s["rebuybuyin"]*s["rebuycount"]))
+
+	# 計算最近7天盈利 (含今天)
+	last_week_sessions=query(SETTING["dbname"],
+		"""SELECT DATE(starttime) as date,
+		   winprice, buyin, rebuybuyin, rebuycount
+		   FROM session
+		   WHERE userid=%s AND deletetime IS NULL
+		   AND starttime >= %s AND starttime <= %s
+		   ORDER BY starttime ASC""",
+		[row["id"],
+		 last_seven_days_start.strftime("%Y-%m-%d %H:%M:%S"),
+		 today_start.strftime("%Y-%m-%d 23:59:59.999999")],
+		SETTING["dbsetting"]
+	)
+
+	# 將最近7天數據轉換為陣列 [前6天,前5天,前4天,前3天,前2天,前1天,今天]
+	last_week_daily=[0]*7
+	for session in last_week_sessions:
+		session_date=datetime.datetime.strptime(str(session["date"]),"%Y-%m-%d").date()
+		days_ago=(today_start.date()-session_date).days
+		if 0 <= days_ago < 7:  # 確保日期在最近7天內
+			array_index=6-days_ago  # 反轉索引,使今天在最後
+			profit=session["winprice"]-(session["buyin"]+(session["rebuybuyin"]*session["rebuycount"]))
+			last_week_daily[array_index] += profit
+
+	return Response({
+		"success": True,
+		"data": {
+			**row,
+			"todaytotalprofit": float(today_profit),
+			"weektotalprofit": float(week_profit),
+			"lastweekprofit": last_week_daily,
+			"monthtotalprofit": float(month_profit),
+		}
+	},status.HTTP_200_OK)
 
 @api_view(["POST"])
 def blockuser(request,userid):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserid=tokenrow[0]["userid"]
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenuserid],SETTING["dbsetting"])
-			if 4<=int(tokenuserrow[0]["permission"]):
-				data=json.loads(request.body)
-				reason=data.get("reason")
-				blocktime=data.get("blocktime")
-				if reason and blocktime:
-					# 封鎖必須同時撤銷被封鎖者手上的所有 token，否則舊 token 仍可通過各端點的 inline 驗證。
-					# WHERE 用目標 userid（被封鎖者），不是操作者 tokenuserid，別把管理員自己踢下線。
-					# 兩件事包成單一交易：寫不進封鎖紀錄就不該撤 token，避免只做一半。
-					sqllist=[
-						["""INSERT INTO "blockbanuser"("userid","blockbanuserid","reason","type","time","createtime")VALUES(%s,%s,%s,%s,%s,%s)""",[tokenuserid,userid,reason,"block",blocktime,nowtime()]],
-						["""DELETE FROM "token" WHERE "userid"=%s""",[userid]]
-					]
-					response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
-					# 原本不檢查寫入結果，blockbanuser 表不存在時 query() 吃掉例外、端點照樣回 success:True，
-					# 管理員以為封鎖成功但其實什麼都沒寫。這裡如實回報失敗。
-					if response is None:
-						return Response({
-							"success": False,
-							"data": "ERROR_database_error"
-						},status.HTTP_500_INTERNAL_SERVER_ERROR)
-					return Response({
-						"success": True,
-						"data": ""
-					},status.HTTP_200_OK)
-				else:
-					return Response({
-						"success": False,
-						"data": "ERROR_request_data_not_found"
-					},status.HTTP_400_BAD_REQUEST)
-			else:
+	if 4<=int(tokenuserrow["permission"]):
+		data=json.loads(request.body)
+		reason=data.get("reason")
+		blocktime=data.get("blocktime")
+		if reason and blocktime:
+			# 封鎖必須同時撤銷被封鎖者手上的所有 token，否則舊 token 仍可通過各端點的 inline 驗證。
+			# WHERE 用目標 userid（被封鎖者），不是操作者 tokenuserrow["id"]，別把管理員自己踢下線。
+			# 兩件事包成單一交易：寫不進封鎖紀錄就不該撤 token，避免只做一半。
+			sqllist=[
+				["""INSERT INTO "blockbanuser"("userid","blockbanuserid","reason","type","time","createtime")VALUES(%s,%s,%s,%s,%s,%s)""",[tokenuserrow["id"],userid,reason,"block",blocktime,nowtime()]],
+				["""DELETE FROM "token" WHERE "userid"=%s""",[userid]]
+			]
+			response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
+			# 原本不檢查寫入結果，blockbanuser 表不存在時 query() 吃掉例外、端點照樣回 success:True，
+			# 管理員以為封鎖成功但其實什麼都沒寫。這裡如實回報失敗。
+			if response is None:
 				return Response({
 					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
+					"data": "ERROR_database_error"
+				},status.HTTP_500_INTERNAL_SERVER_ERROR)
+			return Response({
+				"success": True,
+				"data": ""
+			},status.HTTP_200_OK)
 		else:
 			return Response({
 				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+				"data": "ERROR_request_data_not_found"
+			},status.HTTP_400_BAD_REQUEST)
 	else:
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"data": "ERROR_no_permission"
+		},status.HTTP_403_FORBIDDEN)
 
 @api_view(["POST"])
 def banuser(request,userid):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserid=tokenrow[0]["userid"]
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenuserid],SETTING["dbsetting"])
-			if 4<=int(tokenuserrow[0]["permission"]):
-				data=json.loads(request.body)
-				reason=data.get("reason")
-				if reason:
-					# 永久封禁必須同時撤銷被封禁者手上的所有 token，否則舊 token 仍可通過各端點的 inline 驗證。
-					# WHERE 用目標 userid（被封禁者），不是操作者 tokenuserid，別把管理員自己踢下線。
-					# 兩件事包成單一交易：寫不進封禁紀錄就不該撤 token，避免只做一半。
-					sqllist=[
-						["""INSERT INTO "blockbanuser"("userid","blockbanuserid","reason","type","time","createtime")VALUES(%s,%s,%s,%s,%s,%s)""",[tokenuserid,userid,reason,"ban","inf",nowtime()]],
-						["""DELETE FROM "token" WHERE "userid"=%s""",[userid]]
-					]
-					response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
-					# 原本不檢查寫入結果，blockbanuser 表不存在時 query() 吃掉例外、端點照樣回 success:True，
-					# 管理員以為封禁成功但其實什麼都沒寫。這裡如實回報失敗。
-					if response is None:
-						return Response({
-							"success": False,
-							"data": "ERROR_database_error"
-						},status.HTTP_500_INTERNAL_SERVER_ERROR)
-					return Response({
-						"success": True,
-						"data": ""
-					},status.HTTP_200_OK)
-				else:
-					return Response({
-						"success": False,
-						"data": "ERROR_request_data_not_found"
-					},status.HTTP_400_BAD_REQUEST)
-			else:
+	if 4<=int(tokenuserrow["permission"]):
+		data=json.loads(request.body)
+		reason=data.get("reason")
+		if reason:
+			# 永久封禁必須同時撤銷被封禁者手上的所有 token，否則舊 token 仍可通過各端點的 inline 驗證。
+			# WHERE 用目標 userid（被封禁者），不是操作者 tokenuserrow["id"]，別把管理員自己踢下線。
+			# 兩件事包成單一交易：寫不進封禁紀錄就不該撤 token，避免只做一半。
+			sqllist=[
+				["""INSERT INTO "blockbanuser"("userid","blockbanuserid","reason","type","time","createtime")VALUES(%s,%s,%s,%s,%s,%s)""",[tokenuserrow["id"],userid,reason,"ban","inf",nowtime()]],
+				["""DELETE FROM "token" WHERE "userid"=%s""",[userid]]
+			]
+			response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
+			# 原本不檢查寫入結果，blockbanuser 表不存在時 query() 吃掉例外、端點照樣回 success:True，
+			# 管理員以為封禁成功但其實什麼都沒寫。這裡如實回報失敗。
+			if response is None:
 				return Response({
 					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
+					"data": "ERROR_database_error"
+				},status.HTTP_500_INTERNAL_SERVER_ERROR)
+			return Response({
+				"success": True,
+				"data": ""
+			},status.HTTP_200_OK)
 		else:
 			return Response({
 				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+				"data": "ERROR_request_data_not_found"
+			},status.HTTP_400_BAD_REQUEST)
 	else:
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"data": "ERROR_no_permission"
+		},status.HTTP_403_FORBIDDEN)
 
 @api_view(["POST"])
 def unbanuser(request,userid):
 	# 解除封禁：刪掉目標使用者在 blockbanuser 的紀錄，讓 authhelper.getuserbanned 不再判定封禁。
 	# 權限比照 banuser／blockuser，admin permission>=4 才能操作。
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserid=tokenrow[0]["userid"]
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenuserid],SETTING["dbsetting"])
-			if 4<=int(tokenuserrow[0]["permission"]):
-				# blockbanuser 沒有 deletetime 欄（INSERT 與 deleteuser 都是硬刪），這裡也用 DELETE 硬刪。
-				# WHERE 用 blockbanuserid（被封禁者）比對，比照 getuserbanned；用 userid 會反刪到操作管理員自己開的封禁紀錄。
-				# ban 與 block 都是刪紀錄即解除，不分 type 一併移除該使用者的所有封禁紀錄。
-				# 解除不需動 token：被封時 token 已撤銷，使用者重新登入即可，這裡不新增任何 token。
-				# blockbanuser 目前線上不存在（另一 agent 正在 dbinitialize 建表），存在才刪，比照 deleteuser 的守門，
-				# 避免表不存在時 querytransaction 整批 rollback；表不存在＝沒有任何封禁紀錄，視為已解除。
-				blockbantable=query(SETTING["dbname"],"""SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='blockbanuser'""",[],SETTING["dbsetting"])
-				if blockbantable:
-					sqllist=[
-						["""DELETE FROM "blockbanuser" WHERE "blockbanuserid"=%s""",[userid]]
-					]
-					response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
-					# 比照 banuser：寫入失敗（querytransaction 回 None）就如實回報，不要假成功。
-					if response is None:
-						return errorresponse("ERROR_database_error")
-				return Response({
-					"success": True,
-					"data": ""
-				},status.HTTP_200_OK)
-			else:
-				return errorresponse("ERROR_no_permission")
-		else:
-			return errorresponse("ERROR_token_error")
+	if 4<=int(tokenuserrow["permission"]):
+		# blockbanuser 沒有 deletetime 欄（INSERT 與 deleteuser 都是硬刪），這裡也用 DELETE 硬刪。
+		# WHERE 用 blockbanuserid（被封禁者）比對，比照 getuserbanned；用 userid 會反刪到操作管理員自己開的封禁紀錄。
+		# ban 與 block 都是刪紀錄即解除，不分 type 一併移除該使用者的所有封禁紀錄。
+		# 解除不需動 token：被封時 token 已撤銷，使用者重新登入即可，這裡不新增任何 token。
+		# blockbanuser 目前線上不存在（另一 agent 正在 dbinitialize 建表），存在才刪，比照 deleteuser 的守門，
+		# 避免表不存在時 querytransaction 整批 rollback；表不存在＝沒有任何封禁紀錄，視為已解除。
+		blockbantable=query(SETTING["dbname"],"""SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='blockbanuser'""",[],SETTING["dbsetting"])
+		if blockbantable:
+			sqllist=[
+				["""DELETE FROM "blockbanuser" WHERE "blockbanuserid"=%s""",[userid]]
+			]
+			response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
+			# 比照 banuser：寫入失敗（querytransaction 回 None）就如實回報，不要假成功。
+			if response is None:
+				return errorresponse("ERROR_database_error")
+		return Response({
+			"success": True,
+			"data": ""
+		},status.HTTP_200_OK)
 	else:
-		return errorresponse("ERROR_token_not_found")
+		return errorresponse("ERROR_no_permission")
 
 @api_view(["PUT"])
 def edituserlanguage(request):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
+	data=json.loads(request.body)
+
+	requestdata=validate(data,{
+		"langkey": "required|string|in:zhtw,en"
+	},{
+		"required": "ERROR_request_data_not_found",
+		"string": "ERROR_request_data_type_error",
+	})
+
+	if requestdata["error"] is None:
+		langkey=requestdata["data"].get("langkey")
+
+		# 使用者列已由 commonauthuser 查過（含 deletetime IS NULL 與封禁複查），不再重查一次
+		query(SETTING["dbname"],f"""UPDATE "user" SET "language"=%s,"updatetime"=%s WHERE "id"=%s""",[langkey,nowtime(),tokenuserrow["id"]],SETTING["dbsetting"])
+
 		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenrow=tokenrow[0]
-			data=json.loads(request.body)
-
-			requestdata=validate(data,{
-				"langkey": "required|string|in:zhtw,en"
-			},{
-				"required": "ERROR_request_data_not_found",
-				"string": "ERROR_request_data_type_error",
-			})
-
-			if requestdata["error"] is None:
-				langkey=requestdata["data"].get("langkey")
-
-				row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow["userid"]],SETTING["dbsetting"])
-				if row:
-					query(SETTING["dbname"],f"""UPDATE "user" SET "language"=%s,"updatetime"=%s WHERE "id"=%s""",[langkey,nowtime(),tokenrow["userid"]],SETTING["dbsetting"])
-					# row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow["userid"]],SETTING["dbsetting"])
-
-					return Response({
-						"success": True,
-						"data": langkey
-					},status.HTTP_200_OK)
-				else:
-					return Response({
-						"success": False,
-						"data": "ERROR_request_data_not_found"
-					},status.HTTP_401_UNAUTHORIZED)
-			else:
-				return errorresponse(requestdata["error"])
-		else:
-			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+			"success": True,
+			"data": langkey
+		},status.HTTP_200_OK)
 	else:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+		return errorresponse(requestdata["error"])
 
 @api_view(["PUT"])
 def edituserchipcolors(request):
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 	data=json.loads(request.body)
 	colors=data.get("colors")
 	if not isinstance(colors,list):
@@ -1373,7 +1214,7 @@ def edituserchipcolors(request):
 		})
 	if len(output)==0:
 		output=defaultchipcolors()
-	query(SETTING["dbname"],f"""UPDATE "user" SET "chipcolors"=%s,"updatetime"=%s WHERE "id"=%s""",[json.dumps(output,ensure_ascii=False),nowtime(),tokenrow[0]["userid"]],SETTING["dbsetting"])
+	query(SETTING["dbname"],f"""UPDATE "user" SET "chipcolors"=%s,"updatetime"=%s WHERE "id"=%s""",[json.dumps(output,ensure_ascii=False),nowtime(),tokenuserrow["id"]],SETTING["dbsetting"])
 	return Response({
 		"success": True,
 		"data": output
@@ -1383,49 +1224,91 @@ def edituserchipcolors(request):
 def editusercarddeck(request):
 	# 更新牌背皮膚偏好(classic/crimson/midnight);供手牌回放與現場轉播讀取
 	ensureusercarddeckcolumn()
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 	data=json.loads(request.body)
-	carddeck=str(data.get("carddeck") or "").strip().lower()
-	if carddeck not in CARDDECKLIST:
-		carddeck="classic"
-	query(SETTING["dbname"],f"""UPDATE "user" SET "carddeck"=%s,"updatetime"=%s WHERE "id"=%s""",[carddeck,nowtime(),tokenrow[0]["userid"]],SETTING["dbsetting"])
+	# TASK-046：三個參數都可省略。
+	#   只給 carddeck  → 舊行為，牌背與牌面一起換（舊版前端仍然可用）
+	#   給 cardback / cardface → 只換那一邊，另一邊維持原值
+	# carddeck 仍然繼續寫入，維持「兩者皆未分開設定時的來源」這個角色。
+	userid=tokenuserrow["id"]
+	current=query(SETTING["dbname"],f"""SELECT "carddeck","cardback","cardface" FROM "user" WHERE "id"=%s""",[userid],SETTING["dbsetting"])
+	currentrow=current[0] if current else {}
+	olddeck=carddeckvalue(currentrow.get("carddeck"),"classic")
+	oldback=carddeckvalue(currentrow.get("cardback"),olddeck)
+	oldface=carddeckvalue(currentrow.get("cardface"),olddeck)
+
+	deckinput=str(data.get("carddeck") or "").strip().lower()
+	backinput=str(data.get("cardback") or "").strip().lower()
+	faceinput=str(data.get("cardface") or "").strip().lower()
+
+	cardback=oldback
+	cardface=oldface
+	carddeck=olddeck
+	if deckinput in CARDDECKLIST:
+		carddeck=deckinput
+		cardback=deckinput
+		cardface=deckinput
+	if backinput in CARDDECKLIST:
+		cardback=backinput
+		carddeck=backinput
+	if faceinput in CARDDECKLIST:
+		cardface=faceinput
+
+	query(SETTING["dbname"],f"""UPDATE "user" SET "carddeck"=%s,"cardback"=%s,"cardface"=%s,"updatetime"=%s WHERE "id"=%s""",[carddeck,cardback,cardface,nowtime(),userid],SETTING["dbsetting"])
+	# data 仍然直接回傳 carddeck 字串，舊版前端 (data["data"]) 拿到的東西不變；
+	# 拆開後的兩個值放在同層的另外兩個欄位，新版前端讀那兩個。
 	return Response({
 		"success": True,
-		"data": carddeck
+		"data": carddeck,
+		"cardback": cardback,
+		"cardface": cardface
+	},status.HTTP_200_OK)
+
+@api_view(["PUT"])
+def edituserdisplaydefault(request):
+	# 大螢幕品牌的「個人預設值」(TASK-026)。建立場次時由 session.py 的 newsession 帶進 session 表。
+	#
+	# 這支只寫 "user" 表, 完全不碰任何 session 資料列。反過來, 場次層的品牌設定走
+	# editsessionsettings 只寫 "session", 也不會回寫這裡 —— 兩條路徑各自獨立,
+	# 「改單場不影響個人預設」(feature-spec-display FR-8 / AC-9) 因此是結構性成立的,
+	# 不是靠額外的判斷擋出來的。
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
+	data=json.loads(request.body)
+	# 正規化沿用 timer.py 那一套, 與場次層寫入用的是同幾支函式,
+	# 個人預設與場次設定因此不可能出現「一邊擋得住 javascript: 另一邊擋不住」的落差。
+	brandname=str(data.get("brandname") or "")[:120]
+	brandcolor=normalizeaccentcolor(data.get("brandcolor"))
+	brandlogo=normalizebrandlogourl(data.get("brandlogo"))
+	displayfields=normalizehiddenblock(data.get("displayfields"))
+	columnorder=normalizecolumnorder(data.get("columnorder"))
+	query(SETTING["dbname"],f"""UPDATE "user" SET "displaybrandname"=%s,"displaybrandcolor"=%s,"displaybrandlogo"=%s,"displaydisplayfields"=%s,"displaycolumnorder"=%s,"updatetime"=%s WHERE "id"=%s""",[brandname,brandcolor,brandlogo,displayfields,columnorder,nowtime(),tokenuserrow["id"]],SETTING["dbsetting"])
+	return Response({
+		"success": True,
+		"data": {
+			"displaybrandname": brandname,
+			"displaybrandcolor": brandcolor,
+			"displaybrandlogo": brandlogo,
+			"displaydisplayfields": displayfields,
+			"displaycolumnorder": columnorder
+		}
 	},status.HTTP_200_OK)
 
 @api_view(["PUT"])
 def edituserpotmainside(request):
 	# 更新手牌回放的主池位置偏好(left/right);邊池會顯示在反方向
 	ensureusercarddeckcolumn()
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 	data=json.loads(request.body)
 	potmainside=str(data.get("potmainside") or "").strip().lower()
 	if potmainside not in POTMAINSIDELIST:
 		potmainside="right"
-	query(SETTING["dbname"],f"""UPDATE "user" SET "potmainside"=%s,"updatetime"=%s WHERE "id"=%s""",[potmainside,nowtime(),tokenrow[0]["userid"]],SETTING["dbsetting"])
+	query(SETTING["dbname"],f"""UPDATE "user" SET "potmainside"=%s,"updatetime"=%s WHERE "id"=%s""",[potmainside,nowtime(),tokenuserrow["id"]],SETTING["dbsetting"])
 	return Response({
 		"success": True,
 		"data": potmainside
@@ -1434,18 +1317,9 @@ def edituserpotmainside(request):
 @api_view(["PUT"])
 def edituserchipset(request):
 	ensureuserchipsettables()
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 	data=json.loads(request.body)
 	sets=data.get("sets")
 	if not isinstance(sets,list):
@@ -1490,262 +1364,160 @@ def edituserchipset(request):
 		})
 	if len(output)==0:
 		output=defaultchipset()
-	saveuserchipset(tokenrow[0]["userid"],output)
+	saveuserchipset(tokenuserrow["id"],output)
 	return Response({
 		"success": True,
-		"data": loaduserchipset(tokenrow[0]["userid"])
+		"data": loaduserchipset(tokenuserrow["id"])
 	},status.HTTP_200_OK)
 
 @api_view(["GET"])
 def gettoolfavorite(request):
 	ensureusertoolfavoritetable()
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 	return Response({
 		"success": True,
-		"data": loadusertoolfavorite(tokenrow[0]["userid"])
+		"data": loadusertoolfavorite(tokenuserrow["id"])
 	},status.HTTP_200_OK)
 
 @api_view(["PUT"])
 def edittoolfavorite(request):
 	ensureusertoolfavoritetable()
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 	data=json.loads(request.body)
 	favorites=data.get("favorites")
 	if not isinstance(favorites,list):
 		return errorresponse("ERROR_request_data_type_error")
 	output=parsetoolfavorites(json.dumps(favorites,ensure_ascii=False))
-	saveusertoolfavorite(tokenrow[0]["userid"],output)
+	saveusertoolfavorite(tokenuserrow["id"],output)
 	return Response({
 		"success": True,
-		"data": loadusertoolfavorite(tokenrow[0]["userid"])
+		"data": loadusertoolfavorite(tokenuserrow["id"])
 	},status.HTTP_200_OK)
 
 @api_view(["PUT"])
 def edituser(request):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
+	data=json.loads(request.body)
+
+	requestdata=validate(data,{
+		"email": "required|string",
+		"name": "required|string",
+		"phone": "required|string"
+	},{
+		"required": "ERROR_request_data_not_found",
+		"string": "ERROR_request_data_type_error",
+	})
+
+	if requestdata["error"] is None:
+		email=requestdata["data"].get("email")
+		name=requestdata["data"].get("name")
+		phone=requestdata["data"].get("phone")
+
+		# 使用者列已由 commonauthuser 查過（含 deletetime IS NULL 與封禁複查），更新後再讀一次回傳最新值
+		query(SETTING["dbname"],f"""UPDATE "user" SET "email"=%s,"name"=%s,"phone"=%s,"updatetime"=%s WHERE "id"=%s""",[email,name,phone,nowtime(),tokenuserrow["id"]],SETTING["dbsetting"])
+
+		row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenuserrow["id"]],SETTING["dbsetting"])
+
+		# 比照 getuser 過濾敏感欄位，避免把 token/verifytoken/uid 回傳給前端
 		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenrow=tokenrow[0]
-			data=json.loads(request.body)
-
-			requestdata=validate(data,{
-				"email": "required|string",
-				"name": "required|string",
-				"phone": "required|string"
-			},{
-				"required": "ERROR_request_data_not_found",
-				"string": "ERROR_request_data_type_error",
-			})
-
-			if requestdata["error"] is None:
-				email=requestdata["data"].get("email")
-				name=requestdata["data"].get("name")
-				phone=requestdata["data"].get("phone")
-
-				row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow["userid"]],SETTING["dbsetting"])
-				if row:
-					query(SETTING["dbname"],f"""UPDATE "user" SET "email"=%s,"name"=%s,"phone"=%s,"updatetime"=%s WHERE "id"=%s""",[email,name,phone,nowtime(),tokenrow["userid"]],SETTING["dbsetting"])
-
-					row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow["userid"]],SETTING["dbsetting"])
-
-					# 比照 getuser 過濾敏感欄位，避免把 token/verifytoken/uid 回傳給前端
-					return Response({
-						"success": True,
-						"data": {k:v for k,v in row[0].items() if k not in ("token","verifytoken","uid")}
-					},status.HTTP_200_OK)
-				else:
-					return Response({
-						"success": False,
-						"data": "ERROR_request_data_not_found"
-					},status.HTTP_401_UNAUTHORIZED)
-			else:
-				return errorresponse(requestdata["error"])
-		else:
-			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+			"success": True,
+			"data": {k:v for k,v in row[0].items() if k not in ("token","verifytoken","uid")}
+		},status.HTTP_200_OK)
 	else:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+		return errorresponse(requestdata["error"])
 
 @api_view(["PUT"])
 def edituserpermission(request,userid):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			data=json.loads(request.body)
-			validateresponse=validate(json.loads(request.body),{
-				"permission": "required|string|in:1,2,3,4,5"
-			},{
-				"required": "ERROR_request_data_not_found",
-				"string": "ERROR_request_data_type_error",
-				"in": "ERROR_request_data_type_error",
-			})
+	data=json.loads(request.body)
+	validateresponse=validate(json.loads(request.body),{
+		"permission": "required|string|in:1,2,3,4,5"
+	},{
+		"required": "ERROR_request_data_not_found",
+		"string": "ERROR_request_data_type_error",
+		"in": "ERROR_request_data_type_error",
+	})
 
 
-			if validateresponse["success"]:
-				# 權限判斷必須針對「操作者」(token 擁有者)，而非「被修改的使用者」
-				operatorrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-				if not operatorrow:
-					return errorresponse("ERROR_user_not_found")
-				if not (4<=int(operatorrow[0]["permission"])):
-					return errorresponse("ERROR_no_permission")
-				row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[userid],SETTING["dbsetting"])
-				if row:
-					row=row[0]
-					data=validateresponse["data"]
-					beforeperm=row.get("permission")
-					row=query(SETTING["dbname"],f"""UPDATE "user" SET "permission"=%s,"updatetime"=%s WHERE "id"=%s""",[data["permission"],nowtime(),userid],SETTING["dbsetting"])
-					# 稽核：權限變更（檢查表 1.7）
-					writeauditlog(SETTING["dbname"],SETTING["dbsetting"],operatorrow[0]["id"],"user","editpermission",userid,{"permission": beforeperm},{"permission": data["permission"]},request)
+	if validateresponse["success"]:
+		# 權限判斷必須針對「操作者」(token 擁有者)，而非「被修改的使用者」
+		if not (4<=int(tokenuserrow["permission"])):
+			return errorresponse("ERROR_no_permission")
+		row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[userid],SETTING["dbsetting"])
+		if row:
+			row=row[0]
+			data=validateresponse["data"]
+			beforeperm=row.get("permission")
+			row=query(SETTING["dbname"],f"""UPDATE "user" SET "permission"=%s,"updatetime"=%s WHERE "id"=%s""",[data["permission"],nowtime(),userid],SETTING["dbsetting"])
+			# 稽核：權限變更（檢查表 1.7）
+			writeauditlog(SETTING["dbname"],SETTING["dbsetting"],tokenuserrow["id"],"user","editpermission",userid,{"permission": beforeperm},{"permission": data["permission"]},request)
 
-					return Response({
-						"success": True,
-						"data": row
-					},status.HTTP_200_OK)
-				else:
-					return errorresponse("ERROR_user_not_found")
-			else:
-				return errorresponse(validateresponse["error"])
+			return Response({
+				"success": True,
+				"data": row
+			},status.HTTP_200_OK)
 		else:
-			return errorresponse("ERROR_token_error")
+			return errorresponse("ERROR_user_not_found")
 	else:
-		return errorresponse("ERROR_token_not_found")
+		return errorresponse(validateresponse["error"])
 
 @api_view(["DELETE"])
 def deleteuser(request,userid):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
+	# 刪除使用者屬高權限操作，必須驗證操作者(token 擁有者)的管理權限
+	if not (4<=int(tokenuserrow["permission"])):
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			# 刪除使用者屬高權限操作，必須驗證操作者(token 擁有者)的管理權限
-			operatorrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-			if not operatorrow or not (4<=int(operatorrow[0]["permission"])):
-				return Response({
-					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
-			row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[userid],SETTING["dbsetting"])
-			if row:
-				# 權限已於上方 operatorrow 檢查（需 permission>=4），此處直接執行軟刪除。
-				# 軟刪除必須同時撤銷該使用者的所有 token，否則被刪除者手上的舊 token 仍可通過
-				# 各端點的 inline 驗證繼續操作；兩件事包在單一交易，避免只做一半。
-				sqllist=[
-					["""UPDATE "user" SET "deletetime"=%s WHERE "id"=%s""",[nowtime(),userid]],
-					["""DELETE FROM "token" WHERE "userid"=%s""",[userid]]
-				]
-				response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
-				if response is None:
-					return Response({
-						"success": False,
-						"data": "ERROR_deleteuser_error"
-					},status.HTTP_400_BAD_REQUEST)
-				# 稽核：刪除使用者（檢查表 1.7）
-				writeauditlog(SETTING["dbname"],SETTING["dbsetting"],operatorrow[0]["id"],"user","delete",userid,{"permission": row[0].get("permission"),"email": row[0].get("email")},None,request)
-				return Response({
-					"success": True,
-					"data": ""
-				},status.HTTP_200_OK)
-			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_api_not_found"
-				},status.HTTP_400_BAD_REQUEST)
-		else:
+			"data": "ERROR_no_permission"
+		},status.HTTP_403_FORBIDDEN)
+	row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[userid],SETTING["dbsetting"])
+	if row:
+		# 權限已於上方 tokenuserrow 檢查（需 permission>=4），此處直接執行軟刪除。
+		# 軟刪除必須同時撤銷該使用者的所有 token，否則被刪除者手上的舊 token 仍可通過
+		# 各端點的 inline 驗證繼續操作；兩件事包在單一交易，避免只做一半。
+		sqllist=[
+			["""UPDATE "user" SET "deletetime"=%s WHERE "id"=%s""",[nowtime(),userid]],
+			["""DELETE FROM "token" WHERE "userid"=%s""",[userid]]
+		]
+		response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
+		if response is None:
 			return Response({
 				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+				"data": "ERROR_deleteuser_error"
+			},status.HTTP_400_BAD_REQUEST)
+		# 稽核：刪除使用者（檢查表 1.7）
+		writeauditlog(SETTING["dbname"],SETTING["dbsetting"],tokenuserrow["id"],"user","delete",userid,{"permission": row[0].get("permission"),"email": row[0].get("email")},None,request)
+		return Response({
+			"success": True,
+			"data": ""
+		},status.HTTP_200_OK)
 	else:
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"data": "ERROR_api_not_found"
+		},status.HTTP_400_BAD_REQUEST)
 @api_view(["DELETE"])
 def deleteuseraccount(request):
 	# 使用者自行刪除帳號：硬刪除（真刪除）所有與此使用者相關的資料，無法復原。
 	# 與管理員的 deleteuser（軟刪除指定使用者）不同，此端點只作用在 token 擁有者自己身上。
 	# auditlog / apilog 屬系統稽核紀錄，保留不刪；別人場次中的歷史手牌/座位列保留但去識別化。
-	header=request.headers.get("Authorization")
-	token=None
-
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
-
-	row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-	if not row:
-		return errorresponse("ERROR_user_not_found")
-	row=row[0]
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
+	row=tokenuserrow
 	userid=row["id"]
 
 	# 防呆：前端 lightbox 已確認兩次，後端仍要求輸入的玩家 ID 完全一致才執行
@@ -1835,24 +1607,11 @@ def deleteuseraccount(request):
 def getauditlog(request):
 	# 管理員查詢操作稽核紀錄（檢查表 1.7.2）。
 	# 支援篩選：?userid=（操作者）、?tablename=（資料表，如 user/sessionplayer）、?recordid=（目標資料列）。
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
-
-	operatorrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-	if not operatorrow or not (4<=int(operatorrow[0]["permission"])):
+	if not (4<=int(tokenuserrow["permission"])):
 		return errorresponse("ERROR_no_permission")
 
 	conditions=[]
@@ -1879,25 +1638,12 @@ def getauditlog(request):
 @api_view(["GET"])
 def getapilog(request):
 	# 管理員查詢後端 API 呼叫紀錄（每次 API 請求都由 ApiLogMiddleware 寫入 apilog）。
-	# 支援：?userid=（依使用者過濾）、?keyword=（比對使用者姓名/信箱/玩家編號、API 路徑、方法、IP）、?erroronly=1（只列狀態碼非 200 的紀錄）、?page=、?limit=（分頁，避免一次撈太多筆）。
-	header=request.headers.get("Authorization")
-	token=None
+	# 支援：?userid=（依使用者過濾）、?keyword=（比對使用者姓名/信箱/玩家編號、API 路徑、方法、IP）、?erroronly=1（只列狀態碼非 200 的紀錄）、?page=、?limit=（分頁，避免一次撈太多筆）、?order=&direction=（排序，欄位名走白名單）。
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return errorresponse("ERROR_token_not_found")
-
-	if not token:
-		return errorresponse("ERROR_token_not_found")
-
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return errorresponse("ERROR_token_error")
-
-	operatorrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-	if not operatorrow or not (4<=int(operatorrow[0]["permission"])):
+	if not (4<=int(tokenuserrow["permission"])):
 		return errorresponse("ERROR_no_permission")
 
 	try:
@@ -1928,6 +1674,33 @@ def getapilog(request):
 		conditions.append("(\"apilog\".\"statuscode\" IS NULL OR \"apilog\".\"statuscode\"<>200)")
 	where=(" WHERE "+" AND ".join(conditions)) if conditions else ""
 
+	# 排序（?order=&direction=）。
+	#
+	# **ORDER BY 的欄位名不能用 %s**（那會變成「依這個字串常數排序」，等於沒排），
+	# 所以只能把欄位名直接插進 SQL —— 也就是說它**必須來自寫死的清單**，
+	# 絕不能拿 request 的值去組。這是 AGENTS.md「SQL 組法」第一條的同一個道理。
+	# request 只能決定「用清單裡的哪一個」。
+	orderof={
+		"createtime": "\"apilog\".\"createtime\"",
+		"username": "\"user\".\"name\"",
+		"path": "\"apilog\".\"path\"",
+		"statuscode": "\"apilog\".\"statuscode\""
+	}
+	ordersql="\"apilog\".\"id\" DESC"
+	orderkey=request.GET.get("order") or ""
+	if orderkey in orderof:
+		direction="ASC"
+		if (request.GET.get("direction") or "").lower()=="desc":
+			direction="DESC"
+		# NULLS LAST 是為了跟前端 ptsortcompare 一致（它一律把取不到值的排最後）。
+		# PostgreSQL 預設 ASC 是 NULLS LAST、DESC 是 NULLS FIRST，不寫就會兩個方向不一致。
+		#
+		# 後面補 "apilog"."id" DESC 當**穩定的次要排序鍵**：
+		# 少了它，同值的列在 LIMIT/OFFSET 分頁之間的相對順序是未定義的，
+		# 同一列可能在第 1 頁和第 2 頁都出現、也可能兩頁都沒有。
+		# 那種 bug 只在「同值資料夠多」時才發作，非常難查。
+		ordersql=orderof[orderkey]+" "+direction+" NULLS LAST, \"apilog\".\"id\" DESC"
+
 	countrow=query(SETTING["dbname"],f"""SELECT COUNT(*) AS "total" FROM "apilog" LEFT JOIN "user" ON "user"."id"="apilog"."userid"{where}""",params,SETTING["dbsetting"])
 	total=int(countrow[0]["total"]) if countrow else 0
 
@@ -1937,7 +1710,7 @@ def getapilog(request):
 	if totalpages<page:
 		page=totalpages
 
-	rows=query(SETTING["dbname"],f"""SELECT "apilog".*,"user"."name" AS "username","user"."email" AS "useremail","user"."playerid" AS "userplayerid" FROM "apilog" LEFT JOIN "user" ON "user"."id"="apilog"."userid"{where} ORDER BY "apilog"."id" DESC LIMIT %s OFFSET %s""",params+[limit,(page-1)*limit],SETTING["dbsetting"])
+	rows=query(SETTING["dbname"],f"""SELECT "apilog".*,"user"."name" AS "username","user"."email" AS "useremail","user"."playerid" AS "userplayerid" FROM "apilog" LEFT JOIN "user" ON "user"."id"="apilog"."userid"{where} ORDER BY {ordersql} LIMIT %s OFFSET %s""",params+[limit,(page-1)*limit],SETTING["dbsetting"])
 	return Response({
 		"success": True,
 		"data": {

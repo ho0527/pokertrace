@@ -10,6 +10,7 @@ from function.sql import *
 from function.thing import *
 from function.function import *
 from .initialize import *
+from .authhelper import gettokenuser as commonauthuser
 
 
 CONTACTNOTIFYEMAIL="chris960527ho@gmail.com"
@@ -23,23 +24,21 @@ def asyncsendmail(*args,**kwargs):
 
 
 def gettokenuser(request):
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return None,errorresponse("ERROR_token_not_found")
-	if not token:
-		return None,errorresponse("ERROR_token_not_found")
-	tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return None,errorresponse("ERROR_token_error")
-	userrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-	if not userrow:
-		return None,errorresponse("ERROR_user_not_found")
-	return userrow[0],None
+	"""Bearer token → 使用者列。**委派給共用的 authhelper.gettokenuser**。
 
+	原本這裡是一份手寫的副本，檢查了 token、也檢查了使用者的 deletetime，
+	但**沒有檢查封禁狀態** —— 共用版本有，而且註明了理由：
+	「封禁時已撤銷 token，這裡再撤一次，避免封禁後才發出的 token 或漏撤的舊 token 仍可用」。
+
+	結果是被封禁（type='ban'）或仍在限時封鎖期（type='block'）的使用者，
+	只要手上的 token 還沒被撤，就能照常呼叫本模組的每一個端點。
+	2026-07-30 稽核發現，改成委派。
+
+	共用版本的 token 解析也比較嚴謹：`getbearertoken()` 會檢查 scheme 是不是
+	bearer（不分大小寫）、處理多餘空白；原本的 `header.split("Bearer ")[1]`
+	連 "Basic xyzBearer abc" 這種都切得出東西。
+	"""
+	return commonauthuser(request)
 
 def cleantext(value,limit):
 	value=str(value or "").strip()
@@ -84,16 +83,15 @@ def newcontactmessage(request):
 		email=cleantext(data.get("email"),150)
 		subject=cleantext(data.get("subject"),150)
 		message=cleantext(data.get("message"),3000)
+		# 這是免登入的公開端點，token 只用來「標記是誰送的」，不決定能不能送，
+		# 所以驗證失敗不擋，只是留白 userid。
+		# 原本這裡自己查 token 表：沒驗 Bearer scheme，也沒讀 user 列，
+		# 於是已軟刪或被封禁帳號的舊 token 仍會被寫成留言的 userid。改走共用驗證。
 		userid=None
-		header=request.headers.get("Authorization")
-		if header:
-			try:
-				token=header.split("Bearer ")[1]
-				tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-				if tokenrow:
-					userid=tokenrow[0]["userid"]
-			except Exception as error:
-				userid=None
+		if request.headers.get("Authorization"):
+			tokenuserrow,autherror=commonauthuser(request)
+			if not autherror:
+				userid=tokenuserrow["id"]
 		if not name or not email or not message:
 			return errorresponse("ERROR_request_data_not_found")
 		if "@" not in email:
@@ -119,20 +117,27 @@ def newcontactmessage(request):
 			INSERT INTO "contactmessage"("userid","name","email","subject","message","ip","useragent","createtime","updatetime")
 			VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
 		""",[userid,name,email,subject,message,ip,useragent,nowtime(),nowtime()],SETTING["dbsetting"])
-		notifysubject="PokerTrace 新聯絡訊息"
+		# TASK-070：中英並列，不做語系分流（收件人語系偏好沒有存，分流要先加欄位）。
+		# 這一封是**寄給站方**的內部通知，不是寄給填表的人。
+		#
+		# 這裡刻意**不把整封信複製成中英兩段**：訊息內容上限 5000 字，
+		# 複製一次等於信件長度加倍。固定文案中英並列、變動內容只出現一次。
+		notifysubject="PokerTrace 新聯絡訊息 / New contact message"
 		if subject:
 			notifysubject=notifysubject+"："+subject
 		notifybody=f"""PokerTrace 收到新的聯絡訊息：
+PokerTrace received a new contact message:
 
-姓名：{name}
+姓名 Name：{name}
 Email：{email}
-主旨：{subject or "未填主旨"}
-時間：{nowtime()}
+主旨 Subject：{subject or "未填主旨 (no subject)"}
+時間 Time：{nowtime()}
 
-內容：
+內容 Message：
 {message}
 
 請到聯絡訊息後台查看與回覆。
+Please review and reply in the contact message console.
 """
 		asyncsendmail(notifysubject,notifybody,None,[CONTACTNOTIFYEMAIL],fail_silently=True)
 		return Response({
@@ -269,17 +274,21 @@ def replycontactmessage(request,messageid):
 			if message["subject"]:
 				replysubject="Re: "+str(message["subject"])
 			else:
-				replysubject="Re: PokerTrace 聯絡我們"
+				replysubject="Re: PokerTrace 聯絡我們 / Contact us"
+		# TASK-070：中英並列。同上，變動內容（回覆內文、原始訊息）只出現一次，
+		# 只有固定文案與欄位標籤中英並列 —— 回覆內文上限 5000 字，複製會讓信長度加倍。
 		body=f"""您好 {message["name"]}：
+Hi {message["name"]},
 
 感謝你聯絡 PokerTrace，以下是我們的回覆：
+Thank you for contacting PokerTrace. Here is our reply:
 
 {replymessage}
 
 ---
-你原本送出的訊息：
-主旨：{message["subject"] or "未填主旨"}
-內容：
+你原本送出的訊息 / Your original message:
+主旨 Subject：{message["subject"] or "未填主旨 (no subject)"}
+內容 Message：
 {message["message"]}
 
 PokerTrace

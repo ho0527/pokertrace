@@ -18,8 +18,15 @@ try:
 except Exception:
 	pass
 
-# 與 backend/api/initialize.py 對齊的連線設定（測試機用 pokertrace_test）
-DBNAME="pokertrace_test"
+# 與 backend/api/initialize.py 對齊的連線設定。
+# ⚠ 這是**正式機專屬**值，不要從測試機同步覆蓋（測試機用 pokertrace_test）。
+#
+# 2026-07-29 17:14 這個檔被測試機的版本蓋掉，DBNAME 變成 pokertrace_test。
+# 這支是 runserver.cmd 每次啟動都會跑的 schema 同步腳本，所以後果是
+# **正式機每次啟動都把 schema 套到測試庫** —— 正式庫因此少了 8 個欄位
+#（session.startnotifiedtime、session.columnorder、user.displaybrand* 等），
+# 排程器每次執行都噴 column does not exist。2026-07-31 改回。
+DBNAME="pokertrace"
 DBHOST="localhost"
 DBUSER="chris0527"
 DBPASSWORD=os.environ.get("PT_DB_PASSWORD","")
@@ -132,16 +139,31 @@ CREATE TABLE IF NOT EXISTS public."user"(
 	playerid varchar(8) NOT NULL DEFAULT '0',
 	type varchar(50) DEFAULT '',
 	carddeck varchar(20) NOT NULL DEFAULT 'classic',
+	cardback varchar(20),
+	cardface varchar(20),
 	potmainside varchar(10) NOT NULL DEFAULT 'right',
-	chipcolors text NOT NULL DEFAULT '[{"name":"白色","color":"#ffffff"},{"name":"紅色","color":"#ff0000"},{"name":"藍色","color":"#0000ff"},{"name":"綠色","color":"#008000"},{"name":"黑色","color":"#000000"},{"name":"黃色","color":"#ffff00"},{"name":"橘色","color":"#ffa500"},{"name":"紫色","color":"#800080"},{"name":"粉紅色","color":"#ffc0cb"},{"name":"灰色","color":"#808080"}]',
+	chipcolors text NOT NULL DEFAULT '[{"name":"白色","color":"#ffffff"},{"name":"紅色","color":"#ff0000"},{"name":"藍色","color":"#0000ff"},{"name":"綠色","color":"#008000"},{"name":"黑色","color":"#000000"},{"name":"黃色","color":"#ffff00"},{"name":"橘色","color":"#ffa500"},{"name":"紫色","color":"#800080"},{"name":"粉紅色","color":"#ffc0cb"},{"name":"灰色","color":"#808080"},{"name":"亮紅色","color":"#ef4444"},{"name":"琥珀色","color":"#f59e0b"},{"name":"亮綠色","color":"#22c55e"},{"name":"亮藍色","color":"#3b82f6"}]',
 	createtime timestamp with time zone NOT NULL DEFAULT now(),
 	updatetime timestamp with time zone NOT NULL DEFAULT now(),
 	deletetime timestamp with time zone
 );
 
-ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS chipcolors text NOT NULL DEFAULT '[{"name":"白色","color":"#ffffff"},{"name":"紅色","color":"#ff0000"},{"name":"藍色","color":"#0000ff"},{"name":"綠色","color":"#008000"},{"name":"黑色","color":"#000000"},{"name":"黃色","color":"#ffff00"},{"name":"橘色","color":"#ffa500"},{"name":"紫色","color":"#800080"},{"name":"粉紅色","color":"#ffc0cb"},{"name":"灰色","color":"#808080"}]';
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS chipcolors text NOT NULL DEFAULT '[{"name":"白色","color":"#ffffff"},{"name":"紅色","color":"#ff0000"},{"name":"藍色","color":"#0000ff"},{"name":"綠色","color":"#008000"},{"name":"黑色","color":"#000000"},{"name":"黃色","color":"#ffff00"},{"name":"橘色","color":"#ffa500"},{"name":"紫色","color":"#800080"},{"name":"粉紅色","color":"#ffc0cb"},{"name":"灰色","color":"#808080"},{"name":"亮紅色","color":"#ef4444"},{"name":"琥珀色","color":"#f59e0b"},{"name":"亮綠色","color":"#22c55e"},{"name":"亮藍色","color":"#3b82f6"}]';
 ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS carddeck varchar(20) NOT NULL DEFAULT 'classic';
+-- TASK-046：牌背與牌面分開選。carddeck 保留不刪，作為兩者皆未分開設定時的來源；
+-- 新欄位可為 NULL，NULL 代表「沿用 carddeck」，所以既有帳號拆分後外觀完全不變。
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardback varchar(20);
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardface varchar(20);
+UPDATE public."user" SET "cardback"=COALESCE("cardback","carddeck"),"cardface"=COALESCE("cardface","carddeck") WHERE "cardback" IS NULL OR "cardface" IS NULL;
 ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS potmainside varchar(10) NOT NULL DEFAULT 'right';
+-- 大螢幕品牌的「個人預設值」(TASK-020)。建立場次時帶進 session 表的同名欄位, 之後可在單場覆寫。
+-- 欄位名刻意對齊 session 的 brandname/brandcolor/brandlogo/displayfields, 只加 display 前綴,
+-- 避免同一個概念在兩處用不同名字。預設一律空字串 = 沒有設定, 大螢幕維持原本的樣子。
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS displaybrandname varchar(120) NOT NULL DEFAULT '';
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS displaybrandcolor varchar(20) NOT NULL DEFAULT '';
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS displaybrandlogo text NOT NULL DEFAULT '';
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS displaydisplayfields varchar(300) NOT NULL DEFAULT '';
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS displaycolumnorder varchar(50) NOT NULL DEFAULT '';
 
 -- 聯絡我們訊息
 CREATE TABLE IF NOT EXISTS public.contactmessage(
@@ -284,6 +306,21 @@ ALTER TABLE public.session ADD COLUMN IF NOT EXISTS brandname varchar(120) DEFAU
 ALTER TABLE public.session ADD COLUMN IF NOT EXISTS brandcolor varchar(20) DEFAULT '';
 ALTER TABLE public.session ADD COLUMN IF NOT EXISTS brandlogo text DEFAULT '';
 ALTER TABLE public.session ADD COLUMN IF NOT EXISTS displayfields varchar(300) DEFAULT '';
+-- 三欄順序 (TASK-022)。既有的品牌設定只做到顯示/隱藏, 沒有順序; 加在同一張表避免設定散開。
+ALTER TABLE public.session ADD COLUMN IF NOT EXISTS columnorder varchar(50) DEFAULT '';
+
+-- 「場次即將開始」通知的已發送標記 (TASK-028)。
+-- 這一欄是整個排程功能的正確性核心: 部署是 uvicorn 6 worker, 排程會有 6 份同時跑,
+-- 靠 UPDATE ... WHERE startnotifiedtime IS NULL RETURNING 的原子性保證同一場次只有一個
+-- worker 認領得到, 因此不需要分散式鎖。服務重啟後也不會重發, 因為欄位已經有值。
+ALTER TABLE public.session ADD COLUMN IF NOT EXISTS startnotifiedtime timestamp with time zone;
+
+-- 排程每分鐘會掃一次「即將開始且尚未通知」的場次。
+-- 部分索引只收 startnotifiedtime IS NULL 的列: 已通知過的場次是絕大多數且永遠不會再進候選,
+-- 把它們排除在索引外, 索引會一直維持在很小的規模。
+CREATE INDEX IF NOT EXISTS session_startnotify_idx
+    ON public.session ("starttime")
+    WHERE "startnotifiedtime" IS NULL AND "deletetime" IS NULL;
 ALTER TABLE public.session ADD COLUMN IF NOT EXISTS broadcastopen boolean NOT NULL DEFAULT false;
 ALTER TABLE public.session ADD COLUMN IF NOT EXISTS broadcastdelay integer NOT NULL DEFAULT 0;
 ALTER TABLE public.session ADD COLUMN IF NOT EXISTS broadcastshowcard boolean NOT NULL DEFAULT true;
@@ -503,6 +540,23 @@ CREATE TABLE IF NOT EXISTS public.handpotallocation(
 	updatetime timestamp with time zone NOT NULL DEFAULT now(),
 	deletetime timestamp with time zone
 );
+-- TASK-107（2026-07-31）：下面三行原本只存在於手動腳本 tool/migratehandpotallocation.py，
+-- 跑過測試庫、**沒跑過正式庫**，而這裡從來沒被補上。後果是實測出來的：
+--     pokertrace（正式）  有效 hand 72 手 → handpot 0 列、handpotallocation 0 列
+--     pokertrace_test     有效 hand 527 手 → handpot 521 列、handpotallocation 608 列
+-- hand.py 寫的是 INSERT INTO "handpotallocation"("handpotid","seatno","amount",...)，
+-- 正式庫沒有 seatno 所以那句永遠失敗；它包在 querytransaction 裡，整批 rollback，
+-- 連同一批寫的 handpot 一起變 0 列。query() 吞掉例外，全程沒有任何錯誤訊息。
+--
+-- 為什麼是這三件事：
+--   seatno            粒度對齊 handseating / handbittingdata（都是 handid + seatno）
+--   winnerplayerid    原本 NOT NULL 且外鍵指向已廢棄的 player 表（0 列），照原樣一列都插不進去。
+--                     依專案規則欄位保留不刪，只放寬成可為空。
+--   外鍵              指向死表，移除。
+-- 三行都是冪等的、都是放寬而非收緊，對既有資料沒有破壞性。
+ALTER TABLE public.handpotallocation ADD COLUMN IF NOT EXISTS seatno integer;
+ALTER TABLE public.handpotallocation ALTER COLUMN winnerplayerid DROP NOT NULL;
+ALTER TABLE public.handpotallocation DROP CONSTRAINT IF EXISTS handpotallocation_winnerplayerid_fkey;
 
 -- 抽水
 CREATE TABLE IF NOT EXISTS public.handrake(

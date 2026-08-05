@@ -7,7 +7,7 @@ let CHECKSECTIONS=[
 		items:[
 			{"key":"blind",zh:"確認盲注結構與時鐘設定",en:"Confirm blind structure and clock"},
 			{"key":"payout",zh:"確認獎金結構與保底",en:"Confirm payout structure and guarantee"},
-			{"key":"chip",zh:"備妥起始計分牌與發牌員",en:"Prepare starting chips and dealers"},
+			{"key":"chip",zh:"備妥起始計分牌與計分員",en:"Prepare starting chips and dealers"},
 			{"key":"seat",zh:"座位抽籤與桌號公告",en:"Seat draw and table number posting"},
 			{"key":"cashier",zh:"報名收款與對帳準備",en:"Registration cashiering ready"},
 			{"key":"latereg",zh:"公告 late reg 與休息時間",en:"Announce late reg and break times"}

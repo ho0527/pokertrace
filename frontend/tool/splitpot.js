@@ -33,6 +33,8 @@ function calcsplit(){
 	let oddunits=units-baseunits*ways
 	let odd=oddunits*chip
 	let remainder=pot-units*chip
+	// 面額被手動改成牌組裡沒有的值時取消選取，不留殘影
+	ptchipstripselect(domgetid("spchipstrip"),chip)
 	innertext("#spbase","$"+moneyfmt(base),false)
 	innertext("#spodd","$"+moneyfmt(odd),false)
 	innertext("#spremainder","$"+moneyfmt(remainder),false)
@@ -58,11 +60,19 @@ function calcsplit(){
 }
 
 function loadspprofilechips(){
-	ptloadprofilechipdenoms(function(denoms){
-		if(!denoms||denoms.length<1){
+	ptloadprofilechiplist(function(chiplist){
+		if(!chiplist||chiplist.length<1){
 			return
 		}
-		value("#spchip",denoms[0])
+		// 列出整組牌組供點選，使用者看得出系統挑了哪一顆、也能一鍵換掉
+		innerhtml("#spchipstrip",ptchipstriphtml(chiplist,true),false)
+		ptchipswatchapply(domgetid("spchipstrip"),chiplist)
+		ptchipstripbind(domgetid("spchipstrip"),function(pickedvalue){
+			value("#spchip",pickedvalue)
+			calcsplit()
+		})
+		// 預設仍沿用最小面額，與改版前行為一致
+		value("#spchip",chiplist[0]["value"])
 		calcsplit()
 	})
 }

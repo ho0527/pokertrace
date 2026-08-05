@@ -22,7 +22,7 @@ from function.thing import *
 from function.function import *
 from .initialize import *
 from .sessionplayer import _attachfinance
-from .timer import ensuretimertables,buildtimerstate,broadcasttimerupdate,linkedcounts
+from .timer import ensuretimertables,buildtimerstate,broadcasttimerupdate,linkedcounts,normalizeaccentcolor,normalizebrandlogourl,normalizehiddenblock,normalizecolumnorder,userdisplaydefault
 from .authhelper import gettokenuser as commonauthuser
 
 # main START
@@ -350,6 +350,8 @@ def ensuresessionsettingcolumns():
 	query(SETTING["dbname"],"""ALTER TABLE public."session" ADD COLUMN IF NOT EXISTS brandcolor varchar(20) DEFAULT ''""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."session" ADD COLUMN IF NOT EXISTS brandlogo text DEFAULT ''""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."session" ADD COLUMN IF NOT EXISTS displayfields varchar(300) DEFAULT ''""",[],SETTING["dbsetting"])
+	# 三欄順序 (TASK-022)。既有品牌設定只做到顯示/隱藏, 沒有順序。
+	query(SETTING["dbname"],"""ALTER TABLE public."session" ADD COLUMN IF NOT EXISTS columnorder varchar(50) DEFAULT ''""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."session" ADD COLUMN IF NOT EXISTS raisecap bigint NOT NULL DEFAULT 4""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."session" ADD COLUMN IF NOT EXISTS broadcastopen boolean NOT NULL DEFAULT false""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."session" ADD COLUMN IF NOT EXISTS broadcastdelay integer NOT NULL DEFAULT 0""",[],SETTING["dbsetting"])
@@ -420,6 +422,33 @@ def _fastsessionlist(request,tokenuserrow):
 			OR (a.isown=true AND a."owned"=false)
 		)""")
 	wheresql=" AND ".join(where)
+
+	# 排序（?order=&direction=）。
+	#
+	# **ORDER BY 的欄位名不能用 %s**（那會變成「依這個字串常數排序」，等於沒排），
+	# 所以只能直接插進 SQL —— 也就是說它**必須來自寫死的清單**，
+	# 絕不能拿 request 的值去組。request 只能決定「用清單裡的哪一個」。
+	#
+	# 只開放**顯示值與 SQL 欄位一對一**的三欄。
+	# 前端表格還有「買入」與「名次」兩欄，但那兩個顯示值是前端由多個欄位算出來的
+	# （getprofitdata），拿任何單一 SQL 欄位去排都會排出與畫面不一致的順序 ——
+	# 那種錯不會報，只會讓使用者看到「排序怪怪的」。所以刻意不開放。
+	orderof={
+		"starttime": "\"starttime\"",
+		"name": "\"name\"",
+		"profit": "statprofit"
+	}
+	ordersql="\"starttime\" DESC, \"id\" DESC"
+	orderkey=request.GET.get("order") or ""
+	if orderkey in orderof:
+		direction="ASC"
+		if (request.GET.get("direction") or "").lower()=="desc":
+			direction="DESC"
+		# NULLS LAST 與前端 ptsortcompare 一致（取不到值一律排最後）；
+		# 補 "id" DESC 當穩定的次要排序鍵，否則同值的列在分頁之間順序未定義，
+		# 同一筆可能在兩頁都出現、也可能兩頁都沒有。
+		ordersql=orderof[orderkey]+" "+direction+" NULLS LAST, \"id\" DESC"
+
 	params.append(limit)
 	params.append(offset)
 	row=query(SETTING["dbname"],f"""
@@ -513,7 +542,7 @@ def _fastsessionlist(request,tokenuserrow):
 		)
 		SELECT *, COUNT(*) OVER() AS totalrows, SUM(statcount) OVER() AS statgamecount, SUM(statprofit) OVER() AS stattotalprofit, AVG(statduration) OVER() AS statavgduration
 		FROM scored
-		ORDER BY "starttime" DESC
+		ORDER BY {ordersql}
 		LIMIT %s OFFSET %s
 		) fastsessions
 	""",params,SETTING["dbsetting"])
@@ -749,462 +778,415 @@ def getsession(request,sessionid):
 
 @api_view(["POST"])
 def newsession(request):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+	data=json.loads(request.body)
 
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-			if tokenuserrow:
-				tokenuserrow=tokenuserrow[0]
-				data=json.loads(request.body)
+	requestdata=validate(data,{
+		"gametype": "required|string|in:cash,tournament,limited",
+		"name": "required|string",
+		"clubid": "required|string",
+		"buyin": "required|integer|min:0",
+		"buyinfee": "integer|min:0",
+		"chip": "integer|min:0",
+		"rebuycount": "required|integer|min:0",
+		"rebuybuyin": "required|integer|min:0",
+		"rebuyfee": "integer|min:0",
+		"rebuychip": "integer|min:0",
+		"reentrycount": "integer|min:0",
+		"reentrybuyin": "integer|min:0",
+		"reentryfee": "integer|min:0",
+		"reentrychip": "integer|min:0",
+		"addoncount": "integer|min:0",
+		"addonbuyin": "integer|min:0",
+		"addonfee": "integer|min:0",
+		"addonchip": "integer|min:0",
+		"linkuser": "boolean",
+		"guaranteedprize": "integer|min:0",
+		"private": "boolean",
+		"winprice": "required|integer|min:0",
+		"winthing": "required|string",
+		"inmoney": "boolean",
+		"inft": "boolean",
+		"starttime": "required|string",
+		"endtime": "required|string",
+		"place": "required|string",
+		"totalbuyin": "required|string",
+		"owned": "boolean",
+		"openregistration": "boolean",
+		"maxseat": "integer",
+		"antemode": "string",
+		"unifiedhandrecord": "boolean",
+		"gametypeid": "string",
+		"limittypeid": "string",
+		"stacktypeid": "string",
+		"eventtypeid": "string",
+		"description": "string"
+	},{
+		"required": "ERROR_request_data_not_found",
+		"string": "ERROR_request_data_type_error",
+		"integer": "ERROR_request_data_type_error",
+		"boolean": "ERROR_request_data_type_error"
+	})
 
-				requestdata=validate(data,{
-					"gametype": "required|string|in:cash,tournament,limited",
-					"name": "required|string",
-					"clubid": "required|string",
-					"buyin": "required|integer|min:0",
-					"buyinfee": "integer|min:0",
-					"chip": "integer|min:0",
-					"rebuycount": "required|integer|min:0",
-					"rebuybuyin": "required|integer|min:0",
-					"rebuyfee": "integer|min:0",
-					"rebuychip": "integer|min:0",
-					"reentrycount": "integer|min:0",
-					"reentrybuyin": "integer|min:0",
-					"reentryfee": "integer|min:0",
-					"reentrychip": "integer|min:0",
-					"addoncount": "integer|min:0",
-					"addonbuyin": "integer|min:0",
-					"addonfee": "integer|min:0",
-					"addonchip": "integer|min:0",
-					"linkuser": "boolean",
-					"guaranteedprize": "integer|min:0",
-					"private": "boolean",
-					"winprice": "required|integer|min:0",
-					"winthing": "required|string",
-					"inmoney": "boolean",
-					"inft": "boolean",
-					"starttime": "required|string",
-					"endtime": "required|string",
-					"place": "required|string",
-					"totalbuyin": "required|string",
-					"owned": "boolean",
-					"openregistration": "boolean",
-					"maxseat": "integer",
-					"antemode": "string",
-					"unifiedhandrecord": "boolean",
-					"gametypeid": "string",
-					"limittypeid": "string",
-					"stacktypeid": "string",
-					"eventtypeid": "string",
-					"description": "string"
-				},{
-					"required": "ERROR_request_data_not_found",
-					"string": "ERROR_request_data_type_error",
-					"integer": "ERROR_request_data_type_error",
-					"boolean": "ERROR_request_data_type_error"
-				})
+	if requestdata["error"] is None:
+		gametype=requestdata["data"].get("gametype")
+		name=requestdata["data"].get("name")
+		clubid=requestdata["data"].get("clubid")
+		buyin=requestdata["data"].get("buyin")
+		buyinfee=requestdata["data"].get("buyinfee") or 0
+		chip=requestdata["data"].get("chip") or 0
+		rebuycount=requestdata["data"].get("rebuycount")
+		rebuybuyin=requestdata["data"].get("rebuybuyin")
+		rebuyfee=requestdata["data"].get("rebuyfee") or 0
+		rebuychip=requestdata["data"].get("rebuychip") or 0
+		reentrycount=requestdata["data"].get("reentrycount") or 0
+		reentrybuyin=requestdata["data"].get("reentrybuyin") or 0
+		reentryfee=requestdata["data"].get("reentryfee") or 0
+		reentrychip=requestdata["data"].get("reentrychip") or 0
+		addoncount=requestdata["data"].get("addoncount") or 0
+		addonbuyin=requestdata["data"].get("addonbuyin") or 0
+		addonfee=requestdata["data"].get("addonfee") or 0
+		addonchip=requestdata["data"].get("addonchip") or 0
+		linkuser=requestdata["data"].get("linkuser")
+		guaranteedprize=requestdata["data"].get("guaranteedprize") or 0
+		privateed=_bool(requestdata["data"].get("private"))
+		winprice=requestdata["data"].get("winprice")
+		winthing=requestdata["data"].get("winthing")
+		inmoney=requestdata["data"].get("inmoney")
+		inft=requestdata["data"].get("inft")
+		starttime=requestdata["data"].get("starttime")
+		endtime=requestdata["data"].get("endtime")
+		description=requestdata["data"].get("description")
+		place=requestdata["data"].get("place")
+		totalbuyin=requestdata["data"].get("totalbuyin")
+		gametypeid=requestdata["data"].get("gametypeid")
+		limittypeid=requestdata["data"].get("limittypeid")
+		stacktypeid=requestdata["data"].get("stacktypeid")
+		eventtypeid=requestdata["data"].get("eventtypeid")
+		owned=requestdata["data"].get("owned")
+		openregistration=_bool(requestdata["data"].get("openregistration"))
+		maxseat=requestdata["data"].get("maxseat") or 9
+		antemode=requestdata["data"].get("antemode") or "bigblindante"
+		unifiedhandrecord=_bool(requestdata["data"].get("unifiedhandrecord"))
+		if antemode!="ante":
+			antemode="bigblindante"
 
-				if requestdata["error"] is None:
-					gametype=requestdata["data"].get("gametype")
-					name=requestdata["data"].get("name")
-					clubid=requestdata["data"].get("clubid")
-					buyin=requestdata["data"].get("buyin")
-					buyinfee=requestdata["data"].get("buyinfee") or 0
-					chip=requestdata["data"].get("chip") or 0
-					rebuycount=requestdata["data"].get("rebuycount")
-					rebuybuyin=requestdata["data"].get("rebuybuyin")
-					rebuyfee=requestdata["data"].get("rebuyfee") or 0
-					rebuychip=requestdata["data"].get("rebuychip") or 0
-					reentrycount=requestdata["data"].get("reentrycount") or 0
-					reentrybuyin=requestdata["data"].get("reentrybuyin") or 0
-					reentryfee=requestdata["data"].get("reentryfee") or 0
-					reentrychip=requestdata["data"].get("reentrychip") or 0
-					addoncount=requestdata["data"].get("addoncount") or 0
-					addonbuyin=requestdata["data"].get("addonbuyin") or 0
-					addonfee=requestdata["data"].get("addonfee") or 0
-					addonchip=requestdata["data"].get("addonchip") or 0
-					linkuser=requestdata["data"].get("linkuser")
-					guaranteedprize=requestdata["data"].get("guaranteedprize") or 0
-					privateed=_bool(requestdata["data"].get("private"))
-					winprice=requestdata["data"].get("winprice")
-					winthing=requestdata["data"].get("winthing")
-					inmoney=requestdata["data"].get("inmoney")
-					inft=requestdata["data"].get("inft")
-					starttime=requestdata["data"].get("starttime")
-					endtime=requestdata["data"].get("endtime")
-					description=requestdata["data"].get("description")
-					place=requestdata["data"].get("place")
-					totalbuyin=requestdata["data"].get("totalbuyin")
-					gametypeid=requestdata["data"].get("gametypeid")
-					limittypeid=requestdata["data"].get("limittypeid")
-					stacktypeid=requestdata["data"].get("stacktypeid")
-					eventtypeid=requestdata["data"].get("eventtypeid")
-					owned=requestdata["data"].get("owned")
-					openregistration=_bool(requestdata["data"].get("openregistration"))
-					maxseat=requestdata["data"].get("maxseat") or 9
-					antemode=requestdata["data"].get("antemode") or "bigblindante"
-					unifiedhandrecord=_bool(requestdata["data"].get("unifiedhandrecord"))
-					if antemode!="ante":
-						antemode="bigblindante"
-
-					# 主辦牌局: 主辦人不參賽, 把「個人成績」欄位歸 0 (主辦設定欄位照填)
-					# 個人牌局: 把「主辦設定」相關歸預設, 個人成績欄位照填
-					if owned==True or owned==1 or owned=="1":
-						owned=True
-						# 個人成績歸 0
-						winprice=0
-						winthing="N/A"
-						place="0"
-						totalbuyin="0"
-						inmoney=False
-						inft=False
-					else:
-						owned=False
-						# 非主辦時, 僅保留個人成績需要的再入資訊
-						linkuser=False
-						rebuycount=0
-						rebuybuyin=0
-						rebuyfee=0
-						rebuychip=0
-						reentrychip=0
-						addoncount=0
-						addonbuyin=0
-						addonfee=0
-						addonchip=0
-						guaranteedprize=0
-						privateed=False
-
-					if linkuser==True or linkuser==1 or linkuser=="1":
-						linkuser=True
-					else:
-						linkuser=False
-					if not linkuser:
-						openregistration=False
-						privateed=False
-
-					if inmoney==True or inmoney==1 or inmoney=="1":
-						inmoney=True
-					else:
-						inmoney=False
-
-					if inft==True or inft==1 or inft=="1":
-						inft=True
-					else:
-						inft=False
-
-					# 網路差時 client 端可能在逾時後自動或由使用者重試, 造成同一場次被連續送出多次 insert 成多筆。
-					# insert 前先查同一使用者短時間內(10 秒)是否已建立過完全相同的場次(名稱/協會/類型/起訖時間一致且未刪除),
-					# 有就直接回傳既有的 sessionid, 不再新增, 讓建立動作對重試具備冪等性。
-					duplicaterow=query(SETTING["dbname"],f"""SELECT "id" FROM "session"
-						WHERE "userid"=%s AND "name"=%s AND CAST("clubid" AS TEXT)=%s AND "gametype"=%s
-						  AND "starttime"=%s::timestamptz AND "endtime"=%s::timestamptz
-						  AND "deletetime" IS NULL AND "createtime">=NOW()-INTERVAL '10 seconds'
-						ORDER BY "id" DESC LIMIT 1""",
-						[tokenuserrow["id"],name,str(clubid),gametype,starttime,endtime],SETTING["dbsetting"])
-					if duplicaterow:
-						return Response({
-							"success": True,
-							"data": duplicaterow[0]["id"]
-						},status.HTTP_200_OK)
-
-					# token 流水號: 以既有 token 數字部分(第 7 碼起, 前 6 碼為 2 碼類型+4 碼年份)的最大值+1,
-					# 含已軟刪列避免重號; 不用 len(rows)+1 才不會因軟刪或並發錯位。
-					# 注意: SELECT MAX 與 INSERT 不在同一交易, 高併發下仍有極小的重號視窗 (可接受)。
-					serialrow=query(SETTING["dbname"],"""SELECT COALESCE(MAX(CAST(SUBSTRING("token" FROM 7) AS BIGINT)),0)+1 AS serial FROM "session" WHERE "gametype"=%s AND "token"~'^[A-Z]{2}[0-9]{4}[0-9]+$'""",[gametype],SETTING["dbsetting"])
-					serial=1
-					if serialrow:
-						serial=_int(serialrow[0].get("serial"),1)
-
-					newsessionid=queryinsert(SETTING["dbname"],"session",{
-						"token": f"{gametype[:2].upper()}{nowtime().split(' ')[0].split('-')[0]}{str(serial).zfill(6)}",
-						"userid": tokenuserrow["id"],
-						"gametype": gametype,
-						"name": name,
-						"clubid": clubid,
-						"buyin": buyin,
-						"buyinfee": buyinfee,
-						"chip": chip,
-						"rebuycount": rebuycount,
-						"rebuybuyin": rebuybuyin,
-						"rebuyfee": rebuyfee,
-						"rebuychip": rebuychip,
-						"reentrycount": reentrycount,
-						"reentrybuyin": reentrybuyin,
-						"reentryfee": reentryfee,
-						"reentrychip": reentrychip,
-						"addoncount": addoncount,
-						"addonbuyin": addonbuyin,
-						"addonfee": addonfee,
-						"addonchip": addonchip,
-						"linkuser": linkuser,
-						"guaranteedprize": guaranteedprize,
-						"private": privateed,
-						"winprice": winprice,
-						"winthing": winthing,
-						"inmoney": inmoney,
-						"inft": inft,
-						"starttime": starttime,
-						"endtime": endtime,
-						"description": description,
-						"place": place,
-						"totalbuyin": totalbuyin,
-						"gametypeid": gametypeid,
-						"limittypeid": limittypeid,
-						"stacktypeid": stacktypeid,
-						"eventtypeid": eventtypeid,
-						"owned": owned,
-						"openregistration": openregistration,
-						"maxseat": maxseat,
-						"antemode": antemode,
-						"unifiedhandrecord": unifiedhandrecord
-					},SETTING["dbsetting"])
-
-					return Response({
-						"success": True,
-						"data": newsessionid
-					},status.HTTP_200_OK)
-				else:
-					return errorresponse(requestdata["error"])
-			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
+		# 主辦牌局: 主辦人不參賽, 把「個人成績」欄位歸 0 (主辦設定欄位照填)
+		# 個人牌局: 把「主辦設定」相關歸預設, 個人成績欄位照填
+		if owned==True or owned==1 or owned=="1":
+			owned=True
+			# 個人成績歸 0
+			winprice=0
+			winthing="N/A"
+			place="0"
+			totalbuyin="0"
+			inmoney=False
+			inft=False
 		else:
+			owned=False
+			# 非主辦時, 僅保留個人成績需要的再入資訊
+			linkuser=False
+			rebuycount=0
+			rebuybuyin=0
+			rebuyfee=0
+			rebuychip=0
+			reentrychip=0
+			addoncount=0
+			addonbuyin=0
+			addonfee=0
+			addonchip=0
+			guaranteedprize=0
+			privateed=False
+
+		if linkuser==True or linkuser==1 or linkuser=="1":
+			linkuser=True
+		else:
+			linkuser=False
+		if not linkuser:
+			openregistration=False
+			privateed=False
+
+		if inmoney==True or inmoney==1 or inmoney=="1":
+			inmoney=True
+		else:
+			inmoney=False
+
+		if inft==True or inft==1 or inft=="1":
+			inft=True
+		else:
+			inft=False
+
+		# 網路差時 client 端可能在逾時後自動或由使用者重試, 造成同一場次被連續送出多次 insert 成多筆。
+		# insert 前先查同一使用者短時間內(10 秒)是否已建立過完全相同的場次(名稱/協會/類型/起訖時間一致且未刪除),
+		# 有就直接回傳既有的 sessionid, 不再新增, 讓建立動作對重試具備冪等性。
+		duplicaterow=query(SETTING["dbname"],f"""SELECT "id" FROM "session"
+			WHERE "userid"=%s AND "name"=%s AND CAST("clubid" AS TEXT)=%s AND "gametype"=%s
+			  AND "starttime"=%s::timestamptz AND "endtime"=%s::timestamptz
+			  AND "deletetime" IS NULL AND "createtime">=NOW()-INTERVAL '10 seconds'
+			ORDER BY "id" DESC LIMIT 1""",
+			[tokenuserrow["id"],name,str(clubid),gametype,starttime,endtime],SETTING["dbsetting"])
+		if duplicaterow:
 			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
-	else:
+				"success": True,
+				"data": duplicaterow[0]["id"]
+			},status.HTTP_200_OK)
+
+		# token 流水號: 以既有 token 數字部分(第 7 碼起, 前 6 碼為 2 碼類型+4 碼年份)的最大值+1,
+		# 含已軟刪列避免重號; 不用 len(rows)+1 才不會因軟刪或並發錯位。
+		# 注意: SELECT MAX 與 INSERT 不在同一交易, 高併發下仍有極小的重號視窗 (可接受)。
+		serialrow=query(SETTING["dbname"],"""SELECT COALESCE(MAX(CAST(SUBSTRING("token" FROM 7) AS BIGINT)),0)+1 AS serial FROM "session" WHERE "gametype"=%s AND "token"~'^[A-Z]{2}[0-9]{4}[0-9]+$'""",[gametype],SETTING["dbsetting"])
+		serial=1
+		if serialrow:
+			serial=_int(serialrow[0].get("serial"),1)
+
+		ensuresessionsettingcolumns()
+		brandsdefault=userdisplaydefault(tokenuserrow["id"])
+
+		newsessionid=queryinsert(SETTING["dbname"],"session",{
+			"token": f"{gametype[:2].upper()}{nowtime().split(' ')[0].split('-')[0]}{str(serial).zfill(6)}",
+			"userid": tokenuserrow["id"],
+			"gametype": gametype,
+			"name": name,
+			"clubid": clubid,
+			"buyin": buyin,
+			"buyinfee": buyinfee,
+			"chip": chip,
+			"rebuycount": rebuycount,
+			"rebuybuyin": rebuybuyin,
+			"rebuyfee": rebuyfee,
+			"rebuychip": rebuychip,
+			"reentrycount": reentrycount,
+			"reentrybuyin": reentrybuyin,
+			"reentryfee": reentryfee,
+			"reentrychip": reentrychip,
+			"addoncount": addoncount,
+			"addonbuyin": addonbuyin,
+			"addonfee": addonfee,
+			"addonchip": addonchip,
+			"linkuser": linkuser,
+			"guaranteedprize": guaranteedprize,
+			"private": privateed,
+			"winprice": winprice,
+			"winthing": winthing,
+			"inmoney": inmoney,
+			"inft": inft,
+			"starttime": starttime,
+			"endtime": endtime,
+			"description": description,
+			"place": place,
+			"totalbuyin": totalbuyin,
+			"gametypeid": gametypeid,
+			"limittypeid": limittypeid,
+			"stacktypeid": stacktypeid,
+			"eventtypeid": eventtypeid,
+			"owned": owned,
+			"openregistration": openregistration,
+			"maxseat": maxseat,
+			"antemode": antemode,
+			"unifiedhandrecord": unifiedhandrecord,
+			# 大螢幕品牌設定的初值來自建立者的個人預設 (feature-spec-display FR-7)。
+			# 沒設過就整組空字串 = 沒有品牌, 大螢幕維持原本的樣子。
+			# 之後在單場改動只會寫到 session 這一列, 不會回寫個人預設 (FR-8)。
+			"brandname": brandsdefault["brandname"],
+			"brandcolor": brandsdefault["brandcolor"],
+			"brandlogo": brandsdefault["brandlogo"],
+			"displayfields": brandsdefault["displayfields"],
+			"columnorder": brandsdefault["columnorder"]
+		},SETTING["dbsetting"])
+
 		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"success": True,
+			"data": newsessionid
+		},status.HTTP_200_OK)
+	else:
+		return errorresponse(requestdata["error"])
 
 @api_view(["PUT"])
 def editsession(request,sessionid):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+	row=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+	if row:
+		row=row[0]
+		isadmin=(4<=int(tokenuserrow["permission"]))
+		access=getsessionstaffaccess(sessionid,tokenuserrow["id"])
+		if not (isadmin or (access and (access["isown"] or access["isstaff"]))):
+			return errorresponse("ERROR_no_permission")
 
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-			if tokenuserrow:
-				tokenuserrow=tokenuserrow[0]
-				row=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
-				if row:
-					row=row[0]
-					isadmin=(4<=int(tokenuserrow["permission"]))
-					access=getsessionstaffaccess(sessionid,tokenuserrow["id"])
-					if not (isadmin or (access and (access["isown"] or access["isstaff"]))):
-						return errorresponse("ERROR_no_permission")
+		requestdata=validate(json.loads(request.body),{
+			"name": "required|string",
+			"clubid": "required|string",
+			"buyin": "required|integer|min:0",
+			"buyinfee": "integer|min:0",
+			"chip": "required|integer|min:0",
+			"rebuycount": "required|integer|min:0",
+			"rebuybuyin": "required|integer|min:0",
+			"rebuyfee": "integer|min:0",
+			"rebuychip": "integer|min:0",
+			"reentrycount": "integer|min:0",
+			"reentrybuyin": "integer|min:0",
+			"reentryfee": "integer|min:0",
+			"reentrychip": "integer|min:0",
+			"addoncount": "integer|min:0",
+			"addonbuyin": "integer|min:0",
+			"addonfee": "integer|min:0",
+			"addonchip": "integer|min:0",
+			"linkuser": "boolean",
+			"guaranteedprize": "integer|min:0",
+			"private": "boolean",
+			"winprice": "required|integer|min:0",
+			"winthing": "required|string",
+			"inmoney": "boolean",
+			"inft": "boolean",
+			"starttime": "required|string",
+			"endtime": "required|string",
+			"place": "required|string",
+			"totalbuyin": "required|string",
+			"owned": "boolean",
+			"gametypeid": "string",
+			"limittypeid": "string",
+			"stacktypeid": "string",
+			"eventtypeid": "string",
+			"description": "string"
+		},{
+			"required": "ERROR_request_data_not_found",
+			"string": "ERROR_request_data_type_error",
+			"integer": "ERROR_request_data_type_error",
+			"boolean": "ERROR_request_data_type_error"
+		})
 
-					requestdata=validate(json.loads(request.body),{
-						"name": "required|string",
-						"clubid": "required|string",
-						"buyin": "required|integer|min:0",
-						"buyinfee": "integer|min:0",
-						"chip": "required|integer|min:0",
-						"rebuycount": "required|integer|min:0",
-						"rebuybuyin": "required|integer|min:0",
-						"rebuyfee": "integer|min:0",
-						"rebuychip": "integer|min:0",
-						"reentrycount": "integer|min:0",
-						"reentrybuyin": "integer|min:0",
-						"reentryfee": "integer|min:0",
-						"reentrychip": "integer|min:0",
-						"addoncount": "integer|min:0",
-						"addonbuyin": "integer|min:0",
-						"addonfee": "integer|min:0",
-						"addonchip": "integer|min:0",
-						"linkuser": "boolean",
-						"guaranteedprize": "integer|min:0",
-						"private": "boolean",
-						"winprice": "required|integer|min:0",
-						"winthing": "required|string",
-						"inmoney": "boolean",
-						"inft": "boolean",
-						"starttime": "required|string",
-						"endtime": "required|string",
-						"place": "required|string",
-						"totalbuyin": "required|string",
-						"owned": "boolean",
-						"gametypeid": "string",
-						"limittypeid": "string",
-						"stacktypeid": "string",
-						"eventtypeid": "string",
-						"description": "string"
-					},{
-						"required": "ERROR_request_data_not_found",
-						"string": "ERROR_request_data_type_error",
-						"integer": "ERROR_request_data_type_error",
-						"boolean": "ERROR_request_data_type_error"
-					})
+		if requestdata["error"] is None:
+			name=requestdata["data"].get("name")
+			clubid=requestdata["data"].get("clubid")
+			buyin=requestdata["data"].get("buyin")
+			buyinfee=requestdata["data"].get("buyinfee") or 0
+			chip=requestdata["data"].get("chip")
+			rebuycount=requestdata["data"].get("rebuycount")
+			rebuybuyin=requestdata["data"].get("rebuybuyin")
+			rebuyfee=requestdata["data"].get("rebuyfee") or 0
+			rebuychip=requestdata["data"].get("rebuychip") or 0
+			reentrycount=requestdata["data"].get("reentrycount") or 0
+			reentrybuyin=requestdata["data"].get("reentrybuyin") or 0
+			reentryfee=requestdata["data"].get("reentryfee") or 0
+			reentrychip=requestdata["data"].get("reentrychip") or 0
+			addoncount=requestdata["data"].get("addoncount") or 0
+			addonbuyin=requestdata["data"].get("addonbuyin") or 0
+			addonfee=requestdata["data"].get("addonfee") or 0
+			addonchip=requestdata["data"].get("addonchip") or 0
+			linkuser=requestdata["data"].get("linkuser")
+			guaranteedprize=requestdata["data"].get("guaranteedprize") or 0
+			privateed=_bool(requestdata["data"].get("private"))
+			winprice=requestdata["data"].get("winprice")
+			winthing=requestdata["data"].get("winthing")
+			inmoney=requestdata["data"].get("inmoney")
+			inft=requestdata["data"].get("inft")
+			starttime=requestdata["data"].get("starttime")
+			endtime=requestdata["data"].get("endtime")
+			description=requestdata["data"].get("description")
+			place=requestdata["data"].get("place")
+			totalbuyin=requestdata["data"].get("totalbuyin")
+			owned=requestdata["data"].get("owned")
 
-					if requestdata["error"] is None:
-						name=requestdata["data"].get("name")
-						clubid=requestdata["data"].get("clubid")
-						buyin=requestdata["data"].get("buyin")
-						buyinfee=requestdata["data"].get("buyinfee") or 0
-						chip=requestdata["data"].get("chip")
-						rebuycount=requestdata["data"].get("rebuycount")
-						rebuybuyin=requestdata["data"].get("rebuybuyin")
-						rebuyfee=requestdata["data"].get("rebuyfee") or 0
-						rebuychip=requestdata["data"].get("rebuychip") or 0
-						reentrycount=requestdata["data"].get("reentrycount") or 0
-						reentrybuyin=requestdata["data"].get("reentrybuyin") or 0
-						reentryfee=requestdata["data"].get("reentryfee") or 0
-						reentrychip=requestdata["data"].get("reentrychip") or 0
-						addoncount=requestdata["data"].get("addoncount") or 0
-						addonbuyin=requestdata["data"].get("addonbuyin") or 0
-						addonfee=requestdata["data"].get("addonfee") or 0
-						addonchip=requestdata["data"].get("addonchip") or 0
-						linkuser=requestdata["data"].get("linkuser")
-						guaranteedprize=requestdata["data"].get("guaranteedprize") or 0
-						privateed=_bool(requestdata["data"].get("private"))
-						winprice=requestdata["data"].get("winprice")
-						winthing=requestdata["data"].get("winthing")
-						inmoney=requestdata["data"].get("inmoney")
-						inft=requestdata["data"].get("inft")
-						starttime=requestdata["data"].get("starttime")
-						endtime=requestdata["data"].get("endtime")
-						description=requestdata["data"].get("description")
-						place=requestdata["data"].get("place")
-						totalbuyin=requestdata["data"].get("totalbuyin")
-						owned=requestdata["data"].get("owned")
-
-						# 主辦牌局: 主辦人不參賽, 把「個人成績」歸 0; 主辦設定欄位照填
-						if owned==True or owned==1 or owned=="1":
-							owned=True
-							winprice=0
-							winthing="N/A"
-							place="0"
-							totalbuyin="0"
-							inmoney=False
-							inft=False
-						else:
-							owned=False
-							linkuser=False
-							rebuycount=0
-							rebuybuyin=0
-							rebuyfee=0
-							rebuychip=0
-							reentrychip=0
-							addoncount=0
-							addonbuyin=0
-							addonfee=0
-							addonchip=0
-							guaranteedprize=0
-							privateed=False
-
-						if linkuser==True or linkuser==1 or linkuser=="1":
-							linkuser=True
-						else:
-							linkuser=False
-						if not linkuser:
-							privateed=False
-
-						if inmoney==True or inmoney==1 or inmoney=="1":
-							inmoney=True
-						else:
-							inmoney=False
-
-						if inft==True or inft==1 or inft=="1":
-							inft=True
-						else:
-							inft=False
-
-						updatedata={
-							"name": name,
-							"clubid": clubid,
-							"buyin": buyin,
-							"buyinfee": buyinfee,
-							"chip": chip,
-							"rebuycount": rebuycount,
-							"rebuybuyin": rebuybuyin,
-							"rebuyfee": rebuyfee,
-							"rebuychip": rebuychip,
-							"reentrycount": reentrycount,
-							"reentrybuyin": reentrybuyin,
-							"reentryfee": reentryfee,
-							"reentrychip": reentrychip,
-							"addoncount": addoncount,
-							"addonbuyin": addonbuyin,
-							"addonfee": addonfee,
-							"addonchip": addonchip,
-							"linkuser": linkuser,
-							"guaranteedprize": guaranteedprize,
-							"private": privateed,
-							"winprice": winprice,
-							"winthing": winthing,
-							"inmoney": inmoney,
-							"inft": inft,
-							"starttime": starttime,
-							"endtime": endtime,
-							"description": description,
-							"place": place,
-							"totalbuyin": totalbuyin,
-							"owned": owned,
-							"updatetime": nowtime()
-						}
-						# gametypeid/limittypeid/stacktypeid/eventtypeid 這四欄 client 不一定會帶,
-						# 只在 request 有帶該 key 時才更新, 避免 data.get() 回 None 把既有值覆蓋成 NULL
-						for key in ["gametypeid","limittypeid","stacktypeid","eventtypeid"]:
-							if key in requestdata["data"]:
-								updatedata[key]=requestdata["data"].get(key)
-
-						queryupdate(SETTING["dbname"],"session",updatedata,{
-							"id": sessionid
-						},SETTING["dbsetting"])
-
-						return Response({
-							"success": True,
-							"data": ""
-						},status.HTTP_200_OK)
-					else:
-						return errorresponse(requestdata["error"])
-				else:
-					return Response({
-						"success": False,
-						"data": "ERROR_session_not_found"
-					},status.HTTP_404_NOT_FOUND)
+			# 主辦牌局: 主辦人不參賽, 把「個人成績」歸 0; 主辦設定欄位照填
+			if owned==True or owned==1 or owned=="1":
+				owned=True
+				winprice=0
+				winthing="N/A"
+				place="0"
+				totalbuyin="0"
+				inmoney=False
+				inft=False
 			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
-		else:
+				owned=False
+				linkuser=False
+				rebuycount=0
+				rebuybuyin=0
+				rebuyfee=0
+				rebuychip=0
+				reentrychip=0
+				addoncount=0
+				addonbuyin=0
+				addonfee=0
+				addonchip=0
+				guaranteedprize=0
+				privateed=False
+
+			if linkuser==True or linkuser==1 or linkuser=="1":
+				linkuser=True
+			else:
+				linkuser=False
+			if not linkuser:
+				privateed=False
+
+			if inmoney==True or inmoney==1 or inmoney=="1":
+				inmoney=True
+			else:
+				inmoney=False
+
+			if inft==True or inft==1 or inft=="1":
+				inft=True
+			else:
+				inft=False
+
+			updatedata={
+				"name": name,
+				"clubid": clubid,
+				"buyin": buyin,
+				"buyinfee": buyinfee,
+				"chip": chip,
+				"rebuycount": rebuycount,
+				"rebuybuyin": rebuybuyin,
+				"rebuyfee": rebuyfee,
+				"rebuychip": rebuychip,
+				"reentrycount": reentrycount,
+				"reentrybuyin": reentrybuyin,
+				"reentryfee": reentryfee,
+				"reentrychip": reentrychip,
+				"addoncount": addoncount,
+				"addonbuyin": addonbuyin,
+				"addonfee": addonfee,
+				"addonchip": addonchip,
+				"linkuser": linkuser,
+				"guaranteedprize": guaranteedprize,
+				"private": privateed,
+				"winprice": winprice,
+				"winthing": winthing,
+				"inmoney": inmoney,
+				"inft": inft,
+				"starttime": starttime,
+				"endtime": endtime,
+				"description": description,
+				"place": place,
+				"totalbuyin": totalbuyin,
+				"owned": owned,
+				"updatetime": nowtime()
+			}
+			# gametypeid/limittypeid/stacktypeid/eventtypeid 這四欄 client 不一定會帶,
+			# 只在 request 有帶該 key 時才更新, 避免 data.get() 回 None 把既有值覆蓋成 NULL
+			for key in ["gametypeid","limittypeid","stacktypeid","eventtypeid"]:
+				if key in requestdata["data"]:
+					updatedata[key]=requestdata["data"].get(key)
+
+			queryupdate(SETTING["dbname"],"session",updatedata,{
+				"id": sessionid
+			},SETTING["dbsetting"])
+
 			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+				"success": True,
+				"data": ""
+			},status.HTTP_200_OK)
+		else:
+			return errorresponse(requestdata["error"])
 	else:
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"data": "ERROR_session_not_found"
+		},status.HTTP_404_NOT_FOUND)
 
 @api_view(["PUT"])
 def editsessionsettings(request,sessionid):
@@ -1261,6 +1243,7 @@ def editsessionsettings(request,sessionid):
 		"brandcolor": "string",
 		"brandlogo": "string",
 		"displayfields": "string",
+		"columnorder": "string",
 		"chips": "array"
 	},{
 		"string": "ERROR_request_data_type_error",
@@ -1283,6 +1266,19 @@ def editsessionsettings(request,sessionid):
 	for key in ["name","clubid","buyin","buyinfee","chip","rebuycount","rebuybuyin","rebuyfee","rebuychip","reentrycount","reentrybuyin","reentryfee","reentrychip","addoncount","addonbuyin","addonfee","addonchip","linkuser","guaranteedprize","private","owned","starttime","endtime","description","gametypeid","limittypeid","stacktypeid","eventtypeid","ticketenabled","ticketvalue","openregistration","maxseat","raisecap","brandname","brandcolor","brandlogo","displayfields","broadcastdelay"]:
 		if key in data:
 			update[key]=data.get(key)
+	# 大螢幕品牌設定：上面的通用迴圈是原封不動寫進 DB, 這幾個欄位的 validate 規則只寫 "string",
+	# 等於 javascript:/data: 協定與任意 CSS 值都會被存下來, 之後在大螢幕上算繪(TASK-022 修正)。
+	# 這裡覆寫成正規化後的值; 正規化拒絕的輸入一律變成空字串 = 沒有設定, 不會讓畫面壞掉。
+	if "brandname" in data:
+		update["brandname"]=str(data.get("brandname") or "")[:120]
+	if "brandcolor" in data:
+		update["brandcolor"]=normalizeaccentcolor(data.get("brandcolor"))
+	if "brandlogo" in data:
+		update["brandlogo"]=normalizebrandlogourl(data.get("brandlogo"))
+	if "displayfields" in data:
+		update["displayfields"]=normalizehiddenblock(data.get("displayfields"))
+	if "columnorder" in data:
+		update["columnorder"]=normalizecolumnorder(data.get("columnorder"))
 	if "antemode" in data:
 		update["antemode"]="ante" if data.get("antemode")=="ante" else "bigblindante"
 	if "unifiedhandrecord" in data:
@@ -1478,278 +1474,242 @@ def searchsessionrelations(request,sessionid):
 
 @api_view(["DELETE"])
 def deletesession(request,sessionid):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+	row=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+	if row:
+		row=row[0]
+		isadmin=(4<=int(tokenuserrow["permission"]))
+		if not (isadmin or row["userid"]==tokenuserrow["id"]):
+			return errorresponse("ERROR_no_permission")
 
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-			if tokenuserrow:
-				tokenuserrow=tokenuserrow[0]
-				row=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
-				if row:
-					row=row[0]
-					isadmin=(4<=int(tokenuserrow["permission"]))
-					if not (isadmin or row["userid"]==tokenuserrow["id"]):
-						return errorresponse("ERROR_no_permission")
-
-					# 連動軟刪關聯列 (seriessession/sessionstaff/sessionplayer 皆有 deletetime 欄), 避免留下孤兒;
-					# 用 querytransaction 在單一交易內執行, 任一失敗整批 rollback
-					result=querytransaction(SETTING["dbname"],[
-						["""UPDATE "session" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",[sessionid]],
-						["""UPDATE "seriessession" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
-						["""UPDATE "sessionstaff" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
-						["""UPDATE "sessionplayer" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]]
-					],SETTING["dbsetting"])
-					if result is None:
-						return Response({
-							"success": False,
-							"data": "ERROR_unknow_error_pls_tell_the_admin"
-						},status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-					return Response({
-						"success": True,
-						"data": ""
-					},status.HTTP_200_OK)
-				else:
-					return Response({
-						"success": False,
-						"data": "ERROR_session_not_found"
-					},status.HTTP_404_NOT_FOUND)
-			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
-		else:
+		# 連動軟刪所有「有 sessionid 欄且有 deletetime 欄」的子表，避免留下孤兒；
+		# 用 querytransaction 在單一交易內執行，任一失敗整批 rollback。
+		#
+		# 2026-07-30（TASK-089）：原本只列 seriessession / sessionstaff / sessionplayer 三張，
+		# 但資料庫裡符合條件的表一共 14 張。實測測試機已經累積出殘留 ——
+		# sessiontimerlevel 有 170 筆有效列，其中 137 筆的父場次早就刪了或根本不存在。
+		# 用 backend/tool/sessioncascade.py 可以隨時算出「還缺哪幾張」的差集。
+		#
+		# 刻意**不**連動的兩張，都是語意問題不是漏掉：
+		#   table  —— deletetable 明文只軟刪那一張牌桌、不連動手牌（apidoc 也是這樣寫的）。
+		#             從場次刪下來要不要連 hand / handseating / handplayercard /
+		#             handbittingdata / handpot / communitycard 整棵一起刪，是獨立的決策，
+		#             只刪 table 不刪 hand 反而會製造新的不一致。
+		#   notification —— 它有 sessionid，但通知是**使用者的紀錄**。場次被刪就把使用者收到的
+		#             「你報名的場次…」通知一起刪掉可能是錯的，需要產品決策。
+		result=querytransaction(SETTING["dbname"],[
+			["""UPDATE "session" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",[sessionid]],
+			["""UPDATE "seriessession" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessionstaff" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessionplayer" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessionchip" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessiontimer" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessiontimerconfig" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessiontimerlevel" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessiontimerpayout" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessiontimerplayer" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "sessiontimebank" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "blindstructure" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			["""UPDATE "playerstatistic" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]]
+		],SETTING["dbsetting"])
+		if result is None:
 			return Response({
 				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+				"data": "ERROR_unknow_error_pls_tell_the_admin"
+			},status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+		return Response({
+			"success": True,
+			"data": ""
+		},status.HTTP_200_OK)
 	else:
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"data": "ERROR_session_not_found"
+		},status.HTTP_404_NOT_FOUND)
 
 @api_view(["POST"])
 def copysession(request,sessionid):
-	header=request.headers.get("Authorization")
-	token=None
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
 
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
+	row=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+	if row:
+		row=row[0]
+		isadmin=(4<=int(tokenuserrow["permission"]))
+		if not (isadmin or row["userid"]==tokenuserrow["id"]):
+			return errorresponse("ERROR_no_permission")
+
+		gametype=row["gametype"]
+		name=row["name"]
+		clubid=row["clubid"]
+		buyin=row["buyin"]
+		rebuycount=row["rebuycount"]
+		winprice=row["winprice"]
+		winthing=row["winthing"]
+		rebuybuyin=row["rebuybuyin"]
+		chip=row["chip"]
+		starttime=row["starttime"]
+		endtime=row["endtime"]
+		description=row["description"]
+		place=row["place"]
+		totalbuyin=row["totalbuyin"]
+		gametypeid=row["gametypeid"]
+		limittypeid=row["limittypeid"]
+		stacktypeid=row["stacktypeid"]
+		eventtypeid=row["eventtypeid"]
+		owned=row["owned"]
+		# 新主辦設定欄位 (用 .get 寬容處理可能還沒有此欄位的舊資料)
+		buyinfee=row.get("buyinfee") or 0
+		rebuyfee=row.get("rebuyfee") or 0
+		rebuychip=row.get("rebuychip") or 0
+		reentrycount=row.get("reentrycount") or 0
+		reentrybuyin=row.get("reentrybuyin") or 0
+		reentryfee=row.get("reentryfee") or 0
+		reentrychip=row.get("reentrychip") or 0
+		addoncount=row.get("addoncount") or 0
+		addonbuyin=row.get("addonbuyin") or 0
+		addonfee=row.get("addonfee") or 0
+		addonchip=row.get("addonchip") or 0
+		linkuser=row.get("linkuser") or False
+		openregistration=row.get("openregistration") or False
+		guaranteedprize=row.get("guaranteedprize") or 0
+		privateed=row.get("private") or False
+		maxseat=row.get("maxseat") or 9
+
+		# token 流水號: 與 newsession 同一規則, 統一補滿 6 碼 (原本此處為 zfill(4), 與 newsession 不一致),
+		# 以既有 token 數字部分的最大值+1 (含已軟刪列避免重號); MAX 與 INSERT 不在同一交易, 高併發下仍有極小重號視窗 (可接受)。
+		serialrow=query(SETTING["dbname"],"""SELECT COALESCE(MAX(CAST(SUBSTRING("token" FROM 7) AS BIGINT)),0)+1 AS serial FROM "session" WHERE "gametype"=%s AND "token"~'^[A-Z]{2}[0-9]{4}[0-9]+$'""",[gametype],SETTING["dbsetting"])
+		serial=1
+		if serialrow:
+			serial=_int(serialrow[0].get("serial"),1)
+
+		newsessionid=queryinsert(SETTING["dbname"],"session",{
+			"token": f"{gametype[:2].upper()}{nowtime().split(' ')[0].split('-')[0]}{str(serial).zfill(6)}",
+			"userid": tokenuserrow["id"],
+			"gametype": gametype,
+			"name": name,
+			"clubid": clubid,
+			"buyin": buyin,
+			"buyinfee": buyinfee,
+			"rebuycount": "0",
+			"rebuybuyin": rebuybuyin,
+			"rebuyfee": rebuyfee,
+			"rebuychip": rebuychip,
+			"reentrycount": reentrycount,
+			"reentrybuyin": reentrybuyin,
+			"reentryfee": reentryfee,
+			"reentrychip": reentrychip,
+			"addoncount": addoncount,
+			"addonbuyin": addonbuyin,
+			"addonfee": addonfee,
+			"addonchip": addonchip,
+			"linkuser": linkuser,
+			"openregistration": openregistration,
+			"guaranteedprize": guaranteedprize,
+			"private": privateed,
+			"maxseat": maxseat,
+			"winprice": "0",
+			"chip": chip,
+			"winthing": "N/A",
+			"inmoney": False,
+			"inft": False,
+			"starttime": starttime,
+			"endtime": endtime,
+			"description": description,
+			"place": "0",
+			"totalbuyin": "0",
+			"gametypeid": gametypeid,
+			"limittypeid": limittypeid,
+			"stacktypeid": stacktypeid,
+			"eventtypeid": eventtypeid,
+			"owned": owned
+		},SETTING["dbsetting"])
+
+		newsessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s""",[newsessionid],SETTING["dbsetting"])[0]
+		# 先取出 token 再組字串, 避免 f-string 內巢狀同引號 (僅 Python 3.12+ 可解析)
+		newsessiontoken=newsessionrow["token"]
+
+		tablerow=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+		tablecount=0
+
+		for table in tablerow:
+			queryinsert(SETTING["dbname"],"table",{
+				"token": f"TB{newsessiontoken}{(str(tablecount+1)).zfill(2)}",
+				"sessionid": newsessionid,
+				"no": table.get("no") or tablecount+1
+			},SETTING["dbsetting"])
+
+			tablecount=tablecount+1
+
+		timerconfigrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerconfig" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+		if timerconfigrow:
+			timerconfig=timerconfigrow[0]
+			queryinsert(SETTING["dbname"],"sessiontimerconfig",{
+				"sessionid": newsessionid,
+				"tournname": timerconfig.get("tournname") or name,
+				"subtitle": timerconfig.get("subtitle") or "",
+				"startingchips": timerconfig.get("startingchips") or chip or 0,
+				"buyin": timerconfig.get("buyin") or buyin or 0,
+				"fee": timerconfig.get("fee") or buyinfee or 0,
+				"defaultbreakdur": timerconfig.get("defaultbreakdur") or 10,
+				"soundon": timerconfig.get("soundon"),
+				"vibeon": timerconfig.get("vibeon"),
+				"prizepoolmode": timerconfig.get("prizepoolmode") or "auto",
+				"prizepoolmanual": timerconfig.get("prizepoolmanual") or 0,
+				"itmmode": timerconfig.get("itmmode") or "pct",
+				"itmpct": timerconfig.get("itmpct") or 15,
+				"itmcount": timerconfig.get("itmcount") or 7,
+				"marqueetext": timerconfig.get("marqueetext") or "",
+				"autostartbytime": timerconfig.get("autostartbytime") or False
+			},SETTING["dbsetting"])
+
+		timerlevelrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerlevel" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC""",[sessionid],SETTING["dbsetting"])
+		for level in timerlevelrow or []:
+			queryinsert(SETTING["dbname"],"sessiontimerlevel",{
+				"sessionid": newsessionid,
+				"sortorder": level.get("sortorder") or 0,
+				"type": level.get("type") or "level",
+				"smallblind": level.get("smallblind") or 0,
+				"bigblind": level.get("bigblind") or 0,
+				"ante": level.get("ante") or 0,
+				"durationminutes": level.get("durationminutes") or 20,
+				"regcloseafter": level.get("regcloseafter") or False,
+				"chipraisevalues": level.get("chipraisevalues") or "[]"
+			},SETTING["dbsetting"])
+
+		chiprow=query(SETTING["dbname"],f"""SELECT*FROM "sessionchip" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC,"value" ASC""",[sessionid],SETTING["dbsetting"])
+		for chipitem in chiprow or []:
+			queryinsert(SETTING["dbname"],"sessionchip",{
+				"sessionid": newsessionid,
+				"shape": chipitem.get("shape") or "circle",
+				"value": chipitem.get("value") or 0,
+				"color": chipitem.get("color") or "#888888",
+				"sortorder": chipitem.get("sortorder") or 0
+			},SETTING["dbsetting"])
+
+		timerpayoutrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerpayout" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC""",[sessionid],SETTING["dbsetting"])
+		for payout in timerpayoutrow or []:
+			queryinsert(SETTING["dbname"],"sessiontimerpayout",{
+				"sessionid": newsessionid,
+				"sortorder": payout.get("sortorder") or 0,
+				"rank": payout.get("rank") or "",
+				"pct": payout.get("pct") or 0,
+				"cash": payout.get("cash") or 0,
+				"reward": payout.get("reward") or "",
+				"color": payout.get("color") or "#888"
+			},SETTING["dbsetting"])
+
 		return Response({
-			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
-
-	if token:
-		tokenrow=query(SETTING["dbname"],f"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-		if tokenrow:
-			tokenuserrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-			if tokenuserrow:
-				tokenuserrow=tokenuserrow[0]
-				row=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
-				if row:
-					row=row[0]
-					isadmin=(4<=int(tokenuserrow["permission"]))
-					if not (isadmin or row["userid"]==tokenuserrow["id"]):
-						return errorresponse("ERROR_no_permission")
-
-					gametype=row["gametype"]
-					name=row["name"]
-					clubid=row["clubid"]
-					buyin=row["buyin"]
-					rebuycount=row["rebuycount"]
-					winprice=row["winprice"]
-					winthing=row["winthing"]
-					rebuybuyin=row["rebuybuyin"]
-					chip=row["chip"]
-					starttime=row["starttime"]
-					endtime=row["endtime"]
-					description=row["description"]
-					place=row["place"]
-					totalbuyin=row["totalbuyin"]
-					gametypeid=row["gametypeid"]
-					limittypeid=row["limittypeid"]
-					stacktypeid=row["stacktypeid"]
-					eventtypeid=row["eventtypeid"]
-					owned=row["owned"]
-					# 新主辦設定欄位 (用 .get 寬容處理可能還沒有此欄位的舊資料)
-					buyinfee=row.get("buyinfee") or 0
-					rebuyfee=row.get("rebuyfee") or 0
-					rebuychip=row.get("rebuychip") or 0
-					reentrycount=row.get("reentrycount") or 0
-					reentrybuyin=row.get("reentrybuyin") or 0
-					reentryfee=row.get("reentryfee") or 0
-					reentrychip=row.get("reentrychip") or 0
-					addoncount=row.get("addoncount") or 0
-					addonbuyin=row.get("addonbuyin") or 0
-					addonfee=row.get("addonfee") or 0
-					addonchip=row.get("addonchip") or 0
-					linkuser=row.get("linkuser") or False
-					openregistration=row.get("openregistration") or False
-					guaranteedprize=row.get("guaranteedprize") or 0
-					privateed=row.get("private") or False
-					maxseat=row.get("maxseat") or 9
-
-					# token 流水號: 與 newsession 同一規則, 統一補滿 6 碼 (原本此處為 zfill(4), 與 newsession 不一致),
-					# 以既有 token 數字部分的最大值+1 (含已軟刪列避免重號); MAX 與 INSERT 不在同一交易, 高併發下仍有極小重號視窗 (可接受)。
-					serialrow=query(SETTING["dbname"],"""SELECT COALESCE(MAX(CAST(SUBSTRING("token" FROM 7) AS BIGINT)),0)+1 AS serial FROM "session" WHERE "gametype"=%s AND "token"~'^[A-Z]{2}[0-9]{4}[0-9]+$'""",[gametype],SETTING["dbsetting"])
-					serial=1
-					if serialrow:
-						serial=_int(serialrow[0].get("serial"),1)
-
-					newsessionid=queryinsert(SETTING["dbname"],"session",{
-						"token": f"{gametype[:2].upper()}{nowtime().split(' ')[0].split('-')[0]}{str(serial).zfill(6)}",
-						"userid": tokenuserrow["id"],
-						"gametype": gametype,
-						"name": name,
-						"clubid": clubid,
-						"buyin": buyin,
-						"buyinfee": buyinfee,
-						"rebuycount": "0",
-						"rebuybuyin": rebuybuyin,
-						"rebuyfee": rebuyfee,
-						"rebuychip": rebuychip,
-						"reentrycount": reentrycount,
-						"reentrybuyin": reentrybuyin,
-						"reentryfee": reentryfee,
-						"reentrychip": reentrychip,
-						"addoncount": addoncount,
-						"addonbuyin": addonbuyin,
-						"addonfee": addonfee,
-						"addonchip": addonchip,
-						"linkuser": linkuser,
-						"openregistration": openregistration,
-						"guaranteedprize": guaranteedprize,
-						"private": privateed,
-						"maxseat": maxseat,
-						"winprice": "0",
-						"chip": chip,
-						"winthing": "N/A",
-						"inmoney": False,
-						"inft": False,
-						"starttime": starttime,
-						"endtime": endtime,
-						"description": description,
-						"place": "0",
-						"totalbuyin": "0",
-						"gametypeid": gametypeid,
-						"limittypeid": limittypeid,
-						"stacktypeid": stacktypeid,
-						"eventtypeid": eventtypeid,
-						"owned": owned
-					},SETTING["dbsetting"])
-
-					newsessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s""",[newsessionid],SETTING["dbsetting"])[0]
-					# 先取出 token 再組字串, 避免 f-string 內巢狀同引號 (僅 Python 3.12+ 可解析)
-					newsessiontoken=newsessionrow["token"]
-
-					tablerow=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
-					tablecount=0
-
-					for table in tablerow:
-						queryinsert(SETTING["dbname"],"table",{
-							"token": f"TB{newsessiontoken}{(str(tablecount+1)).zfill(2)}",
-							"sessionid": newsessionid,
-							"no": table.get("no") or tablecount+1
-						},SETTING["dbsetting"])
-
-						tablecount=tablecount+1
-
-					timerconfigrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerconfig" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
-					if timerconfigrow:
-						timerconfig=timerconfigrow[0]
-						queryinsert(SETTING["dbname"],"sessiontimerconfig",{
-							"sessionid": newsessionid,
-							"tournname": timerconfig.get("tournname") or name,
-							"subtitle": timerconfig.get("subtitle") or "",
-							"startingchips": timerconfig.get("startingchips") or chip or 0,
-							"buyin": timerconfig.get("buyin") or buyin or 0,
-							"fee": timerconfig.get("fee") or buyinfee or 0,
-							"defaultbreakdur": timerconfig.get("defaultbreakdur") or 10,
-							"soundon": timerconfig.get("soundon"),
-							"vibeon": timerconfig.get("vibeon"),
-							"prizepoolmode": timerconfig.get("prizepoolmode") or "auto",
-							"prizepoolmanual": timerconfig.get("prizepoolmanual") or 0,
-							"itmmode": timerconfig.get("itmmode") or "pct",
-							"itmpct": timerconfig.get("itmpct") or 15,
-							"itmcount": timerconfig.get("itmcount") or 7,
-							"marqueetext": timerconfig.get("marqueetext") or "",
-							"autostartbytime": timerconfig.get("autostartbytime") or False
-						},SETTING["dbsetting"])
-
-					timerlevelrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerlevel" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC""",[sessionid],SETTING["dbsetting"])
-					for level in timerlevelrow or []:
-						queryinsert(SETTING["dbname"],"sessiontimerlevel",{
-							"sessionid": newsessionid,
-							"sortorder": level.get("sortorder") or 0,
-							"type": level.get("type") or "level",
-							"smallblind": level.get("smallblind") or 0,
-							"bigblind": level.get("bigblind") or 0,
-							"ante": level.get("ante") or 0,
-							"durationminutes": level.get("durationminutes") or 20,
-							"regcloseafter": level.get("regcloseafter") or False,
-							"chipraisevalues": level.get("chipraisevalues") or "[]"
-						},SETTING["dbsetting"])
-
-					chiprow=query(SETTING["dbname"],f"""SELECT*FROM "sessionchip" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC,"value" ASC""",[sessionid],SETTING["dbsetting"])
-					for chipitem in chiprow or []:
-						queryinsert(SETTING["dbname"],"sessionchip",{
-							"sessionid": newsessionid,
-							"shape": chipitem.get("shape") or "circle",
-							"value": chipitem.get("value") or 0,
-							"color": chipitem.get("color") or "#888888",
-							"sortorder": chipitem.get("sortorder") or 0
-						},SETTING["dbsetting"])
-
-					timerpayoutrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerpayout" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC""",[sessionid],SETTING["dbsetting"])
-					for payout in timerpayoutrow or []:
-						queryinsert(SETTING["dbname"],"sessiontimerpayout",{
-							"sessionid": newsessionid,
-							"sortorder": payout.get("sortorder") or 0,
-							"rank": payout.get("rank") or "",
-							"pct": payout.get("pct") or 0,
-							"cash": payout.get("cash") or 0,
-							"reward": payout.get("reward") or "",
-							"color": payout.get("color") or "#888"
-						},SETTING["dbsetting"])
-
-					return Response({
-						"success": True,
-						"data": newsessionid
-					},status.HTTP_200_OK)
-				else:
-					return Response({
-						"success": False,
-						"data": "ERROR_session_not_found"
-					},status.HTTP_404_NOT_FOUND)
-			else:
-				return Response({
-					"success": False,
-					"data": "ERROR_no_permission"
-				},status.HTTP_403_FORBIDDEN)
-		else:
-			return Response({
-				"success": False,
-				"data": "ERROR_token_error"
-			},status.HTTP_403_FORBIDDEN)
+			"success": True,
+			"data": newsessionid
+		},status.HTTP_200_OK)
 	else:
 		return Response({
 			"success": False,
-			"data": "ERROR_token_not_found"
-		},status.HTTP_401_UNAUTHORIZED)
+			"data": "ERROR_session_not_found"
+		},status.HTTP_404_NOT_FOUND)

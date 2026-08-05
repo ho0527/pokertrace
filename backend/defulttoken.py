@@ -20,7 +20,7 @@ import psycopg2
 import random
 import sys
 
-DBNAME="pokertrace"
+DBNAME="pokertrace_test"
 DBHOST="localhost"
 DBUSER="chris0527"
 DBPASSWORD=os.environ.get("PT_DB_PASSWORD","")

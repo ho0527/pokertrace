@@ -1,9 +1,9 @@
 let GLOSSARY=[
 	{en:"Buy-in",zh:"買入","notezh":"參加場次的基本費用","noteen":"Base cost to enter an event"},
-	{en:"Stack",zh:"計分牌量","notezh":"玩家手上的計分牌總數","noteen":"Total chips a player holds"},
+	{en:"Stack",zh:"計分牌量","notezh":"選手手上的計分牌總數","noteen":"Total chips a player holds"},
 	{en:"Big Blind (BB)",zh:"大盲","notezh":"強制下注，常用作計分牌深度單位","noteen":"Mandatory bet, commonly used as the unit of stack depth"},
 	{en:"Small Blind (SB)",zh:"小盲","notezh":"位於大盲左手邊的強制下注","noteen":"Mandatory bet posted just before the big blind"},
-	{en:"Ante",zh:"前注","notezh":"每位玩家或大盲位於發牌前投入的小注","noteen":"Small bet posted before the deal by each player or the big blind"},
+	{en:"Ante",zh:"前注","notezh":"每位選手或大盲位於發牌前投入的小注","noteen":"Small bet posted before the deal by each player or the big blind"},
 	{en:"Button (BTN)",zh:"莊位","notezh":"最有利的位置，最後行動","noteen":"The most favorable position, acting last"},
 	{en:"UTG (Under the Gun)",zh:"槍口位","notezh":"翻牌前第一個行動的位置","noteen":"First position to act preflop"},
 	{en:"Cutoff (CO)",zh:"關煞位","notezh":"莊位右手邊的位置","noteen":"The seat to the right of the button"},

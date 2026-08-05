@@ -2,6 +2,9 @@ if(!weblsget(WEBLSNAME+"signin")){
 	href("./")
 }
 
+// API 紀錄表的排序狀態。這份清單是後端分頁的，排序由後端做（見 loadadminlog）。
+// key 為空字串時用後端預設（id DESC，也就是最新的在前）。
+let adminlogsortstate={ "key": "","ascended": true }
 let adminlogpage=1
 let adminloglimit=20
 let adminlogerroronly=false
@@ -188,6 +191,11 @@ function loadadminlog(){
 	let keywordinput=domgetid("adminlogkeyword")
 	let keyword=keywordinput?keywordinput.value.trim():""
 	let url=AJAXURL+"getapilog?page="+adminlogpage+"&limit="+adminloglimit
+	// 這份清單是**後端分頁**的，所以排序一定要交給後端。
+	// 在前端排只會排到當前這 20 筆，使用者以為排了全部其實沒有 —— 那比不能排更糟。
+	if(adminlogsortstate["key"]){
+		url=url+"&order="+encodeURIComponent(adminlogsortstate["key"])+"&direction="+(adminlogsortstate["ascended"]?"asc":"desc")
+	}
 	if(keyword){
 		url=url+"&keyword="+encodeURIComponent(keyword)
 	}
@@ -557,8 +565,17 @@ function renderadminusersortarrow(){
 }
 
 function adminuserpermissioncell(item,selfed){
-	let current=Number(item["permission"])||1
+	// TASK-062：下拉只列 Lv1~Lv5。權限若被設成範圍外的值（例如 0 或 6），
+	// select 找不到相符 option 會落到第一個（Lv1），操作者一按儲存就**靜默降權**。
+	// 與 TASK-048 同一類問題，這裡比照補一個代表目前值的 option。
+	let current=Number(item["permission"])
+	if(!(current>=1&&current<=5)){
+		current=Number(item["permission"])||0
+	}
 	let html="<select class=\"adminuserpermissionselect rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-1 text-sm text-white outline-none transition focus:border-emerald-400\" data-id=\""+escapehtml(item["id"])+"\">"
+	if(!(current>=1&&current<=5)){
+		html=html+"<option value=\""+current+"\" selected>Lv"+current+adminusertext("permissionoutofrange")+"</option>"
+	}
 	for(let level=1;level<=5;level=level+1){
 		let selecteded=""
 		if(level==current){
@@ -908,3 +925,10 @@ if(adminuserlimitselect){
 }
 
 applyadminuserlanguage()
+
+// API 紀錄表頭排序：後端分頁，所以改變排序要回第 1 頁並重新請求
+ptbindsort("#adminloghead",adminlogsortstate,function(){
+	adminlogpage=1
+	ptsortarrow("#adminloghead",adminlogsortstate["key"],adminlogsortstate["ascended"])
+	loadadminlog()
+})

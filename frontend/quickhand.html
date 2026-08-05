@@ -17,23 +17,23 @@
 			<div class="newhand-topbar">
 				<div>
 					<div class="newhand-eyebrow">PokerTrace</div>
-					<h1 id="pagetitle">快速手牌紀錄</h1>
+					<h1 data-i18n="newedithandpage.pagetitlequick" id="pagetitle">快速手牌紀錄</h1>
 				</div>
 				<div class="newhand-topactions">
-					<a href="sessionlist.html" id="back">上一頁</a>
-					<input type="button" id="cleardata" value="清空暫存">
+					<a href="sessionlist.html" data-i18n="newedithandpage.back" id="back">上一頁</a>
+					<input type="button" data-i18n-value="newedithandpage.cleartemp" id="cleardata" value="清空暫存">
 				</div>
 			</div>
 
-			<nav class="newhand-nav" aria-label="手牌流程">
-				<input type="button" class="stepnav active" data-step="1" value="1 位置資訊">
-				<input type="button" class="stepnav" data-step="2" value="2 紀錄手牌">
-				<input type="button" class="stepnav" data-step="3" value="3 檢查送出">
+			<nav class="newhand-nav" data-i18n-aria-label="newedithandpage.flowlabel" aria-label="手牌流程">
+				<input type="button" class="stepnav active" data-i18n-value="newedithandpage.step1" data-step="1" value="1 位置資訊">
+				<input type="button" class="stepnav" data-i18n-value="newedithandpage.step2" data-step="2" value="2 紀錄手牌">
+				<input type="button" class="stepnav" data-i18n-value="newedithandpage.step3" data-entersubmit data-step="3" value="3 檢查送出">
 			</nav>
 
 			<section class="newhand-status">
 				<div>
-					<span>牌桌</span>
+					<span data-i18n="newedithandpage.labelseat">牌桌</span>
 					<strong id="handtablename">-</strong>
 				</div>
 				<div>
@@ -41,16 +41,16 @@
 					<strong id="dealerlabel">-</strong>
 				</div>
 				<div>
-					<span>盲注</span>
+					<span data-i18n="newedithandpage.blindlabel">盲注</span>
 					<strong id="blindlabel">-</strong>
 				</div>
 				<div>
-					<span>選手</span>
+					<span data-i18n="newedithandpage.labelplayer">選手</span>
 					<strong id="playercountlabel">-</strong>
 				</div>
 				<div>
-					<span>狀態</span>
-					<strong id="savestatus">尚未儲存</strong>
+					<span data-i18n="newedithandpage.labelstatus">狀態</span>
+					<strong data-i18n="newedithandpage.statusnotsaved" id="savestatus">尚未儲存</strong>
 				</div>
 			</section>
 
@@ -59,25 +59,25 @@
 					<section class="newhand-panel">
 						<div class="newhand-panelhead">
 							<div>
-								<h2>位置與盲注</h2>
-									<p>快速紀錄為獨立手牌，可自由設定遊戲類型、盲注與座位</p>
+								<h2 data-i18n="newedithandpage.step1title">位置與盲注</h2>
+									<p data-i18n="newedithandpage.step1descquick">快速紀錄為獨立手牌，可自由設定遊戲類型、盲注與座位</p>
 							</div>
 						</div>
 						<div class="newhand-fields">
 							<label>
-								<span>遊戲類型</span>
+								<span data-i18n="newedithandpage.labelgametype">遊戲類型</span>
 								<select id="handgametype"></select>
 							</label>
 							<label>
-								<span>盲注級別</span>
+								<span data-i18n="newedithandpage.blindlevellabel">盲注級別</span>
 								<select id="blindlevelselect"></select>
 							</label>
 							<label id="smallblindfield">
-								<span id="smallblindlabel">小盲</span>
+								<span data-i18n="newedithandpage.smallblind" id="smallblindlabel">小盲</span>
 								<input type="number" id="handsmallblind" min="0" inputmode="numeric">
 							</label>
 							<label id="bigblindfield">
-								<span id="bigblindlabel">大盲</span>
+								<span data-i18n="newedithandpage.labelbigblind" id="bigblindlabel">大盲</span>
 								<input type="number" id="handbigblind" min="0" inputmode="numeric">
 							</label>
 							<label>
@@ -89,25 +89,25 @@
 								<select id="dealerseat"></select>
 							</label>
 							<label>
-								<span id="selfseatinglabel">Hero 座位</span>
+								<span data-i18n="newedithandpage.heroseat" id="selfseatinglabel">Hero 座位</span>
 								<select id="selfseating"></select>
 							</label>
 						</div>
 						<div class="newhand-checks">
-							<label><input type="checkbox" id="emptybutton"> 空 button</label>
-							<label><input type="checkbox" id="deadsmallblind"> 獨立大盲</label>
+							<label><input type="checkbox" data-i18n-value="newedithandpage.emptybutton" id="emptybutton"> 空 button</label>
+							<label><input type="checkbox" data-i18n-value="newedithandpage.deadsmallblind" id="deadsmallblind"> 獨立大盲</label>
 						</div>
 						<div class="newhand-actions">
-							<input type="button" id="rebuildblinds" value="重建預設下注">
-							<input type="button" class="primary" data-goto="2" value="下一步">
+							<input type="button" data-i18n-value="newedithandpage.rebuildblinds" id="rebuildblinds" value="重建預設下注">
+							<input type="button" class="primary" data-entersubmit data-goto="2" data-i18n-value="newedithandpage.stepnext" value="下一步">
 						</div>
 					</section>
 
 					<section class="newhand-panel">
 						<div class="newhand-panelhead">
 							<div>
-								<h2>座位</h2>
-									<p>自行選擇入座的座位並輸入起始碼量（可用 BB 或計分牌）</p>
+								<h2 data-i18n="newedithandpage.seatprefix">座位</h2>
+									<p data-i18n="newedithandpage.seathintquick">自行選擇入座的座位並輸入起始碼量（可用 BB 或計分牌）</p>
 							</div>
 						</div>
 						<div class="newhand-seatlist" id="seatlist"></div>
@@ -121,32 +121,32 @@
 					<section class="newhand-panel">
 						<div class="newhand-panelhead">
 							<div>
-								<h2>紀錄手牌</h2>
-								<p>選擇要操作的項目，現場一步一步點</p>
+								<h2 data-i18n="newedithandpage.step2title">紀錄手牌</h2>
+								<p data-i18n="newedithandpage.step2desc">選擇要操作的項目，現場一步一步點</p>
 							</div>
 						</div>
 						<div class="newhand-hubstatus" id="hubstatus"></div>
 						<div class="newhand-hubgrid">
-							<div class="newhand-hubbtn" role="button" tabindex="0" data-hub="hero">
-								<span class="newhand-hubbtn-title">新增我的手牌</span>
+							<div class="newhand-hubbtn" data-entersubmit role="button" tabindex="0" data-hub="hero">
+								<span class="newhand-hubbtn-title" data-i18n="newedithandpage.hubherocards">新增我的手牌</span>
 								<span class="newhand-hubbtn-sub" id="hubherocards">? ?</span>
 							</div>
 							<div class="newhand-hubbtn" role="button" tabindex="0" data-hub="board">
-								<span class="newhand-hubbtn-title" id="hubboardtitle">公共牌</span>
+								<span class="newhand-hubbtn-title" data-i18n="newedithandpage.boardtitlehub" id="hubboardtitle">公共牌</span>
 								<span class="newhand-hubbtn-sub" id="hubboardcards">-</span>
 							</div>
 							<div class="newhand-hubbtn accent" role="button" tabindex="0" data-hub="betting">
-								<span class="newhand-hubbtn-title">下注管理</span>
+								<span class="newhand-hubbtn-title" data-i18n="newedithandpage.hubbetting">下注管理</span>
 								<span class="newhand-hubbtn-sub" id="hubbetinfo">-</span>
 							</div>
 							<div class="newhand-hubbtn" role="button" tabindex="0" data-hub="result">
-								<span class="newhand-hubbtn-title">攤牌 / 結果</span>
-								<span class="newhand-hubbtn-sub" id="hubresultinfo">選牌・選贏家</span>
+								<span class="newhand-hubbtn-title" data-i18n="newedithandpage.hubshowdown">攤牌 / 結果</span>
+								<span class="newhand-hubbtn-sub" data-i18n="newedithandpage.hubresultinfo" id="hubresultinfo">選牌・選贏家</span>
 							</div>
 						</div>
 						<div class="newhand-actions">
-							<input type="button" data-goto="1" value="上一步">
-							<input type="button" class="primary" data-goto="3" value="下一步">
+							<input type="button" data-goto="1" data-i18n-value="newedithandpage.stepprev" value="上一步">
+							<input type="button" class="primary" data-entersubmit data-goto="3" data-i18n-value="newedithandpage.stepnext" value="下一步">
 						</div>
 					</section>
 				</div>
@@ -156,9 +156,9 @@
 					<section class="newhand-panel">
 						<div class="newhand-panelhead">
 							<div>
-								<h2>下注管理</h2>
+								<h2 data-i18n="newedithandpage.bettingtitle">下注管理</h2>
 							</div>
-							<input type="button" class="hubback" data-hub="hub" value="回上頁">
+							<input type="button" class="hubback" data-hub="hub" data-i18n-value="newedithandpage.backtohub" value="回上頁">
 						</div>
 						<div class="timebank-panel" id="timebankPanel" role="timer" aria-live="polite" aria-atomic="true">
 							<div class="timebank-head">
@@ -169,19 +169,19 @@
 								<div class="timebank-count mono" id="timebankCountdown">15</div>
 							</div>
 							<div class="timebank-actions">
-								<input type="button" id="timebankStart" value="開始">
-								<input type="button" id="timebankPause" value="暫停">
-								<input type="button" id="timebankReset" value="重設">
+								<input type="button" data-i18n-value="newedithandpage.timebankstart" id="timebankStart" value="開始">
+								<input type="button" data-i18n-value="newedithandpage.timebankpause" id="timebankPause" value="暫停">
+								<input type="button" data-i18n-value="newedithandpage.timebankreset" id="timebankReset" value="重設">
 							</div>
 						</div>
 						<div class="betting-stage">
 							<div class="betting-head">
 								<div>
 									<div class="quick-action-seat" id="currentactionseat">Seat -</div>
-									<div class="quick-action-meta" id="currentactionmeta">等待系統推算下一位</div>
+									<div class="quick-action-meta" data-i18n="newedithandpage.waitingnext" id="currentactionmeta">等待系統推算下一位</div>
 								</div>
 								<label class="betting-street">
-									<span>街別</span>
+									<span data-i18n="newedithandpage.hubstreet">街別</span>
 									<select id="actionstreet"></select>
 								</label>
 							</div>
@@ -190,7 +190,7 @@
 								<input type="button" id="quickcheckcall" value="Check / Call">
 								<input type="button" id="quickraise" value="Bet / Raise">
 							</div>
-							<input type="button" class="betting-herocards" id="bettingherocards" value="選擇手牌">
+							<input type="button" class="betting-herocards" data-i18n-value="newedithandpage.selecthand" id="bettingherocards" value="選擇手牌">
 						</div>
 						<div class="newhand-actionlist" id="actionlist"></div>
 					</section>
@@ -201,19 +201,21 @@
 					<section class="newhand-panel">
 						<div class="newhand-panelhead">
 							<div>
-								<h2>攤牌 / 結果</h2>
-								<p id="showorderhint">系統會提示建議 show 順序，現場仍可 muck 或手動改贏家</p>
+								<h2 data-i18n="newedithandpage.showdowntitle">攤牌 / 結果</h2>
+								<p data-i18n="newedithandpage.showorderhint" id="showorderhint">系統會提示建議 show 順序，現場仍可 muck 或手動改贏家</p>
 							</div>
-							<input type="button" class="hubback" data-hub="hub" value="回上頁">
+							<input type="button" class="hubback" data-hub="hub" data-i18n-value="newedithandpage.backtohub" value="回上頁">
 						</div>
 						<div class="newhand-actions">
-							<input type="button" id="solvewinner" value="快速解算">
+							<input type="button" data-i18n-value="newedithandpage.solvewinner" id="solvewinner" value="快速解算">
 						</div>
 						<div class="showdown-list" id="showdownlist"></div>
+						<!-- TASK-038 輸入 A：run it twice 以上時在這裡長出第 2、3... 個 board -->
+						<div class="showdown-runlist" id="runboardpanel"></div>
 						<div class="newhand-summarybox" id="resultsummary"></div>
 						<div class="newhand-actions">
-							<input type="button" class="hubback" data-hub="hub" value="回上頁">
-							<input type="button" class="primary" data-goto="3" value="下一步">
+							<input type="button" class="hubback" data-hub="hub" data-i18n-value="newedithandpage.backtohub" value="回上頁">
+							<input type="button" class="primary" data-entersubmit data-goto="3" data-i18n-value="newedithandpage.stepnext" value="下一步">
 						</div>
 					</section>
 				</div>
@@ -224,8 +226,8 @@
 					<section class="newhand-panel">
 						<div class="newhand-panelhead">
 							<div>
-								<h2>儲存前檢查</h2>
-									<p>送出前先看警告，黃色為提醒、紅色需修正</p>
+								<h2 data-i18n="newedithandpage.step3title">儲存前檢查</h2>
+									<p data-i18n="newedithandpage.step3desc">送出前先看警告，黃色為提醒、紅色需修正</p>
 							</div>
 						</div>
 						<div id="warnings" class="newhand-warnings"></div>
@@ -233,22 +235,22 @@
 					<section class="newhand-panel">
 						<div class="newhand-panelhead">
 							<div>
-								<h2>摘要</h2>
-								<p>快速手牌為獨立紀錄，不與其他手牌連動，日後可自由編輯</p>
+								<h2 data-i18n="newedithandpage.summarytitle">摘要</h2>
+								<p data-i18n="newedithandpage.step3notequick">快速手牌為獨立紀錄，不與其他手牌連動，日後可自由編輯</p>
 							</div>
 						</div>
 						<div class="newhand-summarybox" id="summarybox"></div>
 						<label class="note-label">
-							<span>備註</span>
-							<textarea id="ps" rows="4" placeholder="現場補充、裁定或其他說明"></textarea>
+							<span data-i18n="newedithandpage.labelnote">備註</span>
+							<textarea data-i18n-placeholder="newedithandpage.psplaceholderquick" id="ps" rows="4" placeholder="現場補充、裁定或其他說明"></textarea>
 						</label>
 					</section>
 				</div>
 				<div class="newhand-actions">
-					<input type="button" data-goto="2" value="上一步">
-					<input type="button" id="clearhandcache" value="清空暫存">
-						<input type="button" class="primary save" id="savehand" value="送出">
-					<input type="button" class="primary save" id="saveandnext" value="送出，並新增下手牌">
+					<input type="button" data-goto="2" data-i18n-value="newedithandpage.stepprev" value="上一步">
+					<input type="button" data-i18n-value="newedithandpage.cleartemp" id="clearhandcache" value="清空暫存">
+						<input type="button" class="primary save" data-entersubmit data-i18n-value="newedithandpage.submit" id="savehand" value="送出">
+					<input type="button" class="primary save" data-entersubmit data-i18n-value="newedithandpage.saveandnext" id="saveandnext" value="送出，並新增下手牌">
 				</div>
 			</section>
 		</main>
@@ -262,6 +264,8 @@
 		<script src="handgame/holdem.js"></script>
 		<script src="handgame/omaha.js"></script>
 		<script src="handgame/omaha5.js"></script>
+		<script src="handgame/omaha8.js"></script>
+		<script src="handgame/bigo.js"></script>
 		<script src="handgame/shortdeck.js"></script>
 		<script src="handgame/stud.js"></script>
 		<script src="handgame/razz.js"></script>

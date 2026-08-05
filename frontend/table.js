@@ -463,27 +463,31 @@ function cardtext(hand){
 		return "Broken Hand"
 	}
 	let handcard=hand["handcard"]||{}
-	let board=hand["boardcard"]||{}
 	if(typeof handcard=="string"){
 		handcard=json(handcard)||{}
 	}
-	if(typeof board=="string"){
-		board=json(board)||{}
-	}
-	let boardcards=[]
-	if(board["flop"]){
-		for(let i=0;i<board["flop"].length;i=i+1){
-			if(board["flop"][i]){
-				boardcards.push(board["flop"][i])
+	// TASK-037 起共用 initialize.js 的解析
+	// TASK-038：多 board 時每個 board 各一列，單 board 時維持原本的單列
+	if(ptmultiboarded(hand)){
+		let boardlist=ptboardlistof(hand)
+		let html=""
+		for(let i=0;i<boardlist.length;i=i+1){
+			let item=boardlist[i]
+			let cards=[]
+			for(let k=0;k<item["board"]["flop"].length;k=k+1){
+				cards.push(item["board"]["flop"][k])
 			}
+			if(item["board"]["turn"]){
+				cards.push(item["board"]["turn"])
+			}
+			if(item["board"]["river"]){
+				cards.push(item["board"]["river"])
+			}
+			html=html+`<div class="flex flex-wrap items-center gap-2"><span class="shrink-0 rounded-full bg-zinc-700 px-2 py-0.5 text-xs text-zinc-300">${tabletext("boardrun").replace("{n}",item["runno"])}</span>${renderhandcards(i==0?handcard:{},cards,i==0&&!!hand["selfseating"])}</div>`
 		}
+		return html
 	}
-	if(board["turn"]){
-		boardcards.push(board["turn"])
-	}
-	if(board["river"]){
-		boardcards.push(board["river"])
-	}
+	let boardcards=ptboardcardlist(hand["boardcard"])
 	return renderhandcards(handcard,boardcards,!!hand["selfseating"])
 }
 
@@ -496,11 +500,28 @@ function renderfixedcards(cards,count){
 	return html
 }
 
-// 跟 handdetail 一致的乾淨排版（無 Hero/Board 文字、中間細分隔線），並像 session 一樣補滿空位：底牌 2 張、公共牌 5 張
+// 底牌張數依牌型而定（Hold'em 2、Omaha 4、Omaha5 5…），直接讀 handcard 內實際存在的 card1..card5。
+function holecardsof(handcard){
+	let cards=[]
+	if(!handcard){
+		return cards
+	}
+	for(let i=1;i<=5;i=i+1){
+		if(handcard["card"+i]){
+			cards.push(handcard["card"+i])
+		}
+	}
+	return cards
+}
+
+// 跟 handdetail 一致的乾淨排版（無 Hero/Board 文字、中間細分隔線），並像 session 一樣補滿空位：
+// 底牌依實際張數（Hold'em 2 / Omaha 4）、公共牌 5 張。
 function renderhandcards(handcard,boardcards,herovisible){
 	let html=`<span class="pt-cardline pt-card-detail">`
 	if(herovisible){
-		html=html+renderfixedcards([handcard?handcard["card1"]:"",handcard?handcard["card2"]:""],2)
+		let holecards=holecardsof(handcard)
+		let holecount=holecards.length>0?holecards.length:2
+		html=html+renderfixedcards(holecards,holecount)
 		html=html+`<span class="pt-card-divider"></span>`
 	}
 	html=html+renderfixedcards(boardcards,5)
@@ -1025,8 +1046,15 @@ function rendermergetableoptions(){
 	innerhtml("#mergetabletarget",html,false)
 }
 
+// TASK-062：可選清單與「目前坐在這個座位的人」是兩個不同的查詢——
+// availableplayers 只收 status='confirmed' 且未被淘汰的人，座位卻是另一條查詢填的。
+// 所以已入座的人有可能不在清單裡（例如已淘汰仍佔著座位、或多日賽晉級後狀態變成 advanced）。
+// 那種情況下 select 找不到相符的 option 會落到第一個，也就是「空位」，
+// 操作者一按儲存就把那個人**靜默移出座位**，而且不會有任何錯誤訊息。
+// 與 TASK-048 同一類問題，這裡比照補一個代表目前值的 option。
 function playerselecthtml(seatno,player){
 	let selected=player&&player["sessionplayerid"]?String(player["sessionplayerid"]):""
+	let matched=false
 	let html=`<select class="tableplayerselect bg-zinc-700 text-white rounded px-2 py-2 text-sm min-w-[220px]" data-seat="${seatno}">`
 	html=html+`<option value="">${tabletext("emptyseat")}</option>`
 	for(let i=0;i<tableavailableplayers.length;i=i+1){
@@ -1035,7 +1063,14 @@ function playerselecthtml(seatno,player){
 		if(item["tableid"]&&String(item["tableid"])!=String(id)){
 			text=text+" ("+(item["tablename"]||item["tabletoken"]||tabletext("othertable"))+")"
 		}
+		if(String(item["sessionplayerid"])==selected){
+			matched=true
+		}
 		html=html+`<option value="${item["sessionplayerid"]}" ${String(item["sessionplayerid"])==selected?"selected":""}>${safehtml(text)}</option>`
+	}
+	if(selected&&!matched){
+		let name=(player["name"]||"-")+" / "+(player["playerid"]||"")
+		html=html+`<option value="${safehtml(selected)}" selected>${safehtml(name)}${tabletext("playernotinlist")}</option>`
 	}
 	html=html+`</select>`
 	return html

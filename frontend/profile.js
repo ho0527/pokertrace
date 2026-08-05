@@ -16,15 +16,48 @@ let staffdata={
     "floor": [],
     "assistant": []
 }
+// 後端 getuser 回來前的 fallback，內容與 backend/api/user.py 的 defaultchipcolors() 對齊。
+// 兩邊要一起改，否則載入前後的顏色下拉選項會不一致。
 let chipcolors=[
     {"name": "白色","color": "#ffffff"},
     {"name": "紅色","color": "#ff0000"},
     {"name": "藍色","color": "#0000ff"},
     {"name": "綠色","color": "#008000"},
-    {"name": "黑色","color": "#000000"}
+    {"name": "黑色","color": "#000000"},
+    {"name": "黃色","color": "#ffff00"},
+    {"name": "橘色","color": "#ffa500"},
+    {"name": "紫色","color": "#800080"},
+    {"name": "粉紅色","color": "#ffc0cb"},
+    {"name": "灰色","color": "#808080"},
+    {"name": "亮紅色","color": "#ef4444"},
+    {"name": "琥珀色","color": "#f59e0b"},
+    {"name": "亮綠色","color": "#22c55e"},
+    {"name": "亮藍色","color": "#3b82f6"}
 ]
 let chipsets=[]
+// 大螢幕品牌的個人預設值(TASK-026)。只在建立新場次時被帶進 session，
+// 單場改動走 editsessionsettings 只寫 session 表，永遠不會回寫這裡(FR-8)。
+let displaydefault={"brandname":"","brandcolor":"","brandlogo":"","displayfields":"","columnorder":""}
+// 代號要與後端 timer.py 的 DISPLAYBLOCKLIST / DISPLAYCOLUMNLIST 一致
+const DISPLAYDEFAULTBLOCK=[
+    {"key":"payout","label":"displayblockpayout"},
+    {"key":"stack","label":"displayblockstack"},
+    {"key":"nextblind","label":"displayblocknextblind"},
+    {"key":"marquee","label":"displayblockmarquee"}
+]
+const DISPLAYDEFAULTORDER=[
+    {"key":"","label":"displayorderdefault"},
+    {"key":"payout,center,info","label":"displayorderpci"},
+    {"key":"payout,info,center","label":"displayorderpic"},
+    {"key":"center,payout,info","label":"displayordercpi"},
+    {"key":"center,info,payout","label":"displayordercip"},
+    {"key":"info,payout,center","label":"displayorderipc"},
+    {"key":"info,center,payout","label":"displayordericp"}
+]
 let carddeck="classic"
+// TASK-046：牌背與牌面分開。舊帳號沒分開設定過時後端回傳與 carddeck 相同的值。
+let cardback="classic"
+let cardfaceskin="classic"
 let potmainside="right"
 let lastreportrow=null
 let lastreportcontext={"type":"month","year":"","month":""}
@@ -130,10 +163,10 @@ function updatefocusbadges(){
 
 function applyprofilelanguage(){
     document.title=profiletext("title")
-    let apidoclink=domgetid("toolapidoclink")
-    if(apidoclink){
-        apidoclink.href=AJAXURL+"swagger/"
-    }
+    // 2026-07-30：刪掉 `domgetid("toolapidoclink")` 那段 —— profile.html 沒有這個 id
+    // （全站也沒有），所以 if 永遠不成立，是死碼。而且它要設的 href 是 AJAXURL+"swagger/"，
+    // 本專案的 API 文件是 frontend/tool/apidoc.html 不是 swagger，就算元素補回來連結也是錯的。
+    // （tools/audit/scandeadreference.js 掃出來的）
     settext("#profileeyebrow",profiletext("eyebrow"))
     settext("#profiletitle",profiletext("title"))
     updatefocusbadges()
@@ -181,6 +214,9 @@ function applyprofilelanguage(){
     settext("#chipcolorcardtitle",profiletext("chipcolorcardtitle"))
     settext("#chipcolorcarddesc",profiletext("chipcolorcarddesc"))
     settext("#chipsetcardtitle",profiletext("chipsetcardtitle"))
+    settext("#displaydefaultcardtitle",profiletext("displaydefaultcardtitle"))
+    settext("#displaydefaultcarddesc",profiletext("displaydefaultcarddesc"))
+    setvalue("#opendisplaydefaultmodal",profiletext("manage"))
     settext("#chipsetcarddesc",profiletext("chipsetcarddesc"))
     settext("#shakecardtitle",profiletext("shakecardtitle"))
     settext("#shakecarddesc",profiletext("shakecarddesc"))
@@ -192,11 +228,7 @@ function applyprofilelanguage(){
 
     settext("#toolstitle",profiletext("toolssectiontitle"))
     settext("#toolssubtitle",profiletext("toolssectiondesc"))
-    let toollistentrytext=profiletext("toollistentry")
-    if(toollistentrytext=="toollistentry"){
-        toollistentrytext="查看全部工具"
-    }
-    settext("#toollistentry",toollistentrytext)
+    settext("#toollistentry",profiletext("toollistentry"))
     renderpromotools()
 
     setvalue("#signout",TRANSLATE[LANGUAGE]["signout"])
@@ -231,6 +263,7 @@ function applyprofilelanguage(){
 
     renderchipcolorpreview()
     renderchipsetpreview()
+    renderdisplaydefaultpreview()
     updatelangbuttons()
 }
 
@@ -382,10 +415,21 @@ function gotuserdata(event,data){
     chipcolors=row["chipcolors"]||chipcolors
     chipsets=row["chipset"]||chipsets
     carddeck=row["carddeck"]||"classic"
+    cardback=row["cardback"]||carddeck
+    cardfaceskin=row["cardface"]||carddeck
     potmainside=row["potmainside"]||"right"
+    displaydefault={
+        "brandname": row["displaybrandname"]||"",
+        "brandcolor": row["displaybrandcolor"]||"",
+        "brandlogo": row["displaybrandlogo"]||"",
+        "displayfields": row["displaydisplayfields"]||"",
+        "columnorder": row["displaycolumnorder"]||""
+    }
     // 牌背 / 主池位置偏好快取到 localStorage, 供手牌回放 / 現場轉播直接讀取(key 與其共用)
     try{
         localStorage.setItem("bc-deck",carddeck)
+        localStorage.setItem(CARDBACKKEY,cardback)
+        localStorage.setItem(CARDSKINKEY,cardfaceskin)
         localStorage.setItem("bc-potside",potmainside)
     }catch(error){
         // localStorage 不可用時忽略
@@ -853,20 +897,31 @@ function chipcolorrowhtml(item){
     "</div>"
 }
 
+// 下拉只列出使用者自己的調色盤。若這個計分牌已存的顏色不在調色盤裡（例如預設牌組用的
+// #ef4444 #f59e0b #22c55e #3b82f6，早期使用者的調色盤沒有這幾色），沒有任何 option 會被
+// selected，瀏覽器就會落在第一個選項 —— 使用者只是打開編輯再按儲存，顏色就被靜默改掉了。
+// 所以這裡把「目前這個值」補成一個選項，確保它一定選得到、也一定存得回去。
 function chipcoloroptions(selected){
     let html=""
     let i=0
+    let matched=false
     for(i=0;i<chipcolors.length;i=i+1){
         let color=chipcolors[i]["color"]
         let name=chipcolors[i]["name"]||color
         let selecteded=""
         if(String(selected).toLowerCase()==String(color).toLowerCase()){
             selecteded=" selected"
+            matched=true
         }
         html=html+"<option value=\""+safehtml(color)+"\""+selecteded+">"+safehtml(name)+"</option>"
     }
+    if(!matched&&selected){
+        // 放在最前面而不是最後面：它是目前生效的值，排在第一個比較符合直覺
+        html="<option value=\""+safehtml(selected)+"\" selected>"+safehtml(selected)+profiletext("colornotinpalette")+"</option>"+html
+    }
     return html
 }
+
 
 function chipsetchiprowhtml(chip){
     let circleselected=""
@@ -996,6 +1051,209 @@ function bindchipcolorbuttons(cover){
             ])
         }
     }
+}
+
+// 與 session.js / control.js 同一套：主色對大螢幕底色 #0d0d0d 的 WCAG 對比
+// TASK-052：實作收攏到 initialize.js 的 ptcontrastratio()，這裡只留頁面自己的名字
+function displaydefaultcontrast(hex){
+    return ptcontrastratio(hex)
+}
+
+function renderdisplaydefaultpreview(){
+    let box=domgetid("displaydefaultpreview")
+    if(!box){
+        return
+    }
+    let parts=[]
+    if(displaydefault["brandname"]){
+        parts.push(displaydefault["brandname"])
+    }
+    if(displaydefault["brandlogo"]){
+        parts.push(profiletext("displaydefaulthaslogo"))
+    }
+    if(displaydefault["brandcolor"]){
+        parts.push(displaydefault["brandcolor"])
+    }
+    if(displaydefault["displayfields"]){
+        parts.push(profiletext("displaydefaulthidden")+displaydefault["displayfields"].split(",").length)
+    }
+    if(displaydefault["columnorder"]){
+        parts.push(profiletext("displaydefaulthasorder"))
+    }
+    if(parts.length<1){
+        box.textContent=profiletext("emptydisplaydefault")
+    }else{
+        box.textContent=parts.join("、")
+    }
+}
+
+function updatedisplaydefaulthint(){
+    let hint=domgetid("displaydefaultcolorhint")
+    if(!hint){
+        return
+    }
+    let color=getvalue("displaydefaultcolor")||""
+    if(color==""){
+        hint.textContent=profiletext("displaydefaultcolorunset")
+        hint.className="mt-2 text-xs text-zinc-500"
+    }else{
+        let ratio=displaydefaultcontrast(color)
+        if(ratio<3){
+            hint.textContent=profiletext("displaydefaultcolorlow")+"（"+ratio.toFixed(1)+":1）"
+            hint.className="mt-2 text-xs font-bold text-red-400"
+        }else if(ratio<4.5){
+            hint.textContent=profiletext("displaydefaultcolormid")+"（"+ratio.toFixed(1)+":1）"
+            hint.className="mt-2 text-xs font-bold text-amber-400"
+        }else{
+            hint.textContent=profiletext("displaydefaultcolorok")+"（"+ratio.toFixed(1)+":1）"
+            hint.className="mt-2 text-xs text-emerald-400"
+        }
+    }
+}
+
+function opendisplaydefaultmodal(){
+    let old=domgetid("displaydefaultmodal")
+    if(old){
+        old.remove()
+    }
+    let hiddenlist=String(displaydefault["displayfields"]||"").split(",")
+    let blockhtml=""
+    let i=0
+    for(i=0;i<DISPLAYDEFAULTBLOCK.length;i=i+1){
+        let option=DISPLAYDEFAULTBLOCK[i]
+        let checked=""
+        if(hiddenlist.indexOf(option["key"])<0){
+            checked=" checked"
+        }
+        blockhtml=blockhtml+
+        "<label class=\"flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2\">"+
+            "<input type=\"checkbox\" class=\"displaydefaultblock h-5 w-5 accent-emerald-500\" data-block=\""+option["key"]+"\""+checked+">"+
+            "<span class=\"text-sm text-zinc-200\">"+profiletext(option["label"])+"</span>"+
+        "</label>"
+    }
+    let orderhtml=""
+    for(i=0;i<DISPLAYDEFAULTORDER.length;i=i+1){
+        let option=DISPLAYDEFAULTORDER[i]
+        let selected=""
+        if(String(displaydefault["columnorder"]||"")==option["key"]){
+            selected=" selected"
+        }
+        orderhtml=orderhtml+"<option value=\""+option["key"]+"\""+selected+">"+profiletext(option["label"])+"</option>"
+    }
+    let cover=document.createElement("div")
+    cover.id="displaydefaultmodal"
+    cover.className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+    cover.innerHTML=""+
+    "<div class=\"max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-5\">"+
+        "<div class=\"mb-4 flex items-start justify-between gap-3\">"+
+            "<div>"+
+                "<div class=\"text-lg font-semibold text-white\">"+profiletext("displaydefaultcardtitle")+"</div>"+
+                "<div class=\"mt-1 text-sm leading-6 text-zinc-400\">"+profiletext("displaydefaultmodaldesc")+"</div>"+
+            "</div>"+
+            "<input type=\"button\" class=\"closedisplaydefault text-zinc-400 hover:text-white\" value=\"×\">"+
+        "</div>"+
+        "<div class=\"space-y-4\">"+
+            "<div>"+
+                "<label class=\"mb-2 block text-sm font-bold text-zinc-100\" for=\"displaydefaultname\">"+profiletext("displaydefaultname")+"</label>"+
+                "<input type=\"text\" class=\"min-h-12 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400\" id=\"displaydefaultname\" maxlength=\"120\" value=\""+safehtml(displaydefault["brandname"])+"\">"+
+            "</div>"+
+            "<div>"+
+                "<label class=\"mb-2 block text-sm font-bold text-zinc-100\" for=\"displaydefaultlogo\">"+profiletext("displaydefaultlogo")+"</label>"+
+                "<input type=\"text\" class=\"min-h-12 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400\" id=\"displaydefaultlogo\" maxlength=\"255\" placeholder=\"https://...\" value=\""+safehtml(displaydefault["brandlogo"])+"\">"+
+                "<div class=\"mt-2 text-xs leading-6 text-zinc-500\">"+profiletext("displaydefaultlogohint")+"</div>"+
+            "</div>"+
+            "<div>"+
+                "<label class=\"mb-2 block text-sm font-bold text-zinc-100\" for=\"displaydefaultcolor\">"+profiletext("displaydefaultcolor")+"</label>"+
+                "<div class=\"flex items-center gap-3\">"+
+                    "<input type=\"color\" class=\"h-12 w-16 shrink-0 cursor-pointer rounded-xl border border-zinc-700 bg-zinc-800\" id=\"displaydefaultcolorpicker\" value=\""+safehtml(displaydefault["brandcolor"]||"#4ade80")+"\">"+
+                    "<input type=\"text\" class=\"min-h-12 flex-1 rounded-xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400\" id=\"displaydefaultcolor\" maxlength=\"20\" placeholder=\"#4ade80\" value=\""+safehtml(displaydefault["brandcolor"])+"\">"+
+                    "<input type=\"button\" class=\"min-h-12 rounded-xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 hover:bg-zinc-700\" id=\"displaydefaultcolorclear\" value=\""+profiletext("displaydefaultclear")+"\">"+
+                "</div>"+
+                "<div class=\"mt-2 text-xs text-zinc-500\" id=\"displaydefaultcolorhint\"></div>"+
+            "</div>"+
+            "<div>"+
+                "<div class=\"mb-2 text-sm font-bold text-zinc-100\">"+profiletext("displaydefaultblocks")+"</div>"+
+                "<div class=\"grid grid-cols-1 gap-2\">"+blockhtml+"</div>"+
+            "</div>"+
+            "<div>"+
+                "<label class=\"mb-2 block text-sm font-bold text-zinc-100\" for=\"displaydefaultorder\">"+profiletext("displaydefaultorder")+"</label>"+
+                "<select class=\"min-h-12 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400\" id=\"displaydefaultorder\">"+orderhtml+"</select>"+
+                "<div class=\"mt-2 text-xs leading-6 text-zinc-500\">"+profiletext("displaydefaultorderhint")+"</div>"+
+            "</div>"+
+        "</div>"+
+        "<div class=\"mt-5 flex justify-end gap-2\">"+
+            "<input type=\"button\" class=\"closedisplaydefault rounded-xl bg-zinc-700 px-4 py-2 hover:bg-zinc-600\" value=\""+profiletext("cancel")+"\">"+
+            "<input type=\"button\" class=\"rounded-xl bg-emerald-600 px-4 py-2 hover:bg-emerald-700\" id=\"savedisplaydefault\" value=\""+profiletext("save")+"\">"+
+        "</div>"+
+    "</div>"
+    document.body.appendChild(cover)
+    updatedisplaydefaulthint()
+    let closebuttons=cover.querySelectorAll(".closedisplaydefault")
+    for(i=0;i<closebuttons.length;i=i+1){
+        closebuttons[i].addEventListener("click",function(){
+            cover.remove()
+        })
+    }
+    cover.querySelector("#displaydefaultcolor").addEventListener("input",function(){
+        let color=getvalue("displaydefaultcolor")
+        if(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)){
+            cover.querySelector("#displaydefaultcolorpicker").value=color
+        }
+        updatedisplaydefaulthint()
+    })
+    cover.querySelector("#displaydefaultcolorpicker").addEventListener("change",function(){
+        cover.querySelector("#displaydefaultcolor").value=this.value
+        updatedisplaydefaulthint()
+    })
+    cover.querySelector("#displaydefaultcolorclear").addEventListener("click",function(){
+        cover.querySelector("#displaydefaultcolor").value=""
+        updatedisplaydefaulthint()
+    })
+    cover.querySelector("#savedisplaydefault").addEventListener("click",function(){
+        savedisplaydefault(this,cover)
+    })
+}
+
+function savedisplaydefault(button,cover){
+    // 勾選代表「要顯示」，送出去的是「要隱藏的清單」，語意相反
+    let hidden=[]
+    let boxlist=cover.querySelectorAll(".displaydefaultblock")
+    let i=0
+    for(i=0;i<boxlist.length;i=i+1){
+        if(!boxlist[i].checked){
+            hidden.push(boxlist[i].getAttribute("data-block"))
+        }
+    }
+    let payload={
+        "brandname": getvalue("displaydefaultname")||"",
+        "brandlogo": getvalue("displaydefaultlogo")||"",
+        "brandcolor": getvalue("displaydefaultcolor")||"",
+        "displayfields": hidden.join(","),
+        "columnorder": getvalue("displaydefaultorder")||""
+    }
+    button.disabled=true
+    ajax("PUT",AJAXURL+"edituserdisplaydefault",function(event,data){
+        button.disabled=false
+        if(data&&data["success"]){
+            // 後端會把不合法的值正規化成空字串，用回傳值而不是送出去的值，
+            // 才不會讓畫面顯示一個其實沒存進去的設定
+            let saved=data["data"]||{}
+            displaydefault={
+                "brandname": saved["displaybrandname"]||"",
+                "brandcolor": saved["displaybrandcolor"]||"",
+                "brandlogo": saved["displaybrandlogo"]||"",
+                "displayfields": saved["displaydisplayfields"]||"",
+                "columnorder": saved["displaycolumnorder"]||""
+            }
+            renderdisplaydefaultpreview()
+            successprompt(profiletext("savesuccess"))
+            cover.remove()
+        }else{
+            errorprompt((data&&data["data"])||profiletext("unknownerror"))
+        }
+    },JSON.stringify(payload),[
+        ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+    ])
 }
 
 function openchipsetmodal(){
@@ -1175,13 +1433,22 @@ function renderreplayselection(){
     if(!cover){
         return
     }
-    let deckopts=cover.querySelectorAll("[data-deck]")
+    // TASK-046：牌背(data-cardback)與牌面(data-cardface)各自一組色票，各自標選取
+    let backopts=cover.querySelectorAll("[data-cardback]")
     let i=0
-    for(i=0;i<deckopts.length;i=i+1){
-        if(deckopts[i].getAttribute("data-deck")==carddeck){
-            deckopts[i].classList.add("sel")
+    for(i=0;i<backopts.length;i=i+1){
+        if(backopts[i].getAttribute("data-cardback")==cardback){
+            backopts[i].classList.add("sel")
         }else{
-            deckopts[i].classList.remove("sel")
+            backopts[i].classList.remove("sel")
+        }
+    }
+    let faceopts=cover.querySelectorAll("[data-cardface-skin]")
+    for(i=0;i<faceopts.length;i=i+1){
+        if(faceopts[i].getAttribute("data-cardface-skin")==cardfaceskin){
+            faceopts[i].classList.add("sel")
+        }else{
+            faceopts[i].classList.remove("sel")
         }
     }
     let sideopts=cover.querySelectorAll("[data-potside]")
@@ -1196,22 +1463,30 @@ function renderreplayselection(){
     }
 }
 
-function switchdeck(deck){
+// TASK-046：kind 是 "cardback" 或 "cardface"，只換那一邊。
+// 端點同時接受 carddeck（整套一起換，舊行為）與這兩個，回應會把三個值都帶回來。
+function switchdeck(kind,deck){
+    let body={}
+    body[kind]=deck
     ajax("PUT",AJAXURL+"editusercarddeck",function(event,data){
         if(data["success"]){
-            carddeck=data["data"]||deck
+            carddeck=data["data"]||carddeck
+            cardback=data["cardback"]||cardback
+            cardfaceskin=data["cardface"]||cardfaceskin
             try{
                 localStorage.setItem("bc-deck",carddeck)
+                localStorage.setItem(CARDBACKKEY,cardback)
+                localStorage.setItem(CARDSKINKEY,cardfaceskin)
             }catch(error){
                 // localStorage 不可用時忽略
             }
+            // 立刻套用到目前這一頁，不必重整就看得到
+            ptcardskinapply(document.documentElement,cardback,cardfaceskin)
             renderreplayselection()
             return
         }
         errorprompt(profiletext("unknownerror"))
-    },str({
-        "carddeck": deck
-    }),[
+    },str(body),[
         ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
     ])
 }
@@ -1236,6 +1511,26 @@ function switchpotside(side){
     ])
 }
 
+// 牌面配色（兩色 / 四色）。與牌背不同，這是全站生效的顯示偏好，
+// 由 initialize.js 在每一頁把 class 掛到 <html> 上，所以每頁都吃得到。
+// 目前只存 localStorage —— 後端還沒有 cardface 欄位（見 TASK-046），換裝置要重選一次。
+function switchcardface(face){
+    try{
+        localStorage.setItem(CARDFACEKEY,face)
+    }catch(error){
+        // localStorage 不可用時只套用當下這一頁
+    }
+    ptcardfaceapply(face)
+    let cover=domgetid("replaysettingsmodal")
+    if(cover){
+        let opts=cover.querySelectorAll("[data-cardface]")
+        for(let i=0;i<opts.length;i=i+1){
+            let selected=opts[i].getAttribute("data-cardface")==face
+            opts[i].className="rounded-full "+(selected?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300")+" px-6 py-2 text-sm font-bold transition hover:opacity-90"
+        }
+    }
+}
+
 // 手牌回放設定燈箱:牌背樣式(實際卡背+牌面預覽,點即套用並存帳號)+ 主池位置
 function openreplaysettings(){
     let old=domgetid("replaysettingsmodal")
@@ -1243,6 +1538,7 @@ function openreplaysettings(){
         closeprofilecover(old)
     }
     lockprofilescroll()
+    let i=0
     let decks=[
         {"key": "classic","name": profiletext("deckclassic")},
         {"key": "crimson","name": profiletext("deckcrimson")},
@@ -1251,14 +1547,56 @@ function openreplaysettings(){
         {"key": "ocean","name": profiletext("deckocean")},
         {"key": "sunset","name": profiletext("decksunset")},
         {"key": "rose","name": profiletext("deckrose")},
-        {"key": "graphite","name": profiletext("deckgraphite")}
+        {"key": "graphite","name": profiletext("deckgraphite")},
+        {"key": "minimal","name": profiletext("deckminimal")}
     ]
-    let swatches=""
-    let i=0
+    // 牌面只列真的看得出差別的四套（2026-07-29 人工決策）。
+    //
+    // 原因：那 8 個名字描述的是**牌背**的顏色。牌面底色分別是 #18181b / #221416 /
+    // #20262e / #1e1830 / #10222a / #291a12 / #26141c / #242428 —— 全是「幾乎黑」，
+    // RGB 每個分量差不到 0x20，在 40x46 的卡片上根本分不出來。列 8 個但其中 6 個
+    // 看起來一模一樣，比只列 4 個更糟。
+    //
+    // 牌背維持 8 種：那邊是 #1e3a8a / #7f1d1d / #0f5d43 / #6d28d9 / #0e7490 /
+    // #c2410c / #be185d / #3f3f46，差異明顯，名字也名副其實。
+    const FACEKEYLIST=["classic","midnight","graphite","minimal"]
+    let facedecks=[]
     for(i=0;i<decks.length;i=i+1){
-        let sel=decks[i]["key"]==carddeck?" sel":""
-        swatches=swatches+`<div class="hr-lbopt deck-${decks[i]["key"]}${sel}" data-deck="${decks[i]["key"]}"><div class="hr-lbswatch"><span class="bc-card back sm"><span class="bc-emblem"></span></span><span class="bc-card red sm"><span class="r">A</span><span class="s">♥</span></span></div><div class="hr-lbname">${decks[i]["name"]}</div></div>`
+        if(FACEKEYLIST.indexOf(decks[i]["key"])>=0){
+            facedecks.push(decks[i])
+        }
     }
+    // 使用者先前若選過已經被移除的那 5 套，仍要看得到自己目前的選擇，
+    // 否則整排色票沒有任何一個被標選中，會以為設定不見了（TASK-048 同類問題）。
+    let facelisted=false
+    for(i=0;i<facedecks.length;i=i+1){
+        if(facedecks[i]["key"]==cardfaceskin){
+            facelisted=true
+        }
+    }
+    if(!facelisted){
+        for(i=0;i<decks.length;i=i+1){
+            if(decks[i]["key"]==cardfaceskin){
+                facedecks.push({"key": decks[i]["key"],"name": decks[i]["name"]+profiletext("decknotlisted")})
+            }
+        }
+    }
+    // TASK-046 變體 A：牌背與牌面各一組色票，上下兩區。
+    // 每一組只預覽自己那一邊——牌背只畫牌背、牌面只畫一張 A♥，
+    // 選什麼就看到什麼，不會像以前那樣兩張一起出現卻只能一起換。
+    let backswatches=""
+    let faceswatches=""
+    for(i=0;i<decks.length;i=i+1){
+        let backsel=decks[i]["key"]==cardback?" sel":""
+        backswatches=backswatches+`<div class="hr-lbopt deck-${decks[i]["key"]}${backsel}" data-cardback="${decks[i]["key"]}"><div class="hr-lbswatch"><span class="bc-card back sm"><span class="bc-emblem"></span></span></div><div class="hr-lbname">${decks[i]["name"]}</div></div>`
+    }
+    for(i=0;i<facedecks.length;i=i+1){
+        let facesel=facedecks[i]["key"]==cardfaceskin?" sel":""
+        faceswatches=faceswatches+`<div class="hr-lbopt deck-${facedecks[i]["key"]}${facesel}" data-cardface-skin="${facedecks[i]["key"]}"><div class="hr-lbswatch"><span class="bc-card red sm"><span class="r">A</span><span class="s">♥</span></span></div><div class="hr-lbname">${facedecks[i]["name"]}</div></div>`
+    }
+    let currentface=ptcardfaceget()
+    let twosel=currentface=="two"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
+    let foursel=currentface=="four"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
     let leftsel=potmainside=="left"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
     let rightsel=potmainside=="right"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
     let cover=doccreate("div")
@@ -1271,7 +1609,16 @@ function openreplaysettings(){
                 <input type="button" class="closereplaysettings cursor-pointer text-zinc-400 hover:text-white" value="×">
             </div>
             <div class="mb-2 text-sm font-bold text-zinc-300">${profiletext("carddeckcardtitle")}</div>
-            <div class="hr-lbgrid mb-5">${swatches}</div>
+            <div class="hr-lbgrid mb-5">${backswatches}</div>
+            <div class="mb-2 text-sm font-bold text-zinc-300">${profiletext("cardfaceskincardtitle")}</div>
+            <div class="mb-1 text-xs text-zinc-500">${profiletext("cardfaceskincarddesc")}</div>
+            <div class="hr-lbgrid mb-5">${faceswatches}</div>
+            <div class="mb-2 text-sm font-bold text-zinc-300">${profiletext("cardfacecardtitle")}</div>
+            <div class="mb-1 text-xs text-zinc-500">${profiletext("cardfacecarddesc")}</div>
+            <div class="mb-5 flex gap-2">
+                <input type="button" class="rounded-full ${twosel} px-6 py-2 text-sm font-bold transition hover:opacity-90" data-cardface="two" value="${profiletext("cardfacetwo")}">
+                <input type="button" class="rounded-full ${foursel} px-6 py-2 text-sm font-bold transition hover:opacity-90" data-cardface="four" value="${profiletext("cardfacefour")}">
+            </div>
             <div class="mb-2 text-sm font-bold text-zinc-300">${profiletext("potsidecardtitle")}</div>
             <div class="flex gap-2">
                 <input type="button" class="rounded-full ${leftsel} px-6 py-2 text-sm font-bold transition hover:opacity-90" data-potside="left" value="${profiletext("potsideleft")}">
@@ -1285,10 +1632,22 @@ function openreplaysettings(){
             closeprofilecover(cover)
         }
     }
-    let deckopts=cover.querySelectorAll("[data-deck]")
-    for(i=0;i<deckopts.length;i=i+1){
-        deckopts[i].onclick=function(){
-            switchdeck(this.getAttribute("data-deck"))
+    let backopts=cover.querySelectorAll("[data-cardback]")
+    for(i=0;i<backopts.length;i=i+1){
+        backopts[i].onclick=function(){
+            switchdeck("cardback",this.getAttribute("data-cardback"))
+        }
+    }
+    let faceskinopts=cover.querySelectorAll("[data-cardface-skin]")
+    for(i=0;i<faceskinopts.length;i=i+1){
+        faceskinopts[i].onclick=function(){
+            switchdeck("cardface",this.getAttribute("data-cardface-skin"))
+        }
+    }
+    let faceopts=cover.querySelectorAll("[data-cardface]")
+    for(i=0;i<faceopts.length;i=i+1){
+        faceopts[i].onclick=function(){
+            switchcardface(this.getAttribute("data-cardface"))
         }
     }
     let sideopts=cover.querySelectorAll("[data-potside]")
@@ -1566,6 +1925,9 @@ onclick("#openchipcolormodal",function(){
     openchipcolormodal()
 })
 
+onclick("#opendisplaydefaultmodal",function(){
+    opendisplaydefaultmodal()
+})
 onclick("#openchipsetmodal",function(){
     openchipsetmodal()
 })

@@ -7,6 +7,27 @@ function controltext(key){
 	}
 	let extra={
 		zhtw: {
+			itmhintitm: "進入獎金圈",
+			breakingnow: "休息中",
+			placeunit: " 名",
+			ppautoprefix: "名次現金加總 · 原獎池 ",
+			ppcarryprefix: " + 前日未用 $",
+			ppguaranteeprefix: " · 保底 $",
+			ppmanualprefix: "名次現金加總 · 手動獎池 $",
+			ppautovalueprefix: " · 自動值 $",
+			regbreakprefix: "休息(",
+			regbreaksuffix: ")",
+			breaklabel: "休息",
+			jumptoprefix: "跳轉到 ",
+			jumptosuffix: "？",
+			breakhashprefix: "☕ 休息 #",
+			autopayoutprefix: "將自動產生 ",
+			autopayoutsuffix: " 個名次的獎金分配，會覆寫目前的獎金設定，繼續？",
+			breakminuteprefix: "☕ 休息 ",
+			breakminutesuffix: " 分鐘",
+			playersleftsuffix: " 人",
+			confirmjoinafterclose: "報名已關閉，仍要加入？",
+			operationfailed: "操作失敗",
 			defaultmarquee: "⚠ 下一個級別將進行計分牌顏色汰換，請注意自身計分牌數量 | 歡迎參加本場賽事，祝各位選手順利晉級！ | 請留意主辦單位現場公告 | 請遵守賽場規則，保持良好競賽風格",
 			reconnected: "已恢復連線",
 			connectionlost: "連線中斷，控制已暫停，重試中…",
@@ -36,6 +57,7 @@ function controltext(key){
 			timeadjustactionsuffix: " 秒",
 			timesetaction: "設定時間 ",
 			timeresetaction: "重設本項時間",
+			timeresettoast: "已重設時間",
 			levelnotfound: "找不到該關卡",
 			confirmendbreak: "結束本次休息？",
 			endbreakaction: "結束休息",
@@ -119,6 +141,27 @@ function controltext(key){
 			"otherreward": "其他獎勵"
 		},
 		en: {
+			itmhintitm: "in the money",
+			breakingnow: "On Break",
+			placeunit: " places",
+			ppautoprefix: "Rank cash total · base pool ",
+			ppcarryprefix: " + carried over $",
+			ppguaranteeprefix: " · guaranteed $",
+			ppmanualprefix: "Rank cash total · manual pool $",
+			ppautovalueprefix: " · auto $",
+			regbreakprefix: "Break (",
+			regbreaksuffix: ")",
+			breaklabel: "Break",
+			jumptoprefix: "Jump to ",
+			jumptosuffix: "?",
+			breakhashprefix: "☕ Break #",
+			autopayoutprefix: "This will generate payouts for ",
+			autopayoutsuffix: " places and overwrite the current prize settings. Continue?",
+			breakminuteprefix: "☕ Break ",
+			breakminutesuffix: " min",
+			playersleftsuffix: " players",
+			confirmjoinafterclose: "Registration is closed. Add anyway?",
+			operationfailed: "Operation failed",
 			defaultmarquee: "⚠ Chip color-up is coming at the next level, please verify your stack size | Welcome to today's event and good luck to all players | Please watch for on-site organizer announcements | Please follow the house rules and keep strong sportsmanship",
 			reconnected: "Connection restored",
 			connectionlost: "Connection lost. Controls are paused while reconnecting.",
@@ -148,6 +191,7 @@ function controltext(key){
 			timeadjustactionsuffix: "s",
 			timesetaction: "Set time ",
 			timeresetaction: "Reset this time",
+			timeresettoast: "Time reset",
 			levelnotfound: "Level not found",
 			confirmendbreak: "End this break?",
 			endbreakaction: "End break",
@@ -743,7 +787,7 @@ function parseTimeInput(str) {
 }
 function showToast(msg,type="") {
 	let t=domgetid("toast")
-	innertext(t, controlmessage(msg), false)
+	innertext(t, String(msg||""), false)
 	if(type){
 		t.className="toast show "+type
 	}else{
@@ -761,152 +805,8 @@ function formatactiontime(){
 	let second=String(now.getSeconds()).padStart(2,'0')
 	return hour+':'+minute+':'+second
 }
-function controlmessage(msg){
-	let text=String(msg||"")
-	let exact={
-		"報名已關閉": controltext("regclosedtoast"),
-		"已恢復連線": controltext("reconnected"),
-		"連線中斷，控制已暫停，重試中…": controltext("connectionlost"),
-		"同步尚未完成，請稍候重試": controltext("syncnotready"),
-		"請重新登入": controltext("signinagain"),
-		"已標記淘汰": controltext("linkedeliminated"),
-		"已復原選手": controltext("linkedrestored"),
-		"網路不佳，請重新嘗試": controltext("networkfail"),
-		"賽事控制台": controltext("heading"),
-		"▶ 倒數中": controltext("countdownstatus"),
-		"▶ 計時中": controltext("runningstatus"),
-		"⏸ 已暫停": controltext("pausedstatus"),
-		"⏸ 暫停計時": controltext("mainpause"),
-		"▶ 繼續計時": controltext("mainresume"),
-		"⏹ 結束本次休息": controltext("endbreak"),
-		"☕ 立即插入休息": controltext("insertbreak"),
-		"休息時間": controltext("breaktime"),
-		"剩餘 1 分鐘": controltext("oneminuteleft"),
-		"繼續": controltext("resumeaction"),
-		"暫停": controltext("pauseaction"),
-		"已重設時間": controltext("timeresettoast"),
-		"立即結束本項？": controltext("confirmenditem"),
-		"下一項": controltext("nextitemaction"),
-		"☕ 休息開始": controltext("breakstarttoast"),
-		"上一項": controltext("previtemaction"),
-		"☕ 回到休息": controltext("backtobreaktoast"),
-		"已在此項": controltext("alreadyhere"),
-		"找不到該關卡": controltext("levelnotfound"),
-		"結束本次休息？": controltext("confirmendbreak"),
-		"結束休息": controltext("endbreakaction"),
-		"休息結束": controltext("endbreaktoast"),
-		"插入休息": controltext("insertbreakaction"),
-		"目前不在休息中 — 微調無效": controltext("breakadjustinvalid"),
-		"請輸入 MM:SS 或秒數": controltext("invalidtime"),
-		"請輸入關卡編號": controltext("invalidlevel"),
-		"已是最後一人": controltext("lastplayer"),
-		"請輸入有效數字": controltext("invalidnumber"),
-		"已儲存": controltext("saved"),
-		"標題已更新": controltext("titleupdated"),
-		"立即關閉報名？": controltext("confirmclosereg"),
-		"重新開放報名？": controltext("confirmopenreg"),
-		"報名已開放": controltext("regopentoast"),
-		"跑馬燈已更新": controltext("marqueeupdated"),
-		"請輸入有效金額": controltext("invalidamount"),
-		"獎池已更新": controltext("prizeupdated"),
-		"請輸入 0-100 的百分比": controltext("invalidpct"),
-		"請輸入大於 0 的人數": controltext("invalidcount"),
-		"泡泡結束": controltext("bubbleendtoast"),
-		"H4H 結束": controltext("h4hendtoast"),
-		"⭐ Final Table — 提示選手": controltext("finaltabletoast"),
-		"🪙 計分牌汰換中": controltext("coloruptoast"),
-		"設定已儲存": controltext("settingssaved"),
-		"完全重置所有狀態？此操作無法復原": controltext("confirmresetall"),
-		"已重置計時器": controltext("timerreset")
-	}
-	if(exact[text]!=undefined){
-		return exact[text]
-	}
-	if(text.indexOf("進入 Level ")==0){
-		return controltext("enterleveltoast")+text.replace("進入 Level ","")
-	}
-	if(text.indexOf("回到 Level ")==0){
-		return controltext("backtoleveltoast")+text.replace("回到 Level ","")
-	}
-	if(text.indexOf("已跳到 ")==0){
-		return controltext("jumpedprefix")+text.replace("已跳到 ","")
-	}
-	if(text.indexOf("跳到 ")==0){
-		return controltext("jumpactionprefix")+text.replace("跳到 ","")
-	}
-	if(text.indexOf("時間 ")==0&&text.indexOf("秒")==text.length-1){
-		return controltext("timeadjustactionprefix")+text.replace("時間 ","").replace("秒","")+controltext("timeadjustactionsuffix")
-	}
-	if(text.indexOf("設定時間 ")==0){
-		return controltext("timesetaction")+text.replace("設定時間 ","")
-	}
-	if(text=="重設本項時間"){
-		return controltext("timeresetaction")
-	}
-	if(text.indexOf("剩 ")==0){
-		return controltext("playersleftprefix")+text.replace("剩 ","")
-	}
-	if(text.indexOf("淘汰 1 人 (剩 ")==0){
-		return controltext("bustactionprefix")+text.replace("淘汰 1 人 (剩 ","")
-	}
-	if(text.indexOf("+1 入場 (總 ")==0){
-		return controltext("addentrytoastprefix")+text.replace("+1 入場 (總 ","")
-	}
-	if(text=="+1 入場"){
-		return controltext("addentryaction")
-	}
-	if(text=="編輯人數"){
-		return controltext("editplayersaction")
-	}
-	if(text=="改標題"){
-		return controltext("edittitleaction")
-	}
-	if(text=="REG 關閉"){
-		return controltext("regcloseaction")
-	}
-	if(text=="REG 開放"){
-		return controltext("regopenaction")
-	}
-	if(text=="改跑馬燈"){
-		return controltext("editmarqueeaction")
-	}
-	if(text=="ITM 模式：百分比"){
-		return controltext("itmmodepctaction")
-	}
-	if(text=="ITM 模式：人數"){
-		return controltext("itmmodecountaction")
-	}
-	if(text.indexOf("已智能分配 ")==0&&text.indexOf(" 人獎金")==text.length-4){
-		return controltext("autoitmtoastprefix")+text.replace("已智能分配 ","").replace(" 人獎金","")+controltext("autoitmtoastsuffix")
-	}
-	if(text.indexOf("智能分配 ")==0&&text.indexOf(" 人")==text.length-2){
-		return controltext("autoitmactionprefix")+text.replace("智能分配 ","").replace(" 人","")+controltext("autoitmactionsuffix")
-	}
-	if(text=="泡泡圈"){
-		return controltext("bubbleaction")
-	}
-	if(text=="🫧 泡泡圈 — 已暫停"){
-		return controltext("bubbletoast")
-	}
-	if(text=="結束泡泡"){
-		return controltext("bubbleendaction")
-	}
-	if(text=="同步發牌"){
-		return controltext("h4haction")
-	}
-	if(text=="🃏 Hand-for-Hand 開啟"){
-		return controltext("h4htoast")
-	}
-	if(text=="結束同步"){
-		return controltext("h4hendaction")
-	}
-	if(text=="計分牌汰換"){
-		return controltext("colorupaction")
-	}
-	return text
-}
 function setLastAction(s) {
-	s=controlmessage(s)
+	s=String(s||"")
 	innertext(domgetid('lastAction'), s, false)
 	actionhistory.unshift({
 		text: s,
@@ -993,6 +893,15 @@ function applycontrolstatictext(){
 	domgetid('marqueeIn').placeholder=controltext("marqueeplaceholder")
 	domgetid('marqueeIn').setAttribute("aria-label",controltext("marqueearia"))
 	value(domgetid('btnMarqueeReset'), controltext("marqueereset"))
+	innertext(domgetid('brandTitle'), controltext("brandtitle"), false)
+	innertext(domgetid('brandNameLabel'), controltext("brandname"), false)
+	innertext(domgetid('brandLogoLabel'), controltext("brandlogo"), false)
+	innertext(domgetid('brandColorLabel'), controltext("brandcolor"), false)
+	value(domgetid('btnBrandColorClear'), controltext("brandclear"))
+	value(domgetid('btnBrandReload'), controltext("brandreload"))
+	value(domgetid('btnBrandSave'), controltext("brandsave"))
+	innertext(domgetid('brandHint'), controltext("brandhint"), false)
+	updatebrandcolorhint()
 	value(domgetid('btnMarqueeSave'), controltext("marqueesave"))
 	innertext(domgetid('syncText'), controltext("syncok"), false)
 	innertext(domgetid('lastAction'), controltext("ready"), false)
@@ -1371,20 +1280,20 @@ function buildlinkedplayerlistbase(){
 		}
 		let iseliminated=item["status"]=="eliminated"
 		let tabletext=(item["tablename"]||item["tabletoken"]||"-")+" / Seat "+(item["seatno"]||"-")
-		let statustext=" · 仍在場"
+		let statustext=" · "+controltext("stillin")
 		let buttonclass="btn btn-sm btn-danger"
 		let buttonaction="eliminate"
-		let buttontext="淘汰"
+		let buttontext=controltext("bust").replace("— ","")
 		if(iseliminated){
-			statustext=" · 已淘汰"
+			statustext=" · "+controltext("eliminated")
 			buttonclass="btn btn-sm btn-ghost"
 			buttonaction="restore"
-			buttontext="復原"
+			buttontext=controltext("restore")
 		}
 		html=html+`
 			<div class="grid grid-cols-[1fr_150px] items-center gap-2 border-b border-neutral-900 px-3 py-2.5">
 				<div>
-					<div class="text-[13px] font-extrabold text-white">${safetext(item["playername"]||"未命名選手")}</div>
+					<div class="text-[13px] font-extrabold text-white">${safetext(item["playername"]||controltext("unnamedplayer"))}</div>
 					<div class="text-[11px] text-neutral-500">${safetext(tabletext)}</div>
 					<div class="text-[11px] text-neutral-600">${safetext(item["playerplayerid"]||"")}${statustext}</div>
 				</div>
@@ -1395,7 +1304,7 @@ function buildlinkedplayerlistbase(){
 		`
 	}
 	if(!html){
-		html=`<div class="p-4 text-center text-[13px] text-neutral-600">沒有符合的選手</div>`
+		html=`<div class="p-4 text-center text-[13px] text-neutral-600">${controltext("noplayers")}</div>`
 	}
 	innerhtml(box, html, false)
 
@@ -1413,7 +1322,7 @@ function updatesummarycards(){
 	}
 	let stage='Level '+levelNumOf(STATE.currentIndex)
 	if(IT.type=='break'){
-		stage='休息中'
+		stage=controltext("breakingnow")
 	}
 	innertext(domgetid('summaryStage'), stage+' / '+fmtTime(STATE.secondsLeft), false)
 	if(STATE.regClosed){
@@ -1422,7 +1331,7 @@ function updatesummarycards(){
 		innertext(domgetid('summaryReg'), '開放中', false)
 	}
 	innertext(domgetid('summaryPlayers'), String(STATE.players)+' / '+String(STATE.totalEntries), false)
-	innertext(domgetid('summaryPrize'), '$'+fmt(prizePool())+' / '+String(itmCount())+' 名', false)
+	innertext(domgetid('summaryPrize'), '$'+fmt(prizePool())+' / '+String(itmCount())+controltext("placeunit"), false)
 	if(wsready){
 		innertext(domgetid('summarySync'), '同步正常', false)
 	}else{
@@ -1465,7 +1374,7 @@ function requestedittimerplayer(timerplayerid,action){
 function edittimerplayer(timerplayerid,action){
 	let token=getauthtoken()
 	if(!token){
-		showToast("請重新登入","err")
+		showToast(controltext("signinagain"),"err")
 		return
 	}
 	let loadingid=ptloadingstart("#modalLinkedPlayers")
@@ -1487,15 +1396,15 @@ function edittimerplayer(timerplayerid,action){
 			render()
 			loadtableboard()
 			if(action=="eliminate"){
-				showToast("已標記淘汰")
+				showToast(controltext("linkedeliminated"))
 			}else{
-				showToast("已復原選手")
+				showToast(controltext("linkedrestored"))
 			}
 		}else{
-			showToast(data["data"]||"操作失敗","err")
+			showToast(data["data"]||controltext("operationfailed"),"err")
 		}
 	}).catch(function(error){
-		showToast("網路不佳，請重新嘗試","err")
+		showToast(controltext("networkfail"),"err")
 	}).finally(function(){
 		ptloadingend(loadingid)
 	})
@@ -1752,9 +1661,9 @@ function renderbase() {
 		innertext(tl, '☕ BREAK', false)
 		style(prog, [["background", '#fbbf24']])
 		if(STATE.running){
-			innertext(ts, '▶ 倒數中', false)
+			innertext(ts, controltext("countdownstatus"), false)
 		}else{
-			innertext(ts, '⏸ 已暫停', false)
+			innertext(ts, controltext("pausedstatus"), false)
 		}
 	} else if (handmode) {
 		// 手數級別: 顯示手數而非倒數時間, 進度條依 handCount/目標手數。
@@ -1785,9 +1694,9 @@ function renderbase() {
 			style(prog, [["background", '#22c55e']])
 		}
 		if(STATE.running){
-			innertext(ts, '▶ 計時中', false)
+			innertext(ts, controltext("runningstatus"), false)
 		}else{
-			innertext(ts, '⏸ 已暫停', false)
+			innertext(ts, controltext("pausedstatus"), false)
 		}
 	}
 
@@ -1841,20 +1750,20 @@ function renderbase() {
 	// Main toggle
 	let mt=domgetid('btnMainToggle');
 	if (STATE.running) {
-		value(mt, '⏸ 暫停計時')
+		value(mt, controltext("mainpause"))
 		mt.className='btn btn-big btn-primary';
 	}else{
-		value(mt, '▶ 繼續計時')
+		value(mt, controltext("mainresume"))
 		mt.className='btn btn-big btn-warn';
 	}
 
 	// Break button
 	let bb=domgetid('btnBreakToggle');
 	if (it.type == 'break') {
-		value(bb, '⏹ 結束本次休息')
+		value(bb, controltext("endbreak"))
 		bb.className='btn btn-big btn-danger';
 	}else{
-		value(bb, '☕ 立即插入休息')
+		value(bb, controltext("insertbreak"))
 		bb.className='btn btn-big btn-warn';
 	}
 
@@ -1946,7 +1855,7 @@ function renderbase() {
 		if(!isbreak){
 			ln="L"+levelNumOf(i);
 		}
-		let blinds="休息時間";
+		let blinds=controltext("breaktime");
 		if(!isbreak){
 			blinds=fmt(it2.sb)+"/"+fmt(it2.bb)+' <span class="text-[11px] text-neutral-600">a'+fmt(it2.ante)+"</span>";
 		}
@@ -1981,17 +1890,17 @@ function renderbase() {
 	const PPGUARANTEE=parseFloat(STATE.guaranteedPrize)||0;
 	const PAYOUTPCTTOTAL=payoutPercentTotal(STATE.payouts||[]);
 	const PAYOUTCASHTOTAL=payoutCashTotal(STATE.payouts||[],PP,PAYOUTPCTTOTAL);
-	let ppAutoText='名次現金加總 · 原獎池 ' + STATE.totalEntries + ' × $' + fmt(STATE.buyin);
+	let ppAutoText=controltext("ppautoprefix") + STATE.totalEntries + ' × $' + fmt(STATE.buyin);
 	if(0<PPCARRY){
-		ppAutoText=ppAutoText + ' + 前日未用 $' + fmt(PPCARRY);
+		ppAutoText=ppAutoText + controltext("ppcarryprefix") + fmt(PPCARRY);
 	}
 	if(0<PPGUARANTEE){
-		ppAutoText=ppAutoText + ' · 保底 $' + fmt(PPGUARANTEE);
+		ppAutoText=ppAutoText + controltext("ppguaranteeprefix") + fmt(PPGUARANTEE);
 	}
 	ppAutoText=ppAutoText + ' = $' + fmt(PP);
 	let prizepooltext=ppAutoText;
 	if(STATE.prizePoolMode!="auto"){
-		prizepooltext='名次現金加總 · 手動獎池 $' + fmt(PP) + ' · 自動值 $' + fmt(PPAUTO);
+		prizepooltext=controltext("ppmanualprefix") + fmt(PP) + controltext("ppautovalueprefix") + fmt(PPAUTO);
 	}
 	innerhtml(domgetid('prizePoolBlock'), `
 		<div class="font-mono text-2xl font-black text-green-500">$${fmt(PAYOUTCASHTOTAL)}</div>
@@ -2036,12 +1945,12 @@ function renderbase() {
 	innertext(domgetid('itmPctResult'), ic, false)
 	innertext(domgetid('itmCountResult'), ipctVal.toFixed(1), false)
 	let payoutN=STATE.payouts.length;
-	let hint=`總入場 ${STATE.totalEntries} 人 → 前 ${ic} 名 (${ipctVal.toFixed(1)}%) 進入獎金圈`;
+	let hint=controltext("itmhintprefix")+STATE.totalEntries+controltext("itmhintmiddle")+ic+controltext("itmhintsuffix")+" ("+ipctVal.toFixed(1)+"%) "+controltext("itmhintitm");
 	if (payoutN != ic) {
-		hint +=`\n⚠ 目前獎金分配為 ${payoutN} 名 — 建議按「智能分配」對齊到 ${ic} 名`;
+		hint +=controltext("itmhintwarnprefix")+payoutN+controltext("itmhintwarnmiddle")+ic+controltext("itmhintsuffix");
 		style(domgetid('itmHint'), [["color", '#fbbf24']])
 	} else {
-		hint +=`\n✓ 獎金分配與 ITM 人數一致`;
+		hint +=controltext("itmhintok");
 		style(domgetid('itmHint'), [["color", '#4ade80']])
 	}
 	innertext(domgetid('itmHint'), hint, false)
@@ -2103,7 +2012,7 @@ function renderbase() {
 		let s=STATE.schedule[i];
 		if(s.regCloseAfter){
 			if(s.type == 'break'){
-				regItems.push('休息(' + (i + 1) + ')');
+				regItems.push(controltext("regbreakprefix") + (i + 1) + controltext("regbreaksuffix"));
 			}else{
 				regItems.push('L' + levelNumOf(i));
 			}
@@ -2136,7 +2045,7 @@ function tick() {
 	if (cur == lastTickSecond) return;
 	lastTickSecond=cur;
 
-	if (cur == 60) { sndAlert(); showToast('剩餘 1 分鐘', 'warn'); }
+	if (cur == 60) { sndAlert(); showToast(controltext("oneminuteleft"), 'warn'); }
 	else if (cur == 30) { sndAlert(); }
 	else if (cur <= 5 && cur >= 1) { beep(880, 0.1, 0.3); vibe(10); }
 
@@ -2148,11 +2057,11 @@ function togglePause() {
 	STATE.running=!STATE.running;
 	sndClick();
 	if(STATE.running){
-		setLastAction('繼續');
-		showToast('▶ 繼續計時');
+		setLastAction(controltext("resumeaction"));
+		showToast(controltext("mainresume"));
 	}else{
-		setLastAction('暫停');
-		showToast('⏸ 已暫停');
+		setLastAction(controltext("pauseaction"));
+		showToast(controltext("pausedstatus"));
 	}
 	broadcast('toggle');
 	render();
@@ -2168,7 +2077,7 @@ function adjustTime(delta) {
 	if(delta>0){
 		sign='+';
 	}
-	setLastAction(`時間 ${sign}${delta}秒`);
+	setLastAction(controltext("timeadjustactionprefix")+sign+delta+controltext("timeadjustactionsuffix"));
 	broadcast('time-adjust');
 	render();
 }
@@ -2177,7 +2086,7 @@ function setTimeTo(secs) {
 	ensureAudio();
 	STATE.secondsLeft=secs;
 	sndConfirm();
-	setLastAction('設定時間 ' + fmtTime(secs));
+	setLastAction(controltext("timesetaction") + fmtTime(secs));
 	broadcast('time-set');
 	render();
 }
@@ -2186,15 +2095,15 @@ function resetCurrentItem() {
 	ensureAudio();
 	STATE.secondsLeft=curItem().dur * 60;
 	sndConfirm();
-	setLastAction('重設本項時間');
-	showToast('已重設時間');
+	setLastAction(controltext("timeresetaction"));
+	showToast(controltext("timeresettoast"));
 	broadcast('time-reset');
 	render();
 }
 
 function endItemNow() {
 	ensureAudio();
-	controlconfirm('立即結束本項？',function(){
+	controlconfirm(controltext("confirmenditem"),function(){
 		if (isHandNow()) {
 			nextItem();
 			return;
@@ -2243,12 +2152,12 @@ function nextItem() {
 		STATE.currentIndex=STATE.currentIndex+1;
 		STATE.secondsLeft=curItem().dur * 60;
 		sndConfirm();
-		setLastAction('下一項');
+		setLastAction(controltext("nextitemaction"));
 		const IT=curItem();
 		if(IT.type == 'break'){
-			showToast('☕ 休息開始');
+			showToast(controltext("breakstarttoast"));
 		}else{
-			showToast('進入 Level ' + levelNumOf(STATE.currentIndex));
+			showToast(controltext("enterleveltoast") + levelNumOf(STATE.currentIndex));
 		}
 		broadcast('next-item');
 		render();
@@ -2261,12 +2170,12 @@ function prevItem() {
 		STATE.currentIndex=STATE.currentIndex-1;
 		STATE.secondsLeft=curItem().dur * 60;
 		sndConfirm();
-		setLastAction('上一項');
+		setLastAction(controltext("previtemaction"));
 		const IT=curItem();
 		if(IT.type == 'break'){
-			showToast('☕ 回到休息');
+			showToast(controltext("backtobreaktoast"));
 		}else{
-			showToast('回到 Level ' + levelNumOf(STATE.currentIndex));
+			showToast(controltext("backtoleveltoast") + levelNumOf(STATE.currentIndex));
 		}
 		broadcast('prev-item');
 		render();
@@ -2276,18 +2185,18 @@ function prevItem() {
 function jumpTo(idx) {
 	ensureAudio();
 	if (idx < 0 || idx >= STATE.schedule.length) return;
-	if (idx == STATE.currentIndex) { showToast('已在此項'); return; }
+	if (idx == STATE.currentIndex) { showToast(controltext("alreadyhere")); return; }
 	const IT=STATE.schedule[idx];
 	let label='Level ' + levelNumOf(idx);
 	if(IT.type == 'break'){
-		label='休息';
+		label=controltext("breaklabel");
 	}
-	controlconfirm('跳轉到 ' + label + '？',function(){
+	controlconfirm(controltext("jumptoprefix") + label + controltext("jumptosuffix"),function(){
 		STATE.currentIndex=idx;
 		STATE.secondsLeft=IT.dur * 60;
 		sndConfirm();
-		setLastAction('跳到 ' + label);
-		showToast('已跳到 ' + label);
+		setLastAction(controltext("jumpactionprefix") + label);
+		showToast(controltext("jumpedprefix") + label);
 		broadcast('jump');
 		render();
 	})
@@ -2302,21 +2211,21 @@ function jumpToLevelNum(num) {
 			if (count == num) { jumpTo(i); return; }
 		}
 	}
-	showToast('找不到該關卡', 'err');
+	showToast(controltext("levelnotfound"), 'err');
 }
 
 function toggleBreak() {
 	ensureAudio();
 	const IT=curItem();
 	if (IT.type == 'break') {
-		controlconfirm('結束本次休息？',function(){
+		controlconfirm(controltext("confirmendbreak"),function(){
 			if (STATE.currentIndex < STATE.schedule.length - 1) {
 				STATE.currentIndex=STATE.currentIndex+1;
 				STATE.secondsLeft=curItem().dur * 60;
 			}
 			sndConfirm();
-			setLastAction('結束休息');
-			showToast('休息結束');
+			setLastAction(controltext("endbreakaction"));
+			showToast(controltext("endbreaktoast"));
 			broadcast('break-toggle');
 			render();
 		})
@@ -2329,25 +2238,19 @@ function toggleBreak() {
 		STATE.secondsLeft=DUR * 60;
 		STATE.running=true;
 		sndBreak();
-		setLastAction('插入休息');
-		showToast('☕ 休息 ' + DUR + ' 分鐘', 'warn');
+		setLastAction(controltext("insertbreakaction"));
+		showToast(controltext("breakminuteprefix")+DUR+controltext("breakminutesuffix"), 'warn');
 	}
 	broadcast('break-toggle');
 	render();
 }
 
+// 原本這裡是先讓 base 產生中文 HTML，再對整段 HTML 做 replaceAll 反查。
+// 那個做法很脆弱：選手名字只要含有「仍在場」「已淘汰」這些字就會被一起換掉，
+// 而且 value="淘汰" 那兩條是直接在 HTML 字串上動屬性。改成 base 產生時就用
+// controltext()，這層包裝已無存在必要。
 function buildlinkedplayerlist(){
 	buildlinkedplayerlistbase()
-	let box=domgetid("linkedPlayerList")
-	if(box){
-		innerhtml(box, getinnerhtml(box)
-			.replaceAll("未命名選手",controltext("unnamedplayer"))
-			.replaceAll("沒有符合的選手",controltext("noplayers"))
-			.replaceAll("仍在場",controltext("stillin"))
-			.replaceAll("已淘汰",controltext("eliminated"))
-			.replaceAll('value="淘汰"','value="'+controltext("bust").replace("— ","")+'"')
-			.replaceAll('value="復原"','value="'+controltext("restore")+'"'), false)
-	}
 }
 
 function linkedplayerconfirmmessage(item,action){
@@ -2376,15 +2279,24 @@ function applycontrolruntimecopy(){
 	if(domgetid("tournName")&&!STATE.tournName){
 		innertext(domgetid("tournName"), controltext("heading"), false)
 	}
-	if(domgetid("timerStatus")){
-		innertext(domgetid("timerStatus"), controlmessage(domgetid("timerStatus").textContent), false)
-	}
-	if(domgetid("btnMainToggle")){
-		value(domgetid("btnMainToggle"), controlmessage(getvalue(domgetid("btnMainToggle"))))
-	}
-	if(domgetid("btnBreakToggle")){
-		value(domgetid("btnBreakToggle"), controlmessage(getvalue(domgetid("btnBreakToggle"))))
-	}
+	// 計時器狀態與兩顆主按鈕的文字都由 render() 依當下狀態決定，現在那些設定點已直接
+	// 走 controltext()，所以重新算繪一次就會是新語系。
+	//
+	// 原本這裡是讀回 DOM 上的文字再丟進 controlmessage() 反查 —— 那個做法只在
+	// 「中文 → 英文」的第一次有效：切成英文後 DOM 上是英文，再切回中文時
+	// controlmessage() 用中文當 key 比對不到，文字就永遠卡在英文。
+	//
+	// **2026-07-30 修正無限遞迴**：這裡原本寫 `if(typeof render=="function"){ render() }`，
+	// 但 render() 的本體就是 renderbase() + applycontrolruntimecopy()，等於
+	// render → applycontrolruntimecopy → render 無條件互相呼叫。`typeof render=="function"`
+	// 永遠成立，所以不是防呆而是遞迴的起點。control.js 結尾（第 2979 行）有一個頂層的
+	// `render();`，頁面一載入就會 RangeError: Maximum call stack size exceeded，
+	// 後面的品牌設定載入也一起不會執行。node --check 不會抓到這種錯，
+	// 是 tools/audit/scanruntimeload.js 用沙箱實際執行才發現的。
+	//
+	// 不需要在這裡重新算繪：applycontrolruntimecopy() 只有 render() 會呼叫
+	// （全專案 grep 過，沒有其他呼叫點），而 render() 在進來之前已經跑完 renderbase()，
+	// 上面那段註解想要的「重新算繪一次」已經發生了。
 	if(domgetid("playerModeHint")){
 		if(islinkedplayer()){
 			innertext(domgetid("playerModeHint"), controltext("playerlinkedhint"), false)
@@ -2452,7 +2364,7 @@ for(let i=0;i<breaktimebuttons.length;i=i+1){
 		if (isBreakNow()){
 			adjustTime(d);
 		}else{
-			showToast('目前不在休息中 — 微調無效', 'warn');
+			showToast(controltext("breakadjustinvalid"), 'warn');
 		}
 	});
 }
@@ -2460,7 +2372,7 @@ for(let i=0;i<breaktimebuttons.length;i=i+1){
 domgetid('btnSetTime').addEventListener('click', function(){
 	let v=parseTimeInput(getvalue(domgetid('timeSetInput')));
 	if (v == null || isNaN(v)) {
-		showToast('請輸入 MM:SS 或秒數', 'err');
+		showToast(controltext("invalidtime"), 'err');
 		return;
 	}
 	setTimeTo(v);
@@ -2483,7 +2395,7 @@ domgetid('btnNextLv').addEventListener('click', nextItem);
 domgetid('btnJumpLv').addEventListener('click', function(){
 	let v=parseInt(getvalue(domgetid('jumpLvInput')), 10);
 	if (isNaN(v)) {
-		showToast('請輸入關卡編號', 'err');
+		showToast(controltext("invalidlevel"), 'err');
 		return;
 	}
 	jumpToLevelNum(v);
@@ -2506,7 +2418,7 @@ domgetid('btnPMinus').addEventListener('click', function(){
 	if (STATE.players > 0) {
 		STATE.players=STATE.players-1;
 		sndClick();
-		setLastAction('剩 ' + STATE.players);
+		setLastAction(controltext("playersleftprefix") + STATE.players);
 		broadcast('player-change');
 		render();
 	}
@@ -2515,7 +2427,7 @@ domgetid('btnPPlus').addEventListener('click', function(){
 	ensureAudio();
 	STATE.players=STATE.players+1;
 	sndClick();
-	setLastAction('剩 ' + STATE.players);
+	setLastAction(controltext("playersleftprefix") + STATE.players);
 	broadcast('player-change');
 	render();
 });
@@ -2526,14 +2438,14 @@ domgetid('btnBust').addEventListener('click', function(){
 	}
 	ensureAudio();
 	if (STATE.players <= 1) {
-		showToast('已是最後一人', 'warn');
+		showToast(controltext("lastplayer"), 'warn');
 		return;
 	}
 	STATE.players=STATE.players-1;
 	sndConfirm();
-	setLastAction('淘汰 1 人 (剩 ' + STATE.players + ')');
-	showToast('剩 ' + STATE.players + ' 人'); 
-	broadcast('bust', { players: STATE.players }); 
+	setLastAction(controltext("bustactionprefix") + STATE.players + ')');
+	showToast(controltext("playersleftprefix")+STATE.players+controltext("playersleftsuffix"));
+	broadcast('bust', { players: STATE.players });
 	render();
 });
 domgetid('btnAddEntry').addEventListener('click', function(){
@@ -2543,14 +2455,14 @@ domgetid('btnAddEntry').addEventListener('click', function(){
 	}
 	ensureAudio();
 	if (STATE.regClosed) {
-		showToast('報名已關閉，仍要加入？', 'warn');
+		showToast(controltext("confirmjoinafterclose"), 'warn');
 	}
 	STATE.players=STATE.players+1;
 	STATE.totalEntries=STATE.totalEntries+1;
 	sndConfirm();
-	setLastAction('+1 入場');
-	showToast('+1 入場 (總 ' + STATE.totalEntries + ')'); 
-	broadcast('add-entry', { players: STATE.players, totalEntries: STATE.totalEntries }); 
+	setLastAction(controltext("addentryaction"));
+	showToast(controltext("addentrytoastprefix") + STATE.totalEntries + controltext("addentrytoastsuffix"));
+	broadcast('add-entry', { players: STATE.players, totalEntries: STATE.totalEntries });
 	render();
 });
 domgetid('btnEditPlayers').addEventListener('click', function(){
@@ -2568,15 +2480,15 @@ domgetid('btnSavePlayers').addEventListener('click', function(){
 	let e=parseInt(getvalue(domgetid('editEntriesIn')), 10);
 	let c=parseInt(getvalue(domgetid('editChipsIn')), 10);
 	if (isNaN(p) || isNaN(e) || isNaN(c)) {
-		showToast('請輸入有效數字', 'err');
+		showToast(controltext("invalidnumber"), 'err');
 		return;
 	}
 	STATE.players=Math.max(0, p);
 	STATE.totalEntries=Math.max(STATE.players, e);
 	STATE.startingChips=Math.max(100, c);
 	sndConfirm();
-	setLastAction('編輯人數');
-	showToast('已儲存');
+	setLastAction(controltext("editplayersaction"));
+	showToast(controltext("saved"));
 	broadcast('players-edit', { players: STATE.players, totalEntries: STATE.totalEntries, startingChips: STATE.startingChips });
 	render();
 	closecontrolmodal(domgetid('modalPlayers'))
@@ -2605,8 +2517,8 @@ domgetid('btnSaveTitle').addEventListener('click', function(){
 	STATE.tournName=getvalue(domgetid('editTname')) || STATE.tournName;
 	STATE.subtitle=getvalue(domgetid('editTsub')) || '';
 	sndConfirm();
-	showToast('標題已更新');
-	setLastAction('改標題');
+	showToast(controltext("titleupdated"));
+	setLastAction(controltext("edittitleaction"));
 	broadcast('title', { tournName: STATE.tournName, subtitle: STATE.subtitle });
 	render();
 	closecontrolmodal(domgetid('modalTitle'))
@@ -2615,19 +2527,19 @@ onenterclick("#editTname,#editTsub",function(){ click("#btnSaveTitle") })
 
 // Reg badge click toggle
 domgetid('regBadge').addEventListener('click', function(){
-	let confirmtext='立即關閉報名？';
+	let confirmtext=controltext("confirmclosereg");
 	if(STATE.regClosed){
-		confirmtext='重新開放報名？';
+		confirmtext=controltext("confirmopenreg");
 	}
 	controlconfirm(confirmtext,function(){
 		STATE.regClosed=!STATE.regClosed;
 		sndConfirm();
 		if(STATE.regClosed){
-			setLastAction('REG 關閉');
-			showToast('報名已關閉');
+			setLastAction(controltext("regcloseaction"));
+			showToast(controltext("regclosedtoast"));
 		}else{
-			setLastAction('REG 開放');
-			showToast('報名已開放');
+			setLastAction(controltext("regopenaction"));
+			showToast(controltext("regopentoast"));
 		}
 		broadcast('reg-toggle', { regClosed: STATE.regClosed });
 		render();
@@ -2649,7 +2561,7 @@ function buildRegPickList() {
 		let color="#fff";
 		let checked="";
 		if(s.type == 'break'){
-			lab='☕ 休息 #' + (i + 1) + ' (' + s.dur + 'm)';
+			lab=controltext("breakhashprefix") + (i + 1) + ' (' + s.dur + 'm)';
 			color="#fbbf24";
 		}
 		if(s.regCloseAfter){
@@ -2686,11 +2598,122 @@ function buildRegPickList() {
 // });
 
 // Marquee
+/* ── 大螢幕品牌現場微調 (TASK-025) ────────────────────────────────────────
+   品牌設定存在 session 表, 寫入端點是 editsessionsettings, 與場次設定頁(TASK-024)
+   完全同一條路徑; 刻意不走 savetimer/broadcast, 因為那條寫的是 sessiontimerconfig,
+   一個概念留兩條寫入路徑遲早會互相覆蓋。
+   儲存後 display 端會在既有的 gettimer 輪詢週期內取到新值(FR-9)。
+   ──────────────────────────────────────────────────────────────────────── */
+
+// 與 session.js 的 displaycontrastratio 同一套算法: 主色對大螢幕底色 #0d0d0d 的 WCAG 對比。
+// 兩處各有一份是刻意的 — control.js 不載入 session.js, 而共用檔 initialize.js 是全站載入,
+// 為了兩個頁面把一支只有大螢幕會用到的函式塞進去並不划算。
+// TASK-052：實作收攏到 initialize.js 的 ptcontrastratio()，這裡只留頁面自己的名字
+function brandcontrastratio(hex){
+	return ptcontrastratio(hex)
+}
+
+function updatebrandcolorhint(){
+	let hint=domgetid('brandColorHint')
+	if(!hint){
+		return
+	}
+	let color=getvalue(domgetid('brandColorIn'))||""
+	if(color==""){
+		hint.textContent=controltext("brandcolordefault")
+		hint.className="mt-1 text-[11px] leading-normal text-neutral-500"
+	}else{
+		let ratio=brandcontrastratio(color)
+		if(ratio<3){
+			hint.textContent=controltext("brandcolorlow")+" ("+ratio.toFixed(1)+":1)"
+			hint.className="mt-1 text-[11px] font-extrabold leading-normal text-red-400"
+		}else if(ratio<4.5){
+			hint.textContent=controltext("brandcolormid")+" ("+ratio.toFixed(1)+":1)"
+			hint.className="mt-1 text-[11px] font-extrabold leading-normal text-amber-400"
+		}else{
+			hint.textContent=controltext("brandcolorok")+" ("+ratio.toFixed(1)+":1)"
+			hint.className="mt-1 text-[11px] leading-normal text-green-400"
+		}
+	}
+}
+
+// 從 session 讀回目前值。兩套 UI 對同一份資料, 進來就重讀一次才不會顯示舊值。
+function loadbrandsetting(){
+	fetch(AJAXURL+"getsession/"+SESSIONID,{
+		headers: {"Authorization": "Bearer "+weblsget(WEBLSNAME+"token")}
+	}).then(function(response){
+		return response.json()
+	}).then(function(data){
+		if(!data||data["success"]!=true||!data["data"]){
+			return
+		}
+		let row=data["data"]
+		value(domgetid('brandNameIn'),row["brandname"]||"")
+		value(domgetid('brandLogoIn'),row["brandlogo"]||"")
+		value(domgetid('brandColorIn'),row["brandcolor"]||"")
+		value(domgetid('brandColorPick'),row["brandcolor"]||"#4ade80")
+		updatebrandcolorhint()
+	}).catch(function(error){
+		// 讀不到就維持畫面上的值, 不打斷現場其他操作
+	})
+}
+
+function savebrandsetting(){
+	let payload={
+		"brandname": getvalue(domgetid('brandNameIn'))||"",
+		"brandlogo": getvalue(domgetid('brandLogoIn'))||"",
+		"brandcolor": getvalue(domgetid('brandColorIn'))||""
+	}
+	fetch(AJAXURL+"editsessionsettings/"+SESSIONID,{
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			"Authorization": "Bearer "+weblsget(WEBLSNAME+"token")
+		},
+		body: JSON.stringify(payload)
+	}).then(function(response){
+		return response.json()
+	}).then(function(data){
+		if(data&&data["success"]==true){
+			sndConfirm()
+			showToast(controltext("brandsaved"))
+			setLastAction(controltext("brandaction"))
+			// 後端會把不合法的值正規化成空字串, 重讀才看得到真正存進去的內容
+			loadbrandsetting()
+		}else{
+			showToast(controltext("brandsavefailed"))
+		}
+	}).catch(function(error){
+		showToast(controltext("brandsavefailed"))
+	})
+}
+
+domgetid('brandColorIn').addEventListener('input', function(){
+	let color=getvalue(domgetid('brandColorIn'))
+	if(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)){
+		value(domgetid('brandColorPick'),color)
+	}
+	updatebrandcolorhint()
+})
+domgetid('brandColorPick').addEventListener('change', function(){
+	value(domgetid('brandColorIn'),domgetid('brandColorPick').value)
+	updatebrandcolorhint()
+})
+domgetid('btnBrandColorClear').addEventListener('click', function(){
+	value(domgetid('brandColorIn'),"")
+	updatebrandcolorhint()
+})
+domgetid('btnBrandReload').addEventListener('click', function(){
+	loadbrandsetting()
+	showToast(controltext("brandreloaded"))
+})
+domgetid('btnBrandSave').addEventListener('click', savebrandsetting)
+
 domgetid('btnMarqueeSave').addEventListener('click', function(){
 	STATE.marqueeText=getvalue(domgetid('marqueeIn'));
 	sndConfirm();
-	showToast('跑馬燈已更新');
-	setLastAction('改跑馬燈');
+	showToast(controltext("marqueeupdated"));
+	setLastAction(controltext("editmarqueeaction"));
 	broadcast('marquee');
 	render();
 });
@@ -2718,12 +2741,12 @@ for(let i=0;i<prizemodes.length;i=i+1){
 domgetid('btnSavePrize').addEventListener('click', function(){
 	let v=parseInt(getvalue(domgetid('prizeManualIn')), 10);
 	if (isNaN(v) || v < 0) {
-		showToast('請輸入有效金額', 'err');
+		showToast(controltext("invalidamount"), 'err');
 		return;
 	}
 	STATE.prizePoolManual=v;
 	sndConfirm();
-	showToast('獎池已更新');
+	showToast(controltext("prizeupdated"));
 	broadcast('prize-amount');
 	render();
 });
@@ -2736,9 +2759,9 @@ for(let i=0;i<itmmodes.length;i=i+1){
 		STATE.itmMode=this.dataset.itmMode;
 		sndClick();
 		if(STATE.itmMode == 'pct'){
-			setLastAction('ITM 模式：百分比');
+			setLastAction(controltext("itmmodepctaction"));
 		}else{
-			setLastAction('ITM 模式：人數');
+			setLastAction(controltext("itmmodecountaction"));
 		}
 		broadcast('itm-mode');
 		render();
@@ -2748,7 +2771,7 @@ for(let i=0;i<itmmodes.length;i=i+1){
 domgetid('itmPctIn').addEventListener('change', function(){
 	let v=parseFloat(getvalue(domgetid('itmPctIn')));
 	if (isNaN(v) || v <= 0 || v > 100) {
-		showToast('請輸入 0-100 的百分比', 'err');
+		showToast(controltext("invalidpct"), 'err');
 		return;
 	}
 	STATE.itmPct=v;
@@ -2767,7 +2790,7 @@ domgetid('itmPctIn').addEventListener('input', function(){
 domgetid('itmCountIn').addEventListener('change', function(){
 	let v=parseInt(getvalue(domgetid('itmCountIn')), 10);
 	if (isNaN(v) || v <= 0) {
-		showToast('請輸入大於 0 的人數', 'err');
+		showToast(controltext("invalidcount"), 'err');
 		return;
 	}
 	STATE.itmCount=Math.min(v, STATE.totalEntries);
@@ -2785,11 +2808,11 @@ domgetid('itmCountIn').addEventListener('input', function(){
 domgetid('btnAutoITM').addEventListener('click', function(){
 	ensureAudio();
 	let n=itmCount();
-	controlconfirm(`將自動產生 ${n} 個名次的獎金分配，會覆寫目前的獎金設定，繼續？`,function(){
+	controlconfirm(controltext("autopayoutprefix")+n+controltext("autopayoutsuffix"),function(){
 		STATE.payouts=generateSmartPayouts(n);
 		sndConfirm();
-		showToast('已智能分配 ' + n + ' 人獎金', 'warn');
-		setLastAction('智能分配 ' + n + ' 人');
+		showToast(controltext("autoitmtoastprefix")+n+controltext("autoitmtoastsuffix"), 'warn');
+		setLastAction(controltext("autoitmactionprefix")+n+controltext("autoitmactionsuffix"));
 		broadcast('auto-itm');
 		render();
 	})
@@ -2802,11 +2825,11 @@ domgetid('btnBubble').addEventListener('click', function(){
 	STATE.running=false;
 	sndAlert();
 	if(STATE.bubbleMode){
-		setLastAction('泡泡圈');
-		showToast('🫧 泡泡圈 — 已暫停', 'warn');
+		setLastAction(controltext("bubbleaction"));
+		showToast(controltext("bubbletoast"), 'warn');
 	}else{
-		setLastAction('結束泡泡');
-		showToast('泡泡結束', 'warn');
+		setLastAction(controltext("bubbleendaction"));
+		showToast(controltext("bubbleendtoast"), 'warn');
 	}
 	broadcast('bubble');
 	render();
@@ -2817,27 +2840,27 @@ domgetid('btnHandForHand').addEventListener('click', function(){
 	STATE.running=false;
 	sndAlert();
 	if(STATE.handForHand){
-		setLastAction('同步發牌');
-		showToast('🃏 Hand-for-Hand 開啟', 'warn');
+		setLastAction(controltext("h4haction"));
+		showToast(controltext("h4htoast"), 'warn');
 	}else{
-		setLastAction('結束同步');
-		showToast('H4H 結束', 'warn');
+		setLastAction(controltext("h4hendaction"));
+		showToast(controltext("h4hendtoast"), 'warn');
 	}
 	broadcast('h4h');
 	render();
 });
 // domgetid('btnFinalTable').addEventListener('click', function(){
 // 	ensureAudio();
-// 	showToast('⭐ Final Table — 提示選手');
+// 	showToast(controltext("finaltabletoast"));
 // 	sndAlert();
 // 	setLastAction('Final Table');
 // 	broadcast('final-table');
 // });
 // domgetid('btnColorUp').addEventListener('click', function(){
 // 	ensureAudio();
-// 	showToast('🪙 計分牌汰換中', 'warn');
+// 	showToast(controltext("coloruptoast"), 'warn');
 // 	sndBreak();
-// 	setLastAction('計分牌汰換');
+// 	setLastAction(controltext("colorupaction"));
 // 	broadcast('color-up');
 // });
 
@@ -2878,14 +2901,14 @@ domgetid('btnSaveSettings').addEventListener('click', function(){
 	STATE.defaultTimebankSeconds=Math.max(1, parseInt(getvalue(domgetid('setDefaultTimebank')), 10) || 15);
 	STATE.timebankSoundOn=getvalue("setTimebankSound") == "1";
 	sndConfirm();
-	showToast('設定已儲存');
+	showToast(controltext("settingssaved"));
 	broadcast('settings');
 	render();
 	closecontrolmodal(domgetid('modalSettings'))
 });
 onenterclick("#setDefaultTimebank",function(){ click("#btnSaveSettings") })
 domgetid('btnReset').addEventListener('click', function(){
-	controlconfirm('完全重置所有狀態？此操作無法復原',function(){
+	controlconfirm(controltext("confirmresetall"),function(){
 		weblsset(STORAGEKEY,null)
 		weblsset(OLDKEY,null)
 		let sessionbuyin=STATE.buyin;
@@ -2923,7 +2946,7 @@ domgetid('btnReset').addEventListener('click', function(){
 			otherReward: []
 		});
 		sndConfirm();
-		showToast('已重置計時器');
+		showToast(controltext("timerreset"));
 		broadcast('reset');
 		render();
 	})
@@ -2963,4 +2986,6 @@ document.addEventListener('click', function(){
 
 // Init
 render();
+// 品牌設定不在 STATE 裡(它存在 session 表), render() 帶不到, 要另外讀一次
+loadbrandsetting();
 setInterval(tick, 200);

@@ -146,14 +146,14 @@
 				<div class="grid lg:grid-cols-2 gap-6">
 					<div class="indexshotcard">
 						<div class="indexshotph">
-							<img src="../material/image/register.png" alt="報名與排座" class="indexshotimg">
+							<img data-i18n-alt="indexpage.shot1title" src="../material/image/register.png" alt="報名與排座" class="indexshotimg">
 						</div>
 						<h3 id="shot1title" class="font-bold mt-4">報名與排座</h3>
 						<p id="shot1desc" class="text-sm text-zinc-400 mt-2 leading-6">支援選手搜尋、全選操作、隨機入座、平均分桌與每桌座位數設定。</p>
 					</div>
 					<div class="indexshotcard">
 						<div class="indexshotph">
-							<img src="../material/image/control_display.png" alt="計時器與顯示端" class="indexshotimg">
+							<img data-i18n-alt="indexpage.shot2title" src="../material/image/control_display.png" alt="計時器與顯示端" class="indexshotimg">
 						</div>
 						<h3 id="shot2title" class="font-bold mt-4">計時器與顯示端</h3>
 						<p id="shot2desc" class="text-sm text-zinc-400 mt-2 leading-6">控制盲注結構、休息時間、報名截止、獎金分配與連動選手淘汰狀態。</p>
@@ -163,8 +163,33 @@
 
 			<section class="w-full max-w-6xl mx-auto px-4 pb-12">
 				<h2 id="toolstitle" class="text-2xl font-black">免費小工具</h2>
-				<p id="toolssubtitle" class="text-zinc-400 mt-2 leading-7 max-w-2xl">不用登入就能用的撲克現場與練習工具：勝率解算、計時器、底池賠率、ICM、計分牌量換算。</p>
-				<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6" id="indextools"></div>
+				<p id="toolssubtitle" class="text-zinc-400 mt-2 leading-7">不用登入就能用的撲克現場與練習工具：勝率解算、計時器、底池賠率、ICM、計分牌量換算。</p>
+				<!-- 這幾張卡是寫給爬蟲的初始內容：index.js 的 rendertools() 會用相同的 href 覆蓋掉，
+				     使用者看到的畫面不變，但爬蟲在 JS 執行前就能拿到真實連結。
+				     內容需對應 index.js TOOLLIST 中「正式站可見」的項目（白名單見 tooldata.js）。 -->
+				<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6" id="indextools">
+					<a href="tool/equity.html" class="block rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition hover:border-emerald-500">
+						<div data-i18n="indexpage.toolequitytitle" class="text-lg font-bold text-white">勝率解算器</div>
+						<div data-i18n="indexpage.toolequitydesc" class="mt-1 text-sm text-zinc-400 leading-6">德州 / 奧馬哈 / 奧馬哈高低 / Big O / 短牌 手牌勝率與 outs</div>
+					</a>
+					<a href="tool/range.html" class="block rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition hover:border-emerald-500">
+						<div data-i18n="indexpage.toolgtotitle" class="text-lg font-bold text-white">GTO 範圍</div>
+						<div data-i18n="indexpage.toolgtodesc" class="mt-1 text-sm text-zinc-400 leading-6">範圍參考策略</div>
+					</a>
+					<a href="tool/tdarules.html" class="block rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition hover:border-emerald-500">
+						<div data-i18n="indexpage.tooltdaruletitle" class="text-lg font-bold text-white">TDA規則手冊</div>
+						<div data-i18n="indexpage.tooltdaruledesc" class="mt-1 text-sm text-zinc-400 leading-6">2024 TDA 撲克賽事規則 PDF 預覽</div>
+					</a>
+					<a href="tool/apidoc.html" class="block rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition hover:border-emerald-500">
+						<div data-i18n="indexpage.toolapidoctitle" class="text-lg font-bold text-white">公開 API 文件</div>
+						<div data-i18n="indexpage.toolapidocdesc" class="mt-1 text-sm text-zinc-400 leading-6">小工具的公開 API 說明</div>
+					</a>
+				</div>
+				<!-- toollist 先前沒有任何靜態連結指向它（導覽列與 footer 都是 JS 注入），
+				     對爬蟲等於孤兒頁。這條連結刻意放在 #indextools 之外，才不會被 rendertools() 覆蓋掉。 -->
+				<p class="mt-6">
+					<a href="toollist.html" id="indextoollistlink" class="inline-flex items-center gap-2 font-bold text-emerald-300 transition hover:text-emerald-200">查看全部免費工具 →</a>
+				</p>
 			</section>
 
 			<section class="w-full max-w-6xl mx-auto px-4 pb-12">

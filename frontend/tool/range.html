@@ -19,6 +19,7 @@
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
 		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="carddisplay.css">
 		<link rel="stylesheet" href="tool.css">
 	</head>
 	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
@@ -40,8 +41,8 @@
 			</details>
 
 			<div class="mb-6 flex flex-wrap gap-2" id="gtostreetrow">
-				<input type="button" class="gtoopt" data-gtostreet="preflop" value="翻前">
-				<input type="button" class="gtoopt" data-gtostreet="flop" value="翻後">
+				<input type="button" class="gtoopt" data-i18n-value="gtopage.street_preflop" data-gtostreet="preflop" value="翻前">
+				<input type="button" class="gtoopt" data-i18n-value="gtopage.street_flop" data-gtostreet="flop" value="翻後">
 				<span class="self-center text-xs text-zinc-500" id="gtostreetnote">轉牌／河牌：在「翻後」載入後於攤牌處往下抽</span>
 			</div>
 
@@ -88,7 +89,7 @@
 									<input type="button" class="gtotreectl" id="gtotreereset" value="重設">
 								</div>
 							</div>
-							<div class="mt-1 text-xs text-zinc-500" id="gtotreehint">沿翻前順序選每位玩家的動作；一旦有人全下，後面就改成跟注/棄牌。矩陣顯示「目前行動者」的範圍。</div>
+							<div class="mt-1 text-xs text-zinc-500" id="gtotreehint">沿翻前順序選每位選手的動作；一旦有人全下，後面就改成跟注/棄牌。矩陣顯示「目前行動者」的範圍。</div>
 							<label class="mt-3 flex items-center gap-2 text-sm font-bold text-zinc-300 cursor-pointer" id="gtoperseattoggle">
 								<input type="checkbox" id="gtoperseat"> <span id="gtoperseatlabel">每座位不同計分牌（MTT，chip-EV 參考）</span>
 							</label>
@@ -134,7 +135,7 @@
 				<p class="mb-4 text-sm text-zinc-400" id="fssubtitle">-</p>
 
 				<section class="mb-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
-					<div class="mb-3 text-sm font-extrabold text-zinc-200" id="fslibtitle">本地批次結果（gtoworker.py 算好的）</div>
+					<div class="mb-3 text-sm font-extrabold text-zinc-200" id="fslibtitle">預先算好的策略庫</div>
 					<div class="gtocontrolrow">
 						<div class="gtocontrollabel" id="fslibgametypelabel">遊戲類型</div>
 						<div class="gtooptrow" id="fslibgametype"></div>
@@ -186,7 +187,7 @@
 					</div>
 
 					<div class="mt-4" id="fsthirdwrap">
-						<div class="mb-2 text-sm font-bold text-zinc-300"><span id="fsthirdlabel">背景玩家範圍（多人池，選填）</span></div>
+						<div class="mb-2 text-sm font-bold text-zinc-300"><span id="fsthirdlabel">背景選手範圍（多人池，選填）</span></div>
 						<div id="fsbglist">
 							<textarea id="fsthirdrange" rows="2" class="fsbgrange w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-mono"></textarea>
 						</div>

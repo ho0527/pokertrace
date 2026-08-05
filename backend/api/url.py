@@ -42,6 +42,7 @@ urlpatterns=[
     re_path(r"^edituserchipcolors$",user.edituserchipcolors,name="edituserchipcolors"),
     re_path(r"^editusercarddeck$",user.editusercarddeck,name="editusercarddeck"),
     re_path(r"^edituserpotmainside$",user.edituserpotmainside,name="edituserpotmainside"),
+    re_path(r"^edituserdisplaydefault$",user.edituserdisplaydefault,name="edituserdisplaydefault"),
     re_path(r"^edituserchipset$",user.edituserchipset,name="edituserchipset"),
     re_path(r"^gettoolfavorite$",user.gettoolfavorite,name="gettoolfavorite"),
     re_path(r"^edittoolfavorite$",user.edittoolfavorite,name="edittoolfavorite"),

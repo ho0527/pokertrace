@@ -26,16 +26,16 @@ function checkintext(key,fallbacktext){
 
 function checkinstatustext(status){
 	if(status=="registered"){
-		return "已報名"
+		return checkintext("statusregistered","已報名")
 	}
 	if(status=="confirmed"){
-		return "已確認"
+		return checkintext("statusconfirmed","已確認")
 	}
 	if(status=="advanced"){
-		return "已晉級"
+		return checkintext("statusadvanced","已晉級")
 	}
 	if(status=="cancelled"){
-		return "已取消"
+		return checkintext("statuscancelled","已取消")
 	}
 	return status||"-"
 }
@@ -83,17 +83,11 @@ function checkininforow(label,value){
 }
 
 function rendercheckin(d){
-	let seat="未排座"
-	if(d["tablename"]&&d["seatno"]){
-		seat=d["tablename"]+" / Seat "+d["seatno"]
-	}else if(d["seatno"]){
-		seat="Seat "+d["seatno"]
-	}
-	let payment="現金"
+	let payment=checkintext("paymentcash","現金")
 	if(d["paymenttype"]=="ticket"){
-		payment="票券"
+		payment=checkintext("paymentticket","票券")
 	}
-	let entryno="未確認"
+	let entryno=checkintext("entrypending","未確認")
 	if((d["status"]=="confirmed"||d["status"]=="advanced")&&d["serialno"]!=null&&d["serialno"]!=""){
 		entryno=d["serialno"]
 	}
@@ -105,12 +99,12 @@ function rendercheckin(d){
 	let titleline=d["seriestitle"]||d["clubname"]||""
 	let sessionlink=""
 	if(sessionid){
-		sessionlink=`<a href="session.html?id=${encodeURIComponent(sessionid)}" class="rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white">場次詳情</a>`
+		sessionlink=`<a href="session.html?id=${encodeURIComponent(sessionid)}" class="rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white">${escapehtml(checkintext("sessiondetail","場次詳情"))}</a>`
 	}
 	// 員工檢視且有獎金可發時，才顯示列印獎金收據。
 	let prizelink=""
 	if(d["canissue"]&&float(d["finalprize"])>0){
-		prizelink=`<input type="button" id="printprizebtn" class="cursor-pointer rounded-2xl bg-amber-600 hover:bg-amber-700 px-5 py-2 text-sm font-bold text-white" value="列印獎金收據">`
+		prizelink=`<input type="button" id="printprizebtn" class="cursor-pointer rounded-2xl bg-amber-600 hover:bg-amber-700 px-5 py-2 text-sm font-bold text-white" value="${escapehtml(checkintext("printprize","列印獎金收據"))}">`
 	}
 	// 掃到的是前一日的收據、該選手已晉級時，後端會自動沿鏈回傳最新一場的資料，
 	// 這裡明確告知現場人員「這張舊收據仍有效，看到的是最新場次」，免得以為掃錯或重印。
@@ -132,19 +126,19 @@ function rendercheckin(d){
 			</div>
 			<div class="mt-4 flex items-end justify-between gap-3">
 				<div class="min-w-0">
-					<div class="text-xs text-zinc-500">選手</div>
+					<div class="text-xs text-zinc-500">${escapehtml(checkintext("player","選手"))}</div>
 					<div class="text-3xl font-extrabold text-white break-words">${escapehtml(d["playername"]||"-")}</div>
 					<div class="text-sm text-zinc-500">${escapehtml(d["playerplayerid"]||"")}</div>
 				</div>
 				<div class="text-right">
-					<div class="text-xs text-zinc-500">入場編號</div>
+					<div class="text-xs text-zinc-500">${escapehtml(checkintext("entryno","入場編號"))}</div>
 					<div class="${entryclass} font-extrabold text-emerald-400">${escapehtml(entryno)}</div>
 				</div>
 			</div>
 			<div class="mt-5 grid grid-cols-2 gap-3">
-				${checkininforow("牌桌",d["tablename"]||"未排座")}
-				${checkininforow("座位",d["seatno"]||"-")}
-				${checkininforow("買入",(d["buyin"]||0)+" ("+payment+")")}
+				${checkininforow(checkintext("table","牌桌"),d["tablename"]||checkintext("noseat","未排座"))}
+				${checkininforow(checkintext("seat","座位"),d["seatno"]||"-")}
+				${checkininforow(checkintext("buyin","買入"),(d["buyin"]||0)+" ("+payment+")")}
 				${checkininforow("Reentry",d["reentrycount"]||0)}
 			</div>
 			<div class="mt-6 flex flex-wrap gap-2">

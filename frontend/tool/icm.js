@@ -199,3 +199,23 @@ applyicmlanguage()
 rendericmstacks()
 rendericmpayouts()
 rendericmresults()
+
+// TASK-019：碼量列與獎金列都是動態產生的、沒有 id，見 initialize.js 的 pttoolstatecustom 說明。
+function pttoolstatecustom(){
+	return { "icmstacks": icmstacks,"icmpayouts": icmpayouts }
+}
+
+function pttoolstatecustomapply(data){
+	if(!data){
+		return
+	}
+	if(Array.isArray(data["icmstacks"])){
+		icmstacks=data["icmstacks"]
+	}
+	if(Array.isArray(data["icmpayouts"])){
+		icmpayouts=data["icmpayouts"]
+	}
+	rendericmstacks()
+	rendericmpayouts()
+	rendericmresults()
+}

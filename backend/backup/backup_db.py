@@ -33,7 +33,7 @@ def env(name, default):
 
 DB_HOST = env("PT_DB_HOST", "localhost")
 DB_PORT = env("PT_DB_PORT", "5432")
-DB_NAME = env("PT_DB_NAME", "pokertrace")
+DB_NAME = env("PT_DB_NAME", "pokertrace_test")
 DB_USER = env("PT_DB_USER", "chris0527")
 DB_PASSWORD = env("PT_DB_PASSWORD", "")
 

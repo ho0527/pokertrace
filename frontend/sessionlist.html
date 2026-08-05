@@ -35,20 +35,20 @@
 				<div class="hidden md:block" id="filterbody">
 					<div class="my-3 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
 						<div class="flex items-center gap-2 md:w-[340px]">
-							<input type="date" class="min-h-12 w-full min-w-0 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="startdate" placeholder="開始日期" aria-label="開始日期">
+							<input type="date" class="min-h-12 w-full min-w-0 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="sessionlist.startdate" id="startdate" placeholder="開始日期" aria-label="開始日期">
 							<span class="text-zinc-500">~</span>
-							<input type="date" class="min-h-12 w-full min-w-0 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="enddate" placeholder="結束日期" aria-label="結束日期">
+							<input type="date" class="min-h-12 w-full min-w-0 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="sessionlist.enddate" id="enddate" placeholder="結束日期" aria-label="結束日期">
 						</div>
-						<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-center text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="club" aria-label="場地" required>
-							<option value="">-- 請選擇 --</option>
+						<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-center text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="sessionlist.clubfilter" id="club" aria-label="場地" required>
+							<option data-i18n="sessionlist.selectclub" value="">-- 請選擇 --</option>
 						</select>
-						<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="gametype" aria-label="遊戲類型">
-							<option value="all">全部遊戲類型</option>
-							<option value="cash">現金局</option>
-							<option value="tournament">錦標賽</option>
-							<option value="limited">限時錦標賽</option>
+						<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="sessionlist.gametypefilter" id="gametype" aria-label="遊戲類型">
+							<option data-i18n="sessionlist.allgametype" value="all">全部遊戲類型</option>
+							<option data-i18n="gametype.cash" value="cash">現金局</option>
+							<option data-i18n="gametype.tournament" value="tournament">錦標賽</option>
+							<option data-i18n="gametype.limited" value="limited">限時錦標賽</option>
 						</select>
-						<input type="text" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="name" placeholder="名稱" aria-label="場次名稱">
+						<input type="text" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="sessionlist.sessionnamefilter" id="name" placeholder="名稱" aria-label="場次名稱">
 					</div>
 					<div class="mb-1 mt-4 text-[13px] font-bold uppercase tracking-[0.14em] text-zinc-500" id="quickfiltertitle">快速篩選</div>
 					<div class="grid grid-cols-1 gap-2 md:flex md:items-center md:justify-between">
@@ -58,9 +58,9 @@
 							<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-4 py-2 text-sm font-bold text-white transition quickfilterbutton" id="filter-joined" value="有參與">
 						</div>
 						<div class="grid grid-cols-2 gap-2 md:flex md:justify-end">
-							<input type="button" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-5 py-2 text-sm font-bold text-white transition" id="search" value="搜尋">
+							<input type="button" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-5 py-2 text-sm font-bold text-white transition" data-entersubmit id="search" value="搜尋">
 							<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-5 py-2 text-sm font-bold text-white transition" id="clearsearch" value="清空">
-							<input type="button" class="cursor-pointer rounded-2xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" id="printsessionlist" value="列印列表">
+							<input type="button" class="cursor-pointer rounded-2xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" data-i18n-value="sessionlist.printlist" id="printsessionlist" value="列印列表">
 							<input type="button" class="cursor-pointer rounded-2xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" id="exportsessioncsv" value="匯出 CSV">
 						</div>
 					</div>
@@ -73,18 +73,18 @@
 
 			<!-- 場次統計預覽 -->
 			<section class="mb-8 mt-8 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
-				<div class="mb-4 text-center text-lg font-extrabold text-white">場次統計預覽</div>
+				<div class="mb-4 text-center text-lg font-extrabold text-white" data-i18n="sessionlist.stats">場次統計預覽</div>
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center">
-						<div class="text-sm text-zinc-400">總場次</div>
+						<div class="text-sm text-zinc-400" data-i18n="sessionlist.gamecount">總場次</div>
 						<div class="mt-1 text-2xl font-extrabold" id="gamecount">0</div>
 					</div>
 					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center">
-						<div class="text-sm text-zinc-400">總盈虧</div>
+						<div class="text-sm text-zinc-400" data-i18n="sessionlist.totalprofit">總盈虧</div>
 						<div class="mt-1 text-2xl font-extrabold text-green-400" id="profit">+0</div>
 					</div>
 					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-center">
-						<div class="text-sm text-zinc-400">平均時長</div>
+						<div class="text-sm text-zinc-400" data-i18n="sessionlist.avgduration">平均時長</div>
 						<div class="mt-1 text-2xl font-extrabold" id="avgplaylength">0 小時</div>
 					</div>
 				</div>

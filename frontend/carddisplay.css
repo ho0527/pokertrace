@@ -43,7 +43,10 @@
 	height: 46px;
 	justify-content: center;
 	line-height: 1;
-	width: 38px;
+	/* position 是給 hi-lo 的半綠半黃光暈用的：那個效果要靠兩個絕對定位的偽元素
+	   各自帶光暈再用 clip-path 切上下半，沒有定位參考框就會跑到頁面左上角。 */
+	position: relative;
+	width: 40px;
 }
 
 .pt-card.red {
@@ -56,10 +59,49 @@
 	color: #71717a;
 }
 
+/* 最佳五張: 只用外圈光暈, 不改 border-color。
+   四色牌的梅花是綠色, 若這裡也把邊框改綠會跟梅花撞色, 分不出「這張是梅花」還是
+   「這張入選最佳五張」。改用 ring + 外光暈, 並把光暈加強以補足拿掉邊框色後的辨識度。 */
 .pt-card.pt-card-best {
-	border-color: #34d399;
-	box-shadow: 0 0 0 2px rgba(52, 211, 153, .55), 0 0 16px rgba(16, 185, 129, .45);
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, .75), 0 0 18px rgba(16, 185, 129, .55);
 	transform: translateY(-1px);
+}
+
+/* hi-lo（O8）的低牌：黃光。與最佳五張的綠光同一組尺寸，只換顏色，
+   這樣同一張牌同時入選高低兩邊時，兩半看起來才是對稱的。 */
+.pt-card.pt-card-low {
+	box-shadow: 0 0 0 2px rgba(250, 204, 21, .8), 0 0 18px rgba(234, 179, 8, .55);
+	transform: translateY(-1px);
+}
+
+/* 同一張牌同時被高牌與低牌用到：上半發綠光、下半發黃光。
+   box-shadow 沒辦法只套用在半張牌上，所以本體的陰影拿掉，改用兩個
+   絕對定位的偽元素各自帶完整光暈，再用 clip-path 各切一半。
+   inset() 的上下用負值讓左右兩側的光暈不被裁掉，只在中線切開。 */
+.pt-card.pt-card-best.pt-card-low {
+	box-shadow: none;
+}
+
+.pt-card.pt-card-best.pt-card-low::before,
+.pt-card.pt-card-best.pt-card-low::after {
+	border-radius: inherit;
+	bottom: 0;
+	content: "";
+	left: 0;
+	pointer-events: none;
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+
+.pt-card.pt-card-best.pt-card-low::before {
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, .75), 0 0 18px rgba(16, 185, 129, .55);
+	clip-path: inset(-100% -100% 50% -100%);
+}
+
+.pt-card.pt-card-best.pt-card-low::after {
+	box-shadow: 0 0 0 2px rgba(250, 204, 21, .8), 0 0 18px rgba(234, 179, 8, .55);
+	clip-path: inset(50% -100% -100% -100%);
 }
 
 .pt-card-rank {
@@ -95,8 +137,225 @@
 		width: 32px;
 	}
 
+	.pt-card-suit {
+		width: 11px;
+		height: 11px;
+	}
+
 	.pt-cardline,
 	.pt-cardgroup {
 		gap: 4px;
 	}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   四色牌 (four-colour deck) + SVG 花色
+   決策: ai/artifacts/現場體驗客製化/mockup-decision-牌面.md 變體 C
+   2026-07-28 人工選定, 不做兩色/四色切換, 全站固定四色。
+
+   data-suit 屬性由 handdetail.js / session.js 產生, 值是 Unicode 符號本身
+   (♠♥♦♣, 未知牌沒有這個屬性)。因此這裡完全不需要動 JS。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 花色改用 CSS mask 載入 SVG。背景色走 currentColor, 所以顏色由下方
+   四色規則決定, 不必為每個花色各準備一份上好色的圖。 */
+@supports (mask-image: url("")) or (-webkit-mask-image: url("")) {
+	.pt-card-suit {
+		display: inline-block;
+		width: 13px;
+		height: 13px;
+		/* 保留文字節點供螢幕閱讀器讀取, 只是視覺上不顯示。
+		   不可用 display:none 或 visibility:hidden, 那會讓花色從無障礙樹上消失。
+		   font-size:0 已經足以讓字元不顯示, 不可再加 color:transparent —— currentColor
+		   解析的是「同一個元素上 color 的計算值」, 一旦設成 transparent, 下面
+		   background-color:currentColor 就會變成透明, 整個花色圖形消失, 只剩左側色帶有顏色。 */
+		font-size: 0;
+		background-color: currentColor;
+		-webkit-mask-repeat: no-repeat;
+		mask-repeat: no-repeat;
+		-webkit-mask-size: contain;
+		mask-size: contain;
+		-webkit-mask-position: center;
+		mask-position: center;
+	}
+
+	.pt-card[data-suit="\2660"] .pt-card-suit {
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C8 6 4 8.5 4 12.5A4.5 4.5 0 0 0 11 16c.2 2-.8 3.6-2.3 4.6h6.6C13.8 19.6 12.8 18 13 16a4.5 4.5 0 0 0 7-3.5C20 8.5 16 6 12 2z'/%3E%3C/svg%3E");
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C8 6 4 8.5 4 12.5A4.5 4.5 0 0 0 11 16c.2 2-.8 3.6-2.3 4.6h6.6C13.8 19.6 12.8 18 13 16a4.5 4.5 0 0 0 7-3.5C20 8.5 16 6 12 2z'/%3E%3C/svg%3E");
+	}
+
+	.pt-card[data-suit="\2665"] .pt-card-suit {
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21S3.5 15.2 3.5 9.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8.5 2.6C20.5 15.2 12 21 12 21z'/%3E%3C/svg%3E");
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21S3.5 15.2 3.5 9.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8.5 2.6C20.5 15.2 12 21 12 21z'/%3E%3C/svg%3E");
+	}
+
+	.pt-card[data-suit="\2666"] .pt-card-suit {
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l7.5 10L12 22 4.5 12z'/%3E%3C/svg%3E");
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l7.5 10L12 22 4.5 12z'/%3E%3C/svg%3E");
+	}
+
+	.pt-card[data-suit="\2663"] .pt-card-suit {
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a4 4 0 0 0-3.2 6.4A4 4 0 1 0 8 16.2c1 0 1.9-.4 2.6-1-.1 1.9-1 3.5-2.4 4.4h7.6c-1.4-.9-2.3-2.5-2.4-4.4.7.6 1.6 1 2.6 1a4 4 0 1 0-.8-7.8A4 4 0 0 0 12 2z'/%3E%3C/svg%3E");
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a4 4 0 0 0-3.2 6.4A4 4 0 1 0 8 16.2c1 0 1.9-.4 2.6-1-.1 1.9-1 3.5-2.4 4.4h7.6c-1.4-.9-2.3-2.5-2.4-4.4.7.6 1.6 1 2.6 1a4 4 0 1 0-.8-7.8A4 4 0 0 0 12 2z'/%3E%3C/svg%3E");
+	}
+}
+
+/* 牌面配色兩種模式, 由 <html> 上的 class 決定:
+     .deckface-two   傳統兩色 — 黑桃/梅花淺灰、紅心/方塊紅
+     .deckface-four  四色 — 黑桃淺灰 / 紅心紅 / 方塊藍 / 梅花綠
+   四色是撲克圈既有的 four-colour deck 慣例, 把最容易看錯的兩組
+   (紅心vs方塊、黑桃vs梅花) 拆開。
+
+   顏色不放進 @supports, 就算 mask 不支援、花色退回文字, 配色仍然成立。
+   兩者特異度都高於 .pt-card.red (0,3,0 vs 0,2,0), 所以不管寫在哪裡都能勝出;
+   .pt-card.red 保留不刪, 它仍是 data-suit 缺失時的顏色 fallback。
+
+   預設: 沒有任何 deckface-* class 時退回 .pt-card.red 的兩色行為, 所以即使
+   JS 沒載入或設定讀不到, 牌面也不會變成全白。 */
+.deckface-two .pt-card[data-suit="\2660"],
+.deckface-two .pt-card[data-suit="\2663"] {
+	color: #e5e7eb;
+}
+
+.deckface-two .pt-card[data-suit="\2665"],
+.deckface-two .pt-card[data-suit="\2666"] {
+	color: #f87171;
+}
+
+.deckface-four .pt-card[data-suit="\2660"] {
+	color: #e5e7eb;
+}
+
+.deckface-four .pt-card[data-suit="\2665"] {
+	color: #f87171;
+}
+
+.deckface-four .pt-card[data-suit="\2666"] {
+	color: #60a5fa;
+}
+
+.deckface-four .pt-card[data-suit="\2663"] {
+	color: #34d399;
+}
+
+/* 純文字的花色小標籤（下注歷程的全押勝率／補牌列）。不是卡片, 沒有卡面與外框,
+   但配色必須跟著上面同一個 deckface 開關走, 否則使用者選了兩色, 牌是兩色、
+   下注歷程裡的補牌卻還是四色。色值與上面的 .pt-card 規則逐一對應, 不另立一套。
+
+   沒有任何 deckface-* class 時（JS 沒載入 / 設定讀不到）退回兩色, 與 .pt-card.red
+   的 fallback 行為一致, 不會變成全白看不出花色。 */
+.pt-suittext[data-suit="\2660"],
+.pt-suittext[data-suit="\2663"] {
+	color: #e5e7eb;
+}
+
+.pt-suittext[data-suit="\2665"],
+.pt-suittext[data-suit="\2666"] {
+	color: #f87171;
+}
+
+.deckface-two .pt-suittext[data-suit="\2660"],
+.deckface-two .pt-suittext[data-suit="\2663"] {
+	color: #e5e7eb;
+}
+
+.deckface-two .pt-suittext[data-suit="\2665"],
+.deckface-two .pt-suittext[data-suit="\2666"] {
+	color: #f87171;
+}
+
+.deckface-four .pt-suittext[data-suit="\2660"] {
+	color: #e5e7eb;
+}
+
+.deckface-four .pt-suittext[data-suit="\2665"] {
+	color: #f87171;
+}
+
+.deckface-four .pt-suittext[data-suit="\2666"] {
+	color: #60a5fa;
+}
+
+.deckface-four .pt-suittext[data-suit="\2663"] {
+	color: #34d399;
+}
+
+/* TASK-046：牌背與牌面分開選。
+   .pt-card 從不顯示牌背，所以這一整段都是**牌面**，對應新的 .cardface-<key>。
+   .deck-<key> 保留不刪：色票預覽要一次顯示整套（牌背＋牌面），
+   而且舊的單一設定仍會用到它。兩個選擇器共用同一組值，不重複維護。 */
+/* ── 8 套 deck skin 的牌面配色 ──
+   原本 classic/crimson/royal/ocean/sunset/rose 這 6 套只在 pokertable.css 定義了
+   牌背顏色 (.bc-card.back), 牌面完全沒有處理; 而 .pt-card 從不顯示牌背, 所以
+   這裡是為它們補做的牌面配色, 沿用各自牌背的色系。
+   四色是機能色不是裝飾色, 所以 skin 只換底色與外框, 花色顏色一律不動。 */
+.deck-classic .pt-card,
+.cardface-classic .pt-card {
+	background: #18181b;
+	border-color: #3f3f46;
+}
+
+.deck-crimson .pt-card,
+.cardface-crimson .pt-card {
+	background: #221416;
+	border-color: #5c1414;
+}
+
+.deck-midnight .pt-card,
+.cardface-midnight .pt-card {
+	background: #20262e;
+	border-color: #39424d;
+}
+
+.deck-royal .pt-card,
+.cardface-royal .pt-card {
+	background: #1e1830;
+	border-color: #4c1d95;
+}
+
+.deck-ocean .pt-card,
+.cardface-ocean .pt-card {
+	background: #10222a;
+	border-color: #0b5566;
+}
+
+.deck-sunset .pt-card,
+.cardface-sunset .pt-card {
+	background: #291a12;
+	border-color: #9a3412;
+}
+
+.deck-rose .pt-card,
+.cardface-rose .pt-card {
+	background: #26141c;
+	border-color: #9d174e;
+}
+
+.deck-graphite .pt-card,
+.cardface-graphite .pt-card {
+	background: #242428;
+	border-color: #3a3a42;
+}
+
+/* minimal（極簡）：TASK-011 新增的第 9 套，變體 A。
+   與其他 8 套只換底色不同，這一套的辨識點是**左側的機能色帶**——
+   border-left 吃 currentColor，也就是該張牌花色的顏色，所以在牌桌圖那種
+   小尺寸下不看花色也分得出紅黑（四色牌時更是四種顏色各自分明）。
+   圓角改小、點數字級加大，走的是幾何感而不是仿真牌。
+
+   注意：使用者在 2026-07-29 曾要求把預設牌面的 left border 拿掉（TASK-003），
+   這裡的色帶是**這一套 skin 專屬的設計特徵**，只在選了 minimal 時才出現，
+   不影響其他 8 套與預設外觀。 */
+.deck-minimal .pt-card,
+.cardface-minimal .pt-card {
+	background: #141417;
+	border-color: #2e2e33;
+	border-left: 4px solid currentColor;
+	border-radius: 4px;
+}
+
+.deck-minimal .pt-card .pt-card-rank,
+.cardface-minimal .pt-card .pt-card-rank {
+	font-size: 1.1em;
+	letter-spacing: -0.02em;
 }

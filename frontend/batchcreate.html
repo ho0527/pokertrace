@@ -18,7 +18,7 @@
 				<h1 class="text-3xl font-extrabold tracking-tight text-white md:text-4xl" id="pagetitle">批量建立多日賽</h1>
 				<p class="mt-2 text-sm text-zinc-400" id="pagehint">填一次設定，一鍵建好整棵晉級樹的所有場次，並自動包成系列賽。</p>
 				<div class="mt-4 flex flex-wrap gap-2">
-					<input type="button" id="b-savejson" class="cursor-pointer rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-4 py-1.5 text-xs font-bold text-white transition" value="儲存設定 JSON">
+					<input type="button" id="b-savejson" class="cursor-pointer rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-4 py-1.5 text-xs font-bold text-white transition" data-entersubmit value="儲存設定 JSON">
 					<input type="button" id="b-loadjson" class="cursor-pointer rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-4 py-1.5 text-xs font-bold text-white transition" value="載入設定 JSON">
 					<input type="file" id="b-configfile" accept=".json,application/json" class="hidden">
 				</div>
@@ -151,7 +151,7 @@
 					</div>
 					<div class="text-xs text-zinc-500 mb-3" data-label="chiplisthint">會寫進每個新建場次的計分牌清單（場次設定裡看得到），與上面的起始碼／Color up 分開設定。</div>
 					<div id="b-chiprows" class="flex flex-col gap-2"></div>
-					<input type="button" id="b-chipadd" class="mt-3 cursor-pointer rounded-xl bg-zinc-800 hover:bg-zinc-700 px-4 py-1.5 text-xs font-bold text-white transition" value="+ 新增面額">
+					<input type="button" id="b-chipadd" class="mt-3 cursor-pointer rounded-xl bg-zinc-800 hover:bg-zinc-700 px-4 py-1.5 text-xs font-bold text-white transition" data-entersubmit value="+ 新增面額">
 				</div>
 			</section>
 
@@ -166,7 +166,7 @@
 						<option value="normal" data-bopt="structnormal">一般結構</option>
 						<option value="turbo" data-bopt="structturbo">Turbo 結構</option>
 					</select>
-					<input type="button" id="b-parse" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 py-2 text-sm font-bold text-white transition" value="讀取 / 解析">
+					<input type="button" id="b-parse" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 py-2 text-sm font-bold text-white transition" data-entersubmit value="讀取 / 解析">
 					<input type="button" id="b-upload" class="cursor-pointer rounded-2xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-6 py-2 text-sm font-bold text-white transition" value="上傳 JSON 檔">
 					<span id="b-structpreview" class="text-sm text-zinc-400"></span>
 				</div>
@@ -204,7 +204,7 @@
 				</div>
 				<div id="b-rounds" class="flex flex-col gap-3"></div>
 				<div class="mt-3 flex gap-2">
-					<input type="button" id="b-addround" class="cursor-pointer rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" value="+ 新增一層">
+					<input type="button" id="b-addround" class="cursor-pointer rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" data-entersubmit value="+ 新增一層">
 					<input type="button" id="b-removeround" class="cursor-pointer rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-red-300 transition" value="− 刪除最後一層">
 				</div>
 			</section>
@@ -217,13 +217,13 @@
 				</div>
 				<div id="b-preview" class="text-sm text-zinc-300"></div>
 				<div class="mt-5 flex justify-end">
-					<input type="button" id="b-create" class="cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-8 py-3 text-sm font-bold text-white transition" value="建立全部">
+					<input type="button" id="b-create" class="cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-8 py-3 text-sm font-bold text-white transition" data-entersubmit value="建立全部">
 				</div>
 			</section>
 
 			<div class="mb-8 grid grid-cols-2 gap-2" id="b-stepbtns">
 				<input type="button" id="b-prevstep" class="cursor-pointer rounded-2xl bg-zinc-800 hover:bg-zinc-700 px-5 py-3 text-sm font-bold text-zinc-100 transition" value="上一步">
-				<input type="button" id="b-nextstep" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition" value="下一步">
+				<input type="button" id="b-nextstep" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition" data-entersubmit value="下一步">
 			</div>
 		</div>
 

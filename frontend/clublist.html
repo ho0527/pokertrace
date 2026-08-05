@@ -20,11 +20,11 @@
 
 			<section class="mb-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-6">
 				<div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-					<input type="text" class="min-h-12 w-full flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="searchname" placeholder="搜尋協會名稱 / 地址 / 註解" aria-label="搜尋協會">
+					<input type="text" class="min-h-12 w-full flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="clublist.searchlabel" id="searchname" placeholder="搜尋協會名稱 / 地址 / 註解" aria-label="搜尋協會">
 					<div class="grid grid-cols-3 gap-2 md:flex md:gap-3">
-						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="searchbutton" value="搜尋">
+						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="searchbutton" value="搜尋">
 						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="clearsearchbutton" value="清空">
-						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="addclubbutton" value="新增協會">
+						<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="addclubbutton" value="新增協會">
 					</div>
 				</div>
 			</section>
@@ -33,14 +33,14 @@
 			<div class="mt-4 flex flex-wrap items-center justify-center gap-2" id="clubpagination"></div>
 
 			<section class="bg-zinc-800 rounded-lg p-6 my-8 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
-				<div class="text-lg font-extrabold mb-4 text-center text-white">協會統計</div>
+				<div class="text-lg font-extrabold mb-4 text-center text-white" data-i18n="clublist.stats">協會統計</div>
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 flex flex-col items-center">
-						<div class="text-zinc-400 text-sm">總協會數</div>
+						<div class="text-zinc-400 text-sm" data-i18n="clublist.totalclubs">總協會數</div>
 						<div class="mt-1 text-2xl font-extrabold text-white" id="totalclubs">0</div>
 					</div>
 					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 flex flex-col items-center">
-						<div class="text-zinc-400 text-sm">顯示數量</div>
+						<div class="text-zinc-400 text-sm" data-i18n="clublist.displaycount">顯示數量</div>
 						<div class="mt-1 text-2xl font-extrabold text-white" id="displaycount">0</div>
 					</div>
 				</div>
@@ -58,23 +58,23 @@
 					<input type="hidden" id="clubid">
 
 					<div class="mb-4">
-						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubname">協會名稱 <span class="text-red-500">*</span></label>
+						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubname"><span data-i18n="clublist.name">協會名稱</span> <span class="text-red-500">*</span></label>
 						<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubname" required>
 					</div>
 
 					<div class="mb-4">
-						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubaddress">協會地址 <span class="text-red-500">*</span></label>
+						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubaddress"><span data-i18n="clublist.address">協會地址</span> <span class="text-red-500">*</span></label>
 						<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubaddress" required>
 					</div>
 
 					<div class="mb-6">
-						<label class="mb-2 block text-sm font-bold text-zinc-100" for="clubps">註解</label>
+						<label class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="clublist.note" for="clubps">註解</label>
 						<textarea class="w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubps" rows="3"></textarea>
 					</div>
 
 					<div class="flex gap-3">
 						<input type="button" class="min-h-12 flex-1 cursor-pointer rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="cancelbutton" value="取消">
-						<input type="submit" class="min-h-12 flex-1 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" value="確認">
+						<input type="submit" class="min-h-12 flex-1 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-i18n-value="common.confirm" data-entersubmit value="確認">
 					</div>
 				</form>
 			</div>

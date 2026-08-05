@@ -36,10 +36,10 @@
 					<div class="block">
 						<label class="mb-2 block text-sm font-bold text-zinc-100" id="brtypelabel" for="brtype">遊戲類型</label>
 						<select id="brtype" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400">
-							<option value="mtt">MTT 錦標賽</option>
-							<option value="pko">PKO 賞金賽</option>
-							<option value="sng">SNG / 單桌</option>
-							<option value="cash">現金桌</option>
+							<option data-i18n="bankrollpage.opt_mtt" value="mtt">MTT 錦標賽</option>
+							<option data-i18n="bankrollpage.opt_pko" value="pko">PKO 賞金賽</option>
+							<option data-i18n="bankrollpage.opt_sng" value="sng">SNG / 單桌</option>
+							<option data-i18n="bankrollpage.opt_cash" value="cash">現金桌</option>
 						</select>
 					</div>
 					<div class="block"><label class="mb-2 block text-sm font-bold text-zinc-100" id="brbuyinlabel" for="brbuyin">平均買入</label><input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none focus:border-emerald-400" id="brbuyin" min="0" inputmode="numeric" value="1000"></div>
@@ -55,8 +55,8 @@
 		</div>
 		<section class="mx-auto w-full max-w-6xl px-4 pb-10">
 			<div class="rounded-[28px] border border-zinc-800 bg-zinc-900/60 p-6 md:p-8">
-				<h2 id="toolseotitle" class="text-xl font-extrabold text-white">打比賽需要多少 Bankroll？</h2>
-				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400">資金管理是長期贏家的基本功。一般建議：MTT 至少準備 100 個買入、高變異的快速賽更多、單桌 SNG 約 50 個買入，現金桌則以 20 到 40 個買入為常見區間。這個工具依你選的賽制與波動程度，估算建議的資金規模與單場買入上限。</p>
+				<h2 id="toolseotitle" class="text-xl font-extrabold text-white" data-i18n="toolseo.bankrolltitle">打比賽需要多少 Bankroll？</h2>
+				<p id="toolseobody" class="mt-3 text-sm leading-7 text-zinc-400" data-i18n="toolseo.bankrollbody">資金管理是長期贏家的基本功。一般建議：MTT 至少準備 100 個買入、高變異的快速賽更多、單桌 SNG 約 50 個買入，現金桌則以 20 到 40 個買入為常見區間。這個工具依你選的賽制與波動程度，估算建議的資金規模與單場買入上限。</p>
 			</div>
 		</section>
 		<div id="footer"></div>

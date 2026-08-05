@@ -85,6 +85,13 @@ def userbytoken(token):
 	userrow=query(SETTING["dbname"],"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
 	if not userrow:
 		return None
+	# 縱深防禦：與 authhelper.gettokenuser 同一個理由。
+	# 這裡收的是 token 字串（WebSocket 沒有 Django 的 request 物件），
+	# 所以沒辦法直接委派給 gettokenuser，只能自己補這一層。
+	# 少了它的話，被封禁的使用者只要 WebSocket 還連著、或手上的 token 沒被撤，
+	# 就能繼續寫手牌與操作計時器。
+	if getuserbanned(userrow[0]["id"]):
+		return None
 	return userrow[0]
 
 

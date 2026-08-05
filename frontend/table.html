@@ -37,11 +37,11 @@
 
 			<!-- Tabs -->
 			<div class="mb-6 flex flex-wrap border-b border-zinc-800">
-				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="overview" data-id="0" id="tabletaboverview" value="總覽">
-				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="players" data-id="1" id="tabletabplayers" value="選手">
-				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="hands" data-id="2" id="tabletabhands" value="手牌">
-				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="stats" data-id="3" id="tabletabstats" value="統計">
-				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="ev" data-id="4" id="tabletabev" value="EV圖">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="overview" data-data-i18n-value="tablepage.taboverview" id="0" id="tabletaboverview" value="總覽">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="players" data-data-i18n-value="tablepage.tabplayers" id="1" id="tabletabplayers" value="選手">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="hands" data-data-i18n-value="tablepage.tabhands" id="2" id="tabletabhands" value="手牌">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="stats" data-data-i18n-value="tablepage.tabstats" id="3" id="tabletabstats" value="統計">
+				<input type="button" class="tab-btn px-4 py-3 text-sm font-bold text-zinc-400 border-b-2 border-transparent transition hover:text-emerald-400" data-tab="ev" data-data-i18n-value="tablepage.tabev" id="4" id="tabletabev" value="EV圖">
 			</div>
 
 			<!-- Tab Contents -->
@@ -90,7 +90,7 @@
 									<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="selfseating"></select>
 								</div>
 							</div>
-							<input type="submit" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="save" value="儲存">
+							<input type="submit" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit data-i18n-value="tablepage.save" id="save" value="儲存">
 						</div>
 					</form>
 					<div class="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -99,9 +99,9 @@
 							<div class="mt-1 text-sm text-zinc-400" id="playerpanelnote"></div>
 						</div>
 						<div class="flex flex-wrap items-center gap-2">
-							<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="mergetabletarget" aria-label="選擇要併入的目標牌桌"></select>
+							<select class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="tablepage.mergetablearia" id="mergetabletarget" aria-label="選擇要併入的目標牌桌"></select>
 							<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="mergetablebutton" value="併到指定桌">
-							<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="saveplayers" value="儲存座位">
+							<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="saveplayers" value="儲存座位">
 						</div>
 					</div>
 					<div class="overflow-x-auto rounded-2xl border border-zinc-800">
@@ -128,21 +128,21 @@
 				<div class="mb-4 flex flex-wrap items-end justify-between gap-2">
 					<div>
 						<div class="text-lg font-extrabold text-white" id="tablehandrecordtitle">手牌紀錄</div>
-						<div class="mt-1 text-sm text-zinc-400" id="tablehandrecordnote">可用下方條件篩選紀錄；新增手牌會承接目前碼量，計分牌校正用於現場點數修正。</div>
+						<div class="mt-1 text-sm text-zinc-400" data-i18n="tablepage.handrecordnote" id="tablehandrecordnote">可用下方條件篩選紀錄；新增手牌會承接目前碼量，計分牌校正用於現場點數修正。</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
 						<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="newhand">新增手牌</a>
-						<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-emerald-400/40 bg-zinc-900 px-6 text-sm font-bold text-emerald-100 transition hover:bg-zinc-800" id="quickhand">快速手牌紀錄</a>
+						<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-emerald-400/40 bg-zinc-900 px-6 text-sm font-bold text-emerald-100 transition hover:bg-zinc-800" data-i18n="newedithandpage.pagetitlequick" id="quickhand">快速手牌紀錄</a>
 						<a href="" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="stackadjust">計分牌校正</a>
 						<a href="" target="_blank" rel="noopener" class="hidden inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-zinc-950/40 px-6 text-sm font-bold text-emerald-100 transition hover:bg-zinc-900" id="tablebroadcast"><span class="h-2 w-2 rounded-full bg-emerald-400"></span>現場轉播</a>
 						<input type="button" class="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="tablehandsort" value="時間 ↓">
 					</div>
 				</div>
 				<div class="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
-					<input type="text" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterplayer" aria-label="依選手 ID 篩選手牌" placeholder="選手 ID">
-					<input type="number" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterseat" inputmode="numeric" aria-label="依座位篩選手牌" placeholder="座位">
-					<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterfrom" aria-label="篩選起始日期">
-					<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="handfilterto" aria-label="篩選結束日期">
+					<input type="text" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-placeholder="tablepage.filterplayerplaceholder" data-i18n-aria-label="tablepage.filterplayeraria" id="handfilterplayer" aria-label="依選手 ID 篩選手牌" placeholder="選手 ID">
+					<input type="number" class="min-h-12 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="tablepage.filterseataria" id="handfilterseat" inputmode="numeric" aria-label="依座位篩選手牌" placeholder="座位">
+					<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="tablepage.filterfromaria" id="handfilterfrom" aria-label="篩選起始日期">
+					<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="tablepage.filtertoaria" id="handfilterto" aria-label="篩選結束日期">
 					<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="handfilterclear" value="清除">
 				</div>
 				<div class="overflow-x-auto rounded-2xl border border-zinc-800">
@@ -169,7 +169,7 @@
 			<div id="tab-stats" class="tab-content hidden">
 				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
 					<div class="mb-1 text-lg font-extrabold text-white" id="tablestatstitle">統計數據</div>
-					<div class="mb-4 text-sm text-zinc-400" id="tablestatsnote">彙整本桌手牌的勝負、買入與淨額，數字會隨手牌紀錄即時更新。</div>
+					<div class="mb-4 text-sm text-zinc-400" data-i18n="tablepage.statsnote" id="tablestatsnote">彙整本桌手牌的勝負、買入與淨額，數字會隨手牌紀錄即時更新。</div>
 					<div class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4" id="tablestatscards"></div>
 				</section>
 			</div>

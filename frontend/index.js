@@ -52,6 +52,7 @@ function rendertexts(){
 	innertext("#bottomdesc",indextext("bottomdesc"),false)
 	innertext("#toolstitle",indextext("toolstitle"),false)
 	innertext("#toolssubtitle",indextext("toolssubtitle"),false)
+	innertext("#indextoollistlink",indextext("indextoollistlink"),false)
 }
 
 function rendertools(){

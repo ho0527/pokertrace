@@ -102,7 +102,11 @@ function toollistsavefavorite(){
         pttoolfavoritesave(toolfavoritelist)
         return
     }
-    localStorage.setItem(toollistfavoritekey(),JSON.stringify(toolfavoritelist))
+    try{
+        localStorage.setItem(toollistfavoritekey(),JSON.stringify(toolfavoritelist))
+    }catch(error){
+        // 無痕模式或容量已滿時 setItem 會丟例外，保存失敗不該中斷流程
+    }
 }
 
 function toollistisfavorite(href){
@@ -160,7 +164,11 @@ function toollistloadrecent(){
 }
 
 function toollistsaverecent(){
-    localStorage.setItem(toollistrecentkey(),JSON.stringify(toolrecentlist))
+    try{
+        localStorage.setItem(toollistrecentkey(),JSON.stringify(toolrecentlist))
+    }catch(error){
+        // 無痕模式或容量已滿時 setItem 會丟例外，保存失敗不該中斷流程
+    }
 }
 
 function toollistisrecent(href){

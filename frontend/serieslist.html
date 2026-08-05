@@ -18,11 +18,11 @@
 					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400" id="eyebrow">Series</p>
 					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="pagetitle">系列賽管理</h1>
 				</div>
-				<input type="button" class="cursor-pointer hidden md:inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="togglecreate" value="新增系列賽">
+				<input type="button" class="cursor-pointer hidden md:inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="togglecreate" value="新增系列賽">
 			</div>
 
 			<div class="mb-4 md:hidden">
-				<input type="button" class="cursor-pointer inline-flex w-full min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="togglecreatemobile" value="新增系列賽">
+				<input type="button" class="cursor-pointer inline-flex w-full min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="togglecreatemobile" value="新增系列賽">
 			</div>
 
 			<!-- 新增系列賽面板 -->
@@ -59,7 +59,7 @@
 						<span class="text-sm text-zinc-300" data-label="private">私人系列賽</span>
 					</label>
 					<div class="flex justify-end">
-						<input type="submit" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 py-2 text-sm font-bold text-white transition" id="createsubmit" value="建立">
+						<input type="submit" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 py-2 text-sm font-bold text-white transition" data-entersubmit id="createsubmit" value="建立">
 					</div>
 				</form>
 			</section>

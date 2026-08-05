@@ -32,7 +32,7 @@
 		<div class="section">
 			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
 				<a href="control.html" class="btn btn-ghost btn-sm" id="btnBack">返回控制台</a>
-				<input type="button" class="btn btn-primary btn-sm" id="btnSavePayout" value="儲存名次">
+				<input type="button" class="btn btn-primary btn-sm" data-entersubmit id="btnSavePayout" value="儲存名次">
 			</div>
 		</div>
 
@@ -43,7 +43,7 @@
 					<div class="struct-tool-row">
 						<label id="quickRankLabel">名次範圍</label>
 						<input class="txt" id="quickRank" type="text" placeholder="1 或 1-10" aria-label="名次範圍">
-						<input type="button" class="btn btn-sm" id="btnAddPayout" value="新增">
+						<input type="button" class="btn btn-sm" data-entersubmit id="btnAddPayout" value="新增">
 					</div>
 					<div class="struct-tool-row">
 						<label id="quickCashLabel">獎金</label>
@@ -116,7 +116,7 @@
 					<span id="headOtherAction">操作</span>
 				</div>
 				<div id="otherRewardList"></div>
-				<input type="button" class="btn btn-sm btn-ghost" id="btnAddOtherReward" value="新增一列">
+				<input type="button" class="btn btn-sm btn-ghost" data-entersubmit id="btnAddOtherReward" value="新增一列">
 				<div id="otherRewardHint" style="font-size:11px;color:#888;line-height:1.6;margin-top:8px">
 					用來記錄與名次無關的獎勵，例如賞金（bounty）、首殺獎、幸運獎。「名次」那格請自行填寫標籤文字。此區塊只是記錄，不會列入獎金總和，也不參與任何自動獎金結算。
 				</div>
@@ -128,7 +128,7 @@
 			<div class="card">
 				<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
 					<input type="button" class="btn btn-sm btn-ghost" id="btnExportPayout" value="匯出 JSON">
-					<input type="button" class="btn btn-sm btn-ghost" id="btnImportPayout" value="匯入 JSON">
+					<input type="button" class="btn btn-sm btn-ghost" data-entersubmit id="btnImportPayout" value="匯入 JSON">
 					<label class="btn btn-sm btn-ghost" for="payoutFileIn" id="importFileLabel">匯入檔案</label>
 					<input type="file" id="payoutFileIn" accept="application/json,.json" style="display:none">
 				</div>

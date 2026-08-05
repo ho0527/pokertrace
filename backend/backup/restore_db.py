@@ -42,7 +42,7 @@ DB_HOST = env("PT_DB_HOST", "localhost")
 DB_PORT = env("PT_DB_PORT", "5432")
 DB_USER = env("PT_DB_USER", "chris0527")
 DB_PASSWORD = env("PT_DB_PASSWORD", "")
-SOURCE_DB = env("PT_DB_NAME", "pokertrace")
+SOURCE_DB = env("PT_DB_NAME", "pokertrace_test")
 RESTORE_DB = env("PT_RESTORE_DB", "pokertrace_restoretest")
 PG_BIN = env("PT_PG_BIN", "")
 

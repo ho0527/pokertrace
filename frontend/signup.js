@@ -35,44 +35,14 @@ if(PARTICLECONTAINER){
 }
 
 // ==== 註冊頁文案查表 ====
-// 文案優先讀 translate.js 的 signuppage 區段, key 尚未建立前先用目前頁面文案當 fallback
-const SIGNUPFALLBACK={
-	"welcometitle": "感謝您註冊PokerTrace！",
-	"welcomesub": "Welcome to the PokerTrace · 建立您的帳號以開始使用",
-	"usernamelabel": "顯示名稱",
-	"usernamelabelhint": "Display Name",
-	"usernameplaceholder": "請輸入您的名稱…",
-	"usernameerror": "⚠ 請輸入名稱",
-	"languagelabel": "語言偏好",
-	"languagelabelhint": "Language",
-	"rolelabel": "帳號類型",
-	"rolelabelhint": "Account Type",
-	"rolewarning": "請注意，帳號類型選擇後無法再修改，請謹慎選擇",
-	"roleerror": "⚠ 請選擇帳號類型",
-	"roleplayer": "Player 選手",
-	"roledealer": "Dealer 計分員",
-	"rolefloor": "Floor 裁判",
-	"roleassistant": "Assistant 助理",
-	"languagenamezhtw": "中文",
-	"languagenameen": "English",
-	"submitbutton": "確認送出 Submit",
-	"submitting": "送出中…",
-	"successtitle": "註冊成功！",
-	"successwelcomeprefix": "歡迎，",
-	"successwelcomesuffix": "！",
-	"successrolelabel": "帳號類型：",
-	"successlanglabel": "語言：",
-	"successgomain": "前往主頁 →",
-	"unknownerror": "未知錯誤"
-}
+// 文案一律讀 translate.js 的 signuppage 區段。原本這裡有一份 SIGNUPFALLBACK 過渡對照表，
+// 註解寫「key 尚未建立前先用目前頁面文案當 fallback」；2026-07-28 查證 signuppage 的
+// 27 個 key 在 zhtw 與 en 都已建立齊全，過渡期結束，故移除該表。
 
 function signuptext(key,languagekey){
 	let uselanguage=languagekey||LANGUAGE
 	let section=(TRANSLATE[uselanguage]||{})["signuppage"]||{}
 	let text=section[key]
-	if(text==undefined){
-		text=SIGNUPFALLBACK[key]
-	}
 	if(text==undefined){
 		text=key
 	}

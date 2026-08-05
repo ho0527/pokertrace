@@ -28,7 +28,9 @@ def printcolor(color,text):
         # raise ValueError("Unsupported color.")
 
     # 打印带有颜色的文本
-    print(str(colorcode)+str(text)+str("\033[0m"))
+    # flush=True（TASK-053）：stdout 導向 log 檔時是塊狀緩衝，冷清的機器上
+    # 訊息會卡在緩衝區，要等下一次有輸出才被擠出來。log 看不到等於沒有 log。
+    print(str(colorcode)+str(text)+str("\033[0m"),flush=True)
 
 # printcolorhaveline 函式：在終端機中打印分隔線並打印文字
 def printcolorhaveline(color="green",text="",linestyle="-"):

@@ -16,6 +16,15 @@ let flowstate={
 	"temploaded": false
 }
 
+// 本頁文案查表。與專案其他頁一致：先查 translate.js 的 newsessionpage，
+// 查不到才用 fallback，讓字典缺 key 時畫面仍看得懂。
+function newsessiontext(key,fallback){
+	if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["newsessionpage"]&&TRANSLATE[LANGUAGE]["newsessionpage"][key]!=undefined){
+		return TRANSLATE[LANGUAGE]["newsessionpage"][key]
+	}
+	return fallback
+}
+
 function field(id){
 	return domgetid(id)
 }
@@ -94,12 +103,12 @@ function showformerror(message,focusid){
 
 function getmodetext(mode){
 	if(mode=="hosted"){
-		return "主辦牌局"
+		return newsessiontext("modehosted","主辦牌局")
 	}
 	if(mode=="personal"){
-		return "個人成績補登"
+		return newsessiontext("modepersonal","個人成績補登")
 	}
-	return "尚未選擇"
+	return newsessiontext("modenone","尚未選擇")
 }
 
 function setmodecardstate(element,activeed){
@@ -160,23 +169,23 @@ function setstepitemstate(element,step){
 }
 
 function renderactionhint(){
-	let hint="選完模式後，從基本資料開始往下填。"
+	let hint=newsessiontext("hintstart","選完模式後，從基本資料開始往下填。")
 	if(flowstate["mode"]){
 		if(flowstate["step"]==1){
-			hint="先確認這場的基本資料與時間。"
+			hint=newsessiontext("hintstep1","先確認這場的基本資料與時間。")
 		}
 		if(flowstate["step"]==2){
 			if(flowstate["mode"]=="hosted"){
-				hint="先決定再購、再入與報名規則。"
+				hint=newsessiontext("hintstep2hosted","先決定再購、再入與報名規則。")
 			}else{
-				hint="先標記你這次是否再入場，以及是否進 ITM / Final Table。"
+				hint=newsessiontext("hintstep2personal","先標記你這次是否再入場，以及是否進 ITM / Final Table。")
 			}
 		}
 		if(flowstate["step"]==3){
 			if(flowstate["mode"]=="hosted"){
-				hint="把費用與計分牌補齊，並確認下方進階設定與備註，即可建立場次。"
+				hint=newsessiontext("hintstep3hosted","把費用與計分牌補齊，並確認下方進階設定與備註，即可建立場次。")
 			}else{
-				hint="把你的實際支出與結果補齊，並確認進階設定，之後統計會更準。"
+				hint=newsessiontext("hintstep3personal","把你的實際支出與結果補齊，並確認進階設定，之後統計會更準。")
 			}
 		}
 	}
@@ -321,7 +330,7 @@ function setmode(mode,confirmed){
 		}
 	}
 	if(shouldconfirm&&confirmed!=true){
-		ptconfirm("切換模式後會保留共用欄位，但你應重新確認後續規則與費用設定。要切換嗎？",function(ok){
+		ptconfirm(newsessiontext("switchmodeconfirm","切換模式後會保留共用欄位，但你應重新確認後續規則與費用設定。要切換嗎？"),function(ok){
 			if(ok){
 				setmode(targetmode,true)
 			}
@@ -344,7 +353,7 @@ function gotoStep(step){
 	let target=Number(step)
 	let checkstep=0
 	if(flowstate["mode"]==""){
-		showformerror("請先選擇主辦牌局或個人成績補登","modehosted")
+		showformerror(newsessiontext("needmode","請先選擇主辦牌局或個人成績補登"),"modehosted")
 		return
 	}
 	if(target<1||target>3){
@@ -403,9 +412,9 @@ function datetimems(datevalue,timevalue){
 function validatenonnegative(id,label){
 	if(numbervalue(id)<0){
 		if(field(id)){
-			ptsetfieldmessage(field(id),label+"不得為負數")
+			ptsetfieldmessage(field(id),label+newsessiontext("negativesuffix","不得為負數"))
 		}
-		showformerror(label+"不得為負數",id)
+		showformerror(label+newsessiontext("negativesuffix","不得為負數"),id)
 		return false
 	}
 	clearfielderror(id)
@@ -414,32 +423,32 @@ function validatenonnegative(id,label){
 
 function instantnumberlabel(id){
 	let map={
-		"buyin": "買入費",
-		"buyinfee": "買入服務費",
-		"chip": "起始計分牌",
-		"rebuycount": "Rebuy 次數",
-		"rebuybuyin": "Rebuy 費用",
-		"rebuyfee": "Rebuy 服務費",
-		"rebuychip": "Rebuy 計分牌",
-		"reentrycount": "Reentry 次數",
-		"reentrybuyin": "Reentry 費用",
-		"reentryfee": "Reentry 服務費",
-		"reentrychip": "Reentry 計分牌",
-		"addoncount": "Addon 次數",
-		"addonbuyin": "Addon 費用",
-		"addonfee": "Addon 服務費",
-		"addonchip": "Addon 計分牌",
-		"guaranteedprize": "保底獎金",
-		"personalbuyin": "買入費",
-		"personalbuyinfee": "買入服務費",
-		"personalreentrycount": "個人再入次數",
-		"personalreentrybuyin": "再入費",
-		"personalreentryfee": "再入服務費",
-		"winprice": "獎金金額",
-		"totalbuyin": "總買入",
-		"place": "名次"
+		"buyin": newsessiontext("labelbuyin","買入費"),
+		"buyinfee": newsessiontext("labelbuyinfee","買入服務費"),
+		"chip": newsessiontext("labelchip","起始計分牌"),
+		"rebuycount": newsessiontext("labelrebuycount","Rebuy 次數"),
+		"rebuybuyin": newsessiontext("labelrebuybuyin","Rebuy 費用"),
+		"rebuyfee": newsessiontext("labelrebuyfee","Rebuy 服務費"),
+		"rebuychip": newsessiontext("labelrebuychip","Rebuy 計分牌"),
+		"reentrycount": newsessiontext("labelreentrycount","Reentry 次數"),
+		"reentrybuyin": newsessiontext("labelreentrybuyin","Reentry 費用"),
+		"reentryfee": newsessiontext("labelreentryfee","Reentry 服務費"),
+		"reentrychip": newsessiontext("labelreentrychip","Reentry 計分牌"),
+		"addoncount": newsessiontext("labeladdoncount","Addon 次數"),
+		"addonbuyin": newsessiontext("labeladdonbuyin","Addon 費用"),
+		"addonfee": newsessiontext("labeladdonfee","Addon 服務費"),
+		"addonchip": newsessiontext("labeladdonchip","Addon 計分牌"),
+		"guaranteedprize": newsessiontext("labelguaranteedprize","保底獎金"),
+		"personalbuyin": newsessiontext("labelbuyin","買入費"),
+		"personalbuyinfee": newsessiontext("labelbuyinfee","買入服務費"),
+		"personalreentrycount": newsessiontext("labelpersonalreentrycount","個人再入次數"),
+		"personalreentrybuyin": newsessiontext("labelpersonalreentrybuyin","再入費"),
+		"personalreentryfee": newsessiontext("labelpersonalreentryfee","再入服務費"),
+		"winprice": newsessiontext("labelwinprice","獎金金額"),
+		"totalbuyin": newsessiontext("labeltotalbuyin","總買入"),
+		"place": newsessiontext("labelplace","名次")
 	}
-	return map[id]||"欄位"
+	return map[id]||newsessiontext("labelunknown","欄位")
 }
 
 let step1requiredids=[
@@ -481,49 +490,49 @@ function validatestep(step){
 
 	clearerror()
 	if(flowstate["mode"]==""){
-		showformerror("請先選擇主辦牌局或個人成績補登","modehosted")
+		showformerror(newsessiontext("needmode","請先選擇主辦牌局或個人成績補登"),"modehosted")
 		return false
 	}
 	if(step==1){
 		if(!textvalue("name").trim()){
-			showformerror("請填寫場次名稱","name")
+			showformerror(newsessiontext("needname","請填寫場次名稱"),"name")
 			return false
 		}
 		if(!textvalue("clubid")){
-			showformerror("請選擇地點","clubid")
+			showformerror(newsessiontext("needclub","請選擇地點"),"clubid")
 			return false
 		}
 		if(!textvalue("date")){
-			showformerror("請選擇開始日期","date")
+			showformerror(newsessiontext("needdate","請選擇開始日期"),"date")
 			return false
 		}
 		if(!textvalue("starttime")){
-			showformerror("請選擇開始時間","starttime")
+			showformerror(newsessiontext("needstarttime","請選擇開始時間"),"starttime")
 			return false
 		}
 		if(!textvalue("endtime")){
-			showformerror("請選擇結束時間","endtime")
+			showformerror(newsessiontext("needendtime","請選擇結束時間"),"endtime")
 			return false
 		}
 		if(datetimems(textvalue("date"),textvalue("endtime"))<=datetimems(textvalue("date"),textvalue("starttime"))){
-			showformerror("結束時間必須晚於開始時間","endtime")
+			showformerror(newsessiontext("endtimebeforestart","結束時間必須晚於開始時間"),"endtime")
 			return false
 		}
 		return true
 	}
 	if(step==2){
 		if(flowstate["mode"]=="hosted"){
-			if(!validatenonnegative("rebuycount","Rebuy 次數")){
+			if(!validatenonnegative("rebuycount",instantnumberlabel("rebuycount"))){
 				return false
 			}
-			if(!validatenonnegative("reentrycount","Reentry 次數")){
+			if(!validatenonnegative("reentrycount",instantnumberlabel("reentrycount"))){
 				return false
 			}
-			if(!validatenonnegative("addoncount","Addon 次數")){
+			if(!validatenonnegative("addoncount",instantnumberlabel("addoncount"))){
 				return false
 			}
 		}else{
-			if(!validatenonnegative("personalreentrycount","個人再入次數")){
+			if(!validatenonnegative("personalreentrycount",instantnumberlabel("personalreentrycount"))){
 				return false
 			}
 		}
@@ -531,63 +540,64 @@ function validatestep(step){
 	}
 	if(step==3){
 		if(flowstate["mode"]=="hosted"){
+			// 標籤一律取自 instantnumberlabel()，不要在這裡再寫一份，否則兩邊會漂移
 			hostedids=[
-				["buyin","買入費"],
-				["buyinfee","買入服務費"],
-				["chip","起始計分牌"],
-				["rebuybuyin","Rebuy 費用"],
-				["rebuyfee","Rebuy 服務費"],
-				["rebuychip","Rebuy 計分牌"],
-				["reentrybuyin","Reentry 費用"],
-				["reentryfee","Reentry 服務費"],
-				["reentrychip","Reentry 計分牌"],
-				["addonbuyin","Addon 費用"],
-				["addonfee","Addon 服務費"],
-				["addonchip","Addon 計分牌"],
-				["guaranteedprize","保底獎金"]
+				"buyin",
+				"buyinfee",
+				"chip",
+				"rebuybuyin",
+				"rebuyfee",
+				"rebuychip",
+				"reentrybuyin",
+				"reentryfee",
+				"reentrychip",
+				"addonbuyin",
+				"addonfee",
+				"addonchip",
+				"guaranteedprize"
 			]
 			for(i=0;i<hostedids.length;i=i+1){
-				if(!validatenonnegative(hostedids[i][0],hostedids[i][1])){
+				if(!validatenonnegative(hostedids[i],instantnumberlabel(hostedids[i]))){
 					return false
 				}
 			}
 			if(numbervalue("rebuycount")>0&&numbervalue("rebuybuyin")<=0){
-				showformerror("已設定 Rebuy 次數，請補齊 Rebuy 費用","rebuybuyin")
+				showformerror(newsessiontext("needrebuyfee","已設定 Rebuy 次數，請補齊 Rebuy 費用"),"rebuybuyin")
 				return false
 			}
 			if(numbervalue("reentrycount")>0&&numbervalue("reentrybuyin")<=0){
-				showformerror("已設定 Reentry 次數，請補齊 Reentry 費用","reentrybuyin")
+				showformerror(newsessiontext("needreentryfee","已設定 Reentry 次數，請補齊 Reentry 費用"),"reentrybuyin")
 				return false
 			}
 			if(numbervalue("reentrycount")>0&&numbervalue("reentrychip")<=0){
-				showformerror("已設定 Reentry 次數，請補齊 Reentry 計分牌","reentrychip")
+				showformerror(newsessiontext("needreentrychip","已設定 Reentry 次數，請補齊 Reentry 計分牌"),"reentrychip")
 				return false
 			}
 			if(numbervalue("addoncount")>0&&numbervalue("addonbuyin")<=0){
-				showformerror("已設定 Addon 次數，請補齊 Addon 費用","addonbuyin")
+				showformerror(newsessiontext("needaddonfee","已設定 Addon 次數，請補齊 Addon 費用"),"addonbuyin")
 				return false
 			}
 			if(numbervalue("addoncount")>0&&numbervalue("addonchip")<=0){
-				showformerror("已設定 Addon 次數，請補齊 Addon 計分牌","addonchip")
+				showformerror(newsessiontext("needaddonchip","已設定 Addon 次數，請補齊 Addon 計分牌"),"addonchip")
 				return false
 			}
 		}else{
 			personalids=[
-				["personalbuyin","買入費"],
-				["personalbuyinfee","買入服務費"],
-				["personalreentrybuyin","再入費"],
-				["personalreentryfee","再入服務費"],
-				["winprice","獎金金額"],
-				["totalbuyin","總買入"],
-				["place","名次"]
+				"personalbuyin",
+				"personalbuyinfee",
+				"personalreentrybuyin",
+				"personalreentryfee",
+				"winprice",
+				"totalbuyin",
+				"place"
 			]
 			for(i=0;i<personalids.length;i=i+1){
-				if(!validatenonnegative(personalids[i][0],personalids[i][1])){
+				if(!validatenonnegative(personalids[i],instantnumberlabel(personalids[i]))){
 					return false
 				}
 			}
 			if(numbervalue("personalreentrycount")>0&&numbervalue("personalreentrybuyin")<=0){
-				showformerror("已設定個人再入次數，請補齊再入費","personalreentrybuyin")
+				showformerror(newsessiontext("needpersonalreentryfee","已設定個人再入次數，請補齊再入費"),"personalreentrybuyin")
 				return false
 			}
 		}
@@ -936,18 +946,18 @@ function aiimportpreview(data){
 	let breaks=0
 	let i=0
 	if(data["name"]){
-		lines.push("名稱："+data["name"])
+		lines.push(newsessiontext("previewname","名稱：")+data["name"])
 	}
 	if(data["startingStack"]!=null&&data["startingStack"]!=undefined){
-		lines.push("起始計分牌："+Number(data["startingStack"]).toLocaleString())
+		lines.push(newsessiontext("previewchip","起始計分牌：")+Number(data["startingStack"]).toLocaleString())
 	}
 	if(data["buyin"]!=null&&data["buyin"]!=undefined){
-		lines.push("買入："+(Number(data["buyin"])==0?"Freeroll (0)":Number(data["buyin"]).toLocaleString()))
+		lines.push(newsessiontext("previewbuyin","買入：")+(Number(data["buyin"])==0?"Freeroll (0)":Number(data["buyin"]).toLocaleString()))
 	}
 	if(data["startTime"]){
-		lines.push("開始時間："+data["startTime"]+(data["startTimeDerived"]?"（由報名截止時間回推）":""))
+		lines.push(newsessiontext("previewstarttime","開始時間：")+data["startTime"]+(data["startTimeDerived"]?newsessiontext("previewderived","（由報名截止時間回推）"):""))
 	}else if(data["regCloseEndTime"]){
-		lines.push("報名截止時間 "+data["regCloseEndTime"]+"：無法回推開始時間（來源未標示報名截止級別），請自行填寫")
+		lines.push(newsessiontext("previewregclose","報名截止時間 ")+data["regCloseEndTime"]+newsessiontext("previewregclosefail","：無法回推開始時間（來源未標示報名截止級別），請自行填寫"))
 	}
 	for(i=0;i<schedule.length;i=i+1){
 		if(schedule[i]["type"]=="break"){
@@ -957,7 +967,7 @@ function aiimportpreview(data){
 		}
 	}
 	if(schedule.length>0){
-		lines.push("賽程結構："+levels+" 級 + "+breaks+" 個休息"+(data["regCloseLevel"]?"，報名截止 L"+data["regCloseLevel"]:""))
+		lines.push(newsessiontext("previewstructure","賽程結構：")+levels+newsessiontext("previewlevelunit"," 級 + ")+breaks+newsessiontext("previewbreakunit"," 個休息")+(data["regCloseLevel"]?newsessiontext("previewregcloselevel","，報名截止 L")+data["regCloseLevel"]:""))
 	}
 	let box=domgetid("aiImportPreview")
 	box.textContent=""
@@ -993,12 +1003,12 @@ function aiimportsession(){
 	let text=textvalue("aiImportText").trim()
 	let status=domgetid("aiImportStatus")
 	if(text==""){
-		status.textContent="請先貼上賽事內容"
+		status.textContent=newsessiontext("aineedtext","請先貼上賽事內容")
 		return
 	}
 	let token=weblsget(WEBLSNAME+"token")
 	field("aiImportBtn").disabled=true
-	let aimsgs=["AI 解析中…","AI 正在思考…","AI 正在整理賽程結構…","就快好了，請稍候…","內容較長，AI 仍在努力，請再等一下…"]
+	let aimsgs=[newsessiontext("aiwait1","AI 解析中…"),newsessiontext("aiwait2","AI 正在思考…"),newsessiontext("aiwait3","AI 正在整理賽程結構…"),newsessiontext("aiwait4","就快好了，請稍候…"),newsessiontext("aiwait5","內容較長，AI 仍在努力，請再等一下…")]
 	let aimsgi=0
 	status.textContent=aimsgs[0]
 	// 等待期間輪播鼓勵訊息，讓使用者知道沒卡住；停在最後一句不回頭，避免像重置。
@@ -1025,24 +1035,24 @@ function aiimportsession(){
 		return response.json()
 	}).then(function(res){
 		if(!res||!res["success"]||!res["data"]){
-			status.textContent="解析失敗，請再試一次"
+			status.textContent=newsessiontext("aiparsefail","解析失敗，請再試一次")
 			return
 		}
 		let data=res["data"]
 		applyaiimport(data)
 		let count=flowstate["aischedule"].length
 		if(data["aiavailable"]==false){
-			status.textContent="AI 未啟用，僅用規則解析結構（"+count+" 項）"
+			status.textContent=newsessiontext("airuleonlyprefix","AI 未啟用，僅用規則解析結構（")+count+newsessiontext("airuleonlysuffix"," 項）")
 		}else if(count>0){
-			status.textContent="已填入欄位，並帶入 "+count+" 個賽程項目（建立場次後自動套用）"
+			status.textContent=newsessiontext("aifilledprefix","已填入欄位，並帶入 ")+count+newsessiontext("aifilledsuffix"," 個賽程項目（建立場次後自動套用）")
 		}else{
-			status.textContent="已填入欄位"
+			status.textContent=newsessiontext("aifilledonly","已填入欄位")
 		}
 	}).catch(function(error){
 		if(error&&error.name=="AbortError"){
-			status.textContent="AI 解析逾時，請縮短內容或稍後再試"
+			status.textContent=newsessiontext("aitimeout","AI 解析逾時，請縮短內容或稍後再試")
 		}else{
-			status.textContent="網路不佳，請重新嘗試"
+			status.textContent=newsessiontext("ainetworkfail","網路不佳，請重新嘗試")
 		}
 	}).finally(function(){
 		clearTimeout(AIABORTTIMER)
@@ -1087,7 +1097,7 @@ function fillselect(id,row,group){
 function loadclublist(){
 	ajax("GET",AJAXURL+"getclublist",function(event,data){
 		let row=[]
-		let html="<option value=\"\">\u8acb\u9078\u64c7\u5730\u9ede</option>"
+		let html="<option value=\"\">"+escapehtml(newsessiontext("selectclubplaceholder","請選擇地點"))+"</option>"
 		let i=0
 		if(data["success"]){
 			row=data["data"]
@@ -1249,7 +1259,7 @@ function bindevents(){
 		if(field("submit").disabled){
 			return
 		}
-		ptsetsubmitstate(field("submit"),true,"建立中...")
+		ptsetsubmitstate(field("submit"),true,newsessiontext("creating","建立中..."))
 		if(!validateallsteps()){
 			ptsetsubmitstate(field("submit"),false)
 			return
@@ -1265,12 +1275,12 @@ function bindevents(){
 					// AI \u532f\u5165\u6709\u5e36\u7d50\u69cb\uff1a\u5efa\u7acb\u5f8c\u7acb\u523b\u628a\u7d50\u69cb\u5b58\u9032\u65b0\u5834\u6b21\uff0c\u518d\u5c0e\u9801\u3002
 					saveaischedule(newid,schedule,function(){
 						weblsset(WEBLSNAME+"aischedule",null)
-						pttoastsuccess("\u65b0\u589e\u6210\u529f")
+						pttoastsuccess(newsessiontext("createsuccess","新增成功"))
 						href("session.html?id="+newid+"#settings")
 					})
 					return
 				}
-				pttoastsuccess("\u65b0\u589e\u6210\u529f")
+				pttoastsuccess(newsessiontext("createsuccess","新增成功"))
 				if(newid){
 					href("session.html?id="+newid+"#settings")
 				}else{
@@ -1281,9 +1291,9 @@ function bindevents(){
 			if(data&&data["data"]=="ERROR_request_timeout"){
 				// 逾時時底層請求可能其實已送達並在後端建立了場次; 若此時重新啟用建立鈕讓使用者立刻再送, 容易造成重複多筆。
 				// 保持建立鈕停用並提示回列表確認, 搭配後端去重雙重把關。
-				ptsetsubmitstate(field("submit"),true,"請回列表確認")
-				innertext("#error","連線逾時，場次可能已建立，請先回場次列表確認，不要重複送出。",false)
-				pttoasterror("連線逾時，場次可能已建立，請先回場次列表確認")
+				ptsetsubmitstate(field("submit"),true,newsessiontext("backtolistcheck","請回列表確認"))
+				innertext("#error",(typeof TRANSLATE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["newsessionpage"]&&TRANSLATE[LANGUAGE]["newsessionpage"]["timeoutwarn"])||"連線逾時，場次可能已建立，請先回場次列表確認，不要重複送出。",false)
+				pttoasterror(newsessiontext("timeouttoast","連線逾時，場次可能已建立，請先回場次列表確認"))
 				return
 			}
 			ptsetsubmitstate(field("submit"),false)

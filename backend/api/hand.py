@@ -16,6 +16,7 @@ from function.sql import *
 from function.thing import *
 from function.function import *
 from .initialize import *
+from .authhelper import gettokenuser as commonauthuser
 
 
 def boolval(value):
@@ -88,23 +89,21 @@ def handtime(value):
 
 
 def getrequestuser(request):
-	header=request.headers.get("Authorization")
-	token=None
-	try:
-		if header:
-			token=header.split("Bearer ")[1]
-	except Exception as error:
-		return (None,errorresponse("ERROR_token_not_found"))
-	if not token:
-		return (None,errorresponse("ERROR_token_not_found"))
-	tokenrow=query(SETTING["dbname"],"""SELECT*FROM "token" WHERE "token"=%s""",[token],SETTING["dbsetting"])
-	if not tokenrow:
-		return (None,errorresponse("ERROR_token_error"))
-	userrow=query(SETTING["dbname"],"""SELECT*FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[tokenrow[0]["userid"]],SETTING["dbsetting"])
-	if not userrow:
-		return (None,errorresponse("ERROR_user_not_found"))
-	return (userrow[0],None)
+	"""Bearer token → 使用者列。**委派給共用的 authhelper.gettokenuser**。
 
+	原本這裡是一份手寫的副本，檢查了 token、也檢查了使用者的 deletetime，
+	但**沒有檢查封禁狀態** —— 共用版本有，而且註明了理由：
+	「封禁時已撤銷 token，這裡再撤一次，避免封禁後才發出的 token 或漏撤的舊 token 仍可用」。
+
+	結果是被封禁（type='ban'）或仍在限時封鎖期（type='block'）的使用者，
+	只要手上的 token 還沒被撤，就能照常呼叫本模組的每一個端點。
+	2026-07-30 稽核發現，改成委派。
+
+	共用版本的 token 解析也比較嚴謹：`getbearertoken()` 會檢查 scheme 是不是
+	bearer（不分大小寫）、處理多餘空白；原本的 `header.split("Bearer ")[1]`
+	連 "Basic xyzBearer abc" 這種都切得出東西。
+	"""
+	return commonauthuser(request)
 
 def gettableandsession(tableid):
 	tablerow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[tableid],SETTING["dbsetting"])
@@ -369,20 +368,145 @@ def loadhanddetailmaps(rows):
 	for i in range(len(rows or [])):
 		handids.append(rows[i]["id"])
 	if not handids:
-		return {},{}
+		return {},{},{},{},{}
 	placeholders=",".join(["%s"]*len(handids))
 	seatingrow=query(SETTING["dbname"],f"""SELECT*FROM "handseating" WHERE "handid" IN ({placeholders}) AND "deletetime" IS NULL ORDER BY "handid" ASC,"seatno" ASC""",handids,SETTING["dbsetting"])
 	bittingrow=query(SETTING["dbname"],f"""SELECT*FROM "handbittingdata" WHERE "handid" IN ({placeholders}) AND "deletetime" IS NULL ORDER BY "handid" ASC,"id" ASC""",handids,SETTING["dbsetting"])
-	return grouprowsbyhandid(seatingrow),grouprowsbyhandid(bittingrow)
+	# TASK-037：公共牌與獎池改由正規化表讀取。一樣批次撈，不在迴圈裡逐手查。
+	communityrow=query(SETTING["dbname"],f"""SELECT*FROM "communitycard" WHERE "handid" IN ({placeholders}) ORDER BY "handid" ASC,"runno" ASC,"id" ASC""",handids,SETTING["dbsetting"])
+	potrow=query(SETTING["dbname"],f"""SELECT*FROM "handpot" WHERE "handid" IN ({placeholders}) ORDER BY "handid" ASC,"runno" ASC,"potno" ASC""",handids,SETTING["dbsetting"])
+	# TASK-038：分配也一起批次撈。handpotallocation 沒有 handid / runno，
+	# 從 handpot 帶出來，讓上層可以直接照 runno 分組。
+	allocationrow=query(SETTING["dbname"],f"""SELECT a.*,p."handid" AS "handid",p."runno" AS "runno" FROM "handpotallocation" a JOIN "handpot" p ON p."id"=a."handpotid" WHERE p."handid" IN ({placeholders}) ORDER BY p."handid" ASC,p."runno" ASC,a."seatno" ASC""",handids,SETTING["dbsetting"])
+	return grouprowsbyhandid(seatingrow),grouprowsbyhandid(bittingrow),grouprowsbyhandid(communityrow),grouprowsbyhandid(potrow),grouprowsbyhandid(allocationrow)
 
 
-def serializehand(hand,withdetail=True,seatingrow=None,bittingrow=None):
+# ── TASK-037：讀取切換到正規化表 ──────────────────────────────────────────
+# 公共牌與總底池改從 communitycard / handpot 讀，hand.boardcard / hand.totalpot
+# 仍然雙寫、仍然留著，只是不再是讀取來源。
+#
+# 對外的 JSON 格式**完全不變**（還是 {"flop": [...],"turn": "","river": ""}），
+# 所以前端不需要跟著改欄位。多 board 的新格式要等 TASK-038 才加上去。
+#
+# 為什麼保留回退到舊欄位：正規化表沒辦法區分「這手翻牌前就結束、本來就沒有公共牌」
+# 與「這手還沒回填」——兩者都是 0 列。所以查不到列時回退讀 hand.boardcard，
+# 兩種情況都會得到正確結果。等 TASK-039 之後仍建議保留這條路徑。
+
+def boardcardfromcommunity(communityrow,runno=1):
+	"""把 communitycard 的列組回 {"flop": [...],"turn": "","river": ""}。"""
+	board={"flop": [],"turn": "","river": ""}
+	found=False
+	for row in communityrow or []:
+		if intval(row.get("runno"),1)!=runno:
+			continue
+		street=str(row.get("street") or "")
+		cards=row.get("cards") or []
+		if isinstance(cards,str):
+			cards=jsonval(cards,[])
+		if street=="flop":
+			board["flop"]=[str(card) for card in cards]
+			found=True
+		if street=="turn" and len(cards)>0:
+			board["turn"]=str(cards[0])
+			found=True
+		if street=="river" and len(cards)>0:
+			board["river"]=str(cards[0])
+			found=True
+	return board,found
+
+
+def boardcardread(handrow,communityrow):
+	board,found=boardcardfromcommunity(communityrow)
+	if found:
+		return board
+	# 回退讀舊欄位。這裡要**正規化成與上面完全相同的形狀**：舊欄位的 turn / river
+	# 可能是 null、flop 可能含空字串，而 TASK-039 停寫之後整個欄位還可能是 NULL。
+	# 不統一的話，同樣是「翻牌前結束」的手牌會因為走哪條路徑而回傳不同形狀
+	# （{"flop":[],"turn":null,...} vs {}），前端就得兩種都防。
+	value=jsonval(handrow.get("boardcard"),{})
+	if not isinstance(value,dict):
+		value={}
+	flop=[]
+	for card in value.get("flop") or []:
+		if card:
+			flop.append(str(card))
+	return {"flop": flop,"turn": value.get("turn") or "","river": value.get("river") or ""}
+
+
+# TASK-038：多 board 的讀取。
+# boardcard 這個舊欄位固定只代表 runno=1，前端還沒改的地方看到的東西完全不變；
+# totalpot 則是**所有 run 的總和**（run it twice 時獎池是拆給各 run 的，
+# 加總才等於這手牌真正的底池，也才與舊資料的語意一致）。
+# 多 board 的完整內容走新增的 boardlist 欄位。
+def boardlistread(handrow,communityrow,potrow,allocationrow=None):
+	runnolist=[]
+	for row in (communityrow or [])+(potrow or []):
+		runno=intval(row.get("runno"),1)
+		if runno not in runnolist:
+			runnolist.append(runno)
+	runnolist.sort()
+	if not runnolist:
+		# 完全沒有正規化列（翻牌前結束，或還沒回填）：回退成單一 run 的舊欄位
+		return [{"runno": 1,"board": boardcardread(handrow,communityrow),"amount": intval(handrow.get("totalpot"),0),"allocationlist": []}]
+	result=[]
+	for runno in runnolist:
+		board,found=boardcardfromcommunity(communityrow,runno)
+		allocationlist=[]
+		for row in allocationrow or []:
+			if intval(row.get("runno"),1)==runno:
+				allocationlist.append({"seatno": intval(row.get("seatno"),0),"amount": intval(row.get("amount"),0)})
+		result.append({
+			"runno": runno,
+			"board": board,
+			"amount": totalpotreadofrun(potrow,runno),
+			"allocationlist": allocationlist
+		})
+	return result
+
+
+def totalpotreadofrun(potrow,runno):
+	amount=0
+	for row in potrow or []:
+		if intval(row.get("runno"),1)==runno:
+			amount=amount+intval(row.get("amount"),0)
+	return amount
+
+
+def totalpotread(handrow,potrow):
+	# 加總所有 run：單 board 時就是那一個池，run it twice 時是拆給各 run 的總和，
+	# 兩種情況都等於這手牌真正的底池，與舊欄位 hand.totalpot 語意一致。
+	amount=0
+	found=False
+	for row in potrow or []:
+		amount=amount+intval(row.get("amount"),0)
+		found=True
+	if found:
+		return amount
+	return intval(handrow.get("totalpot"),0)
+
+
+def serializehand(hand,withdetail=True,seatingrow=None,bittingrow=None,communityrow=None,potrow=None,allocationrow=None):
 	item=dict(hand)
 	item["handcard"]=jsonval(item.get("handcard"),{})
-	item["boardcard"]=jsonval(item.get("boardcard"),{})
+	# TASK-037：公共牌與總底池改讀正規化表。呼叫端沒帶進來時自己查一次，
+	# 清單型端點請務必用 loadhanddetailmaps 批次帶入，避免逐手查。
+	if communityrow is None:
+		communityrow=query(SETTING["dbname"],"""SELECT*FROM "communitycard" WHERE "handid"=%s ORDER BY "runno" ASC,"id" ASC""",[hand["id"]],SETTING["dbsetting"])
+	if potrow is None:
+		potrow=query(SETTING["dbname"],"""SELECT*FROM "handpot" WHERE "handid"=%s ORDER BY "runno" ASC,"potno" ASC""",[hand["id"]],SETTING["dbsetting"])
+	if allocationrow is None:
+		allocationrow=query(SETTING["dbname"],"""SELECT a.*,p."runno" AS "runno" FROM "handpotallocation" a JOIN "handpot" p ON p."id"=a."handpotid" WHERE p."handid"=%s ORDER BY p."runno" ASC,a."seatno" ASC""",[hand["id"]],SETTING["dbsetting"])
+	item["boardcard"]=boardcardread(hand,communityrow)
+	item["totalpot"]=totalpotread(hand,potrow)
+	# TASK-038：多 board 的完整內容。單 board 時 boardlist 只有一筆，
+	# 內容與 boardcard 相同，前端可以逐頁改過去而不必一次全改。
+	item["boardlist"]=boardlistread(hand,communityrow,potrow,allocationrow)
 	item["actionsjson"]=jsonval(item.get("actionsjson"),{})
 	item["adjustments"]=jsonval(item.get("adjustmentsjson"),{})
 	item["familydata"]=jsonval(item.get("familydatajson"),{})
+	# TASK-049：讀出來一律正規化。既有資料裡的 `tournament` 這種場次類型會被
+	# 轉成 HE，所以不必先改資料，前端的牌型分支就已經是對的。
+	item["gametype"]=normalizehandgametype(item.get("gametype"))
 	item["recordtype"]=item.get("recordtype") or "hand"
 	item["exceptiontype"]=item.get("exceptiontype") or ""
 	item["createtime"]=handtime(item.get("createtime"))
@@ -468,14 +592,33 @@ def buildseatmap(sessionrow,tablerow,latesthand):
 	if latesthand:
 		seatingrow=query(SETTING["dbname"],"""SELECT*FROM "handseating" WHERE "handid"=%s AND "deletetime" IS NULL ORDER BY "seatno" ASC""",[latesthand["id"]],SETTING["dbsetting"])
 		latestchips={}
+		# 上一手爆掉 (計分牌歸 0) 的人。判準與 persisthand 的自動淘汰、deletehand 的還原完全一致:
+		# 計分牌已知 (chip>=0 且沒有 UNKNOWN_CHIP) 且 endchip<=0。三處必須同一套, 否則會各自漂移。
+		bustedkeys={}
+		# 統一紀錄 + 連動玩家時, 爆掉當下 persisthand 會把 sessionplayer 的 tableid/seatno 清成 NULL。
+		# 所以「上一手爆掉、現在卻還坐在位子上」只可能是那之後重新入座 (reentry/rebuy) ——
+		# 這種情況要用重新入座寫進 sessionplayer.startchip 的新籌碼, 不可沿用上一手的數字。
+		reentryaware=boolval(sessionrow.get("unifiedhandrecord")) and boolval(sessionrow.get("linkuser"))
 		for item in seatingrow or []:
-			chip=item.get("endchip") or item.get("chip") or 0
+			# endchip 為 0 是「輸光」這個有效值, 不是「沒有值」。這裡曾經寫成 endchip or chip,
+			# 0 被當成假值而退回該手開打前的籌碼 —— 重進的人因此拿到爆掉前的堆疊而不是重進籌碼。
+			chip=item.get("endchip")
+			if chip is None:
+				chip=item.get("chip")
+			if chip is None:
+				chip=0
+			key=None
 			if item.get("sessionplayerid"):
-				latestchips["sp:"+str(item["sessionplayerid"])]=chip
+				key="sp:"+str(item["sessionplayerid"])
 			elif item.get("userid"):
-				latestchips["u:"+str(item["userid"])]=chip
+				key="u:"+str(item["userid"])
 			elif item.get("name"):
-				latestchips["n:"+str(item["name"])]=chip
+				key="n:"+str(item["name"])
+			if key:
+				latestchips[key]=chip
+				unknownchip=("UNKNOWN_CHIP" in str(item.get("specialbutton") or "")) or intval(item.get("chip"),0)<0
+				if not unknownchip and intval(chip,0)<=0:
+					bustedkeys[key]=True
 		for seatno in range(1,len(seatmap)):
 			item=seatmap[seatno]
 			if not item:
@@ -488,8 +631,11 @@ def buildseatmap(sessionrow,tablerow,latesthand):
 			elif item.get("name"):
 				key="n:"+str(item["name"])
 			if key and key in latestchips:
-				item["chip"]=latestchips[key]
-				item["unknownchip"]=intval(latestchips[key],0)<0
+				# 重新入座過的人保留 sessionplayer.startchip, 不套用上一手的結果。
+				reenteredseat=reentryaware and (key in bustedkeys)
+				if not reenteredseat:
+					item["chip"]=latestchips[key]
+					item["unknownchip"]=intval(latestchips[key],0)<0
 	return seatmap
 
 
@@ -726,11 +872,11 @@ def gethandlist(request,tableid):
 		ORDER BY h."createtime" DESC,h."id" DESC
 	""",params,SETTING["dbsetting"])
 	data=[]
-	seatingmap,bittingmap=loadhanddetailmaps(rows)
+	seatingmap,bittingmap,communitymap,potmap,allocationmap=loadhanddetailmaps(rows)
 	latestmap=latesthandidmap([rows[i]["tableid"] for i in range(len(rows or []))])
 	for i in range(len(rows or [])):
 		handid=rows[i]["id"]
-		item=serializehand(rows[i],True,seatingmap.get(handid,[]),bittingmap.get(handid,[]))
+		item=serializehand(rows[i],True,seatingmap.get(handid,[]),bittingmap.get(handid,[]),communitymap.get(handid,[]),potmap.get(handid,[]),allocationmap.get(handid,[]))
 		canmodify=rows[i]["userid"]==userrow["id"] or access["canunifiedrecord"]
 		item["islatest"]=str(latestmap.get(rows[i]["tableid"]))==str(handid)
 		# 非最新一筆只能改不影響計分牌的欄位（備註等），故 canedit 仍看權限；但刪除只允許最新一筆，以免後面手牌起始碼量錯亂。
@@ -770,11 +916,11 @@ def getsessionhandlist(request,sessionid):
 		ORDER BY h."createtime" DESC,h."id" DESC
 	""",params,SETTING["dbsetting"])
 	data=[]
-	seatingmap,bittingmap=loadhanddetailmaps(rows)
+	seatingmap,bittingmap,communitymap,potmap,allocationmap=loadhanddetailmaps(rows)
 	latestmap=latesthandidmap([rows[i]["tableid"] for i in range(len(rows or []))])
 	for i in range(len(rows or [])):
 		handid=rows[i]["id"]
-		item=serializehand(rows[i],True,seatingmap.get(handid,[]),bittingmap.get(handid,[]))
+		item=serializehand(rows[i],True,seatingmap.get(handid,[]),bittingmap.get(handid,[]),communitymap.get(handid,[]),potmap.get(handid,[]),allocationmap.get(handid,[]))
 		canmodify=rows[i]["userid"]==userrow["id"] or access["canunifiedrecord"]
 		item["islatest"]=str(latestmap.get(rows[i]["tableid"]))==str(handid)
 		isquickhand=rows[i].get("recordtype")=="quickhand"
@@ -828,10 +974,10 @@ def getbroadcasthandlist(request,sessionid):
 			ORDER BY h."createtime" DESC,h."id" DESC
 		""",params,SETTING["dbsetting"])
 	data=[]
-	seatingmap,bittingmap=loadhanddetailmaps(rows)
+	seatingmap,bittingmap,communitymap,potmap,allocationmap=loadhanddetailmaps(rows)
 	for i in range(len(rows or [])):
 		handid=rows[i]["id"]
-		item=serializehand(rows[i],True,seatingmap.get(handid,[]),bittingmap.get(handid,[]))
+		item=serializehand(rows[i],True,seatingmap.get(handid,[]),bittingmap.get(handid,[]),communitymap.get(handid,[]),potmap.get(handid,[]),allocationmap.get(handid,[]))
 		if not showcard:
 			item=maskholecards(item)
 		data.append(item)
@@ -972,14 +1118,29 @@ def gethand(request,handid):
 
 
 def cardlistfrompair(value):
+	# 依牌型回傳實際存在的底牌（Hold'em 2、Omaha 4、Omaha5 5…），讀 card1..card5。
 	cards=[]
 	if not value:
 		return cards
-	if value.get("card1"):
-		cards.append(value.get("card1"))
-	if value.get("card2"):
-		cards.append(value.get("card2"))
+	for i in range(1,6):
+		card=value.get("card"+str(i))
+		if card:
+			cards.append(card)
 	return cards
+
+
+def besthandscore(cardstrlist,boardeval):
+	# 依底牌張數判定牌型：>=4 走奧馬哈（手恰 2 張 × 板恰 3 張）、否則自由組合最佳 5 張。
+	handeval=[eval7.Card(card) for card in cardstrlist]
+	if len(cardstrlist)>=4 and len(boardeval)>=3:
+		best=None
+		for holepair in itertools.combinations(handeval,2):
+			for boardtriple in itertools.combinations(boardeval,3):
+				score=eval7.evaluate(list(holepair)+list(boardtriple))
+				if best is None or score>best:
+					best=score
+		return best
+	return eval7.evaluate(handeval+boardeval)
 
 
 def boardcardsfromdata(value): 
@@ -997,6 +1158,120 @@ def boardcardsfromdata(value):
 	if value.get("river"): 
 		cards.append(value.get("river")) 
 	return cards 
+
+
+# ── TASK-039：停寫舊欄位的開關 ──────────────────────────────────────────
+# 正規化表（communitycard / handpot / handpotallocation）穩定之後，hand.boardcard
+# 與 hand.totalpot 就只是歷史遺留。依專案規則**欄位保留、不刪不改名**，只停止寫入。
+#
+# 預設仍為 True（照舊寫入）。要停寫時把這個常數改成 False 就好，改回來也只是一行，
+# 兩個方向都不影響已經寫進去的資料。何時停寫由使用者決定，不由 agent 自行決定。
+#
+# handseating.winnered **不在這個開關的範圍內**，必須繼續寫。原因有二：
+#   1. timer.py:sessionknockoutcounts() 直接用 SQL JOIN winnered=true/false 算擊敗數。
+#   2. serializehand() 的 result（本手淨增減）要靠 winnered 判斷是否加回贏得的池。
+# 而 handpotallocation 只記錄金額>0 的分配，表達不了「贏了但分到 0」的座位，
+# 所以它不能取代 winnered。
+WRITEOLDBOARDFIELDED=True
+
+
+# ── TASK-035：雙寫正規化表 ────────────────────────────────────────────────
+# 新手牌在寫 hand.boardcard / hand.totalpot / handseating.winnered 的同時，
+# 也寫進 communitycard / handpot / handpotallocation。讀取路徑完全不動，
+# 這個階段對使用者無感，目的是先讓新資料在正規化表裡是正確的。
+#
+# TASK-038 起 runno 不再固定為 1：run it twice / 三次以上都用同一組表達，
+# 第 n 次發出來的公共牌與該次分掉的獎池都是 runno=n。沒有指定 runlist 時
+# 行為與 TASK-035 完全相同（單一 runno=1），所以既有呼叫端不受影響。
+#
+# 分配的對象用 seatno 而不是 winnerplayerid：handseating 與 handbittingdata
+# 都是用 handid + seatno 當對象，這裡跟著同一個粒度。winnerplayerid 保留欄位
+# 但不寫入（它屬於已廢棄的 org/player 模型，見 tool/migratehandpotallocation.py）。
+#
+# 全部 append 進呼叫端的 sqllist，所以與 handseating / handbittingdata 同一個交易，
+# 失敗會一起回退，不會留下只寫一半的手牌。
+
+def splitpotbyrun(totalpot,runcount):
+	"""把獎池平均分成 runcount 份。除不盡的餘數依慣例給較前面的 run。"""
+	amount=intval(totalpot,0)
+	if runcount<=1:
+		return [amount]
+	base=amount//runcount
+	remain=amount-base*runcount
+	sharelist=[]
+	for index in range(runcount):
+		share=base
+		if index<remain:
+			share=share+1
+		sharelist.append(share)
+	return sharelist
+
+
+def normalizerunlist(boardcard,totalpot,allocationlist,runlist):
+	"""把「單 board 舊格式」與「多 board 新格式」統一成同一種內部結構。
+
+	回傳 [{"board": {...},"amount": int,"allocationlist": [{"seatno","amount"}]}]，
+	索引 0 就是 runno=1。runlist 沒帶或只有一筆時，結果與 TASK-035 完全相同。
+	"""
+	if not isinstance(runlist,list) or len(runlist)<1:
+		return [{"board": boardcard if isinstance(boardcard,dict) else {},"amount": intval(totalpot,0),"allocationlist": allocationlist or []}]
+
+	# 每個 run 的金額：呼叫端有給就用給的，沒給就把總池平均分。
+	explicited=True
+	for item in runlist:
+		if not isinstance(item,dict) or item.get("amount") is None:
+			explicited=False
+	sharelist=splitpotbyrun(totalpot,len(runlist))
+	result=[]
+	for index in range(len(runlist)):
+		item=runlist[index] if isinstance(runlist[index],dict) else {}
+		amount=intval(item.get("amount"),0) if explicited else sharelist[index]
+		result.append({
+			"board": item.get("board") if isinstance(item.get("board"),dict) else {},
+			"amount": amount,
+			"allocationlist": item.get("allocationlist") or []
+		})
+	return result
+
+
+def normalizedwritesql(handid,boardcard,totalpot,allocationlist,runlist=None):
+	"""回傳要 append 進 sqllist 的 (sql,args) 清單。呼叫端負責放進交易。"""
+	sqllist=[]
+	# 編輯既有手牌時先清掉舊的，與 handseating / handbittingdata 的做法一致。
+	# handpotallocation 沒有 handid，要透過 handpot 繞一層。
+	sqllist.append(['DELETE FROM "handpotallocation" WHERE "handpotid" IN (SELECT "id" FROM "handpot" WHERE "handid"=%s)',[handid]])
+	sqllist.append(['DELETE FROM "handpot" WHERE "handid"=%s',[handid]])
+	sqllist.append(['DELETE FROM "communitycard" WHERE "handid"=%s',[handid]])
+
+	runitemlist=normalizerunlist(boardcard,totalpot,allocationlist,runlist)
+	for index in range(len(runitemlist)):
+		runno=index+1
+		runitem=runitemlist[index]
+		board=runitem["board"]
+		# flop 是陣列、turn / river 是單張字串。實測（TASK-034）452 筆全部是這個形態，
+		# 且 flop 可能是空陣列、turn / river 可能是 null —— 都是正常的「牌還沒發到」。
+		streetlist=[
+			("flop",board.get("flop")),
+			("turn",board.get("turn")),
+			("river",board.get("river"))
+		]
+		for street,value in streetlist:
+			cards=[]
+			if isinstance(value,list):
+				cards=[str(x) for x in value if x]
+			elif value:
+				cards=[str(value)]
+			if cards:
+				sqllist.append(['INSERT INTO "communitycard"("handid","runno","street","cards","createtime","updatetime")VALUES(%s,%s,%s,%s,NOW(),NOW())',[handid,runno,street,cards]])
+
+		# 每個 run 目前只記一個主池。主池／邊池的拆分還沒有資料來源，
+		# 那是另一個題目（allin 邊池），不在多 board 的範圍內。
+		potamount=intval(runitem["amount"],0)
+		if potamount>0 or runitem["allocationlist"]:
+			sqllist.append(['INSERT INTO "handpot"("handid","runno","potno","amount","ismain","createtime","updatetime")VALUES(%s,%s,%s,%s,%s,NOW(),NOW())',[handid,runno,1,potamount,True]])
+			for item in runitem["allocationlist"]:
+				sqllist.append(['INSERT INTO "handpotallocation"("handpotid","seatno","amount","createtime","updatetime")SELECT "id",%s,%s,NOW(),NOW() FROM "handpot" WHERE "handid"=%s AND "runno"=%s AND "potno"=%s',[item["seatno"],intval(item["amount"],0),handid,runno,1]])
+	return sqllist
 
 
 @api_view(["POST"])
@@ -1018,7 +1293,7 @@ def solvehandwinner(request):
 		seats=[]
 		selfseat=intval(data.get("selfseating"),0)
 		herocards=cardlistfrompair(data.get("handcard") or {})
-		if selfseat and len(herocards)==2:
+		if selfseat and len(herocards)>=2:
 			seats.append({
 				"seat": selfseat,
 				"cards": herocards
@@ -1028,7 +1303,7 @@ def solvehandwinner(request):
 			row=showdowndata[key]
 			if boolval(row.get("shown")):
 				cards=cardlistfrompair(row)
-				if len(cards)==2:
+				if len(cards)>=2:
 					seatno=intval(key,0)
 					existed=False
 					for i in range(len(seats)):
@@ -1043,8 +1318,7 @@ def solvehandwinner(request):
 		results=[]
 		bestscore=None
 		for i in range(len(seats)):
-			handcards=[eval7.Card(seats[i]["cards"][0]),eval7.Card(seats[i]["cards"][1])]
-			score=eval7.evaluate(handcards+board)
+			score=besthandscore(seats[i]["cards"],board)
 			results.append({
 				"seat": seats[i]["seat"],
 				"score": score,
@@ -1061,14 +1335,56 @@ def solvehandwinner(request):
 		return errorresponse("ERROR_request_data_type_error")
 
 
+# ── TASK-049：牌型代碼的單一事實來源 ─────────────────────────────────────
+# hand.gametype 存的應該是**牌型代碼**（HE/OM/O5/SD/ST/RA/AS/AD/AT/DS/DD/DT），
+# 與 frontend/handgame/ 各檔註冊的 code 對齊。
+#
+# 但實測（2026-07-29，測試機 527 手）發現有 50 手存的是 `tournament`——那是
+# **場次類型**不是牌型代碼，來自寫入時 `data.get("gametype") or sessionrow.get("gametype")`
+# 這個回退。那 50 手剛好都是 2 張底牌，所以判成非奧馬哈剛好猜對；只要有人在
+# tournament 場次記一手奧馬哈，最佳五張就會用德州規則選牌（奧馬哈必須剛好
+# 2 張底牌 + 3 張公牌），顯示的牌型會錯，而且不會報任何錯。
+#
+# O8 只出現在 equity 端點的 hi-lo 判斷，前端 handgame 尚未註冊，一併列入合法值
+# 以免 equity 的既有行為被這次正規化擋掉。
+#
+# BO（5 張奧馬哈高低 / Big O）於 2026-07-29 加入。代碼不是新造的：資料庫 gametype
+# 表 id=5 早就有 code='BO'、name='Omaha5 Hi-Lo'、description='5張奧馬哈高低(Big O)'，
+# 這裡沿用該表的代碼，避免同一個牌型在兩個地方叫不同名字。
+#
+# 這份清單仍**不等於** gametype 表的全部：該表另有 S8（7張梭哈高低）、CP（瘋狂菠蘿）、
+# SH（超級德州）、BU（巴杜基）、ZZ（其他）尚未實作，所以刻意不列入 —— 列進來只會讓
+# normalizehandgametype 放行一個下游沒有任何分支處理的代碼。
+HANDGAMECODELIST=["HE","OM","O5","O8","BO","SD","ST","RA","AS","AD","AT","DS","DD","DT"]
+
+
+def normalizehandgametype(value):
+	"""把 gametype 正規化成合法的牌型代碼。認不得的一律當德州（2 張底牌）。
+
+	認不得就回 HE 而不是原樣保留，是因為所有下游分支（奧馬哈 / 短牌 / hi-lo /
+	底牌張數）都只認得清單裡的代碼，保留原值等於讓每個分支各自去猜。
+	既有那 50 筆 `tournament` 實際上就是 2 張底牌的德州，回 HE 是正確的。
+	"""
+	code=str(value or "").strip().upper()
+	if code in HANDGAMECODELIST:
+		return code
+	return "HE"
+
+
 def equityomahaed(gametype):
-	if gametype=="OM" or gametype=="O8" or gametype=="O5":
+	"""是否套用奧馬哈的選牌限制：底牌剛好 2 張 + 公共牌剛好 3 張。
+
+	Big O（BO）是 5 張底牌的奧馬哈高低，選牌限制與 4 張的完全一樣（仍是 2+3），
+	差別只在發到手上的底牌張數，所以這裡與其他奧馬哈同組。
+	"""
+	if gametype=="OM" or gametype=="O8" or gametype=="O5" or gametype=="BO":
 		return True
 	return False
 
 
 def equityhiloed(gametype):
-	if gametype=="O8":
+	"""是否為高低分池（8-or-better）。O8 是 4 張底牌，BO 是 5 張底牌。"""
+	if gametype=="O8" or gametype=="BO":
 		return True
 	return False
 
@@ -1080,7 +1396,7 @@ def equityshortdecked(gametype):
 
 
 def equityholecount(gametype):
-	if gametype=="O5":
+	if gametype=="O5" or gametype=="BO":
 		return 5
 	if equityomahaed(gametype):
 		return 4
@@ -1315,6 +1631,51 @@ def equitylowscore(handcardlist,board5,gametype):
 	return bestlow
 
 
+def equitylowbestdata(handcardlist,board5,gametype):
+	"""這一手的最佳低牌：回傳點數 tuple 與**實際用到的五張牌**。
+
+	既有的 equitylowscore() 只回點數，那足以判斷誰的低牌好，
+	但不夠讓前端知道要標記哪五張、也不夠讓人核對分池是否合理。
+	規則與 equitylowscore() 完全相同（底牌恰 2 張 + 公共牌恰 3 張、
+	五張點數都 <=8 且不重複、A 算 1），這裡只是多帶回牌。
+	"""
+	if equityhiloed(gametype)==False:
+		return None
+	if len(board5)<5:
+		return None
+	bestlow=None
+	bestcard=[]
+	for hc in itertools.combinations(handcardlist,2):
+		for bc in itertools.combinations(board5,3):
+			combo=list(hc)+list(bc)
+			lowvaluelist=[]
+			valided=True
+			for i in range(len(combo)):
+				rankchar=equityrankchar(combo[i])
+				rankvalue=equityrankvalue(rankchar)
+				if rankvalue==14:
+					rankvalue=1
+				if rankvalue>8:
+					valided=False
+					break
+				if rankvalue in lowvaluelist:
+					valided=False
+					break
+				lowvaluelist.append(rankvalue)
+			if valided==False:
+				continue
+			lowtuple=tuple(sorted(lowvaluelist,reverse=True))
+			if bestlow is None or lowtuple<bestlow:
+				bestlow=lowtuple
+				bestcard=[equitycardtext(x) for x in combo]
+	if bestlow is None:
+		return None
+	return {
+		"value": bestlow,
+		"cardlist": bestcard
+	}
+
+
 def equitysolebest(handlist,board,gametype):
 	scores=[]
 	for i in range(len(handlist)):
@@ -1500,6 +1861,13 @@ def equity(request):
 				iters=3000
 			if hiloed:
 				iters=3000
+			# Big O 每副牌每家要算 C(5,2)*C(5,3)=100 組高牌再加 100 組低牌，
+			# 是 O8（4 張底牌，60+60）的 1.67 倍。實測 6 人 3000 次要 4.0 秒，
+			# 對一個每次選牌就重算的工具頁太慢；降到 2000 後約 2.7 秒，
+			# 與 O8 6 人的 2.5 秒相當。分池份額只取 0/0.25/0.5/0.75/1 這幾個值，
+			# 變異比純輸贏小，2000 次的抽樣誤差在顯示的整數百分比內看不出來。
+			if gametype=="BO":
+				iters=2000
 			if shortdecked:
 				iters=6000
 			rem=remaining[:] 
@@ -1527,6 +1895,20 @@ def equity(request):
 					"bestcardlist": []
 				})
 				currentscorelist.append(None)
+		# TASK-072：hi-lo 的低池贏家。前端的「快速解算」是打這個端點（不是 solvehandwinner），
+		# 原本只讀 bested（高牌贏家），低池等於沒有答案。這裡算出「達到全場最好低牌」的那幾手，
+		# 前端才有辦法把底池拆一半給低池。
+		#
+		# 只有公共牌發完（len(board)>=5）才算：低牌必須用 3 張公共牌，牌沒發完無從判斷。
+		# 沒有任何一家湊出合格低牌時 lowbestvalue 會是 None，前端據此讓高牌贏家整池全拿（scoop）。
+		lowdatalist=[]
+		lowbestvalue=None
+		for i in range(n):
+			lowdata=equitylowbestdata(handlist[i],board,gametype)
+			lowdatalist.append(lowdata)
+			if lowdata is not None:
+				if lowbestvalue is None or lowdata["value"]<lowbestvalue:
+					lowbestvalue=lowdata["value"]
 		results=[]  
 		for i in range(n):    
 			winp=wins[i]/total*100 
@@ -1561,13 +1943,20 @@ def equity(request):
 							handstatus="chop_out"
 						else: 
 							handstatus="need_flop" 
-			elif hiloed:  
-				if winp>=100 and tiep<=0:
+			elif hiloed:
+				# hi-lo 的 winp 是**平均分池份額**、tiep 是**通吃率**，兩者不互斥。
+				# 舊寫法要求 winp>=100 且 tiep<=0 才算鎖定獲勝 —— 那組條件在 hi-lo
+				# 永遠不成立（份額 100% 就代表每副牌都通吃，tiep 必然也是 100），
+				# 所以狀態一直是空字串，畫面上永遠不顯示任何結論。
+				#
+				# 只有公共牌發完（need<=0，settle 只跑一次、winp 是精確值）才敢下定論；
+				# 蒙地卡羅抽樣出來的 0% 可能只是樣本不夠，不足以判成聽死牌。
+				if len(board)>=5 and winp>=100:
 					handstatus="win"
-				elif winp<=0 and tiep>=100:
-					handstatus="tie_only"
+				elif len(board)>=5 and winp<=0:
+					handstatus="drawing_dead"
 				else:
-					handstatus=""  
+					handstatus=""
 			else:    
 				sole=equitysolebest(handlist,board,gametype)    
 				if sole==i:    
@@ -1610,6 +1999,12 @@ def equity(request):
 								break  
 					else:  
 						handstatus="drawing_dead"  
+			lowwinnered=False
+			lowcardlist=[]
+			if lowdatalist[i] is not None:
+				lowcardlist=lowdatalist[i]["cardlist"]
+				if lowbestvalue is not None and lowdatalist[i]["value"]==lowbestvalue:
+					lowwinnered=True
 			results.append({   
 				"index": i,   
 				"gametype": gametype,
@@ -1620,7 +2015,11 @@ def equity(request):
 				"outlist": outs,  
 				"outs": outs,   
 				"chopoutlist": chopouts,
-				"status": handstatus  
+				"status": handstatus,
+				# hi-lo 專用：這一手有沒有贏得低池、以及它最佳低牌用到的五張。
+				# 非 hi-lo 牌型固定回 False 與空陣列，既有呼叫端完全不受影響。
+				"lowwinnered": lowwinnered,
+				"lowcardlist": lowcardlist
 			})   
 		return Response({"success": True,"data": {"resultlist": results,"results": results}},status.HTTP_200_OK) 
 	except Exception as error: 
@@ -1763,9 +2162,12 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 		if tokenrow:
 			nextno=intval(tokenrow[0]["nextno"],1)
 		handtoken=tokenprefix+str(nextno).zfill(4)
+		# TASK-039：停寫開關關掉時，兩個舊欄位寫 NULL（欄位仍在，只是不再有內容）。
+		oldboardcardvalue=json.dumps(data.get("boardcard")) if WRITEOLDBOARDFIELDED else None
+		oldtotalpotvalue=totalpot if WRITEOLDBOARDFIELDED else None
 		handid=query(SETTING["dbname"],"""INSERT INTO "hand"("token","userid","tableid","dealerseat","selfseating","handcard","boardcard","totalpot","gametype","blindlevel","levelid","smallblind","bigblind","bigblindante","ante","emptybutton","deadsmallblind","actionsjson","adjustmentsjson","recordtype","exceptiontype","ps","note","familydatajson","handtime","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s)""",[
-			handtoken,userrow["id"],tableid,data.get("dealerseat"),selfseating,json.dumps(data.get("handcard")),json.dumps(data.get("boardcard")),totalpot,
-			data.get("gametype") or sessionrow.get("gametype") or "holdem",data.get("blindlevel") or "",data.get("levelid"),data.get("smallblind") or 0,data.get("bigblind") or 0,
+			handtoken,userrow["id"],tableid,data.get("dealerseat"),selfseating,json.dumps(data.get("handcard")),oldboardcardvalue,oldtotalpotvalue,
+			normalizehandgametype(data.get("gametype")),data.get("blindlevel") or "",data.get("levelid"),data.get("smallblind") or 0,data.get("bigblind") or 0,
 			data.get("bigblindante") or 0,data.get("ante") or 0,boolval(data.get("emptybutton")),boolval(data.get("deadsmallblind")),json.dumps(data.get("actionsjson") or []),
 			json.dumps(data.get("adjustments") or {}),recordtype,data.get("exceptiontype") or "",data.get("ps") or data.get("note") or "",data.get("note") or data.get("ps") or "",json.dumps(data.get("familydata") or {}),nowtime()
 		],SETTING["dbsetting"])
@@ -1774,9 +2176,12 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 	else:
 		# 編輯最新一手：更新 hand 主檔，並清掉舊的座位/下注紀錄以便整手重建（皆在同一交易內）
 		handid=edithandid
+		# TASK-039：同上，編輯路徑也一起停寫。
+		oldboardcardvalue=json.dumps(data.get("boardcard")) if WRITEOLDBOARDFIELDED else None
+		oldtotalpotvalue=totalpot if WRITEOLDBOARDFIELDED else None
 		sqllist.append(["""UPDATE "hand" SET "dealerseat"=%s,"selfseating"=%s,"handcard"=%s,"boardcard"=%s,"totalpot"=%s,"gametype"=%s,"blindlevel"=%s,"levelid"=%s,"smallblind"=%s,"bigblind"=%s,"bigblindante"=%s,"ante"=%s,"emptybutton"=%s,"deadsmallblind"=%s,"actionsjson"=%s,"adjustmentsjson"=%s,"familydatajson"=%s,"recordtype"=%s,"exceptiontype"=%s,"ps"=%s,"note"=%s,"updatetime"=%s WHERE "id"=%s""",[
-			data.get("dealerseat"),selfseating,json.dumps(data.get("handcard")),json.dumps(data.get("boardcard")),totalpot,
-			data.get("gametype") or sessionrow.get("gametype") or "holdem",data.get("blindlevel") or "",data.get("levelid"),data.get("smallblind") or 0,data.get("bigblind") or 0,
+			data.get("dealerseat"),selfseating,json.dumps(data.get("handcard")),oldboardcardvalue,oldtotalpotvalue,
+			normalizehandgametype(data.get("gametype")),data.get("blindlevel") or "",data.get("levelid"),data.get("smallblind") or 0,data.get("bigblind") or 0,
 			data.get("bigblindante") or 0,data.get("ante") or 0,boolval(data.get("emptybutton")),boolval(data.get("deadsmallblind")),json.dumps(data.get("actionsjson") or []),
 			json.dumps(data.get("adjustments") or {}),json.dumps(data.get("familydata") or {}),recordtype,data.get("exceptiontype") or "",data.get("ps") or data.get("note") or "",data.get("note") or data.get("ps") or "",nowtime(),handid
 		]])
@@ -1788,6 +2193,8 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 	adjustments=data.get("adjustments") or {}
 	bustedplayers=[]
 	insertedseats=set()
+	# TASK-035：雙寫正規化表用。收集「哪個座位分走多少」，與 handseating 同一個粒度。
+	allocationlist=[]
 	for seatno in range(1,len(seatinglist)):
 		if seatinglist[seatno]!=False and seatinglist[seatno] is not None:
 			seat=seatinglist[seatno]
@@ -1820,6 +2227,8 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 				handid,seatno,seat.get("name") or "",chip,json.dumps(seatcard),boolval(seat.get("banned")),ppot,endchip,winnered,seat.get("userid"),seat.get("sessionplayerid"),specialbutton,nowtime()
 			]])
 			insertedseats.add(seatno)
+			if winnered and intval(wpot,0)>0:
+				allocationlist.append({"seatno": seatno,"amount": intval(wpot,0)})
 			if recordtype=="hand" and boolval(sessionrow.get("unifiedhandrecord")) and boolval(sessionrow.get("linkuser")) and not unknownchip and intval(endchip,0)<=0 and seat.get("sessionplayerid") and seat.get("userid"):
 				bustedplayers.append({"sessionplayerid": seat.get("sessionplayerid"),"userid": seat.get("userid"),"chip": intval(chip,0)})
 	if recordtype=="hand" and boolval(sessionrow.get("unifiedhandrecord")) and boolval(sessionrow.get("linkuser")) and bustedplayers:
@@ -1856,10 +2265,8 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 		seatcard=None
 		key=str(bseat)
 		if key in showdowndata and showdowndata[key].get("shown")==True:
-			seatcard={
-				"card1": showdowndata[key].get("card1"),
-				"card2": showdowndata[key].get("card2")
-			}
+			# 保留全部底牌（奧馬哈 4-5 張、短牌 2 張），不只 card1/card2，與主路徑一致
+			seatcard={cardkey:showdowndata[key].get(cardkey) for cardkey in showdowndata[key] if str(cardkey).startswith("card") and showdowndata[key].get(cardkey)}
 		winnered=True if bseat<len(winner) and winner[bseat]==True else False
 		ppot=positionpot[bseat] if bseat<len(positionpot) and positionpot[bseat] is not None and positionpot[bseat] is not False else 0
 		wpot=winnerprice[bseat] if bseat<len(winnerprice) and winnerprice[bseat] is not None and winnerprice[bseat] is not False else 0
@@ -1880,6 +2287,8 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 			handid,bseat,oldseat.get("name") or "",chip,json.dumps(seatcard),boolval(oldseat.get("banned")),ppot,endchip,winnered,oldseat.get("userid"),oldseat.get("sessionplayerid"),specialbutton,nowtime()
 		]])
 		insertedseats.add(bseat)
+		if winnered and intval(wpot,0)>0:
+			allocationlist.append({"seatno": bseat,"amount": intval(wpot,0)})
 	for btype in bittingdata:
 		for actiondata in bittingdata[btype]:
 			action=actiondata.get("action")
@@ -1888,6 +2297,26 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 			sqllist.append(["""INSERT INTO "handbittingdata"("handid","type","seatno","action","chip","timebank","blinded","bbed","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)""",[
 				handid,btype,actiondata.get("seat"),action,actiondata.get("chip") or 0,actiondata.get("timebank") or 0,boolval(actiondata.get("isBlind")),boolval(actiondata.get("isSB")),nowtime()
 			]])
+	# TASK-035：雙寫正規化表。放在最後 append，確保與 handseating / handbittingdata
+	# 在同一個交易裡，失敗會一起回退。
+	# TASK-038：前端如果送了 runlist（run it twice 以上），就照各 run 分別寫入
+	# runno=1..N；沒送就維持單一 runno=1，行為與之前完全相同。
+	# runlist 每一筆的格式與既有 payload 一致：{"board": {...},"winner": [...],"winnerprice": [...]}，
+	# winner / winnerprice 都是以座位號為索引的陣列，和最外層那組同一種寫法。
+	writerunlist=[]
+	if isinstance(data.get("runlist"),list) and len(data.get("runlist"))>0:
+		for runitem in data.get("runlist"):
+			runwinner=runitem.get("winner") or []
+			runwinnerprice=runitem.get("winnerprice") or []
+			runallocationlist=[]
+			for seatno in range(len(runwinner)):
+				runwinnered=True if runwinner[seatno]==True else False
+				runamount=runwinnerprice[seatno] if seatno<len(runwinnerprice) and runwinnerprice[seatno] is not None and runwinnerprice[seatno] is not False else 0
+				if runwinnered and intval(runamount,0)>0:
+					runallocationlist.append({"seatno": seatno,"amount": intval(runamount,0)})
+			writerunlist.append({"board": runitem.get("board"),"amount": runitem.get("amount"),"allocationlist": runallocationlist})
+	for item in normalizedwritesql(handid,data.get("boardcard"),totalpot,allocationlist,writerunlist):
+		sqllist.append(item)
 	if sqllist:
 		transactionresult=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
 		if transactionresult is None:
@@ -2057,7 +2486,12 @@ def deletehand(request,handid):
 	sqllist=[
 		["""UPDATE "hand" SET "deletetime"=NOW() WHERE "id"=%s""",[handid]],
 		["""UPDATE "handseating" SET "deletetime"=NOW() WHERE "handid"=%s""",[handid]],
-		["""UPDATE "handbittingdata" SET "deletetime"=NOW() WHERE "handid"=%s""",[handid]]
+		["""UPDATE "handbittingdata" SET "deletetime"=NOW() WHERE "handid"=%s""",[handid]],
+		# TASK-035：正規化表跟著一起軟刪除，否則刪掉的手牌會在正規化表裡留下孤兒列，
+		# 等 TASK-037 切換讀取路徑之後就會讀到已刪除的手牌。
+		["""UPDATE "communitycard" SET "deletetime"=NOW() WHERE "handid"=%s""",[handid]],
+		["""UPDATE "handpotallocation" SET "deletetime"=NOW() WHERE "handpotid" IN (SELECT "id" FROM "handpot" WHERE "handid"=%s)""",[handid]],
+		["""UPDATE "handpot" SET "deletetime"=NOW() WHERE "handid"=%s""",[handid]]
 	]+restorelist
 	transactionresult=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
 	if transactionresult is None:
