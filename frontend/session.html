@@ -183,6 +183,7 @@
 				<div class="mb-4 border-b border-zinc-800 flex justify-around md:justify-start">
 					<input type="button" class="othertab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-i18n-value="sessionpage.tabsettings" data-othertab="settings" value="設定">
 					<input type="button" class="othertab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-i18n-value="sessionpage.tablink" data-othertab="relations" value="關聯">
+					<input type="button" class="othertab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-i18n-value="sessionpage.tabstaff" data-othertab="staff" value="員工">
 					<input type="button" class="othertab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-i18n-value="sessionpage.tabinfo" data-othertab="orderinfo" value="資訊">
 				</div>
 				<div id="othertab-settings" class="othertab-content">
@@ -201,11 +202,15 @@
 					<div id="relationscontent" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8"></div>
 					<div id="seriesattach" class="mt-4 hidden rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8"></div>
 				</div>
+				<div id="othertab-staff" class="othertab-content hidden">
+					<div id="staffworkcontent" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8"></div>
+				</div>
 				<div id="othertab-orderinfo" class="othertab-content hidden">
-					<div id="orderinfocontent" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8" data-i18n="sessionpage.orderinfoprefix">
-						場次id: #<span id="sessiontoken"></span>
-						querykey: <span id="sessionid"></span>
-					</div>
+					<!-- 內容由 session.js 的 rendersessionorderinfo() 產生。
+					     這裡**不可以**掛 data-i18n：那會用 textContent 覆蓋整個容器，
+					     把裡面所有子元素一起清掉（舊版就是這樣，兩個 span 被吃掉，
+					     innertext("#sessiontoken") 寫到不存在的元素上，畫面只剩「場次id: #」）。 -->
+					<div id="orderinfocontent" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8"></div>
 				</div>
 			</div>
 		</div>

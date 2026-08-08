@@ -635,62 +635,6 @@ const APICATEGORIES=[
 					R("event","object[]","賽事類型。","Event types.",[SUB("id","int","類型 id。","Type id."),SUB("name","string","名稱。","Name.")])
 				])],
 				errors: [ETOKEN,ERR("404","ERROR_user_not_found","找不到使用者。","User not found.")]
-			},
-			{
-				id: "gettype",method: "GET",path: "/gettype/{typeid}",title: { z: "取得類型",e: "Get type" },
-				desc: { z: "取得單一賽事類型詳情，含所屬協會。",e: "Get a single event type with its owning association." },
-				auth: AUTHTOKEN,params: [pathparam("typeid","類型 id。","Type id.",4)],
-				response: [R("data","object","類型物件。","The type object.",[SUB("id","int","類型 id。","Type id."),SUB("gametype","string","遊戲類型。","Game type."),SUB("name","string","名稱。","Name."),SUB("clubid","int","所屬協會 id。","Association id."),SUB("clubname","string","協會名稱。","Association name."),SUB("buyin","int","買入。","Buy-in."),SUB("rebuycount","int","重買次數。","Rebuy count."),SUB("rebuybuyin","int","重買金額。","Rebuy amount."),SUB("winprice","int","獎金。","Prize."),SUB("chip","int","計分牌。","Chips."),SUB("totalbuyin","int","總買入。","Total buy-in."),SUB("winthing","string","獎品。","Prize item."),SUB("starttime","string","開始時間。","Start time."),SUB("endtime","string","結束時間。","End time."),SUB("place","string","地點。","Place."),SUB("description","string","說明。","Description.")])],
-				errors: [ETOKEN,ERR("404","ERROR_type_not_found","找不到類型。","Type not found."),EPERM]
-			},
-			{
-				id: "newtype",method: "POST",path: "/newtype",title: { z: "新增類型",e: "Create type" },
-				desc: { z: "建立賽事類型模板。",e: "Create an event type template." },
-				auth: AUTHTOKEN,
-				params: [
-					P("gametype","string",true,"遊戲類型：cash / tournament / limited。","Game type: cash / tournament / limited.",{ ex: "tournament" }),
-					P("name","string",true,"類型名稱。","Type name.",{ ex: "Daily Deepstack" }),
-					P("clubid","string",true,"所屬協會 id。","Owning association id.",{ ex: "3" }),
-					P("buyin","int",true,"買入金額。","Buy-in amount.",{ ex: 1000 }),
-					P("rebuycount","int",true,"可重買次數。","Allowed rebuy count.",{ ex: 2 }),
-					P("rebuybuyin","int",true,"每次重買金額。","Amount per rebuy.",{ ex: 1000 }),
-					P("winprice","int",true,"獎金金額。","Prize amount.",{ ex: 5000 }),
-					P("chip","int",true,"起始計分牌。","Starting chips.",{ ex: 30000 }),
-					P("totalbuyin","int",true,"總買入。","Total buy-in.",{ ex: 1000 }),
-					P("winthing","string",true,"獎品。","Prize item.",{ ex: "Trophy" }),
-					P("starttime","string",true,"開始時間。","Start time.",{ ex: "2026-07-01 19:00" }),
-					P("endtime","string",true,"結束時間。","End time.",{ ex: "2026-07-01 23:00" }),
-					P("place","string",true,"地點。","Place.",{ ex: "Taipei" }),
-					P("description","string",false,"說明。","Description.",{ ex: "" })
-				],
-				response: dataok(),errors: [ETOKEN,EREQ,EPERM]
-			},
-			{
-				id: "edittype",method: "PUT",path: "/edittype/{typeid}",title: { z: "編輯類型",e: "Edit type" },
-				desc: { z: "更新賽事類型模板（欄位同 /newtype）。",e: "Update an event type template (fields identical to /newtype)." },
-				auth: AUTHTOKEN,
-				params: [
-					pathparam("typeid","類型 id。","Type id.",4),
-					P("name","string",true,"類型名稱。","Type name.",{ ex: "Daily Deepstack" }),
-					P("clubid","string",true,"所屬協會 id。","Owning association id.",{ ex: "3" }),
-					P("buyin","int",true,"買入金額。","Buy-in amount.",{ ex: 1000 }),
-					P("rebuycount","int",true,"可重買次數。","Allowed rebuy count.",{ ex: 2 }),
-					P("rebuybuyin","int",true,"每次重買金額。","Amount per rebuy.",{ ex: 1000 }),
-					P("winprice","int",true,"獎金金額。","Prize amount.",{ ex: 5000 }),
-					P("totalbuyin","int",true,"總買入。","Total buy-in.",{ ex: 1000 }),
-					P("winthing","string",true,"獎品。","Prize item.",{ ex: "Trophy" }),
-					P("starttime","string",true,"開始時間。","Start time.",{ ex: "2026-07-01 19:00" }),
-					P("endtime","string",true,"結束時間。","End time.",{ ex: "2026-07-01 23:00" }),
-					P("place","string",true,"地點。","Place.",{ ex: "Taipei" }),
-					P("description","string",false,"說明。","Description.",{ ex: "" })
-				],
-				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_type_not_found","找不到類型。","Type not found."),EREQ,EPERM]
-			},
-			{
-				id: "deletetype",method: "DELETE",path: "/deletetype/{typeid}",title: { z: "刪除類型",e: "Delete type" },
-				desc: { z: "軟刪除賽事類型。",e: "Soft-delete an event type." },
-				auth: AUTHTOKEN,params: [pathparam("typeid","類型 id。","Type id.",4)],
-				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_type_not_found","找不到類型。","Type not found."),EPERM]
 			}
 		]
 	},
@@ -1456,14 +1400,14 @@ const APICATEGORIES=[
 	{
 		key: "staff",
 		title: { z: "工作人員",e: "Staff" },
-		desc: { z: "荷官／裁判／助理等工作人員的邀請與管理。",e: "Invite and manage staff such as dealers / floor / assistants." },
+		desc: { z: "計分員／裁判／助理等工作人員的邀請與管理。",e: "Invite and manage staff such as dealers / floor / assistants." },
 		endpoints: [
 			{
 				id: "getstafflist",method: "GET",path: "/getstafflist",title: { z: "工作人員列表",e: "Staff list" },
 				desc: { z: "主辦方列出所有工作人員，依角色分組。",e: "Organizer lists all staff, grouped by role." },
 				auth: AUTHTOKEN,params: [],
 				response: [R("data","object","依角色分組。","Grouped by role.",[
-					R("dealer","object[]","荷官列表。","Dealer list.",stafffields()),
+					R("dealer","object[]","計分員列表。","Dealer list.",stafffields()),
 					R("floor","object[]","裁判列表。","Floor list.",stafffields()),
 					R("assistant","object[]","助理列表。","Assistant list.",stafffields())
 				])],
@@ -1498,7 +1442,7 @@ const APICATEGORIES=[
 				desc: { z: "列出某場次的工作人員，依角色分組。",e: "List a session's staff, grouped by role." },
 				auth: AUTHOWNER,params: [pathparam("sessionid","場次 id。","Session id.",101)],
 				response: [R("data","object","依角色分組。","Grouped by role.",[
-					R("dealer","object[]","荷官列表。","Dealer list.",stafffields()),
+					R("dealer","object[]","計分員列表。","Dealer list.",stafffields()),
 					R("floor","object[]","裁判列表。","Floor list.",stafffields()),
 					R("assistant","object[]","助理列表。","Assistant list.",stafffields())
 				])],
@@ -1517,6 +1461,150 @@ const APICATEGORIES=[
 				desc: { z: "從場次移除工作人員。",e: "Remove staff from a session." },
 				auth: AUTHOWNER,params: [pathparam("sessionstaffid","場次工作人員 id。","Session-staff id.",6)],
 				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_staff_not_found / ERROR_session_not_found","找不到工作人員或場次。","Staff or session not found."),EPERM]
+			},
+			{
+				id: "startstaffshift",method: "POST",path: "/startstaffshift",title: { z: "上班卡",e: "Start shift" },
+				desc: { z: "開始一個班。**班是個人層級的，不綁場次** —— 場次歸屬等上桌時才帶入。開班的同時會開第一段工作；如果這個人當下已經被指派在某張桌上（先排班後打卡），第一段就直接帶那一場。省略 staffuserid 代表替自己打卡；主辦與同僱主的助理可以代打，來源會標成 owner / assistant。",e: "Start a shift. A shift belongs to a person, not a session — session attribution is applied when they are assigned to a table. Starting a shift also opens the first work segment; if the person is already assigned to a table, that segment carries the session. Omit staffuserid to clock yourself in; the employer and same-employer assistants may clock others in, and the source is recorded as owner / assistant." },
+				auth: AUTHTOKEN,
+				params: [P("staffuserid","int",false,"目標員工 user id。省略代表自己。","Target staff user id. Omit for yourself.",{ ex: 42 })],
+				response: [R("data","object","開班結果。","Shift result.",[
+					SUB("shiftid","int","班 id。","Shift id."),
+					SUB("staffuserid","int","員工 user id。","Staff user id."),
+					SUB("sessionid","int","第一段的場次歸屬，可能是 null（還沒上桌）。","Session of the first segment; may be null."),
+					SUB("startsource","string","誰按的：self / owner / assistant / admin。","Who pressed it: self / owner / assistant / admin.")
+				])],
+				errors: [ETOKEN,ERR("409","ERROR_staff_already_clockedin","已經有一個班沒下班。","There is already an open shift."),EPERM]
+			},
+			{
+				id: "breakstaffshift",method: "POST",path: "/breakstaffshift",title: { z: "休息卡",e: "Start break" },
+				desc: { z: "開始休息。關掉目前那一段工作，**班還開著** —— 「休息中」的定義就是「班開著但沒有未結束的段」，不另外開 status 欄。休息時間不算工時。刻意**不動上桌指派**：桌子還掛在這個人名下（現場由別人暫代），回來就能直接接回去；要真的離桌請按下桌。",e: "Go on break. Closes the current work segment while the shift stays open — being on break is defined as having an open shift with no open segment, rather than a separate status column. Break time is not counted as work. The table assignment is deliberately left alone so the person can pick it straight back up; use the release action to actually leave the table." },
+				auth: AUTHTOKEN,params: [P("staffuserid","int",false,"目標員工 user id。","Target staff user id.",{ ex: 42 })],
+				response: [R("data","object","休息結果。","Break result.",[SUB("staffuserid","int","員工 user id。","Staff user id."),SUB("worklogid","int","被關掉的工作段 id。","Closed segment id."),SUB("endsource","string","誰按的。","Who pressed it.")])],
+				errors: [ETOKEN,ERR("400","ERROR_staff_not_clockedin","還沒上班。","Not clocked in."),ERR("400","ERROR_staff_already_onbreak","已經在休息中。","Already on break."),EPERM]
+			},
+			{
+				id: "resumestaffshift",method: "POST",path: "/resumestaffshift",title: { z: "結束休息",e: "Resume from break" },
+				desc: { z: "休息結束，開新的一段。場次歸屬取當下的上桌指派 —— 休息期間沒被移走的話就接回原本那一場。",e: "End the break and open a new segment. Session attribution comes from the current table assignment, so an unchanged assignment resumes the same session." },
+				auth: AUTHTOKEN,params: [P("staffuserid","int",false,"目標員工 user id。","Target staff user id.",{ ex: 42 })],
+				response: [R("data","object","回來結果。","Resume result.",[SUB("shiftid","int","班 id。","Shift id."),SUB("staffuserid","int","員工 user id。","Staff user id."),SUB("sessionid","int","新段的場次歸屬，可能是 null。","Session of the new segment; may be null."),SUB("startsource","string","誰按的。","Who pressed it.")])],
+				errors: [ETOKEN,ERR("400","ERROR_staff_not_clockedin","還沒上班。","Not clocked in."),ERR("400","ERROR_staff_not_onbreak","現在不是休息中。","Not currently on break."),EPERM]
+			},
+			{
+				id: "endstaffshift",method: "POST",path: "/endstaffshift",title: { z: "下班卡",e: "End shift" },
+				desc: { z: "結束一個班。關段 + 關班 + 離桌，三件事包在同一個交易裡 —— 班結束了人卻還掛在桌上，就會在總覽頁出現查不出原因的鬼資料。帶 endtime 就是**補下班卡**（忘了打時用），**指定時間需要不是本人的權限**：本人只能用當下時間，不能挑。系統允許跨日、也不自動收班，所以這條補救路徑是必要的。",e: "End a shift. Closing the segment, the shift and any table assignment happen in one transaction — a shift that ended while the person is still shown at a table produces ghost rows nobody can explain. Passing endtime backfills a forgotten clock-out; specifying a time requires operating on someone else, since a person may only clock themselves out at the current time. Shifts may span days and are never auto-closed, so this path matters." },
+				auth: AUTHTOKEN,
+				params: [P("staffuserid","int",false,"目標員工 user id。","Target staff user id.",{ ex: 42 }),P("endtime","string",false,"YYYY-MM-DD HH:MM:SS，補登用；必須晚於上班時間且不能是未來。","YYYY-MM-DD HH:MM:SS for backfilling; must be after the shift start and not in the future.",{ ex: "2026-08-06 23:00:00" })],
+				response: [R("data","object","下班結果。","End result.",[SUB("shiftid","int","班 id。","Shift id."),SUB("staffuserid","int","員工 user id。","Staff user id."),SUB("endsource","string","誰按的。","Who pressed it."),SUB("backfilled","boolean","是不是補登的。","Whether this was a backfill.")])],
+				errors: [ETOKEN,ERR("400","ERROR_staff_not_clockedin","還沒上班。","Not clocked in."),ERR("400","ERROR_worklog_time_invalid","補登時間早於上班時間或落在未來。","Backfill time is before the shift start or in the future."),EPERM]
+			},
+			{
+				id: "getstaffshiftstatus",method: "GET",path: "/getstaffshiftstatus",title: { z: "目前打卡狀態",e: "Current shift status" },
+				desc: { z: "回傳「未上班 / 工作中 / 休息中」三種狀態之一，以及本班的分段明細與累計。前端三顆按鈕（上班、休息或回來、下班）要顯示哪一顆全靠這一支。",e: "Returns one of three states — off, working, onbreak — along with this shift's segments and running total. The client uses it to decide which of the three buttons (start, break/resume, end) to show." },
+				auth: AUTHTOKEN,params: [P("staffuserid","int",false,"查誰的狀態。省略代表自己。","Whose status to read. Omit for yourself.",{ ex: 42 })],
+				response: [R("data","object","目前狀態。","Current status.",[
+					SUB("state","string","off / working / onbreak。","off / working / onbreak."),
+					SUB("shiftid","int","班 id，未上班時為 null。","Shift id; null when off."),
+					SUB("shiftminute","int","本班累計工作分鐘（不含休息）。","Worked minutes this shift, excluding breaks."),
+					SUB("segmentlist","object[]","本班的分段明細。","Segments of this shift."),
+					SUB("table","object","目前值班的牌桌，沒有就是 null。","Current table, or null."),
+					SUB("selfed","boolean","查的是不是自己。","Whether the target is the caller.")
+				])],
+				errors: [ETOKEN,EPERM]
+			},
+			{
+				id: "getstaffworkstatus",method: "GET",path: "/getstaffworkstatus/{sessionid}",title: { z: "場次員工現場狀態",e: "Session staff live status" },
+				desc: { z: "回傳該場次每位有效員工的打卡狀態、目前在哪一張桌、以及累計時數與金額。員工來源是 sessionstaff 與 userstaff 的聯集，同一人以 sessionstaff 優先。計費以 30 分鐘為單位無條件進位。",e: "Returns each active staff member's clock status, current table, accumulated minutes and amount for the session. Staff are the union of sessionstaff and userstaff, with sessionstaff taking precedence. Billing rounds up to 30-minute units." },
+				auth: AUTHOWNERSTAFF,params: [pathparam("sessionid","場次 id。","Session id.",101)],
+				response: [R("data","object","現場狀態。","Live status.",[
+					SUB("stafflist","object[]","每位員工一列，含 staffname / role / workinged / ontableed / totalminute / billingminute / amount / selfstarted。","One row per staff member: staffname / role / workinged / ontableed / totalminute / billingminute / amount / selfstarted."),
+					SUB("tablemap","object","以 tableid 為鍵的在桌員工索引，前端直接對進桌卡。","Table-id keyed index of on-duty staff, for direct lookup by table card."),
+					SUB("canmanage","boolean","呼叫者能不能替別人操作。","Whether the caller may operate on others.")
+				])],
+				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
+			},
+			{
+				id: "assignstafftable",method: "POST",path: "/assignstafftable/{tableid}",title: { z: "員工上桌",e: "Assign staff to table" },
+				desc: { z: "把員工指派到某一張牌桌值班。原本在別桌的會在同一個交易裡先下桌再上新桌（換桌）。一個人同時只能在一張桌，由資料庫唯一索引擋死；但**一桌同角色可以並存**（交接時新舊計分員短暫重疊），偵測到重疊時不擋，改在回應帶 warningcode 由前端確認。角色一律取自聘用關係，不從 body 取。",e: "Assign a staff member to a table. If they are already at another table, the old assignment is closed and the new one opened in the same transaction. A person can only be at one table at a time, enforced by a unique index; however two people may share the same role on one table (handover), in which case the request still succeeds and returns a warningcode for the client to confirm. The role always comes from the employment record, never from the body." },
+				auth: AUTHOWNERSTAFF,
+				params: [pathparam("tableid","牌桌 id。","Table id.",7),P("staffuserid","int",false,"目標員工 user id。省略代表自己。","Target staff user id. Omit for yourself.",{ ex: 42 }),P("replaceed","boolean",false,"true 時把該桌同角色的舊值班段關掉（真正換人）。","When true, close the existing same-role assignment on that table.",{ ex: false }),P("autoclockined","boolean",false,"預設 true：還沒打卡的人順便打上班卡。","Defaults to true: clock the person in if they have no open shift.",{ ex: true })],
+				response: [R("data","object","上桌結果。","Assignment result.",[
+					SUB("tableid","int","牌桌 id。","Table id."),
+					SUB("staffuserid","int","員工 user id。","Staff user id."),
+					SUB("role","string","取自聘用關係的角色。","Role from the employment record."),
+					SUB("worklogid","int","對應的工時列 id，可為 null。","Related work-log id; may be null."),
+					SUB("autoclockined","boolean","是否順便打了上班卡。","Whether a shift was auto-started."),
+					SUB("movedfromtableid","int","從哪一桌換過來，沒換就是 null。","Table moved from, or null."),
+					SUB("warningcode","string","tablestaffoverlap 代表同角色並存；空字串代表沒有警告。","tablestaffoverlap means a same-role overlap; empty string means no warning."),
+					SUB("occupiedname","string","並存時對方的名字。","The other person's name when overlapping.")
+				])],
+				errors: [ETOKEN,ERR("404","ERROR_table_not_found / ERROR_session_not_found","找不到牌桌或場次。","Table or session not found."),ERR("404","ERROR_staff_not_found","此人不是該場次的有效員工。","Not an active staff member of this session."),ERR("409","ERROR_staff_already_ontable","已經在這張桌了。","Already assigned to this table."),EPERM]
+			},
+			{
+				id: "releasestafftable",method: "POST",path: "/releasestafftable/{tablestaffid}",title: { z: "員工下桌",e: "Release staff from table" },
+				desc: { z: "結束一段值班。**不影響工時** —— 離桌不等於下班（可能只是去休息或支援別的事）。要結束工時請打下班卡。",e: "End a table assignment. This does not touch the work log — leaving a table is not the same as ending a shift. Use clock-out to end the shift." },
+				auth: AUTHOWNERSTAFF,params: [pathparam("tablestaffid","值班段 id。","Table-assignment id.",12)],
+				response: [R("data","object","下桌結果。","Release result.",[
+					SUB("tablestaffid","int","值班段 id。","Table-assignment id."),
+					SUB("staffuserid","int","員工 user id。","Staff user id."),
+					SUB("endsource","string","誰按的。","Who pressed it.")
+				])],
+				errors: [ETOKEN,ERR("404","ERROR_tablestaff_not_found","找不到未結束的值班段。","No open table assignment found."),EPERM]
+			},
+			{
+				id: "getsessionstaffwork",method: "GET",path: "/getsessionstaffwork/{sessionid}",title: { z: "單場工時明細",e: "Session work detail" },
+				desc: { z: "回傳某場次的每一段工時，含每人小計與全場合計。不分頁（單場的段數量級小）。主辦、管理員與助理看得到全部；其他員工只看得到自己的（不回 403，現場員工想知道自己做了幾小時是合理的）。**進行中的段不計金額** —— 否則報表每次重整數字都在跳。",e: "Returns every work segment for a session, with per-staff subtotals and a session total. Not paginated (a single session has few segments). Owners, admins and assistants see everything; other staff see only their own rows (no 403 — it is reasonable for on-site staff to check their own hours). Open segments are not billed, otherwise the totals would change on every refresh." },
+				auth: AUTHOWNERSTAFF,
+				params: [pathparam("sessionid","場次 id。","Session id.",101),P("staffuserid","int",false,"只看某位員工。","Filter to one staff member.",{ ex: 42 }),P("order","string",false,"starttime / staffname / actualminute / amount。","starttime / staffname / actualminute / amount.",{ ex: "starttime" }),P("direction","string",false,"asc / desc。","asc / desc.",{ ex: "desc" })],
+				response: [R("data","object","明細與小計。","Detail and subtotals.",[
+					SUB("loglist","object[]","逐段明細，含 actualminute / billingminute / amount / workinged / crossdayed / selfstarted。","Per-segment rows with actualminute / billingminute / amount / workinged / crossdayed / selfstarted."),
+					SUB("staffsummarylist","object[]","每人小計。","Per-staff subtotals."),
+					SUB("total","object","全場合計，含 actualminute / amount / logcount / openedcount。","Session totals: actualminute / amount / logcount / openedcount."),
+					SUB("canmanage","boolean","呼叫者能不能替別人操作。","Whether the caller may operate on others.")
+				])],
+				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
+			},
+			{
+				id: "getstaffworkreport",method: "GET",path: "/getstaffworkreport",title: { z: "跨場次工時累計",e: "Staff hours report" },
+				desc: { z: "跨場次的工時與金額累計，後端分頁。日期用**半開區間**（enddate 後端加一天），所以迄日當天的資料會被包含進來。金額**逐段進位後再加總** —— 先加總再進位會少算，因為每一段各自進位到 30 分鐘。",e: "Cross-session hours and amounts with server-side pagination. Dates use a half-open range (the backend adds one day to enddate), so records on the end date are included. Amounts are rounded up per segment and then summed — summing first and rounding once would under-count, because each segment rounds up to its own 30-minute unit." },
+				auth: AUTHTOKEN,
+				params: [P("viewmode","string",false,"owner（我聘用的員工，預設）/ self（我自己的工時）。","owner (staff I hired, default) / self (my own hours).",{ ex: "owner" }),P("groupby","string",false,"staff / session / log。","staff / session / log.",{ ex: "staff" }),P("startdate","string",false,"YYYY-MM-DD。","YYYY-MM-DD.",{ ex: "2026-08-01" }),P("enddate","string",false,"YYYY-MM-DD，**含當天**。","YYYY-MM-DD, inclusive.",{ ex: "2026-08-31" }),P("staffuserid","int",false,"只看某位員工。","Filter to one staff member.",{ ex: 42 }),P("sessionid","int",false,"只看某場次。","Filter to one session.",{ ex: 101 }),P("page","int",false,"頁碼，預設 1。","Page number, default 1.",{ ex: 1 }),P("limit","int",false,"每頁筆數，預設 20。","Rows per page, default 20.",{ ex: 20 })],
+				response: [R("data","object","累計結果。","Report result.",[
+					SUB("list","object[]","依 groupby 決定欄位；分組時含 logcount / openedcount / actualminute / amount / firsttime / lasttime。","Columns depend on groupby; grouped rows include logcount / openedcount / actualminute / amount / firsttime / lasttime."),
+					SUB("groupby","string","實際採用的分組方式。","The grouping actually applied."),
+					SUB("viewmode","string","實際採用的檢視身分。","The view mode actually applied."),
+					SUB("pageminute","int","本頁總分鐘。","Total minutes on this page."),
+					SUB("pageamount","int","本頁總金額。","Total amount on this page."),
+					SUB("pagination","object","page / limit / total / totalpages / hasprev / hasnext。","page / limit / total / totalpages / hasprev / hasnext.")
+				])],
+				errors: [ETOKEN]
+			},
+			{
+				id: "editstaffworklog",method: "PUT",path: "/editstaffworklog/{worklogid}",title: { z: "修正工時",e: "Edit work log" },
+				desc: { z: "修正或補登一段工時。**只有場次擁有者與管理員**可以呼叫，助理不行 —— 按打卡鍵是記錄現況，改時間與時薪是改錢，兩件事的權限不該一樣。改過 hourlyrate 的那一列 ratesource 會變成 manual。改時間時會做區間重疊檢查（partial unique index 只擋得住「兩段都未結束」，擋不了兩段已結束的區間重疊）。",e: "Edit or backfill a work segment. Only the session owner and admins may call this — assistants may not. Pressing a clock button records what is happening; changing times and rates changes money, and those should not share a permission level. Changing hourlyrate sets ratesource to manual. Changing times runs an overlap check, because the partial unique index only prevents two open segments, not two overlapping closed ones." },
+				auth: AUTHOWNER,
+				params: [pathparam("worklogid","工時列 id。","Work-log id.",9),P("starttime","string",false,"YYYY-MM-DD HH:MM:SS。","YYYY-MM-DD HH:MM:SS.",{ ex: "2026-08-06 09:00:00" }),P("endtime","string",false,"YYYY-MM-DD HH:MM:SS，不能晚於現在。","YYYY-MM-DD HH:MM:SS; cannot be in the future.",{ ex: "2026-08-06 17:30:00" }),P("hourlyrate","int",false,"覆寫這一段的時薪。","Override the rate for this segment.",{ ex: 600 }),P("ps","string",false,"備註。","Note.",{ ex: "" })],
+				response: dataok(),
+				errors: [ETOKEN,ERR("404","ERROR_worklog_not_found","找不到工時列。","Work log not found."),ERR("400","ERROR_worklog_time_invalid","起訖順序不對或補到未來。","Start/end order is wrong, or the time is in the future."),ERR("409","ERROR_worklog_time_overlap","與同一人的其他工時段重疊。","Overlaps another segment for the same staff member."),EPERM]
+			},
+			{
+				id: "deletestaffworklog",method: "DELETE",path: "/deletestaffworklog/{worklogid}",title: { z: "刪除工時",e: "Delete work log" },
+				desc: { z: "軟刪一段工時。權限同修正：只有場次擁有者與管理員。會寫 auditlog。",e: "Soft-delete a work segment. Same permission as editing: session owner and admins only. Writes an audit-log entry." },
+				auth: AUTHOWNER,params: [pathparam("worklogid","工時列 id。","Work-log id.",9)],
+				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_worklog_not_found","找不到工時列。","Work log not found."),EPERM]
+			},
+			{
+				id: "editstaffrate",method: "PUT",path: "/editstaffrate/{staffid}",title: { z: "設定全域時薪",e: "Set default hourly rate" },
+				desc: { z: "設定某位長期聘用員工的預設時薪（userstaff）。**不會回改任何既有的工時紀錄** —— 時薪是在打卡當下快照的，這正是快照的用意。傳 null 或空字串代表清除設定（NULL＝沒設定，0＝真的無給職，兩者不同）。",e: "Set the default hourly rate for a long-term hire (userstaff). Existing work records are never rewritten — the rate is snapshotted at clock-in, which is the whole point. Send null or an empty string to clear it (NULL means unset, 0 means genuinely unpaid; they are different)." },
+				auth: AUTHTOKEN,params: [pathparam("staffid","userstaff 列 id。","userstaff row id.",3),P("hourlyrate","int",false,"時薪；null 或空字串代表清除。","Hourly rate; null or empty clears it.",{ ex: 600 })],
+				response: [R("data","object","更新後的值。","Updated value.",[SUB("hourlyrate","number","時薪，可能是 null。","Hourly rate; may be null.")])],
+				errors: [ETOKEN,ERR("404","ERROR_staff_not_found","找不到聘用關係。","Employment record not found."),EPERM]
+			},
+			{
+				id: "editsessionstaffrate",method: "PUT",path: "/editsessionstaffrate/{sessionstaffid}",title: { z: "設定單場時薪",e: "Set session hourly rate" },
+				desc: { z: "設定某場次的時薪覆寫（sessionstaff）。解析順序是 sessionstaff → userstaff → 0。傳 null 代表清除覆寫、回去沿用全域預設。同樣不回改既有工時紀錄。",e: "Set a per-session rate override (sessionstaff). Resolution order is sessionstaff then userstaff then 0. Send null to clear the override and fall back to the global default. Existing work records are likewise never rewritten." },
+				auth: AUTHOWNER,params: [pathparam("sessionstaffid","sessionstaff 列 id。","sessionstaff row id.",4),P("hourlyrate","int",false,"時薪；null 代表清除覆寫。","Hourly rate; null clears the override.",{ ex: 800 })],
+				response: [R("data","object","更新後的值。","Updated value.",[SUB("hourlyrate","number","時薪，可能是 null。","Hourly rate; may be null.")])],
+				errors: [ETOKEN,ERR("404","ERROR_staff_not_found / ERROR_session_not_found","找不到指派或場次。","Assignment or session not found."),EPERM]
 			}
 		]
 	},
@@ -1670,7 +1758,7 @@ const APICATEGORIES=[
 			},
 			{
 				id: "newhand",method: "POST",path: "/newhand/{tableid}",title: { z: "新增手牌",e: "Create hand" },
-				desc: { z: "建立一筆手牌記錄（座位、下注動作、攤牌與贏家）。",e: "Create a hand record (seating, betting actions, showdown and winner)." },
+				desc: { z: "建立一筆手牌記錄（座位、下注動作、攤牌與贏家）。底池金額由伺服器依各座位的下注累加，不接受用戶端指定。",e: "Create a hand record (seating, betting actions, showdown and winner). Pot amounts are computed server-side from each seat's bets and cannot be set by the client." },
 				auth: AUTHOWNER,
 				params: [
 					pathparam("tableid","牌桌 id。","Table id.",55),
@@ -1695,7 +1783,6 @@ const APICATEGORIES=[
 					P("bigblind","int",false,"大盲。","Big blind.",{ ex: 200 }),
 					P("ante","int",false,"前注。","Ante.",{ ex: 200 }),
 					P("levelid","int",false,"計時器級別 id。","Timer level id.",{ ex: 3 }),
-					P("totalpot","int",false,"總底池。","Total pot.",{ ex: 4000 }),
 					P("ps","string",false,"備註。","Notes.",{ ex: "" }),
 					P("note","string",false,"私人筆記。","Private note.",{ ex: "" }),
 					P("blindlevel","string",false,"級別標籤。","Level label.",{ ex: "L3" })

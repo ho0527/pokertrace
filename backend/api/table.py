@@ -1279,7 +1279,19 @@ def closetable(request,tableid):
 	data=json.loads(request.body or "{}")
 	closed=boolval(data.get("closed"))
 	if closed:
-		query(SETTING["dbname"],"""UPDATE "table" SET "closedtime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",[tableid],SETTING["dbsetting"])
+		# 關桌時把這桌所有還在值班的員工一併下桌。**只關上桌段, 不動工時** ——
+		# 關桌不代表那個人下班了, 他可能馬上被指派到別桌。
+		# 兩件事包在同一個交易: 桌關了人卻還掛在上面, 就會在總覽頁出現查不出原因的鬼資料。
+		# closedtime 與 tablestaff.endtime 都是**語意時間欄**（會顯示、會被拿去算時數），
+		# 一律用 nowtime()（本地牆上時間）。staffwork.py 寫 tablestaff.endtime 用的就是
+		# nowtime()，這裡若寫 SQL 的 NOW() 就會變成**同一張表同一欄兩個時鐘**，
+		# 差一個時區 —— 自動下桌的那一段時數會直接錯 8 小時。見 AGENTS.md「時間欄」。
+		result=querytransaction(SETTING["dbname"],[
+			["""UPDATE "table" SET "closedtime"=%s,"updatetime"=NOW() WHERE "id"=%s""",[nowtime(),tableid]],
+			["""UPDATE "tablestaff" SET "endtime"=%s,"endoperatorid"=%s,"endsource"='autoclose',"updatetime"=NOW() WHERE "tableid"=%s AND "endtime" IS NULL AND "deletetime" IS NULL""",[nowtime(),userrow["id"],tableid]]
+		],SETTING["dbsetting"])
+		if result is None:
+			return errorresponse("ERROR_database_error")
 	else:
 		query(SETTING["dbname"],"""UPDATE "table" SET "closedtime"=NULL,"updatetime"=NOW() WHERE "id"=%s""",[tableid],SETTING["dbsetting"])
 	return Response({"success": True,"data": {"closed": closed}},status.HTTP_200_OK)

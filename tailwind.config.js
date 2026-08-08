@@ -17,7 +17,15 @@
 // classList.add(cond?"border-emerald-400":"border-zinc-800") 這種字面字串抓得到；
 // 但 "bg-" 加變數這種執行期拼接抓不到 —— 目前專案沒有這種寫法，請保持。
 module.exports = {
+	// 4. 站台首頁 index.html 在**專案根目錄**，不在 frontend/ 底下（它靠 <base> 把
+	//    tailwind.css 之類的相對路徑指回 frontend/）。原本 content 只寫 ./frontend/**，
+	//    等於首頁從來沒被掃過 —— 只在首頁出現的 class 會安靜地沒有樣式。
+	//    2026-07-30 實測：首頁 101 個 class 裡 93 個 Tailwind utility 在 frontend/ 底下
+	//    也都有人用，剩下 8 個（indexhero / indexherotitle / indexstep …）是 index.css
+	//    的自訂 class 不由 Tailwind 產出，所以當下沒有壞掉。加這一行是防止下次寫了
+	//    首頁專用的 class 才發現。加完重建，產出 md5 不變，證實目前確實沒漏。
 	content: [
+		"./index.html",
 		"./frontend/**/*.html",
 		"./frontend/**/*.js",
 	],

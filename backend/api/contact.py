@@ -104,10 +104,16 @@ def newcontactmessage(request):
 		useragent=request.META.get("HTTP_USER_AGENT","")
 		# 免登入公開端點, 用 contactmessage 既有 ip 欄位做簡易頻率限制 (不含軟刪過濾, 刪除訊息不會重置額度);
 		# 取不到 IP 時退而以 email 計數
+		#
+		# **「現在」用 nowtime() 傳參數, 不可以寫 SQL 的 now()。**
+		# createtime 是 nowtime() 寫進去的(本地牆上時間存進 timestamptz, 全站慣例),
+		# 而 SQL 的 now() 是真 UTC, 兩者差一個時區。原本這兩行寫 now(),
+		# 視窗實際變成「8 小時 + CONTACTRATELIMITMINUTE 分鐘」——
+		# 也就是同一個 IP 一整天只能寄 3 封, 正常使用者會被誤擋成 429。
 		if ip:
-			ratelimitrow=query(SETTING["dbname"],"""SELECT COUNT(*) AS total FROM "contactmessage" WHERE "ip"=%s AND "createtime">=NOW()-make_interval(mins=>%s)""",[ip,CONTACTRATELIMITMINUTE],SETTING["dbsetting"])
+			ratelimitrow=query(SETTING["dbname"],"""SELECT COUNT(*) AS total FROM "contactmessage" WHERE "ip"=%s AND "createtime">=%s::timestamptz-make_interval(mins=>%s)""",[ip,nowtime(),CONTACTRATELIMITMINUTE],SETTING["dbsetting"])
 		else:
-			ratelimitrow=query(SETTING["dbname"],"""SELECT COUNT(*) AS total FROM "contactmessage" WHERE "email"=%s AND "createtime">=NOW()-make_interval(mins=>%s)""",[email,CONTACTRATELIMITMINUTE],SETTING["dbsetting"])
+			ratelimitrow=query(SETTING["dbname"],"""SELECT COUNT(*) AS total FROM "contactmessage" WHERE "email"=%s AND "createtime">=%s::timestamptz-make_interval(mins=>%s)""",[email,nowtime(),CONTACTRATELIMITMINUTE],SETTING["dbsetting"])
 		if ratelimitrow and CONTACTRATELIMITCOUNT<=int(ratelimitrow[0]["total"]):
 			return Response({
 				"success": False,

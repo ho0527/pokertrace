@@ -22,7 +22,9 @@
 			<form method="POST" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8" id="form">
 				<div class="mb-4">
 					<label for="no" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newtablepage.labelno">牌桌編號</label>
-					<input type="number" min="1" inputmode="numeric" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="no" placeholder="1">
+					<!-- 不放 placeholder：newtable.js 會帶入「下一個可用編號」當真實預設值。
+					     留著灰色的 placeholder="1" 只會讓人分不出「這是預設值」還是「我還沒填」。 -->
+					<input type="number" min="1" inputmode="numeric" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="no">
 				</div>
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>

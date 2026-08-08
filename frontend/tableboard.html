@@ -44,6 +44,10 @@
 
 			<div id="balancehint" class="mb-6 hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-7 text-amber-200"></div>
 
+			<!-- 員工總覽。內容全部由 tableboard.js 的 renderboardstaffpanel() 產生
+			     （篩選 / 排序 / 分頁）。沒有員工資料時整塊隱藏。 -->
+			<div id="boardstaffpanel" class="mb-6 hidden rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4"></div>
+
 			<div id="boardgrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
 			<div id="boardempty" class="hidden py-16 text-center text-zinc-500">此場次尚無牌桌</div>
 		</div>

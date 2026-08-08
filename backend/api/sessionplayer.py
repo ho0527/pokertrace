@@ -105,7 +105,10 @@ def _sessionregistrationclosed(sessionrow):
 def _deleteregistration(sessionrow,sessionplayerid):
 	# 取消報名採全站慣例的軟刪 (deletetime); 重新報名時由 _reviveregistration 復活同一列 (sessionplayer 有 (sessionid,userid) 唯一鍵, 不能新增第二列)。
 	query(SETTING["dbname"],f"""UPDATE "sessiontimerplayer" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionplayerid"=%s AND "deletetime" IS NULL""",[sessionplayerid],SETTING["dbsetting"])
-	query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "canceltime"=NOW(),"deletetime"=NOW(),"updatetime"=NOW() WHERE "id"=%s AND "deletetime" IS NULL""",[sessionplayerid],SETTING["dbsetting"])
+	# canceltime 是**語意時間欄**（會顯示、可能被拿去排序），一律用 nowtime()（本地牆上時間），
+	# 不可以寫 SQL 的 NOW()（真 UTC，差一個時區）。見 AGENTS.md「時間欄」。
+	# deletetime / updatetime 只用來判 IS NULL、不顯示也不比較，維持 NOW() 不動。
+	query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "canceltime"=%s,"deletetime"=NOW(),"updatetime"=NOW() WHERE "id"=%s AND "deletetime" IS NULL""",[nowtime(),sessionplayerid],SETTING["dbsetting"])
 	_broadcastsessiontimer(sessionrow)
 
 def _reviveregistration(sessionrow,sessionplayerrow,newstatus):
@@ -115,9 +118,14 @@ def _reviveregistration(sessionrow,sessionplayerrow,newstatus):
 	if newstatus=="confirmed":
 		serialno=_nextserialno(sessionrow["id"])
 		confirmtime=nowtime()
+	# **這句原本一句裡用了兩個時鐘**：registertime 走 SQL NOW()（真 UTC）、
+	# confirmtime 走 nowtime()（本地），兩者差 8 小時 —— 而排座正是依
+	# 「confirmtime → registertime → id」排序，等於拿兩把不同的尺量同一件事。
+	# 2026-08-06 實測測試庫：confirmtime 有 28 列本地 / 55 列真 UTC，
+	# 4 個場次裡兩種並存，本地那列一律被排到最後（真實時間其實最早）。
 	query(SETTING["dbname"],
-		f"""UPDATE "sessionplayer" SET "status"=%s,"buyin"=%s,"fee"=%s,"paymenttype"=%s,"ticketvalue"=%s,"startchip"=%s,"serialno"=%s,"tableid"=NULL,"seatno"=NULL,"rebuycount"=0,"reentrycount"=0,"addoncount"=0,"prize"=0,"prizeoverride"=NULL,"place"=NULL,"note"='',"advancechip"=NULL,"advancetargetid"=NULL,"advancesourceid"=NULL,"advancetime"=NULL,"registertime"=NOW(),"confirmtime"=%s,"canceltime"=NULL,"deletetime"=NULL,"updatetime"=NOW() WHERE "id"=%s""",
-		[newstatus,sessionrow.get("buyin") or 0,sessionrow.get("buyinfee") or 0,"ticket" if sessionrow.get("ticketenabled") else "cash",sessionrow.get("ticketvalue") or 0,_sessionplayerstartchip(sessionrow),serialno,confirmtime,sessionplayerrow["id"]],
+		f"""UPDATE "sessionplayer" SET "status"=%s,"buyin"=%s,"fee"=%s,"paymenttype"=%s,"ticketvalue"=%s,"startchip"=%s,"serialno"=%s,"tableid"=NULL,"seatno"=NULL,"rebuycount"=0,"reentrycount"=0,"addoncount"=0,"prize"=0,"prizeoverride"=NULL,"place"=NULL,"note"='',"advancechip"=NULL,"advancetargetid"=NULL,"advancesourceid"=NULL,"advancetime"=NULL,"registertime"=%s,"confirmtime"=%s,"canceltime"=NULL,"deletetime"=NULL,"updatetime"=NOW() WHERE "id"=%s""",
+		[newstatus,sessionrow.get("buyin") or 0,sessionrow.get("buyinfee") or 0,"ticket" if sessionrow.get("ticketenabled") else "cash",sessionrow.get("ticketvalue") or 0,_sessionplayerstartchip(sessionrow),serialno,nowtime(),confirmtime,sessionplayerrow["id"]],
 		SETTING["dbsetting"]
 	)
 	# 舊的 sessiontimerplayer 列是軟刪的, 但仍留著上次的 eliminated/place; synctimerplayers 復活該列時只清 deletetime, 不會重設狀態,
@@ -172,8 +180,9 @@ def _reentrychip(sessionrow,sessionplayerrow=None):
 def _restorereentry(sessionrow,sessionplayerrow):
 	# Reentry 是一次新的 entry：配發新的入場編號（累計 +1），不沿用原本的舊號。
 	query(SETTING["dbname"],
-		f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=NOW(),"canceltime"=NULL,"updatetime"=NOW(),"deletetime"=NULL,"reentrycount"=COALESCE("reentrycount",0)+1,"startchip"=%s,"tableid"=NULL,"seatno"=NULL WHERE "id"=%s""",
-		[_nextserialno(sessionrow["id"]),_reentrychip(sessionrow,sessionplayerrow),sessionplayerrow["id"]],
+		# confirmtime 用 nowtime()（本地），與排座排序的另一把尺 registertime 對齊。見 AGENTS.md「時間欄」。
+		f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=%s,"canceltime"=NULL,"updatetime"=NOW(),"deletetime"=NULL,"reentrycount"=COALESCE("reentrycount",0)+1,"startchip"=%s,"tableid"=NULL,"seatno"=NULL WHERE "id"=%s""",
+		[_nextserialno(sessionrow["id"]),nowtime(),_reentrychip(sessionrow,sessionplayerrow),sessionplayerrow["id"]],
 		SETTING["dbsetting"]
 	)
 	query(SETTING["dbname"],
@@ -1038,8 +1047,10 @@ try:
 		if serialno is None:
 			serialno=_nextserialno(row["sessionid"])
 		query(SETTING["dbname"],
-			f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=NOW(),"updatetime"=NOW() WHERE "id"=%s""",
-			[serialno,sessionplayerid],
+			# confirmtime 用 nowtime()（本地）。這是最常走的一條路徑（報到確認），
+			# 原本寫 NOW() 就是測試庫那 55 列真 UTC 的來源。見 AGENTS.md「時間欄」。
+			f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=%s,"updatetime"=NOW() WHERE "id"=%s""",
+			[serialno,nowtime(),sessionplayerid],
 			SETTING["dbsetting"]
 		)
 		_broadcastsessiontimer(sessionrow)
@@ -1414,7 +1425,12 @@ try:
 					"count": len(used),
 					"seats": seats
 				})
-			random.shuffle(rows)
+			# **選手順序刻意不洗牌**：上面那句 SQL 已經依
+			# confirmtime -> registertime -> id 排好，也就是「先報名的先上桌」。
+			# 這裡原本有一句 random.shuffle(rows) 會把那個順序整個打散，
+			# 結果變成「隨機一個人隨機位置」。2026-08-06 依使用者要求移除：
+			# 要隨機的是**位置**（每桌空位池 random.shuffle(seats)）與**分到哪一桌**
+			# （人數並列最少時 random.choice(candidates)），不是誰先上。
 			for i in range(len(rows or [])):
 				# 找出目前人數最少的桌; 有多桌並列最少時「隨機」挑一桌,
 				# 避免固定選 index 最小的桌造成 A,B,A,B 輪流入座的「排隊」感(真正隨機分桌)

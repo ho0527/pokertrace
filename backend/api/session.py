@@ -922,10 +922,16 @@ def newsession(request):
 		# 網路差時 client 端可能在逾時後自動或由使用者重試, 造成同一場次被連續送出多次 insert 成多筆。
 		# insert 前先查同一使用者短時間內(10 秒)是否已建立過完全相同的場次(名稱/協會/類型/起訖時間一致且未刪除),
 		# 有就直接回傳既有的 sessionid, 不再新增, 讓建立動作對重試具備冪等性。
+		#
+		# 這裡的 NOW() 是**刻意**的, 不是時鐘混用(clockmix-ok):
+		# session.createtime 走的是 CREATE TABLE 的 DEFAULT now(), 存的是真 UTC,
+		# 拿它去比 SQL 的 NOW() 兩邊同一個時鐘, 結果正確。
+		# 注意 starttime/endtime 就**不是**同一回事 —— 那兩個是使用者輸入的本地時間,
+		# 這裡只拿它們做等值比對, 沒有跟 NOW() 比, 所以不受影響。
 		duplicaterow=query(SETTING["dbname"],f"""SELECT "id" FROM "session"
 			WHERE "userid"=%s AND "name"=%s AND CAST("clubid" AS TEXT)=%s AND "gametype"=%s
 			  AND "starttime"=%s::timestamptz AND "endtime"=%s::timestamptz
-			  AND "deletetime" IS NULL AND "createtime">=NOW()-INTERVAL '10 seconds'
+			  AND "deletetime" IS NULL AND "createtime">=NOW()-INTERVAL '10 seconds' -- clockmix-ok
 			ORDER BY "id" DESC LIMIT 1""",
 			[tokenuserrow["id"],name,str(clubid),gametype,starttime,endtime],SETTING["dbsetting"])
 		if duplicaterow:
@@ -1513,7 +1519,24 @@ def deletesession(request,sessionid):
 			["""UPDATE "sessiontimerplayer" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
 			["""UPDATE "sessiontimebank" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
 			["""UPDATE "blindstructure" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
-			["""UPDATE "playerstatistic" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]]
+			["""UPDATE "playerstatistic" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid]],
+			# 2026-08-06：員工工時功能的兩張表。兩者的處理**刻意不一樣**——
+			#
+			# tablestaff（上桌指派）：連動軟刪，並把未結束的段一併關掉。
+			#   桌都跟著場次沒了，「還在這張桌上值班」是不可能成立的狀態；
+			#   留著會讓總覽頁出現查不出原因的鬼資料，也會卡住 tablestaffopenstaff
+			#   那個「一人同時只能在一張桌」的唯一索引，害那個人再也上不了別的桌。
+			#
+			# staffworklog（工時）：**只關掉未結束的段，不軟刪**。
+			#   工時是**已經發生的事實**，人真的做了那些小時、要照付。
+			#   場次刪除是主辦端的行為，不該讓員工白做工，所以歷史列一律留著。
+			#   但未結束的段要收掉，否則 COALESCE(endtime,現在) 會讓它一直長。
+			#   （因此 backend/tool/sessioncascade.py 仍會把 staffworklog 列為
+			#    「缺漏」——那是刻意的，不是漏掉。）
+			#
+			# 時間欄一律用 nowtime()（本地牆上時間），不可以寫 NOW()，見 AGENTS.md「時間欄」。
+			["""UPDATE "tablestaff" SET "endtime"=COALESCE("endtime",%s::timestamptz),"endsource"=COALESCE("endsource",'autoclose'),"deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[nowtime(),sessionid]],
+			["""UPDATE "staffworklog" SET "endtime"=%s::timestamptz,"endsource"=COALESCE("endsource",'autoclose'),"updatetime"=NOW() WHERE "sessionid"=%s AND "endtime" IS NULL AND "deletetime" IS NULL""",[nowtime(),sessionid]]
 		],SETTING["dbsetting"])
 		if result is None:
 			return Response({

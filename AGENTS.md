@@ -127,6 +127,78 @@ queryupdate(SETTING["dbname"],"hand",data,{"id": handid},SETTING["dbsetting"])
 
 改完跑 `npm run verify:sql`，兩條都會被檢查。
 
+## 時間欄：存本地時間，SQL 裡不准寫 `NOW()`
+
+本專案有**兩套時鐘**，混用不會報錯，只會安靜地算錯。2026-08-06 因此查出三個壞掉的功能。
+
+- `function/thing.py:41` 的 `nowtime()` 回 `datetime.now()` 的字串 —— **本地牆上時間**。
+  寫進 `timestamptz` 時被當成 UTC，所以 DB 裡存的是「本地時間貼著 `+00` 標籤」。
+- SQL 的 `NOW()` / `DEFAULT now()` 是**真 UTC**。本機兩者差 8 小時。
+
+**存本地時間是對的，不要往「改成正確 UTC」的方向修。**
+前端 `initialize.js` 的 `ptformatdatetime()` 只切掉 `+00:00` 後原樣輸出，
+全站沒有任何一處做時區換算。所以 `nowtime()` 寫入 → 原樣顯示，畫面是對的；
+反而是 `NOW()` 寫的欄位顯示時會早 8 小時（`auditlog.createtime` 現在就是）。
+
+### 規則
+
+**SQL 裡要用到「現在」時，一律把 `nowtime()` 當參數傳進去，不要寫 `NOW()`。**
+
+```python
+# 對
+where.append("\"createtime\" <= %s::timestamptz - (%s * interval '1 minute')")
+param.append(nowtime())
+param.append(delay)
+
+# 錯 —— 差一個時區，而且不會報錯
+where.append("\"createtime\" <= NOW() - (%s * interval '1 minute')")
+```
+
+**不要**改用 `(NOW() AT TIME ZONE 'Asia/Taipei')` 之類的 SQL 表示式 ——
+那會把時區名硬編在第二個地方，跟 `nowtime()` 讀的機器本地時區分頭漂移。
+時鐘來源只留 `nowtime()` 一個。
+
+`backend/api/staffwork.py` 有現成寫法：模組層 `SQLNOW="%s::timestamptz"` 常數，
+用到的查詢在對應位置補一個 `nowtime()` 參數。
+
+### 踩過的三個（都有實測）
+
+- **手牌延遲播出**（`hand.py`）：10 分鐘前的牌配 5 分鐘延遲 → 查不到，要等 8 小時。
+- **聯絡表單速率限制**（`contact.py`）：設計是「10 分鐘 3 封」，實際變成「8 小時 3 封」。
+- **場次即將開始通知**（`schedulerjob.py`）：時間窗落在真實開始時間的 8 小時後，
+  也就是**通知從來沒在該發的時候發出過**。
+
+```powershell
+npm run verify:clockmix                                  # 兩支一起跑
+python tools/audit/checkclockmix.py --strict             # 連純寫入的 NOW() 也一起算
+python tools/audit/checkclockmix.py --selftest
+python tools/audit/checkclockcolumn.py --selftest
+```
+
+`verify:clockmix` 是兩支工具：
+
+- **`checkclockmix.py`** —— 拿欄位去比 `NOW()`。分兩級：**比較 / 運算**裡的 `NOW()`
+  會讓結果算錯，是關卡；**純寫入**（`SET "updatetime"=NOW()`）只讓該欄位早一個時區，
+  列出但不擋。確認某處是刻意且正確的（兩邊都是真 UTC），在該行加註解 `clockmix-ok` 跳過。
+- **`checkclockcolumn.py`** —— **同一張表的同一個欄位被兩種時鐘各寫一半**。
+  這種比整批偏移嚴重：整批偏移還算自洽，混寫則是同一欄的值互相差 8 小時，
+  排序、區間篩選、相減全部會錯，而且事後只能靠「有沒有微秒」猜是哪個時鐘寫的
+  （`nowtime()` 是 `strftime`，微秒必為 0；SQL `NOW()` 有微秒）。
+  **必須連表名一起比對** —— 只比欄位名會把 `notification.createtime`（本地）
+  與 `hand.createtime`（真 UTC）誤報成混寫。`updatetime` / `deletetime` 不列入
+  （只判 `IS NULL`、不顯示也不比較）。
+
+實際抓到的：`sessionplayer.confirmtime` 有 28 列本地 / 55 列真 UTC，4 個場次兩種並存，
+本地那列一律被排到最後（真實時間其實最早）—— **排座的「先報名先上桌」因此是壞的**。
+根源是 `sessionplayer.py` 同一句 UPDATE 裡 `registertime` 走 `NOW()`、`confirmtime` 走 `nowtime()`。
+
+### 還有第三種形狀：**本地欄位拿去跟真 UTC 欄位互比**
+
+兩支工具都查不到這種。目前全庫沒有（`seating."time"` 只在同表 ORDER BY 用），
+但寫跨表比時間的查詢時要自己確認兩邊是同一把尺。最容易踩的是 `hand`：
+同一句 INSERT 裡 `handtime` 是真 UTC、`createtime` 是本地。
+要跟其他表的時間比對時**用 `createtime`**。
+
 ## 備份規則
 
 修改既有檔案前要先備份，命名：
@@ -386,6 +458,10 @@ npm run verify:columnname  # INSERT / UPDATE 的欄位 dbinitialize 建得出來
 npm run verify:apicall     # 前端打的 API 路徑後端真的有註冊嗎（打不到只會變成泛用「載入失敗」）
 npm run verify:bearertoken # getbearertoken() 對各種 Authorization 標頭的放行/擋掉（期望值來自正式機實測）
 npm run verify:machineconfig # 正式機的機器專屬設定有沒有被同步蓋掉（見下節）
+npm run verify:clockmix    # SQL 裡拿欄位去比 NOW()（兩套時鐘差一個時區，見上面「時間欄」那節）
+npm run verify:deadcode    # 無條件 return / raise 之後的不可達程式碼（死碼會產生假的 bug 報告）
+npm run verify:errortext   # 後端會回的 ERROR_ 碼，中英兩棵語言樹都有文案嗎
+                           #（pterror 查不到就把 ERROR_xxx 原始碼顯示給使用者）
 ```
 
 ### 端點驗證一律走 `authhelper.gettokenuser`

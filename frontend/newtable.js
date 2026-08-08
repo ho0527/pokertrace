@@ -15,6 +15,30 @@ onclick("#back",function(element,event){
 	href("session.html?id="+sessionid+"#1")
 })
 
+// 預設帶入「下一個可用的牌桌編號」。
+//
+// 原本這個欄位是空的，只靠 HTML 上一個灰色的 placeholder="1" 當提示 ——
+// 而編輯頁帶進來的真實值長得幾乎一樣，兩頁擺在一起會分不出「這是預設值」還是
+// 「這只是提示、我其實沒填」。填一個真的值進去，順便省掉每次自己想編號。
+//
+// 取現有最大編號 +1；一張桌都沒有就從 1 開始。抓不到清單時**不填**，
+// 讓使用者自己輸入，總比塞一個可能撞號的值好。
+ajax("GET",AJAXURL+"gettablelist/"+sessionid,function(event,data){
+	if(data["success"]){
+		let rows=data["data"]||[]
+		let maxno=0
+		for(let i=0;i<rows.length;i=i+1){
+			let no=parseInt(rows[i]["no"])
+			if(!isNaN(no)&&maxno<no){
+				maxno=no
+			}
+		}
+		value("#no",maxno+1)
+	}
+},null,[
+	["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+])
+
 ajax("GET",AJAXURL+"getsession/"+sessionid,function(event,data){
 	if(data["success"]){
 		onclick("#back",function(element,event){

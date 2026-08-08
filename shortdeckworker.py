@@ -19,6 +19,7 @@ import numpy as np
 
 import shortdecksolvecore as core
 from shortdeckscenarios import SCENARIOS
+from gtomanifestbuild import writemanifest
 
 BASEDIR=os.path.dirname(os.path.abspath(__file__))
 JOBS_FILE=os.path.join(BASEDIR, "shortdeckjobs.json")
@@ -174,27 +175,11 @@ def solve_job(job):
 
 
 def build_manifest():
-    scen = [s["name"] for s in SCENARIOS]
-    def scenario_of(jid):
-        for name in scen:
-            if jid.startswith(name + "_"):
-                return name
-        return "unknown"
-    items = []
+    # TASK-086：清單格式與寫檔邏輯集中在 gtomanifestbuild.py，與德州那邊
+    # （gtomanifest.py）共用同一支。以前這裡自己抄了一份一模一樣的迴圈。
     if not os.path.isdir(RESULTS_DIR):
         return
-    for fn in sorted(os.listdir(RESULTS_DIR)):
-        if not fn.endswith(".json") or fn == "manifest.json":
-            continue
-        d = json.load(open(os.path.join(RESULTS_DIR, fn), encoding="utf-8"))
-        jid = fn[:-5]
-        items.append({"id": jid, "scenario": scenario_of(jid), "board": d.get("board"),
-                      "pot": d.get("pot"), "stack": d.get("stack"), "betsizes": d.get("betsizes")})
-    manifestfile=os.path.join(RESULTS_DIR, "manifest.json")
-    tmp=manifestfile + ".tmp"
-    json.dump(items, open(tmp, "w", encoding="utf-8"), ensure_ascii=False)
-    os.replace(tmp, manifestfile)
-    print("manifest: %d 筆" % len(items))
+    writemanifest(RESULTS_DIR, [s["name"] for s in SCENARIOS])
 
 
 def pid_alive(pid):

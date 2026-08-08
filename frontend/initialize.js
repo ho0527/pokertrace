@@ -2698,7 +2698,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} a1.3.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} a1.4.0 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>
@@ -4252,6 +4252,138 @@ function ptformatdatetime(value){
 		text=text+":00"
 	}
 	return text
+}
+
+// 分鐘數 → 「X 小時 Y 分」。給員工工時相關的頁面共用（session 頁員工分頁、
+// tableboard 桌卡、staffwork 總覽頁），文案讀 translate.js 的 staffwork 區段。
+//
+// **刻意沒有把 sessionlist.js 的 formatduration 併進來**：那一支讀的是 sessionlist 區段，
+// 用字不同（zhtw「分鐘」vs「分」、en「hr/min」vs「h/m」）。併進來等於改掉場次列表
+// 現有的顯示文字 —— 為了去重而動到既有畫面文案，划不來。
+function ptformatduration(minute){
+	let value=parseInt(minute,10)
+	if(isNaN(value)){
+		value=0
+	}
+	let hourtext="小時"
+	let minutetext="分"
+	if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["staffwork"]){
+		if(TRANSLATE[LANGUAGE]["staffwork"]["hour"]){
+			hourtext=TRANSLATE[LANGUAGE]["staffwork"]["hour"]
+		}
+		if(TRANSLATE[LANGUAGE]["staffwork"]["minute"]){
+			minutetext=TRANSLATE[LANGUAGE]["staffwork"]["minute"]
+		}
+	}
+	if(value<60){
+		return value+" "+minutetext
+	}
+	return Math.floor(value/60)+" "+hourtext+" "+(value%60)+" "+minutetext
+}
+
+// 打卡面板（上班 / 休息或回來 / 下班）。profile 與 staffwork 兩頁都要放同一組，
+// 所以抽在這裡 —— 兩頁各寫一份的話，狀態機遲早會有一邊漏改。
+//
+// 狀態只有三種，而且**全部由 NULL 推導**，沒有 status 欄：
+//   off      沒有未結束的班
+//   working  班開著，而且有未結束的工作段
+//   onbreak  班開著，但沒有未結束的工作段
+function ptstaffshifttext(key,fallback){
+	if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["staffwork"]&&TRANSLATE[LANGUAGE]["staffwork"][key]!=undefined){
+		return TRANSLATE[LANGUAGE]["staffwork"][key]
+	}
+	return fallback
+}
+
+function ptrendershiftpanel(containerid,data,onaction){
+	let container=domgetid(containerid)
+	if(!container){
+		return
+	}
+	let state=data["state"]||"off"
+	let statushtml=`<span class="text-zinc-500">${ptstaffshifttext("stateoff","未上班")}</span>`
+	if(state=="working"){
+		statushtml=`<span class="inline-flex items-center gap-1 text-emerald-300"><span class="inline-block h-2 w-2 rounded-full bg-emerald-400"></span>${ptstaffshifttext("stateworking","工作中")}</span>`
+	}
+	if(state=="onbreak"){
+		statushtml=`<span class="inline-flex items-center gap-1 text-amber-300"><span class="inline-block h-2 w-2 rounded-full bg-amber-400"></span>${ptstaffshifttext("stateonbreak","休息中")}</span>`
+	}
+	let tablehtml=""
+	if(data["table"]){
+		let tablename=data["table"]["name"]||data["table"]["no"]||data["table"]["id"]
+		tablehtml=`<div class="mt-1 text-xs text-zinc-400">${ptstaffshifttext("attable","目前牌桌")}：${tablename}　${data["table"]["sessionname"]||""}</div>`
+	}
+	let buttonhtml=""
+	if(state=="off"){
+		buttonhtml=`<input type="button" class="ptshiftaction rounded-2xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-emerald-500" data-action="startstaffshift" value="${ptstaffshifttext("shiftstart","上班卡")}">`
+	}
+	if(state=="working"){
+		buttonhtml=`
+			<input type="button" class="ptshiftaction rounded-2xl bg-amber-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-amber-500" data-action="breakstaffshift" value="${ptstaffshifttext("shiftbreak","休息卡")}">
+			<input type="button" class="ptshiftaction rounded-2xl bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition hover:bg-zinc-600" data-action="endstaffshift" value="${ptstaffshifttext("shiftend","下班卡")}">
+		`
+	}
+	if(state=="onbreak"){
+		buttonhtml=`
+			<input type="button" class="ptshiftaction rounded-2xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-emerald-500" data-action="resumestaffshift" value="${ptstaffshifttext("shiftresume","結束休息")}">
+			<input type="button" class="ptshiftaction rounded-2xl bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition hover:bg-zinc-600" data-action="endstaffshift" value="${ptstaffshifttext("shiftend","下班卡")}">
+		`
+	}
+	container.innerHTML=`
+		<div class="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<div class="text-sm font-bold">${statushtml}</div>
+				<div class="mt-1 text-xs text-zinc-400">${ptstaffshifttext("shifttotal","本班累計")}：${ptformatduration(data["shiftminute"])}${0<data["segmentlist"].length?"　"+data["segmentlist"].length+ptstaffshifttext("segmentcount"," 段"):""}</div>
+				${tablehtml}
+			</div>
+			<div class="flex flex-wrap gap-2">${buttonhtml}</div>
+		</div>
+	`
+	onclick("#"+containerid+" .ptshiftaction",function(element){
+		onaction(element.getAttribute("data-action"))
+	})
+}
+
+function ptloadshiftpanel(containerid,staffuserid,afterload){
+	let url=AJAXURL+"getstaffshiftstatus"
+	if(staffuserid){
+		url=url+"?staffuserid="+encodeURIComponent(staffuserid)
+	}
+	ajax("GET",url,function(event,data){
+		if(!data["success"]){
+			innerhtml("#"+containerid,`<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 text-sm text-zinc-500">${ptstaffshifttext("shiftloadfail","打卡狀態載入失敗")}</div>`,false)
+			return
+		}
+		ptrendershiftpanel(containerid,data["data"],function(action){
+			ptsendshiftaction(action,staffuserid,function(){
+				ptloadshiftpanel(containerid,staffuserid,afterload)
+			})
+		})
+		if(afterload){
+			afterload(data["data"])
+		}
+	},null,[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],{
+		loadingtarget: "#"+containerid
+	})
+}
+
+function ptsendshiftaction(action,staffuserid,done){
+	let body={}
+	if(staffuserid){
+		body["staffuserid"]=staffuserid
+	}
+	ajax("POST",AJAXURL+action,function(event,data){
+		if(data["success"]){
+			pttoast(ptstaffshifttext(action+"ok",ptstaffshifttext("shiftok","已更新")),"success")
+			done()
+		}else{
+			pttoast(pterror(data["data"]||ptstaffshifttext("shiftfail","操作失敗")),"error")
+		}
+	},JSON.stringify(body),[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],null)
 }
 
 // 只取到分鐘的日期時間（YYYY-MM-DD HH:mm）。開始時間顯示用，不需要秒。

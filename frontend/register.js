@@ -59,6 +59,26 @@ function registrationsortvalue(item,key){
 		let number=Number(item["profit"])
 		return isNaN(number)?null:number
 	}
+	if(key=="seat"){
+		// 座位要**先桌號、後座位號**，而且兩段都要用數值比 ——
+		// 直接拿 "10-3" 這種字串排會讓 10 桌跑到 2 桌前面。
+		// 併成一個數字（桌號*1000+座位號）比較，通用的 ptsortcompare 看到
+		// 兩邊都是 number 就會走數值相減那條。
+		// 還沒入座的回 null，ptsortcompare 一律把 null 排到最後（升冪降冪都是），
+		// 這正是想要的：未入座的不該卡在名單中間。
+		if(!item["tableid"]||!item["seatno"]){
+			return null
+		}
+		let tableno=Number(registrationtablename(item["tableid"]))
+		if(isNaN(tableno)){
+			tableno=0
+		}
+		let seatno=Number(item["seatno"])
+		if(isNaN(seatno)){
+			seatno=0
+		}
+		return tableno*1000+seatno
+	}
 	let text=""
 	if(item[key]!=null){
 		text=String(item[key]).trim()

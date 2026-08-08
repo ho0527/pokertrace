@@ -479,13 +479,29 @@ function sessionrebuycard(label,enabled,count,buyin,fee,chip){
 }
 
 function sessiondisplayvalue(value){
-	if(value==false){
+	// **布林要用 typeof 判，不可以寫 value==false / value==true。**
+	// JS 的鬆散比較讓 `0==false` 與 `1==true` 都成立，所以舊版把數值 0 顯示成「否」、
+	// 數值 1 顯示成「是」，空字串也變成「否」。實際會看到的：
+	//   買入 / 服務費 0 元 → 「否」（sessionmoneytext 走這一支，服務費 0 會印成 1000(1000+否)）
+	//   保底獎金 0、票券價值 0 → 「否」
+	//   前注 0、統計「已取消 0 人」→ 「否」；「已報名 1 人」→ 「是」
+	//   場次說明沒填 → 「否」
+	// 2026-08-07 使用者在場次「資訊」分頁看到地點顯示成「否」才追出來的。
+	//
+	// 真正的布林（ticketenabled 這類）走的是 sessionboolrow，不經過這裡；
+	// 這裡保留 typeof 的布林分支只是防呆。
+	if(typeof value=="boolean"){
+		if(value){
+			return sessionpagetext("yes","是")
+		}
 		return sessionpagetext("no","否")
 	}
-	if(value==true){
-		return sessionpagetext("yes","是")
+	// 空字串也要用 typeof 判 —— `0==""` 在 JS 裡同樣成立，
+	// 寫成 `value==""` 會把數值 0 一起當成沒有值，服務費 0 就變成 1000(1000+-)。
+	if(value==null||value==undefined){
+		return "-"
 	}
-	if(value==null||value==undefined||value==""){
+	if(typeof value=="string"&&value.trim()==""){
 		return "-"
 	}
 	return value
@@ -556,6 +572,93 @@ function sessionantetext(value){
 		return sessionpagetext("anteregular","前注")
 	}
 	return sessionpagetext("antebigblind","大盲前注")
+}
+
+// 「資訊」分頁（#othertab-orderinfo）。
+//
+// 這一頁的定位是**識別與分享**，不重複總覽已經有的遊戲方式 / 買入規則卡片
+// （那些由 rendersessiondetailinfo 畫在 #sessiondetailinfo，屬於總覽區）。
+//
+// 特別值得做好的理由：selectsessionothertab() 對**沒有設定檢視權限的人**
+// 會把分頁 fallback 到 orderinfo，所以這是非擁有者點進「其他」看到的第一個畫面。
+// 舊版這裡只有一段除錯殘留（「場次id: #」與開發用詞 querykey），而且容器上掛了
+// data-i18n，textContent 覆蓋把兩個 span 一起清掉，等於連那段殘留都顯示不完整。
+function orderinforow(label,value,copytext){
+	let copyhtml=""
+	if(copytext){
+		copyhtml=`<input type="button" class="orderinfocopy shrink-0 rounded-lg border border-emerald-600/60 bg-emerald-600/10 px-3 py-1 text-xs font-bold text-emerald-300 transition hover:bg-emerald-600/20" data-copy="${safehtml(copytext)}" value="${safehtml(sessionpagetext("orderinfocopy","複製"))}">`
+	}
+	return `
+		<div class="flex items-center justify-between gap-3 border-b border-zinc-800 py-3 last:border-b-0">
+			<div class="text-sm text-zinc-500">${safehtml(label)}</div>
+			<div class="flex min-w-0 items-center gap-2">
+				<div class="truncate text-sm font-semibold text-zinc-100">${safehtml(value)}</div>
+				${copyhtml}
+			</div>
+		</div>
+	`
+}
+
+// 文字欄位的顯示值：**沒有值就留白**，不要補「-」也不要補任何字。
+//
+// 刻意不用 sessiondisplayvalue()：那一支是給布林值用的，開頭是 `if(value==false)`，
+// 而 JS 的 `""==false` 成立 —— 所以空字串會被顯示成「否」。
+// 地點沒填時畫面出現「否」就是這樣來的。
+function orderinfotext(value){
+	if(value==null||value==undefined){
+		return ""
+	}
+	return String(value)
+}
+
+function orderinfosection(title){
+	return `<div class="mt-6 mb-1 text-xs font-bold uppercase tracking-wider text-zinc-500 first:mt-0">${safehtml(title)}</div>`
+}
+
+function rendersessionorderinfo(row){
+	let element=domgetid("orderinfocontent")
+	if(!element||!row){
+		return
+	}
+	// 分享連結用當前網址的目錄組出來，不硬編網域 —— 測試機與正式機是不同網域，
+	// 寫死其中一個會讓另一台複製到錯的連結。
+	let sharelink=location.origin+location.pathname+"?id="+sessionid
+	let html=""
+
+	html=html+orderinfosection(sessionpagetext("orderinfoshare","識別與分享"))
+	html=html+orderinforow(sessionpagetext("orderinfotoken","場次代碼"),orderinfotext(row["token"]),row["token"])
+	html=html+orderinforow(sessionpagetext("orderinfolink","場次連結"),sharelink,sharelink)
+
+	html=html+orderinfosection(sessionpagetext("orderinfobasic","基本資料"))
+	html=html+orderinforow(sessionpagetext("orderinfoname","名稱"),orderinfotext(row["name"]),"")
+	html=html+orderinforow(sessionpagetext("orderinfoclub","協會"),orderinfotext(row["clubname"]),"")
+	html=html+orderinforow(sessionpagetext("orderinfoplace","地點"),orderinfotext(row["place"]),"")
+	// 時間到分就好，秒沒有意義。ptformatdatetimeminute 取 ptformatdatetime 的前 16 字元，
+	// 空值時兩支都回空字串，所以沒填的時間欄一樣是留白。
+	html=html+orderinforow(sessionpagetext("orderinfostart","開始時間"),ptformatdatetimeminute(row["starttime"]),"")
+	html=html+orderinforow(sessionpagetext("orderinfoend","結束時間"),ptformatdatetimeminute(row["endtime"]),"")
+	html=html+orderinforow(sessionpagetext("orderinfocreate","建立時間"),ptformatdatetimeminute(row["createtime"]),"")
+
+	html=html+orderinfosection(sessionpagetext("orderinfosystem","系統識別"))
+	html=html+orderinforow(sessionpagetext("orderinfoid","場次編號"),sessionid,String(sessionid))
+	html=html+`<div class="mt-2 text-xs leading-6 text-zinc-500">${safehtml(sessionpagetext("orderinfoidnote","回報問題時附上這個編號，可以更快找到這一場。"))}</div>`
+
+	element.innerHTML=html
+	onclick(".orderinfocopy",function(element,event){
+		let text=dataset(element,"copy")
+		if(!text){
+			return
+		}
+		if(navigator.clipboard&&navigator.clipboard.writeText){
+			navigator.clipboard.writeText(text).then(function(){
+				pttoast(sessionpagetext("orderinfocopied","已複製到剪貼簿"),"success")
+			}).catch(function(){
+				pttoast(sessionpagetext("orderinfocopyfailed","複製失敗，請手動選取"),"warning")
+			})
+		}else{
+			pttoast(sessionpagetext("orderinfocopyfailed","複製失敗，請手動選取"),"warning")
+		}
+	})
 }
 
 function rendersessiondetailinfo(row){
@@ -2133,8 +2236,7 @@ function loadsessiondata(silent){
 		}
 		tablelinked=row["tablelinked"]
 
-		innertext("#sessiontoken",row["token"],false)
-		innertext("#sessionid",sessionid,false)
+		rendersessionorderinfo(row)
 		rendersessiondate(row)
 		if(row["linkuser"]==true){
 			loadsessiontimerdata(function(){
@@ -4207,6 +4309,363 @@ function getoverviewhash(){
 	return "overview-"+getactiveoverviewtab()
 }
 
+// ── 員工工時（打卡）分頁 ──────────────────────────────────────────────
+// 資料來源是 getstaffworkstatus，那一支把 sessionstaff 與 userstaff 取聯集
+// （同一人以 sessionstaff 優先），所以長期聘用的員工不必再單場指派一次就會出現。
+
+let staffworkdata=null
+
+function staffworktext(key,fallback){
+	if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["staffwork"]&&TRANSLATE[LANGUAGE]["staffwork"][key]!=undefined){
+		return TRANSLATE[LANGUAGE]["staffwork"][key]
+	}
+	return fallback
+}
+
+function staffrolelabel(role){
+	if(role=="dealer"){
+		return staffworktext("roledealer","計分員")
+	}
+	if(role=="floor"){
+		return staffworktext("rolefloor","裁判")
+	}
+	if(role=="assistant"){
+		return staffworktext("roleassistant","助理")
+	}
+	return role||"-"
+}
+
+function staffminutetext(minute){
+	// 格式化統一走 initialize.js 的 ptformatduration，三個用到工時的畫面才不會各自漂移
+	return ptformatduration(minute)
+}
+
+function loadstaffwork(){
+	if(!sessionid){
+		return
+	}
+	ajax("GET",AJAXURL+"getstaffworkstatus/"+sessionid,function(event,data){
+		if(data["success"]){
+			staffworkdata=data["data"]
+			renderstaffwork()
+		}else{
+			staffworkdata=null
+			innerhtml("#staffworkcontent",`<div class="py-6 text-center text-zinc-500">${safehtml(pterror(data["data"]||staffworktext("loadfail","載入失敗")))}</div>`,false)
+		}
+	},null,[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],{
+		loadingtarget: "#staffworkcontent"
+	})
+}
+
+function staffworkrowhtml(item){
+	// 進行中的班用綠點標出來。跨日的另外標天數 —— 系統刻意允許跨日、也不自動收班，
+	// 所以「忘了打下班卡」不會有任何阻力，只能靠畫面把它變顯眼。
+	let statushtml=`<span class="text-zinc-500">${staffworktext("statusoff","未打卡")}</span>`
+	if(item["workinged"]){
+		let daytext=""
+		let dayed=Math.floor((int(item["totalminute"])||0)/1440)
+		if(0<dayed){
+			daytext=` <span class="text-rose-300 font-bold">${staffworktext("crossday","已跨")}${dayed}${staffworktext("day","天")}</span>`
+		}
+		statushtml=`<span class="inline-flex items-center gap-1 text-emerald-300"><span class="inline-block h-2 w-2 rounded-full bg-emerald-400"></span>${staffworktext("statuson","上班中")}</span>${daytext}`
+	}
+	let selfbadge=""
+	if(item["selfstarted"]){
+		selfbadge=` <span class="rounded-full border border-zinc-600 bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">${staffworktext("selfmark","自己按的")}</span>`
+	}
+	// 上桌／下桌是在多牌桌總覽做的（桌子在那裡）。這裡只顯示結果，
+	// 但自己那一列給一個入口 —— 否則員工不會知道要去哪裡選桌。
+	let tablehtml=`<span class="text-zinc-600">-</span>`
+	if(item["ontableed"]){
+		tablehtml=safehtml(item["tablename"]||item["tableno"]||item["tableid"])
+	}
+	if(item["selfed"]){
+		tablehtml=tablehtml+`<div class="mt-1"><a href="tableboard.html?id=${safehtml(sessionid)}" class="text-xs text-emerald-400 hover:underline">${staffworktext("picktable","去選桌")}</a></div>`
+	}
+	// 單場覆寫只有 sessionstaff 來源的人才改得了（sessionstaff.hourlyrate 是那張表的欄位）。
+	// 留白 = 清除覆寫、回去沿用全域預設；0 = 這場真的無給職。兩者不同。
+	let ratehtml=`<span class="text-zinc-600">${staffworktext("ratenone","未設定")}</span>`
+	if(item["ratesource"]!="none"){
+		ratehtml=safehtml(item["hourlyrate"])+`<div class="text-xs text-zinc-500">${item["ratesource"]=="sessionstaff"?staffworktext("ratesession","本場覆寫"):staffworktext("rateglobal","全域預設")}</div>`
+	}
+	if(item["source"]=="sessionstaff"&&canviewsessionsettings(currentsession)){
+		ratehtml=ratehtml+`
+			<div class="mt-1 flex items-center gap-1">
+				<input type="number" class="staffrateinput w-20 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs" data-sessionstaffid="${item["sessionstaffid"]}" min="0" value="${item["ratesource"]=="sessionstaff"?safehtml(item["hourlyrate"]):""}">
+				<input type="button" class="staffratesave text-xs text-emerald-400 hover:underline" data-sessionstaffid="${item["sessionstaffid"]}" value="${staffworktext("ratesave","存")}">
+			</div>
+		`
+	}
+	// 這裡是**代打卡**：打的是那個人的班（個人層級），不是「這一場的卡」。
+	// 場次只是記錄 —— 段的場次歸屬是上桌時帶入的，不是在這裡選的。
+	let buttonhtml=""
+	if(staffworkdata["canmanage"]||item["selfed"]){
+		if(item["shiftstate"]=="working"){
+			buttonhtml=`
+				<input type="button" class="staffshiftbtn rounded bg-amber-600 px-3 py-1 text-sm text-white hover:bg-amber-500" data-action="breakstaffshift" data-staffuserid="${item["staffuserid"]}" value="${staffworktext("shiftbreak","休息卡")}">
+				<input type="button" class="staffshiftbtn rounded bg-zinc-700 px-3 py-1 text-sm text-white hover:bg-zinc-600" data-action="endstaffshift" data-staffuserid="${item["staffuserid"]}" value="${staffworktext("shiftend","下班卡")}">
+			`
+		}else if(item["shiftstate"]=="onbreak"){
+			buttonhtml=`
+				<input type="button" class="staffshiftbtn rounded bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-500" data-action="resumestaffshift" data-staffuserid="${item["staffuserid"]}" value="${staffworktext("shiftresume","結束休息")}">
+				<input type="button" class="staffshiftbtn rounded bg-zinc-700 px-3 py-1 text-sm text-white hover:bg-zinc-600" data-action="endstaffshift" data-staffuserid="${item["staffuserid"]}" value="${staffworktext("shiftend","下班卡")}">
+			`
+		}else{
+			buttonhtml=`<input type="button" class="staffshiftbtn rounded bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-500" data-action="startstaffshift" data-staffuserid="${item["staffuserid"]}" value="${staffworktext("shiftstart","上班卡")}">`
+		}
+	}
+	// 只有「單場指派」進來的才給移除鈕；長期聘用的要去個人檔案解聘，不該從場次頁拆掉
+	if(item["source"]=="sessionstaff"&&canviewsessionsettings(currentsession)){
+		buttonhtml=buttonhtml+` <input type="button" class="staffsessionremove text-red-400 hover:underline text-sm" data-sessionstaffid="${item["sessionstaffid"]}" value="${staffworktext("removesession","移除")}">`
+	}
+	return `
+		<tr class="border-b border-zinc-800">
+			<td class="py-2 px-2">${safehtml(item["staffname"])}<div class="text-xs text-zinc-500">${safehtml(item["staffplayerid"])}</div></td>
+			<td class="py-2 px-2">${staffrolelabel(item["role"])}</td>
+			<td class="py-2 px-2">${statushtml}${selfbadge}</td>
+			<td class="py-2 px-2">${tablehtml}</td>
+			<td class="py-2 px-2">${staffminutetext(item["totalminute"])}<div class="text-xs text-zinc-500">${staffworktext("billing","計費")} ${staffminutetext(item["billingminute"])}</div></td>
+			<td class="py-2 px-2">${ratehtml}</td>
+			<td class="py-2 px-2">${item["ratesource"]=="none"?`<span class="text-zinc-600">-</span>`:safehtml(item["amount"])}</td>
+			<td class="py-2 px-2">${buttonhtml}</td>
+		</tr>
+	`
+}
+
+function renderstaffwork(){
+	if(!staffworkdata){
+		return
+	}
+	let stafflist=staffworkdata["stafflist"]||[]
+	let pendinglist=staffworkdata["pendinglist"]||[]
+	if(stafflist.length==0){
+		// 已經指派但對方還沒確認時，**不可以**再說「沒有可排班的員工」——
+		// 那會讓人以為剛才的指派沒有生效（實際上是 status='pending'，在等對方點信）。
+		if(0<pendinglist.length){
+			innerhtml("#staffworkcontent",`
+				<div class="py-8 text-center">
+					<div class="text-zinc-400">${staffworktext("pendingonly","已指派，等待對方確認")}</div>
+					<div class="mt-2 text-sm text-zinc-500">${staffworktext("pendingonlynext","對方點了邀請信裡的連結之後，就會出現在排班清單中。")}</div>
+				</div>
+				${staffpendinghtml(pendinglist)}
+				${staffassignformhtml()}
+			`,false)
+			bindstaffassign()
+			return
+		}
+		// **空狀態也要把指派表單畫出來。**
+		// 空狀態的文案寫著「或為本場次單獨指派」，但舊版在這裡直接 return，
+		// 於是那個控制項只有在**已經有人**的時候才看得到 —— 最需要它的時候反而沒有，
+		// 使用者除了那句話之外沒有任何下一步可以按。
+		// 這一段對沒有設定檢視權限的人會是空字串（staffassignformhtml 自己擋掉），
+		// 那種情況下只顯示說明文字是對的。
+		innerhtml("#staffworkcontent",`
+			<div class="py-8 text-center">
+				<div class="text-zinc-400">${staffworktext("emptystaff","這場沒有可排班的員工")}</div>
+				<div class="mt-2 text-sm text-zinc-500">${staffworktext("emptystaffnext","請先到個人檔案聘用計分員、裁判或助理，或為本場次單獨指派。")}</div>
+				<a href="profile.html#employmentpanel" class="mt-4 inline-block rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:border-emerald-500 hover:text-emerald-400">${staffworktext("emptystaffgoprofile","前往個人檔案聘用")}</a>
+			</div>
+			${staffassignformhtml()}
+		`,false)
+		bindstaffassign()
+		return
+	}
+	let totalminute=0
+	let totalamount=0
+	let workingcount=0
+	let bodyhtml=""
+	for(let i=0;i<stafflist.length;i=i+1){
+		totalminute=totalminute+(int(stafflist[i]["totalminute"])||0)
+		totalamount=totalamount+(int(stafflist[i]["amount"])||0)
+		if(stafflist[i]["workinged"]){
+			workingcount=workingcount+1
+		}
+		bodyhtml=bodyhtml+staffworkrowhtml(stafflist[i])
+	}
+	innerhtml("#staffworkcontent",`
+		<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+			<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+				<div class="text-xs text-zinc-500">${staffworktext("cardtotalminute","本場總時數")}</div>
+				<div class="mt-1 text-2xl font-bold">${staffminutetext(totalminute)}</div>
+			</div>
+			<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+				<div class="text-xs text-zinc-500">${staffworktext("cardtotalamount","本場總金額")}</div>
+				<div class="mt-1 text-2xl font-bold">${totalamount}</div>
+			</div>
+			<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+				<div class="text-xs text-zinc-500">${staffworktext("cardworking","上班中")}</div>
+				<div class="mt-1 text-2xl font-bold ${0<workingcount?"text-emerald-400":""}">${workingcount}</div>
+			</div>
+		</div>
+		<div class="overflow-x-auto">
+			<table class="w-full text-left text-sm">
+				<thead class="text-zinc-400">
+					<tr class="border-b border-zinc-800">
+						<th class="py-2 px-2">${staffworktext("colstaff","員工")}</th>
+						<th class="py-2 px-2">${staffworktext("colrole","角色")}</th>
+						<th class="py-2 px-2">${staffworktext("colstatus","狀態")}</th>
+						<th class="py-2 px-2">${staffworktext("coltable","目前牌桌")}</th>
+						<th class="py-2 px-2">${staffworktext("colduration","累計時數")}</th>
+						<th class="py-2 px-2">${staffworktext("colrate","時薪")}</th>
+						<th class="py-2 px-2">${staffworktext("colamount","金額")}</th>
+						<th class="py-2 px-2"></th>
+					</tr>
+				</thead>
+				<tbody>${bodyhtml}</tbody>
+			</table>
+		</div>
+		<div class="mt-4 text-xs text-zinc-500">${staffworktext("billinghint","計費以 30 分鐘為單位無條件進位；上班中的班不計金額。")}</div>
+		${staffpendinghtml(pendinglist)}
+		${staffassignformhtml()}
+	`,false)
+	onclick(".staffshiftbtn",function(element){
+		staffclock(element.getAttribute("data-action"),element.getAttribute("data-staffuserid"))
+	})
+	onclick(".staffratesave",function(element){
+		let sessionstaffid=element.getAttribute("data-sessionstaffid")
+		let input=document.querySelector('.staffrateinput[data-sessionstaffid="'+sessionstaffid+'"]')
+		let rate=input?input.value.trim():""
+		// 留白要送 null（清除覆寫、回去沿用全域），不能送 0 —— 0 代表這場真的無給職
+		let ratevalue=null
+		if(rate!=""){
+			ratevalue=int(rate)
+		}
+		ajax("PUT",AJAXURL+"editsessionstaffrate/"+sessionstaffid,function(event,data){
+			if(data["success"]){
+				pttoast(staffworktext("rateok","時薪已更新，只影響之後的打卡"),"success")
+				loadstaffwork()
+			}else{
+				pttoast(pterror(data["data"]||staffworktext("ratefail","更新失敗")),"error")
+			}
+		},str({
+			"hourlyrate": ratevalue
+		}),[
+			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+		],{
+			loadingtarget: "#staffworkcontent"
+		})
+	})
+	bindstaffassign()
+}
+
+// 待確認的聘用（sessionstaff / userstaff 的 status='pending'）。
+// 這些人**還不能排班**，所以不放任何操作按鈕，只讓主辦看得到「我確實指派了、在等對方」。
+function staffpendinghtml(pendinglist){
+	if(!pendinglist||pendinglist.length==0){
+		return ""
+	}
+	let html=""
+	for(let i=0;i<pendinglist.length;i=i+1){
+		let item=pendinglist[i]
+		let sourcetext=staffworktext("pendingsourcesession","本場指派")
+		if(item["source"]=="userstaff"){
+			sourcetext=staffworktext("pendingsourceglobal","長期聘用")
+		}
+		html=html+`
+			<div class="flex items-center justify-between gap-3 border-b border-zinc-800 py-3 last:border-b-0">
+				<div class="min-w-0">
+					<div class="truncate text-sm font-semibold text-zinc-200">${safehtml(item["staffname"])}</div>
+					<div class="text-xs text-zinc-500">${safehtml(item["staffplayerid"])} · ${safehtml(staffrolelabel(item["role"]))} · ${safehtml(sourcetext)}</div>
+				</div>
+				<div class="shrink-0 rounded-full border border-amber-600/50 bg-amber-600/10 px-3 py-1 text-xs font-bold text-amber-300">${staffworktext("pendingbadge","待確認")}</div>
+			</div>
+		`
+	}
+	return `
+		<div class="mt-6 border-t border-zinc-800 pt-4">
+			<div class="mb-2 text-sm font-bold">${staffworktext("pendingtitle","待確認的邀請")}</div>
+			<div class="mb-2 text-xs text-zinc-500">${staffworktext("pendinghint","對方確認之前不會出現在排班清單，也不能上桌或打卡。")}</div>
+			${html}
+		</div>
+	`
+}
+
+function staffassignformhtml(){
+	// 單場指派。這是 newstaff/{sessionid} 與 deletesessionstaff 這兩支端點的第一個前端 ——
+	// 在此之前 sessionstaff 只有後端、沒有任何畫面在寫它。
+	if(!canviewsessionsettings(currentsession)){
+		return ""
+	}
+	return `
+		<div class="mt-6 border-t border-zinc-800 pt-4">
+			<div class="mb-2 text-sm font-bold">${staffworktext("assigntitle","指派本場員工")}</div>
+			<div class="mb-2 text-xs text-zinc-500">${staffworktext("assignhint","只在這一場生效，不影響其他場次。長期聘用請到個人檔案設定。")}</div>
+			<div class="flex flex-wrap items-center gap-2">
+				<input type="text" class="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm" data-i18n-placeholder="staffwork.assignplayerid" id="staffassignplayerid" placeholder="選手編號">
+				<select class="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm" id="staffassignrole">
+					<option value="dealer">${staffworktext("roledealer","計分員")}</option>
+					<option value="floor">${staffworktext("rolefloor","裁判")}</option>
+					<option value="assistant">${staffworktext("roleassistant","助理")}</option>
+				</select>
+				<input type="button" class="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500" id="staffassignbutton" value="${staffworktext("assignbutton","指派")}">
+			</div>
+		</div>
+	`
+}
+
+function bindstaffassign(){
+	onclick("#staffassignbutton",function(){
+		let playerid=(getvalue("staffassignplayerid")||"").trim()
+		if(!playerid){
+			pttoast(staffworktext("assignneedplayerid","請輸入選手編號"),"error")
+			return
+		}
+		ajax("POST",AJAXURL+"newstaff/"+sessionid,function(event,data){
+			if(data["success"]){
+				pttoast(staffworktext("assignok","已指派"),"success")
+				value("#staffassignplayerid","")
+				loadstaffwork()
+			}else{
+				pttoast(pterror(data["data"]||staffworktext("assignfail","指派失敗")),"error")
+			}
+		},str({
+			"playerid": playerid,
+			"role": getvalue("staffassignrole")||"dealer"
+		}),[
+			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+		],{
+			loadingtarget: "#staffworkcontent"
+		})
+	})
+	onclick(".staffsessionremove",function(element){
+		let sessionstaffid=element.getAttribute("data-sessionstaffid")
+		ptconfirm(staffworktext("removeconfirm","確定要把這位員工從本場次移除嗎？"),function(){
+			ajax("DELETE",AJAXURL+"deletesessionstaff/"+sessionstaffid,function(event,data){
+				if(data["success"]){
+					pttoast(staffworktext("removeok","已移除"),"success")
+					loadstaffwork()
+				}else{
+					pttoast(pterror(data["data"]||staffworktext("removefail","移除失敗")),"error")
+				}
+			},null,[
+				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+			],{
+				loadingtarget: "#staffworkcontent"
+			})
+		})
+	})
+}
+
+function staffclock(action,staffuserid){
+	// 打卡端點是**個人層級**的（不吃 sessionid）—— 場次歸屬由上桌帶入。
+	ajax("POST",AJAXURL+action,function(event,data){
+		if(data["success"]){
+			pttoast(staffworktext(action+"ok",staffworktext("shiftok","已更新")),"success")
+			loadstaffwork()
+		}else{
+			pttoast(pterror(data["data"]||staffworktext("clockfail","打卡失敗")),"error")
+		}
+	},str({
+		"staffuserid": int(staffuserid)
+	}),[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],{
+		loadingtarget: "#staffworkcontent"
+	})
+}
+
 function selectsessionothertab(tab){
 	if(tab=="settings"&&currentsession&&!canviewsessionsettings(currentsession)){
 		tab="orderinfo"
@@ -4230,6 +4689,14 @@ function selectsessionothertab(tab){
 	}
 	if(tab=="relations"){
 		renderrelationpage(relationtype)
+	}
+	if(tab=="orderinfo"){
+		// 場次資料可能還沒回來（這一頁是沒有設定檢視權限時的預設分頁，會在載入完成前就被選中），
+		// 所以載入完成的那一段也會再呼叫一次。
+		rendersessionorderinfo(currentsession)
+	}
+	if(tab=="staff"){
+		loadstaffwork()
 	}
 }
 
@@ -4267,13 +4734,22 @@ function sessionhashstate(){
 		state["settingtab"]="result"
 		state["tab"]="other"
 	}
-	if(sessionhash=="overview-other-settings"||sessionhash=="overview-other-relations"){
-		state["othertab"]=sessionhash.replace("overview-other-","")
-		state["tab"]="other"
+	// 「其他」底下有哪些子分頁**從 DOM 讀**，不要再寫死字串清單。
+	// 原本這裡是 other-settings / other-relations / other-orderinfo 三個字面值，
+	// 2026-08 加了 other-staff 之後忘了補：hash 對不到任何一條 → tab 維持空字串 →
+	// 落回預設的總覽，但網址列的 #other-staff 不會被改掉，畫面與網址就此對不起來。
+	// 這種漏法不會報錯，只會看起來「點了沒反應」。
+	let othertabnamelist=[]
+	let othertabnodelist=document.querySelectorAll(".othertab-btn[data-othertab]")
+	for(let i=0;i<othertabnodelist.length;i=i+1){
+		othertabnamelist.push(othertabnodelist[i].getAttribute("data-othertab"))
 	}
-	if(sessionhash=="other-settings"||sessionhash=="other-relations"||sessionhash=="other-orderinfo"){
-		state["othertab"]=sessionhash.replace("other-","")
-		state["tab"]="other"
+	for(let i=0;i<othertabnamelist.length;i=i+1){
+		let name=othertabnamelist[i]
+		if(sessionhash=="overview-other-"+name||sessionhash=="other-"+name||sessionhash==name){
+			state["othertab"]=name
+			state["tab"]="other"
+		}
 	}
 	if(sessionhash=="overview-general"||sessionhash=="overview-info"||sessionhash=="overview-action"||sessionhash=="overview-note"){
 		state["overviewtab"]=sessionhash.replace("overview-","")
@@ -4282,10 +4758,6 @@ function sessionhashstate(){
 	if(sessionhash=="general"||sessionhash=="info"||sessionhash=="action"||sessionhash=="note"){
 		state["overviewtab"]=sessionhash
 		state["tab"]="overview"
-	}
-	if(sessionhash=="settings"||sessionhash=="relations"||sessionhash=="orderinfo"){
-		state["othertab"]=sessionhash
-		state["tab"]="other"
 	}
 	if(sessionhash=="ev"||sessionhash=="chart"){
 		state["handtab"]="ev"

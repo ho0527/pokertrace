@@ -4,6 +4,10 @@ if(!weblsget(WEBLSNAME+"signin")){
 
 let currentusertype="player"
 let currentstafftype="dealer"
+// 員工名單彈窗的篩選狀態。每次開彈窗都重設回「全部」——
+// 留著上次的條件會讓人以為名單裡的人不見了。
+let staffmodalfilter="all"
+let staffmodalkeyword=""
 let currentreporttype="month"
 let signoutpendinged=false
 let deleteaccountpendinged=false
@@ -653,6 +657,15 @@ function renderstaffcards(){
 }
 
 function renderemploymentsection(row){
+    // 打卡面板只給員工看（type 不是 player 的人）。主辦者自己不打卡 ——
+    // 他要替員工代打卡是在場次頁的員工分頁做，那裡看得到全部人。
+    if(currentusertype!="player"){
+        let panel=domgetid("staffshiftpanel")
+        if(panel){
+            panel.classList.remove("hidden")
+        }
+        ptloadshiftpanel("staffshiftpanel",null,null)
+    }
     if(currentusertype=="player"){
         renderstaffcards()
         return
@@ -718,6 +731,9 @@ function loadstafflist(){
         renderstaffcards()
         let modal=domgetid("staffmodal")
         if(modal&&!modal.classList.contains("hidden")){
+            // 篩選列也要重畫 —— 新增或移除員工之後各狀態的計數會變，
+            // 只重畫名單的話那幾個數字會停在舊值。
+            renderstaffmodalfilter()
             renderstaffmodal()
         }
     },null,[
@@ -734,6 +750,10 @@ function openstaffmodal(type){
     }
     currentstafftype=type
     settext("#staffmodal-title",staffcardtitle(type))
+    // 每次開彈窗都把篩選重設 —— 留著上次的條件會讓人以為名單裡的人不見了。
+    staffmodalfilter="all"
+    staffmodalkeyword=""
+    renderstaffmodalfilter()
     renderstaffmodal()
     removeclass("#staffmodal",["hidden"])
     addclass("#staffmodal",["flex"])
@@ -753,11 +773,92 @@ function closestaffmodal(){
     }
 }
 
+// 篩選列。人少的時候不顯示 —— 三個人也要先過一排篩選鈕只是礙事。
+// 門檻設 6：一個畫面裝得下的量就不需要工具。
+function renderstaffmodalfilter(){
+    let bar=domgetid("staffmodalfilterbar")
+    if(!bar){
+        return
+    }
+    let fulllist=staffdata[currentstafftype]||[]
+    if(fulllist.length<6){
+        addclass("#staffmodalfilterbar",["hidden"])
+        return
+    }
+    removeclass("#staffmodalfilterbar",["hidden"])
+    let activecount=0
+    let pendingcount=0
+    for(let i=0;i<fulllist.length;i=i+1){
+        if(fulllist[i]["status"]=="pending"){
+            pendingcount=pendingcount+1
+        }else{
+            activecount=activecount+1
+        }
+    }
+    let filterlist=[
+        ["all",profiletext("filterall"),fulllist.length],
+        ["active",profiletext("active"),activecount],
+        ["pending",profiletext("pending"),pendingcount]
+    ]
+    let chiphtml=""
+    for(let i=0;i<filterlist.length;i=i+1){
+        let key=filterlist[i][0]
+        let style="border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500"
+        if(staffmodalfilter==key){
+            style="border-emerald-500 bg-emerald-600/20 text-emerald-300"
+        }
+        chiphtml=chiphtml+"<input type=\"button\" class=\"staffmodalfilter cursor-pointer rounded-full border px-3 py-1 text-xs font-bold "+style+"\" data-filter=\""+key+"\" value=\""+escapehtml(filterlist[i][1]+" "+filterlist[i][2])+"\">"
+    }
+    bar.innerHTML=
+        "<div class=\"flex flex-wrap gap-2\">"+chiphtml+"</div>"+
+        "<input type=\"text\" class=\"mt-2 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-white\" id=\"staffmodalsearch\" value=\""+escapehtml(staffmodalkeyword)+"\" placeholder=\""+escapehtml(profiletext("filtersearch"))+"\">"
+    let buttons=bar.querySelectorAll(".staffmodalfilter")
+    for(let i=0;i<buttons.length;i=i+1){
+        buttons[i].onclick=function(){
+            staffmodalfilter=this.getAttribute("data-filter")
+            renderstaffmodalfilter()
+            renderstaffmodal()
+        }
+    }
+    let search=domgetid("staffmodalsearch")
+    if(search){
+        search.oninput=function(){
+            staffmodalkeyword=this.value
+            // 只重畫名單，**不重畫篩選列** —— 重畫會把輸入框換掉、游標跳掉，
+            // 打第二個字就得重新點一次。
+            renderstaffmodal()
+        }
+    }
+}
+
 function renderstaffmodal(){
-    let list=staffdata[currentstafftype]||[]
+    let fulllist=staffdata[currentstafftype]||[]
+    // 協會員工可能很多，名單要能依狀態篩、也能搜姓名或編號。
+    // 篩選條件不持久化 —— 每次開彈窗都從「全部」開始，
+    // 否則上次篩過的條件會讓人以為名單少了人。
+    let keyword=String(staffmodalkeyword||"").trim().toLowerCase()
+    let list=[]
+    for(let k=0;k<fulllist.length;k=k+1){
+        let item=fulllist[k]
+        let matched=true
+        if(staffmodalfilter=="active"){
+            matched=item["status"]!="pending"
+        }else if(staffmodalfilter=="pending"){
+            matched=item["status"]=="pending"
+        }
+        if(matched&&keyword){
+            let hay=String(item["staffname"]||"")+" "+String(item["staffplayerid"]||"")
+            matched=hay.toLowerCase().indexOf(keyword)>=0
+        }
+        if(matched){
+            list.push(item)
+        }
+    }
     let html=""
-    if(list.length<1){
+    if(fulllist.length<1){
         html="<div class=\"rounded-xl border border-dashed border-zinc-800 bg-zinc-950/60 p-4 text-center text-sm text-zinc-500\">"+profiletext("empty")+"</div>"
+    }else if(list.length<1){
+        html="<div class=\"rounded-xl border border-dashed border-zinc-800 bg-zinc-950/60 p-4 text-center text-sm text-zinc-500\">"+profiletext("filterempty")+"</div>"
     }else{
         let i=0
         for(i=0;i<list.length;i=i+1){

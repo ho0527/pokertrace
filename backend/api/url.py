@@ -12,6 +12,7 @@ from . import series
 from . import session
 from . import sessionplayer
 from . import staff
+from . import staffwork
 from . import structureparse
 from . import swagger
 from . import table
@@ -58,11 +59,9 @@ urlpatterns=[
     re_path(r"^getauditlog$",user.getauditlog,name="getauditlog"),
     re_path(r"^getapilog$",user.getapilog,name="getapilog"),
 
+    # gettype / newtype / edittype / deletetype 已於 2026-08-06 移除（TASK-104）：
+    # 它們操作的 "type" 表不存在也從來沒存在過，是 session 的前身殘骸。理由見 type.py 檔頭。
     re_path(r"^gettypelist$",type.gettypelist,name="gettypelist"),
-    re_path(r"^gettype/(?P<typeid>[^/]+)$",type.gettype,name="gettype"),
-    re_path(r"^newtype$",type.newtype,name="newtype"),
-    re_path(r"^edittype/(?P<typeid>[^/]+)$",type.edittype,name="edittype"),
-    re_path(r"^deletetype/(?P<typeid>[^/]+)$",type.deletetype,name="deletetype"),
 
     re_path(r"^getsessionlist$",session.getsessionlist,name="getsessionlist"),
     re_path(r"^getsession/(?P<sessionid>[^/]+)$",session.getsession,name="getsession"),
@@ -142,6 +141,21 @@ urlpatterns=[
     re_path(r"^getsessionstafflist/(?P<sessionid>[^/]+)$",staff.getsessionstafflist,name="getsessionstafflist"),
     re_path(r"^newstaff/(?P<sessionid>[^/]+)$",staff.newsessionstaff,name="newsessionstaff"),
     re_path(r"^deletesessionstaff/(?P<sessionstaffid>[^/]+)$",staff.deletesessionstaff,name="deletesessionstaff"),
+
+    re_path(r"^startstaffshift$",staffwork.startstaffshift,name="startstaffshift"),
+    re_path(r"^breakstaffshift$",staffwork.breakstaffshift,name="breakstaffshift"),
+    re_path(r"^resumestaffshift$",staffwork.resumestaffshift,name="resumestaffshift"),
+    re_path(r"^endstaffshift$",staffwork.endstaffshift,name="endstaffshift"),
+    re_path(r"^getstaffshiftstatus$",staffwork.getstaffshiftstatus,name="getstaffshiftstatus"),
+    re_path(r"^getstaffworkstatus/(?P<sessionid>[^/]+)$",staffwork.getstaffworkstatus,name="getstaffworkstatus"),
+    re_path(r"^assignstafftable/(?P<tableid>[^/]+)$",staffwork.assignstafftable,name="assignstafftable"),
+    re_path(r"^releasestafftable/(?P<tablestaffid>[^/]+)$",staffwork.releasestafftable,name="releasestafftable"),
+    re_path(r"^getsessionstaffwork/(?P<sessionid>[^/]+)$",staffwork.getsessionstaffwork,name="getsessionstaffwork"),
+    re_path(r"^getstaffworkreport$",staffwork.getstaffworkreport,name="getstaffworkreport"),
+    re_path(r"^editstaffworklog/(?P<worklogid>[^/]+)$",staffwork.editstaffworklog,name="editstaffworklog"),
+    re_path(r"^deletestaffworklog/(?P<worklogid>[^/]+)$",staffwork.deletestaffworklog,name="deletestaffworklog"),
+    re_path(r"^editstaffrate/(?P<staffid>[^/]+)$",staffwork.editstaffrate,name="editstaffrate"),
+    re_path(r"^editsessionstaffrate/(?P<sessionstaffid>[^/]+)$",staffwork.editsessionstaffrate,name="editsessionstaffrate"),
 
     re_path(r"^parsestructure$",structureparse.parsestructure,name="parsestructure"),
 

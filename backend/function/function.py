@@ -62,6 +62,15 @@ ERRORLIST={
 	"ERROR_type_not_found": status.HTTP_404_NOT_FOUND,
 	"ERROR_player_eliminated": status.HTTP_400_BAD_REQUEST,
 	"WARNING_rebuycount_exceeded": status.HTTP_400_BAD_REQUEST,
+	"ERROR_staff_already_clockedin": status.HTTP_409_CONFLICT,
+	"ERROR_staff_not_clockedin": status.HTTP_400_BAD_REQUEST,
+	"ERROR_worklog_not_found": status.HTTP_404_NOT_FOUND,
+	"ERROR_worklog_time_invalid": status.HTTP_400_BAD_REQUEST,
+	"ERROR_worklog_time_overlap": status.HTTP_409_CONFLICT,
+	"ERROR_tablestaff_not_found": status.HTTP_404_NOT_FOUND,
+	"ERROR_staff_already_ontable": status.HTTP_409_CONFLICT,
+	"ERROR_staff_already_onbreak": status.HTTP_400_BAD_REQUEST,
+	"ERROR_staff_not_onbreak": status.HTTP_400_BAD_REQUEST,
 }
 
 def errorresponse(key):

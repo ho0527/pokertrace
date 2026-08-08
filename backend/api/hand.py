@@ -963,7 +963,15 @@ def getbroadcasthandlist(request,sessionid):
 		where=["h.\"deletetime\" IS NULL","t.\"sessionid\"=%s"]
 		if delay>0:
 			# 固定延遲: 只回傳建立時間已超過延遲分鐘數的手牌, 場內即時、場外延後
-			where.append("h.\"createtime\" <= now() - (%s * interval '1 minute')")
+			#
+			# **「現在」要用 nowtime() 當參數傳進來, 不可以寫 SQL 的 now()。**
+			# 全站慣例是把本地牆上時間存進 timestamptz 並原樣顯示
+			# (前端 ptformatdatetime 不做時區換算), 而 SQL 的 now() 是真 UTC ——
+			# 兩者差一個時區。原本這行寫 now(), 條件實際變成
+			# 「真實時間 <= now() - 8小時 - delay」, 手牌要 8 小時後才會出現。
+			# 2026-08-06 實測: 10 分鐘前的牌配 5 分鐘延遲 -> 查不到。
+			where.append("h.\"createtime\" <= %s::timestamptz - (%s * interval '1 minute')")
+			params.append(nowtime())
 			params.append(delay)
 		rows=query(SETTING["dbname"],"""
 			SELECT h.*,t."no" AS tablename,t."token" AS tabletoken,u."name" AS creatorname
@@ -2068,8 +2076,11 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 		"adjustments": "dict",
 		"ps": "string",
 		"note": "string",
-		"totalpot": "integer",
-		"positionpot": "array",
+		# totalpot / positionpot 的規則已移除（2026-08-06，TASK-106）。
+		# 底池**一律由伺服器依各座位下注累加**，本體從來沒有讀過用戶端傳的值 ——
+		# 留著規則會讓 apidoc 與讀碼的人以為那是可以設定的參數。
+		# 行為完全沒變：validate 只檢查列出的 key，不過濾也不拒絕其他欄位，
+		# 所以還在送 totalpot 的呼叫方一樣會成功，那個值一樣被忽略。
 		"gametype": "string",
 		"blindlevel": "string",
 		"levelid": "integer",

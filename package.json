@@ -1,0 +1,53 @@
+{
+	"name": "pokertrace-frontend",
+	"private": true,
+	"description": "Tailwind 建置（取代每頁的 Play CDN）。frontend/tailwind.css 是產物，但一定要進版控：本專案的部署是 nginx 直接吃磁碟上的靜態檔、沒有 CI/建置步驟，產物不進版控的話部署出去會整站沒樣式。改完 class 記得跑 npm run build:css && npm run verify:css。",
+	"scripts": {
+		"build:css": "tailwindcss -c tailwind.config.js -i tailwind.input.css -o frontend/tailwind.css --minify",
+		"watch:css": "tailwindcss -c tailwind.config.js -i tailwind.input.css -o frontend/tailwind.css --watch",
+		"verify:css": "node verifycss.js",
+		"verify:defaults": "node verifydefaults.js",
+		"verify:load": "node scantdz.js && node scanloadorder.js",
+		"kanban": "node tools/kanban/server.mjs",
+		"verify:translate": "node tools/audit/scantranslatekey.js && node tools/audit/checkcopyleak.js",
+		"audit:cards": "python tools/audit/cardclaimcheck.py",
+		"audit:rerun": "python tools/audit/rerunverification.py",
+		"audit:machine": "python tools/audit/comparemachine.py",
+		"verify:reference": "node tools/audit/scandeadreference.js",
+		"verify:apidoc": "python tools/audit/scanapidocdrift.py",
+		"verify:runtime": "node tools/audit/scanruntimeload.js",
+		"verify:apiview": "python tools/audit/scanapiview.py",
+		"verify:sql": "python tools/audit/checksqlwhere.py && python tools/audit/checksqlhelper.py && python tools/audit/checksqlorder.py && python tools/audit/checksqlpercent.py",
+		"audit:data": "cd backend && call .\\localenv.cmd && python tool/dataintegrity.py",
+		"verify:style": "node tools/audit/scanstyle.js",
+		"verify:cssvar": "node tools/audit/scancssvariable.js",
+		"audit:localstorage": "node tools/audit/scanlocalstorage.js",
+		"verify:dupkey": "node tools/audit/scanduplicatekey.js",
+		"audit:cardfield": "python tools/audit/validatecard.py",
+		"verify:stylechanged": "node tools/audit/scanstyle.js --changed",
+		"verify:potsplit": "node tools/audit/testpotsplit.js",
+		"verify:email": "cd backend && python tool/testemailbilingual.py",
+		"verify:gtomanifest": "node tools/audit/testgtomanifest.js",
+		"verify:toolgate": "python tools/audit/checktoolgate.py",
+		"verify:pageauto": "python tools/audit/checkpageauto.py && python tools/audit/checkpageautowipe.py",
+		"verify:i18n": "python tools/audit/checkdatai18n.py",
+		"verify:i18norder": "python tools/audit/i18nattrorder.py",
+		"verify:tablesort": "node tools/audit/checktablesort.js",
+		"verify:auth": "python tools/audit/checkauthhelper.py",
+		"verify:resourceauth": "python tools/audit/checkresourceauth.py",
+		"verify:tablename": "python tools/audit/checktablename.py",
+		"verify:columnname": "python tools/audit/checkcolumnname.py",
+		"verify:apicall": "python tools/audit/checkapicall.py",
+		"verify:bearertoken": "cd backend && call .\\localenv.cmd && python ../tools/audit/testbearertoken.py",
+		"verify:machineconfig": "python tools/audit/checkmachineconfig.py",
+		"verify:clockmix": "python tools/audit/checkclockmix.py && python tools/audit/checkclockcolumn.py",
+		"verify:deadcode": "python tools/audit/checkdeadcode.py",
+		"verify:errortext": "python tools/audit/checkerrortext.py"
+	},
+	"devDependencies": {
+		"tailwindcss": "^3.4.19"
+	},
+	"dependencies": {
+		"jsqr": "^1.4.0"
+	}
+}

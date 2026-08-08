@@ -181,9 +181,11 @@
                 </section>
 
                 <section id="employmentpanel" class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
-                    <div class="mb-6">
+                    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div class="text-lg font-extrabold text-white" id="employmenttitle">聘用關聯</div>
+                        <a href="staffwork.html" class="inline-flex items-center justify-center rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n="profile.staffworklink" id="staffworklink">員工工時</a>
                     </div>
+                    <div id="staffshiftpanel" class="mb-4 hidden"></div>
                     <div id="employmentcontent" class="grid grid-cols-1 gap-4 md:grid-cols-3"></div>
                 </section>
 
@@ -303,10 +305,13 @@
                     <input type="button" class="text-2xl leading-none text-zinc-400 transition hover:text-white" id="closestaffmodal" value="&times;">
                 </div>
                 <div class="mb-5 flex gap-2">
-                    <input type="text" id="staffid-input" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="profile.staffidlabel" placeholder="輸入使用者 ID（e.g. P-00099）" aria-label="使用者 ID">
+                    <input type="text" id="staffid-input" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="profile.staffidlabel" placeholder="輸入使用者 ID（e.g. 00000099）" aria-label="使用者 ID">
                     <input type="button" class="min-h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit id="addstaffbutton" value="新增">
                 </div>
                 <div class="mb-2 text-xs text-zinc-400" id="staffmodallistlabel">目前名單</div>
+                <!-- 篩選與搜尋由 profile.js 的 renderstaffmodalfilter() 產生；
+                     人數少於門檻時整塊不顯示，免得三個人也要先過一排篩選鈕。 -->
+                <div class="mb-3 hidden" id="staffmodalfilterbar"></div>
                 <div class="flex-1 overflow-y-auto space-y-2" id="staffmodal-list"></div>
                 <div class="mt-5 border-t border-zinc-800 pt-4">
                     <input type="button" class="w-full rounded-2xl bg-zinc-800 px-4 py-2.5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="closestaffmodalfooter" value="關閉">

@@ -22,7 +22,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from function.sql import *
 from .initialize import *
-from function.thing import printcolorhaveline
+from function.thing import printcolorhaveline,nowtime
 from .notification import notifyevent,notifyeventbatch
 
 
@@ -43,8 +43,10 @@ def claimstartnotify():
 	沒有認領到任何場次時回傳空 list。
 
 	查詢條件的三個重點：
-	- `starttime > NOW()`：**不補發**。服務停機期間錯過的場次直接跳過，
+	- `starttime > 現在`：**不補發**。服務停機期間錯過的場次直接跳過，
 	  遲到的「即將開始」只會造成困惑（人工決策）。
+	  這裡的「現在」是 nowtime() 傳進來的參數，**不是 SQL 的 NOW()**，
+	  理由見下方查詢上的註解。
 	- `owned=true`：只有主辦的場次才有報名者與工作人員可以通知。
 	- `startnotifiedtime IS NULL`：認領的關鍵條件，見檔頭說明。
 
@@ -58,24 +60,32 @@ def claimstartnotify():
 	等前一個提交後**重新檢查 WHERE 條件**。子查詢用的是舊快照，唯有外層這個條件會在
 	重新檢查時看到已被寫入的值而跳過該列。少了它，兩個 worker 有可能都認領成功。
 	"""
+	# **「現在」必須用 nowtime() 傳參數，不可以寫 SQL 的 NOW()。**
+	# session.starttime 是使用者輸入的**本地時間字串**（session.py:860 直接取 request body），
+	# 而全站慣例就是把本地牆上時間存進 timestamptz、前端原樣顯示。
+	# SQL 的 NOW() 是真 UTC，兩者差一個時區（本機 8 小時）。
+	# 原本這三行寫 NOW()，時間窗實際落在「真實開始時間的 8 小時後」——
+	# 也就是**即將開始的通知永遠不會在該發的時候發出**。
+	# 2026-08-06 實測：10 分鐘後開始的場次，用 NOW() 撈到 0 筆、用本地時間撈到 1 筆。
+	nowvalue=nowtime()
 	result=querytransaction(SETTING["dbname"],[
 		[f"""
 			WITH claimed AS (
 				UPDATE "session"
-				   SET "startnotifiedtime"=NOW()
+				   SET "startnotifiedtime"=%s
 				 WHERE "id" IN (
 					SELECT "id" FROM "session"
 					 WHERE "deletetime" IS NULL
 					   AND "owned"=true
 					   AND "startnotifiedtime" IS NULL
-					   AND "starttime" > NOW()
-					   AND "starttime" <= NOW() + INTERVAL '{STARTNOTIFYLEADMINUTE} minutes'
+					   AND "starttime" > %s::timestamptz
+					   AND "starttime" <= %s::timestamptz + INTERVAL '{STARTNOTIFYLEADMINUTE} minutes'
 				 )
 				   AND "startnotifiedtime" IS NULL
 				RETURNING "id","userid","name","starttime"
 			)
 			SELECT * FROM claimed
-		""",None]
+		""",[nowvalue,nowvalue,nowvalue]]
 	],SETTING["dbsetting"])
 	if not result:
 		return []
