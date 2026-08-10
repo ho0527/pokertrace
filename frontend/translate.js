@@ -1819,6 +1819,10 @@ const TRANSLATE={
 			"clear": "清空"
 		},
 		"handdetailpage": {
+			"drawtitle": "換牌紀錄",
+			"drawstand": "不換牌",
+			"drawdiscard": "棄",
+			"drawtake": "補",
 			"heading": "手牌詳情",
 			"back": "上一頁",
 			"prevhand": "◀ 上一手",
@@ -8776,6 +8780,10 @@ const TRANSLATE={
 			"clear": "Clear"
 		},
 		"handdetailpage": {
+			"drawtitle": "Draw",
+			"drawstand": "Stand pat",
+			"drawdiscard": "Discard",
+			"drawtake": "Draw",
 			"heading": "Hand Detail",
 			"back": "Back",
 			"prevhand": "◀ Previous",

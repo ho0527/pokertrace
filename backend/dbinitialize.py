@@ -1295,6 +1295,17 @@ INSERT INTO public.gametype(name,code,description) VALUES
 	('Other','ZZ','其他')
 ON CONFLICT(code) DO NOTHING;
 
+-- Drawmaha（坐馬哈）另外插，因為 **id 要自己算**。
+-- 上面那批走 identity，而 gametype 的 identity 序列早就跑到很前面
+-- （2026-08-10 實測：正式機 1018、測試機 1312），直接插會拿到 id=1018 這種號碼。
+-- 又不能單純把序列 setval 回 MAX(id)：ZZ 刻意佔著 999 當「其他」的哨兵值，
+-- setval 會變成 999，下一筆照樣是 1000。
+-- 所以新增牌型時自己取「900 以下的最大 id + 1」，才會接在正常編號後面。
+-- 之後要再加牌型請照這個形狀寫。
+INSERT INTO public.gametype(id,name,code,description)
+SELECT COALESCE((SELECT MAX(id) FROM public.gametype WHERE id<900),0)+1,'Drawmaha','DM','坐馬哈'
+WHERE NOT EXISTS(SELECT 1 FROM public.gametype WHERE code='DM');
+
 -- limittype (對應 NL/PL/FL)
 INSERT INTO public.limittype(name,code,description) VALUES
 	('No Limit','NL','無限注'),

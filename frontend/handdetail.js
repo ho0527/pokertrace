@@ -95,13 +95,15 @@ function tokenheaders(){
 	]
 }
 
-// 底牌依牌型而定（Hold'em 2、Omaha 4…），讀 value 內實際存在的 card1..card5。
+// 底牌依牌型而定，讀 value 內實際存在的 card1..card7。
+// **上限必須是 7**：7 張梭哈（ST / RA）存滿 card1..card7，寫成 5 會讓最後兩張
+// 在畫面上安靜消失 —— 資料還在 handseating.handcard 裡，只是沒被讀出來。
 function holecardsof(value){
 	let cards=[]
 	if(!value){
 		return cards
 	}
-	for(let i=1;i<=5;i=i+1){
+	for(let i=1;i<=7;i=i+1){
 		if(value["card"+i]){
 			cards.push(value["card"+i])
 		}
@@ -344,7 +346,8 @@ function cardkey(card){
 	return String(card||"").toUpperCase()
 }
 
-function rendercard(card,highlight,rabbited){
+// upped：梭哈的明牌（當時攤開給全桌看的那幾張）。傳 false / 省略就是暗牌。
+function rendercard(card,highlight,rabbited,upped){
 	let parts=cardparts(card)
 	if(parts["rank"]=="?"){
 		return `<span class="pt-card unknown"><span class="pt-card-rank">?</span></span>`
@@ -364,7 +367,54 @@ function rendercard(card,highlight,rabbited){
 	if(rabbited){
 		classes=classes+" pt-card-x"
 	}
+	if(upped){
+		classes=classes+" pt-card-up"
+	}
 	return `<span class="${classes}" data-suit="${parts["symbol"]}"><span class="pt-card-rank">${parts["rank"]}</span><span class="pt-card-suit">${parts["symbol"]}</span></span>`
+}
+
+// 座位底牌：光暈之外，還要標出梭哈的明牌與瘋狂菠蘿棄掉的那張（打叉）。
+function seatcardhtml(hand,row,highlight){
+	let cards=holecardsof(row["handcard"])
+	if(!cards.length){
+		return rendercardgroup([],highlight)
+	}
+	let exposed=seatexposedlist(hand,row["seatno"])
+	let discard=seatdiscardlist(hand,row["seatno"])
+	let html=`<span class="pt-cardline pt-card-detail">`
+	for(let i=0;i<cards.length;i=i+1){
+		html=html+rendercard(cards[i],highlight,0<=discard.indexOf(cards[i]),exposed[i]=="up")
+	}
+	html=html+`</span>`
+	return html
+}
+
+// 換牌回合的丟補紀錄，掛在該街的下注區塊下面。資料在 familydata.draws[街別][座位]。
+// 沒有這一塊的話，換牌遊戲的畫面上完全看不出「誰換了幾張」。
+function drawstreethtml(hand,street){
+	let familydata=hand["familydata"]||{}
+	let round=(familydata["draws"]||{})[street]
+	if(!round){
+		return ""
+	}
+	let itemhtml=""
+	for(let seat in round){
+		let item=round[seat]||{}
+		let count=parseInt(item["count"]||0,10)
+		let detail=`<span class="text-zinc-500">${hdt("drawstand")}</span>`
+		if(0<count){
+			detail=`<span class="text-zinc-400">${hdt("drawdiscard")}</span>${rendercardgroup(item["discard"]||[],null,true)}<span class="text-zinc-400">${hdt("drawtake")}</span>${rendercardgroup(item["draw"]||[])}`
+		}
+		itemhtml=itemhtml+`<div class="flex flex-wrap items-center gap-2 py-1">
+			<span class="text-zinc-300">Seat ${safe(seat)}</span>
+			<span class="text-zinc-500">${count}</span>
+			${detail}
+		</div>`
+	}
+	if(!itemhtml){
+		return ""
+	}
+	return `<div class="mt-2 pt-2 border-t border-zinc-700 text-xs"><div class="text-zinc-400 mb-1">${hdt("drawtitle")}</div>${itemhtml}</div>`
 }
 
 function rendercardgroup(cards,highlight,burned){
@@ -932,7 +982,9 @@ function besthandomahalow(holecards,boardcards){
 	return best
 }
 
-// 低牌的文字標示：由小到大唸，例如 8-6-4-3-A。A 顯示成 A 不是 1。
+// 低牌的文字標示：由小到大唸，例如 A-3-4-6-8。A 顯示成 A 不是 1。
+// （原本的例子寫成 8-6-4-3-A，那是由大到小，與這行敘述和實際輸出都相反。
+//   value 是由大到小存的，所以這裡是倒著走一遍。）
 function lowlabel(low){
 	if(!low){
 		return ""
@@ -971,10 +1023,12 @@ function showdowninfo(row,board,hand){
 	if(showdownhiloed(hand)){
 		low=besthandomahalow(handcards,board)
 	}
+	// 這裡不再預先合併光暈。以前是每個座位各自把自己的高牌綠光 + 自己的低牌黃光合成一份，
+	// 但畫面只會給「贏家」上光，而高牌贏家與低牌贏家可能是不同人 ——
+	// 所以改由 seatshowdownhighlight() 依這一手實際的高 / 低贏家決定要取哪一半。
 	return {
 		"best": best,
 		"low": low,
-		"highlight": mergehighlight(highlitemap(best["cards"]),low?highlitemap(low["cards"],"low"):null),
 		"label": handlabel(best),
 		"lowlabel": lowlabel(low)
 	}
@@ -1008,6 +1062,41 @@ function bestshowdownseat(showdown){
 	return bestseat
 }
 
+// hi-lo 的低池贏家。**一定要跟高牌分開算** —— bestshowdownseat() 只比 ["best"]["value"]，
+// 而 O8 / BO 的低池常常是另一個人贏的。只拿高牌贏家去畫黃光的話，黃光就會標在錯的人身上
+// （低牌文字是各座位各自算的所以仍然正確，只有光暈錯，看起來特別像對的）。
+// 沒有任何人有合格低牌時回 null，低池由高牌贏家全拿（scoop），畫面上就只有綠光。
+function bestlowshowdownseat(showdown){
+	let bestseat=null
+	for(let seat in showdown){
+		if(showdown[seat]["low"]){
+			if(bestseat==null||0<comparelowvalue(showdown[seat]["low"]["value"],showdown[bestseat]["low"]["value"])){
+				bestseat=seat
+			}
+		}
+	}
+	return bestseat
+}
+
+// 某一座位該上什麼光：高牌贏家上綠光、低牌贏家上黃光，同一人高低通吃就兩種都上。
+// 高牌與低牌可能是不同人，所以不能只比對單一個 bestseat。
+function seatshowdownhighlight(info,seatno,bestseat,bestlowseat){
+	let highed=info&&bestseat!=null&&String(bestseat)==String(seatno)
+	let lowed=info&&info["low"]&&bestlowseat!=null&&String(bestlowseat)==String(seatno)
+	if(!highed&&!lowed){
+		return null
+	}
+	let highmap=null
+	if(highed){
+		highmap=highlitemap(info["best"]["cards"])
+	}
+	let lowmap=null
+	if(lowed){
+		lowmap=highlitemap(info["low"]["cards"],"low")
+	}
+	return mergehighlight(highmap,lowmap)
+}
+
 function burntext(board){
 	// 燒牌固定 3 張（翻牌前 / 轉牌前 / 河牌前），沒記錄的以 ? 補齊
 	let cards=["","",""]
@@ -1031,7 +1120,34 @@ function actionname(action){
 	return map[action]||action||"-"
 }
 
-function streetname(street){
+// 這一手有哪幾條街，**一律問 frontend/handgame/ 的註冊表**。
+// 以前這裡寫死 ["preflop","flop","turn","river"]，於是梭哈（3rd~7th）與換牌
+// （predraw/draw1..）的下注紀錄一筆都對不上 type，畫面上四欄全是「-」——
+// 整段下注歷程消失而且不會報任何錯。handdetail.html 因此要載入 handgame 各檔。
+function handstreetkeylist(hand){
+	let code=String((hand||{})["gametype"]||"").toUpperCase()
+	if(typeof handgamestreets=="function"){
+		let list=handgamestreets(code)||[]
+		let keylist=[]
+		for(let i=0;i<list.length;i=i+1){
+			keylist.push(list[i]["key"])
+		}
+		if(keylist.length){
+			return keylist
+		}
+	}
+	return ["preflop","flop","turn","river"]
+}
+
+function streetname(street,hand){
+	if(typeof handgamestreets=="function"){
+		let list=handgamestreets(String((hand||{})["gametype"]||"").toUpperCase())||[]
+		for(let i=0;i<list.length;i=i+1){
+			if(list[i]["key"]==street){
+				return list[i]["name"]||street
+			}
+		}
+	}
 	let map={
 		preflop: hdt("preflop"),
 		flop: "Flop",
@@ -1039,6 +1155,49 @@ function streetname(street){
 		river: "River"
 	}
 	return map[street]||street||"-"
+}
+
+// 這一街是不是換牌街（註冊表的街別帶 draw: true）。
+function streetdrawed(street,hand){
+	if(typeof handgamestreets=="function"){
+		let list=handgamestreets(String((hand||{})["gametype"]||"").toUpperCase())||[]
+		for(let i=0;i<list.length;i=i+1){
+			if(list[i]["key"]==street){
+				return list[i]["draw"]==true
+			}
+		}
+	}
+	return false
+}
+
+// 某座位的底牌明暗對照，回 ["hole","hole","up",...]。
+// 優先用這一手實際記錄的 familydata.exposed（不同手可能不同），
+// 沒有才退回註冊表的預設（梭哈固定 2 暗 + 4 明 + 1 暗）。
+function seatexposedlist(hand,seatno){
+	let familydata=hand["familydata"]||{}
+	let exposed=familydata["exposed"]||{}
+	let list=exposed[String(seatno)]
+	if(list&&list.length){
+		return list
+	}
+	if(typeof handgameexposedlist=="function"){
+		return handgameexposedlist(String(hand["gametype"]||"").toUpperCase())
+	}
+	return []
+}
+
+// 某座位棄掉的牌（瘋狂菠蘿翻牌後棄一張）。畫面上會把這些牌打叉。
+function seatdiscardlist(hand,seatno){
+	let familydata=hand["familydata"]||{}
+	let discard=familydata["discard"]||{}
+	let list=discard[String(seatno)]
+	if(!list){
+		return []
+	}
+	if(typeof list=="string"){
+		return [list]
+	}
+	return list
 }
 
 function investmap(hand){
@@ -1198,6 +1357,9 @@ function equityholecount(gametype){
 }
 
 // 找出「有人 all-in 並被跟注」最早成立的街（≥2 人未蓋牌且至少 1 人 all-in），找不到回 -1
+// 這裡與 buildallinequityplan() 刻意**維持社區牌的四條街**：全下勝率是靠後端
+// equity 端點跑蒙地卡羅，而那支只支援社區牌家族。梭哈 / 換牌沒有勝率可算，
+// 這兩支對它們會自然找不到任何一街而回 -1，不顯示勝率區塊 —— 那是正確的行為。
 function allinstreetindex(hand){
 	let streetlist=["preflop","flop","turn","river"]
 	let activemap={}
@@ -1583,15 +1745,25 @@ function renderhand(hand){
 		}
 	}
 	let bestseat=bestshowdownseat(showdown)
+	let bestlowseat=bestlowshowdownseat(showdown)
+	// 公共牌的綠光取自高牌贏家、黃光取自低牌贏家。兩者可能是不同人，
+	// 所以這裡各取各的，不能整包丟同一個座位進去。
 	let bestshowdown={}
 	if(bestseat!=null){
-		bestshowdown[bestseat]=showdown[bestseat]
+		bestshowdown[bestseat]={ "best": showdown[bestseat]["best"],"low": null }
+	}
+	if(bestlowseat!=null){
+		if(bestshowdown[bestlowseat]){
+			bestshowdown[bestlowseat]["low"]=showdown[bestlowseat]["low"]
+		}else{
+			bestshowdown[bestlowseat]={ "best": { "cards": [] },"low": showdown[bestlowseat]["low"] }
+		}
 	}
 	let boardhighlight=boardhighlightfromshowdown(bestshowdown)
 	let herohighlight=null
 	let heroed=parseInt(hand["selfseating"]||0,10)>0
-	if(bestseat!=null&&heroed&&String(bestseat)==String(hand["selfseating"])&&showdown[hand["selfseating"]]){
-		herohighlight=showdown[hand["selfseating"]]["highlight"]
+	if(heroed){
+		herohighlight=seatshowdownhighlight(showdown[hand["selfseating"]],hand["selfseating"],bestseat,bestlowseat)
 	}
 	// 計分牌校正紀錄要用 stackadjust.html 編輯，普通手牌才用 newedithand
 	domgetid("editlink").href=((hand["recordtype"]||"hand")=="stackadjustment"?"stackadjust.html":"newedithand.html")+"?tableid="+tableid+"&handid="+handid
@@ -1650,8 +1822,7 @@ function renderhand(hand){
 			result=winamount-currentinvest
 		}
 		let info=showdown[row["seatno"]]
-		let highlighted=info&&bestseat!=null&&String(bestseat)==String(row["seatno"])
-		let handhtml=cardpairhighlight(row["handcard"],highlighted?info["highlight"]:null)
+		let handhtml=seatcardhtml(hand,row,seatshowdownhighlight(info,row["seatno"],bestseat,bestlowseat))
 		if(!row["handcard"]||(!row["handcard"]["card1"]&&!row["handcard"]["card2"])){
 			handhtml=privatecardstatus(row,hand)
 		}
@@ -1754,7 +1925,7 @@ function renderhand(hand){
 	innerhtml("#seating",seatinghtml,false)
 	innerhtml("#seatingcards",seatingcardhtml,false)
 	let equityplan=buildallinequityplan(hand)
-	let streetlist=["preflop","flop","turn","river"]
+	let streetlist=handstreetkeylist(hand)
 	let actionhtml=""
 	let bitting=hand["bittingdata"]||[]
 	let running={}
@@ -1774,7 +1945,7 @@ function renderhand(hand){
 		if(streethasequity(equityplan,street)){
 			equityhtml=`<div class="mt-2 pt-2 border-t border-zinc-700 text-[10px] text-zinc-500" id="ptequity-${street}">${hdt("solving")}</div>`
 		}
-		actionhtml=actionhtml+`<div class="bg-zinc-900 rounded p-4"><div class="font-bold mb-2">${streetname(street)}</div>${itemhtml}${equityhtml}</div>`
+		actionhtml=actionhtml+`<div class="bg-zinc-900 rounded p-4"><div class="font-bold mb-2">${streetname(street,hand)}</div>${itemhtml}${drawstreethtml(hand,street)}${equityhtml}</div>`
 	}
 	innerhtml("#actions",actionhtml,false)
 	if(equityplan){
@@ -1903,12 +2074,12 @@ function handprintcardstext(cardobj){
 	if(!cardobj){
 		return ""
 	}
+	// 不可只讀 card1 / card2 —— 那是德州的張數。奧馬哈 4 張、換牌 5 張、梭哈 7 張，
+	// 寫死兩張會讓列印出來的底牌比畫面上少，而且不會有任何錯誤。
 	let cards=[]
-	if(cardobj["card1"]){
-		cards.push(String(cardobj["card1"]))
-	}
-	if(cardobj["card2"]){
-		cards.push(String(cardobj["card2"]))
+	let holecards=holecardsof(cardobj)
+	for(let i=0;i<holecards.length;i=i+1){
+		cards.push(String(holecards[i]))
 	}
 	return cards.join(" ")
 }
@@ -1933,7 +2104,16 @@ function handprintboardtext(boardcard){
 	return board.join(" ")||"-"
 }
 
-function handprintstreetname(street){
+function handprintstreetname(street,hand){
+	// 梭哈的 3rd~7th 與換牌的 predraw/draw1.. 都在註冊表裡，先問它
+	if(typeof handgamestreets=="function"){
+		let list=handgamestreets(String((hand||{})["gametype"]||"").toUpperCase())||[]
+		for(let i=0;i<list.length;i=i+1){
+			if(list[i]["key"]==street){
+				return list[i]["name"]||street
+			}
+		}
+	}
 	if(street=="preflop"){
 		return hdt("streetpreflop")
 	}
@@ -2019,7 +2199,8 @@ function printhand(){
 		{"title": hdt("printcolamount"),"align": "right"}
 	]
 	let bitting=hand["bittingdata"]||[]
-	let streetlist=["preflop","flop","turn","river"]
+	// 街別跟畫面一樣要問註冊表，否則列印出來的下注歷程對梭哈 / 換牌是空的
+	let streetlist=handstreetkeylist(hand)
 	let actionrows=[]
 	for(let s=0;s<streetlist.length;s=s+1){
 		for(let i=0;i<bitting.length;i=i+1){
@@ -2030,7 +2211,7 @@ function printhand(){
 					amount=money(row["chip"])
 				}
 				actionrows.push([
-					handprintstreetname(streetlist[s]),
+					handprintstreetname(streetlist[s],hand),
 					"Seat "+(row["seatno"]||"-"),
 					handprintactionname(row["action"])+(row["allined"]?" (ALLIN)":""),
 					amount

@@ -112,8 +112,40 @@ function handgameexposedmap(code){
 	return handgamedef(code)["exposedmap"]||{}
 }
 
-// 是否可用 equity 後端自動解算贏家：目前僅 board 家族支援，梭哈 / 換牌先手動。
+// 底牌槽位是明牌還是暗牌，回 ["hole","hole","up",...]，長度等於 holecount。
+// 把 exposedmap 依街別順序攤平 —— 梭哈是 2 暗 + 4 明 + 1 暗，
+// 顯示端要靠這個才分得出「這張當時是攤開給大家看的」。
+// 非梭哈牌型沒有 exposedmap，整副都算暗牌。
+function handgameexposedlist(code){
+	let list=[]
+	let map=handgameexposedmap(code)
+	let streets=handgamestreets(code)
+	for(let i=0;i<streets.length;i=i+1){
+		let part=map[streets[i]["key"]]||[]
+		for(let j=0;j<part.length;j=j+1){
+			list.push(part[j])
+		}
+	}
+	let count=handgameholecount(code)
+	for(let i=list.length;i<count;i=i+1){
+		list.push("hole")
+	}
+	return list
+}
+
+// 這個牌型會不會棄牌（瘋狂菠蘿翻牌後棄一張）。棄掉的牌記在 familydata 的 discard。
+function handgamediscardcount(code){
+	return handgamedef(code)["discardcount"]||0
+}
+
+// 是否可用 equity 後端自動解算贏家：board 家族支援，梭哈 / 換牌先手動。
+// 但 board 家族裡也有不能自動解的 —— 瘋狂菠蘿（CP）翻牌後要棄一張，而註冊表
+// 沒有棄牌的概念，記錄下來的 3 張含已棄的那張，丟給後端會湊出比實際更好的牌，
+// **而且不會報錯，只是安靜地判錯贏家**。所以各牌型可用 autosolve: false 明確關掉。
 function handgameautosolvable(code){
+	if(handgamedef(code)["autosolve"]==false){
+		return false
+	}
 	return handgamefamily(code)=="board"
 }
 

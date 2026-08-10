@@ -443,6 +443,7 @@ npm run verify:apiview     # @api_view 結構、路由指向、重複路徑
 npm run verify:sql         # 上面「SQL 組法」那兩條
 npm run verify:cssvar      # 用了 var(--x) 但 --x 從來沒定義過（靜默失效）
 npm run verify:dupkey      # 物件字面值同層重複 key（後面的會靜默覆蓋前面的）
+npm run verify:holecard    # 顯示端的底牌迴圈上限（寫死 5 的話，7 張梭哈的第 6、7 張會安靜消失）
 npm run verify:potsplit    # O8 / BO 高低分池的獎池金額（影響選手實拿，錯了不會報錯）
 npm run verify:email       # email 模板的中文有沒有被動到（逐字比對改動前的 _old_t 備份）
 npm run verify:gtomanifest # 翻後結果庫的每個結果檔是否還查得到（以磁碟檔名為基準，不抽樣）

@@ -1148,6 +1148,9 @@ def besthandscore(cardstrlist,boardeval):
 				if best is None or score>best:
 					best=score
 		return best
+	# 超級德州（SH）是 3 張底牌，3+5=8 張會走到這裡。
+	# **實測過 eval7.evaluate() 吃 8 張是對的**（2026-08-10，隨機 3000 組與暴力列舉
+	# C(8,5) 逐一比對，0 組不同），所以不需要在這裡自己列舉最佳五張。
 	return eval7.evaluate(handeval+boardeval)
 
 
@@ -1360,10 +1363,29 @@ def solvehandwinner(request):
 # 表 id=5 早就有 code='BO'、name='Omaha5 Hi-Lo'、description='5張奧馬哈高低(Big O)'，
 # 這裡沿用該表的代碼，避免同一個牌型在兩個地方叫不同名字。
 #
-# 這份清單仍**不等於** gametype 表的全部：該表另有 S8（7張梭哈高低）、CP（瘋狂菠蘿）、
-# SH（超級德州）、BU（巴杜基）、ZZ（其他）尚未實作，所以刻意不列入 —— 列進來只會讓
-# normalizehandgametype 放行一個下游沒有任何分支處理的代碼。
-HANDGAMECODELIST=["HE","OM","O5","O8","BO","SD","ST","RA","AS","AD","AT","DS","DD","DT"]
+# S8（7張梭哈高低）、CP（瘋狂菠蘿）、SH（超級德州）、BU（巴杜基）於 2026-08-10 加入，
+# 代碼同樣沿用 gametype 表既有的那幾列。各自的下游分支：
+#   S8 —— stud 家族，與 ST / RA 完全相同的五條街，贏家人工指定。
+#   BU —— draw 家族，4 張底牌、三次換牌，贏家人工指定（後端沒有 badugi 評牌）。
+#   SH —— board 家族 3 張底牌，可自動判贏。besthandscore() 不用改：3+5=8 張走的是
+#         「底牌 <4 張就自由組合」那條，而 eval7.evaluate() 吃 8 張經實測是對的。
+#   CP —— board 家族 3 張底牌，翻牌後要棄一張。棄掉的那張存在 familydatajson 的
+#         discard 欄位（手牌詳情會把它畫上 X），但底牌欄位仍是 3 張，
+#         所以前端用 autosolve:false 關掉自動判贏（否則會拿已棄的牌去湊）。
+#
+# DM（Drawmaha / 坐馬哈）於 2026-08-10 加入，gametype 表同時補了 code='DM' 那一列。
+#   5 張底牌，先換一次牌，再發 5 張公共牌，**底池拆兩半**：
+#   一半給最好的五張抽牌牌型（只看自己那 5 張），一半給最好的奧馬哈牌型（恰 2 底牌 + 恰 3 公牌）。
+#   街別是 predraw / draw1 / flop / turn / river —— 換牌與公共牌**混在同一手**，
+#   是目前唯一這樣的牌型。family 仍標 board（記錄頁的公共牌流程照用），
+#   autosolve 關掉：solvehandwinner 只算一種牌型，切不出這兩半。
+#
+# 這份清單仍**不等於** gametype 表的全部：該表另有 ZZ（其他）尚未實作，
+# 刻意不列入 —— 列進來只會讓 normalizehandgametype 放行一個下游沒有任何分支處理的代碼。
+#
+# equity 端點（勝率試算工具頁）**沒有**跟著加這四種：equityholecount() 對它們仍回 2。
+# 那支工具有自己的牌型選單，不含這四種，所以不會被觸發；要支援是另一件事。
+HANDGAMECODELIST=["HE","OM","O5","O8","BO","SD","SH","CP","ST","RA","S8","AS","AD","AT","DS","DD","DT","BU","DM"]
 
 
 def normalizehandgametype(value):

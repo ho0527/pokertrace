@@ -500,13 +500,14 @@ function renderfixedcards(cards,count){
 	return html
 }
 
-// 底牌張數依牌型而定（Hold'em 2、Omaha 4、Omaha5 5…），直接讀 handcard 內實際存在的 card1..card5。
+// 底牌張數依牌型而定，直接讀 handcard 內實際存在的 card1..card7。
+// 上限 7 是為了 7 張梭哈（ST / RA）；寫成 5 會靜默吃掉最後兩張。
 function holecardsof(handcard){
 	let cards=[]
 	if(!handcard){
 		return cards
 	}
-	for(let i=1;i<=5;i=i+1){
+	for(let i=1;i<=7;i=i+1){
 		if(handcard["card"+i]){
 			cards.push(handcard["card"+i])
 		}

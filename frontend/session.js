@@ -3660,8 +3660,9 @@ function sessionhandcards(hand){
 	if(!hand["selfseating"]){
 		return sessionboardgroups(hand)
 	}
+	// 上限 7 是為了 7 張梭哈（ST / RA）；寫成 5 會讓場次頁的底牌少兩張。
 	let herocards=[]
-	for(let i=1;i<=5;i=i+1){
+	for(let i=1;i<=7;i=i+1){
 		if(handcard&&handcard["card"+i]){
 			herocards.push(handcard["card"+i])
 		}

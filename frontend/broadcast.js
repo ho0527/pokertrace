@@ -165,9 +165,10 @@ function bcseatcards(seat){
 	if(typeof handcard=="string"){
 		handcard=json(handcard)||{}
 	}
-	// 底牌依牌型而定（Hold'em 2、Omaha 4…），讀實際存在的 card1..card5。
+	// 底牌依牌型而定，讀實際存在的 card1..card7。
+	// 上限 7 是為了 7 張梭哈（ST / RA）；寫成 5 會讓直播畫面少兩張牌。
 	let cards=[]
-	for(let i=1;i<=5;i=i+1){
+	for(let i=1;i<=7;i=i+1){
 		if(handcard["card"+i]){
 			cards.push(handcard["card"+i])
 		}

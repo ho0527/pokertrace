@@ -226,3 +226,71 @@
 	.hr-togglebtn{min-height:38px;font-size:12px;padding:0 11px;border-radius:11px}
 	.hr-progress{min-width:42px}
 }
+
+/* 梭哈的明牌：回放時當時全桌都看得到的那幾張（7 張梭哈是 2 暗 + 4 明 + 1 暗）。
+   用細虛線外框標出來，跟暗牌分得開；不改背景色，免得和四色牌撞色。 */
+.bc-card.up {
+	outline: 1px dashed rgba(226, 232, 240, .9);
+	outline-offset: 1px;
+}
+
+/* 攤牌時的光暈，與手牌詳情同一套語意：贏家最佳五張綠框、hi-lo 的低牌黃框。
+   回放的牌比較小，所以光暈半徑跟著縮，不然相鄰的牌會糊在一起。 */
+.bc-card.best {
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, .8), 0 0 10px rgba(16, 185, 129, .6);
+}
+
+.bc-card.low {
+	box-shadow: 0 0 0 2px rgba(250, 204, 21, .85), 0 0 10px rgba(234, 179, 8, .6);
+}
+
+/* 同一張牌高低都用到：上半綠、下半黃（與 carddisplay.css 的 .pt-card 同樣做法） */
+.bc-card.best.low {
+	box-shadow: none;
+	position: relative;
+}
+
+.bc-card.best.low::before,
+.bc-card.best.low::after {
+	border-radius: inherit;
+	bottom: 0;
+	content: "";
+	left: 0;
+	pointer-events: none;
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+
+.bc-card.best.low::before {
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, .8), 0 0 10px rgba(16, 185, 129, .6);
+	clip-path: inset(-100% -100% 50% -100%);
+}
+
+.bc-card.best.low::after {
+	box-shadow: 0 0 0 2px rgba(250, 204, 21, .85), 0 0 10px rgba(234, 179, 8, .6);
+	clip-path: inset(50% -100% -100% -100%);
+}
+
+/* 梭哈的明牌攤在**牌桌上**、選手面前（現場就是這樣擺，不是拿在手上）。
+   貼著座位框朝中心的那一側：座位在下半圈就放框的上方（.above），
+   上半圈就放框的下方（.below）。**不要改回用半徑另算座標** ——
+   座位框在 760x475 的桌面上佔 15.5% x / 24% y，中心又在半徑 45/41，
+   可用的半徑帶幾乎是空的，斜角座位一定會壓到頭像（2026-08-10 踩過）。 */
+.bc-upcards {
+	display: flex;
+	gap: 2px;
+	justify-content: center;
+	left: 50%;
+	position: absolute;
+	transform: translateX(-50%);
+	z-index: 1;
+}
+
+.bc-upcards.above {
+	bottom: calc(100% + 4px);
+}
+
+.bc-upcards.below {
+	top: calc(100% + 4px);
+}

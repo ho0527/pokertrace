@@ -23,6 +23,7 @@
 		"verify:cssvar": "node tools/audit/scancssvariable.js",
 		"audit:localstorage": "node tools/audit/scanlocalstorage.js",
 		"verify:dupkey": "node tools/audit/scanduplicatekey.js",
+		"verify:holecard": "node tools/audit/checkholecardloop.js",
 		"audit:cardfield": "python tools/audit/validatecard.py",
 		"verify:stylechanged": "node tools/audit/scanstyle.js --changed",
 		"verify:potsplit": "node tools/audit/testpotsplit.js",

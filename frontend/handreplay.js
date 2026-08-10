@@ -80,18 +80,19 @@ function hrsuitinfo(suit){
 	return { symbol: "?",red: false }
 }
 
-function hrcardback(small){
-	return `<span class="bc-card back${small?" sm":""}"><span class="bc-emblem"></span></span>`
+// upped：梭哈攤在桌面上的明牌。wincls：攤牌時的光暈（" best" 綠框 / " low" 黃框）。
+function hrcardback(small,upped){
+	return `<span class="bc-card back${small?" sm":""}${upped?" up":""}"><span class="bc-emblem"></span></span>`
 }
 
-function hrcardface(card,small){
+function hrcardface(card,small,upped,wincls){
 	let text=String(card||"")
 	if(text.length<2){
-		return hrcardback(small)
+		return hrcardback(small,upped)
 	}
 	let rank=text.substring(0,text.length-1).toUpperCase()
 	let info=hrsuitinfo(text.substring(text.length-1))
-	return `<span class="bc-card ${info["red"]?"red":""}${small?" sm":""}"><span class="r">${rank}</span><span class="s">${info["symbol"]}</span></span>`
+	return `<span class="bc-card ${info["red"]?"red":""}${small?" sm":""}${upped?" up":""}${wincls||""}"><span class="r">${rank}</span><span class="s">${info["symbol"]}</span></span>`
 }
 
 // faceup=true 顯示正面(缺牌仍為牌背), 否則牌背
@@ -103,15 +104,56 @@ function hrcard(card,small,faceup){
 }
 
 // 只渲染已翻出的公共牌(一開始沒有牌, 依街逐步出現; 不放牌背佔位)
-function hrboardslots(board,small){
+function hrboardslots(board,small,frame){
 	let html=""
 	let cards=board||[]
 	for(let i=0;i<cards.length;i=i+1){
 		if(cards[i]){
-			html=html+hrcard(cards[i],small,true)
+			// 攤牌後，贏家最佳五張用到的公共牌也要跟著發光（與手牌詳情一致）
+			html=html+hrcardface(cards[i],small,false,hrboardwincls(cards[i],frame))
 		}
 	}
 	return html
+}
+
+// 公共牌的光暈：只要有任何一個贏家的最佳五張用到這張牌就發光。
+// 高牌綠框、低牌黃框，兩邊都用到就兩個 class 都上。
+function hrboardwincls(card,frame){
+	if(!frame||!frame.showdown||typeof cardkey!="function"){
+		return ""
+	}
+	let kind=""
+	let key=cardkey(card)
+	for(let seat in hrwinhighlight){
+		let value=hrwinhighlight[seat][key]
+		if(value=="both"){
+			kind="both"
+		}
+		if(value=="low"&&kind!="both"){
+			if(kind=="high"){
+				kind="both"
+			}else{
+				kind="low"
+			}
+		}
+		if(value=="high"&&kind!="both"){
+			if(kind=="low"){
+				kind="both"
+			}else{
+				kind="high"
+			}
+		}
+	}
+	if(kind=="both"){
+		return " best low"
+	}
+	if(kind=="low"){
+		return " low"
+	}
+	if(kind=="high"){
+		return " best"
+	}
+	return ""
 }
 
 // 燒牌(插在底池籌碼堆底下): 預設牌背; 有記錄到牌值(被秀牌)就翻正面顯示(不特別標記、不發光)
@@ -192,9 +234,10 @@ function hrseatcards(seat){
 	if(typeof handcard=="string"){
 		handcard=(typeof json=="function"?json(handcard):null)||{}
 	}
-	// 底牌依牌型而定（Hold'em 2、Omaha 4…），讀實際存在的 card1..card5。
+	// 底牌依牌型而定，讀實際存在的 card1..card7。
+	// 上限 7 是為了 7 張梭哈（ST / RA）；寫成 5 會讓回放時最後兩張安靜不見。
 	let cards=[]
-	for(let i=1;i<=5;i=i+1){
+	for(let i=1;i<=7;i=i+1){
 		if(handcard["card"+i]){
 			cards.push(handcard["card"+i])
 		}
@@ -264,6 +307,154 @@ function hrstreetrows(hand,street){
 	return rows
 }
 
+// 這一手要回放哪幾條街。**街別一律問 frontend/handgame/ 的註冊表**，
+// 不要在這裡再寫死一份 preflop/flop/turn/river ——
+// 梭哈是 3rd~7th 五條（一次發三張，之後四條街各發一張，也就是 1+4 次下注機會），
+// 換牌是換牌前 + N 次換牌，坐馬哈更是換牌與公共牌混在同一手。
+// 回傳每街的：公共牌累積、燒牌、這街要發到第幾張底牌。
+function hrstreetplan(hand){
+	let board=hrboardcards(hand)
+	let list=[]
+	if(typeof handgamestreets=="function"){
+		list=handgamestreets(String(hand["gametype"]||"").toUpperCase())||[]
+	}
+	if(!list.length){
+		list=[
+			{ key: "preflop" },
+			{ key: "flop",board: "flop" },
+			{ key: "turn",board: "turn" },
+			{ key: "river",board: "river" }
+		]
+	}
+	let plan=[]
+	let cards=[]
+	let dealt=0
+	for(let i=0;i<list.length;i=i+1){
+		let item=list[i]
+		let burn=""
+		if(item["board"]=="flop"){
+			cards=board.flop.slice(0,3)
+			burn=board.burnflop
+		}
+		if(item["board"]=="turn"&&board.turn){
+			cards=cards.concat([board.turn])
+			burn=board.burnturn
+		}
+		if(item["board"]=="river"&&board.river){
+			cards=cards.concat([board.river])
+			burn=board.burnriver
+		}
+		// 梭哈的街別帶 deal.slots，例如三街是 [1,2,3]、四街是 [4]
+		if(item["deal"]&&item["deal"]["slots"]&&item["deal"]["slots"].length){
+			for(let k=0;k<item["deal"]["slots"].length;k=k+1){
+				if(dealt<hrint(item["deal"]["slots"][k])){
+					dealt=hrint(item["deal"]["slots"][k])
+				}
+			}
+		}
+		plan.push({
+			key: item["key"],
+			label: hrstreetlabel(item),
+			board: cards.slice(),
+			burn: burn,
+			dealt: dealt,
+			dealed: item["deal"]!=undefined,
+			drawed: item["draw"]==true
+		})
+	}
+	return plan
+}
+
+// 街別名稱：社區牌四條沿用本檔既有的多語字串（回放的用詞和以前一樣），
+// 其餘（梭哈 / 換牌 / 坐馬哈）用註冊表登記的中文名。
+function hrstreetlabel(item){
+	let key=item["key"]
+	let map={
+		preflop: "preflop",
+		flop: "flop",
+		turn: "turn",
+		river: "river"
+	}
+	if(map[key]){
+		return hrtext(map[key])
+	}
+	return item["name"]||key
+}
+
+// 攤牌時要發光的牌：{座位: {牌: "high"|"low"|"both"}}。
+// **判定直接借用 handdetail.js 那一套**（showdowninfo / bestshowdownseat /
+// bestlowshowdownseat / seatshowdownhighlight），不在這裡另造一份評牌 ——
+// 兩份實作遲早會漂移，而且回放跟詳情頁對同一手講不同的話會很難查。
+// handdetail.html 的載入順序是 handreplay.js 在前、handdetail.js 在後，
+// 但這裡是**執行期**才呼叫，那時兩支都載好了；仍然用 typeof 守著，
+// 萬一日後有別的頁面單獨載 handreplay.js 也只是沒有光暈，不會整個爆掉。
+let hrwinhighlight={}
+
+function hrbuildwinhighlight(hand){
+	let data={}
+	if(typeof showdowninfo!="function"||typeof bestshowdownseat!="function"){
+		return data
+	}
+	let board=[]
+	if(typeof ptboardcardlist=="function"){
+		board=ptboardcardlist(hand["boardcard"]||{})
+	}
+	let showdown={}
+	let seatlist=hand["seatingdata"]||[]
+	for(let i=0;i<seatlist.length;i=i+1){
+		let row=seatlist[i]
+		if(row["handcard"]){
+			let info=showdowninfo(row,board,hand)
+			if(info){
+				showdown[hrint(row["seatno"])]=info
+			}
+		}
+	}
+	let bestseat=bestshowdownseat(showdown)
+	let bestlowseat=null
+	if(typeof bestlowshowdownseat=="function"){
+		bestlowseat=bestlowshowdownseat(showdown)
+	}
+	for(let seat in showdown){
+		let map=seatshowdownhighlight(showdown[seat],seat,bestseat,bestlowseat)
+		if(map){
+			data[seat]=map
+		}
+	}
+	return data
+}
+
+// 這張牌在攤牌時要不要發光。回 ""、"best"（綠框）或 "low"（黃框）。
+function hrcardwincls(seatno,card,frame){
+	if(!frame.showdown){
+		return ""
+	}
+	let map=hrwinhighlight[String(seatno)]
+	if(!map||typeof cardkey!="function"){
+		return ""
+	}
+	let kind=map[cardkey(card)]
+	if(kind=="low"){
+		return " low"
+	}
+	if(kind=="both"){
+		return " best low"
+	}
+	if(kind){
+		return " best"
+	}
+	return ""
+}
+
+// 底牌槽位的明暗（梭哈 2 暗 + 4 明 + 1 暗）。明牌當時全桌都看得到，
+// 回放時就該一直是正面，不能跟暗牌一起蓋著。
+function hrexposedlist(hand){
+	if(typeof handgameexposedlist=="function"){
+		return handgameexposedlist(String(hand["gametype"]||"").toUpperCase())
+	}
+	return []
+}
+
 // TASK-037 起 flop/turn/river 共用 initialize.js 的解析；burn 三張是重播專用，留在這裡
 function hrboardcards(hand){
 	let board=hand["boardcard"]||{}
@@ -303,7 +494,12 @@ function hrsnapshot(state,phase,actingseat){
 		phase: phase,
 		streetkey: state.streetkey||"preflop",
 		showdown: state.showdown,
-		acting: actingseat||0
+		acting: actingseat||0,
+		// 已經發到第幾張底牌。梭哈是一街一街發的（3rd 發 3 張、4th~7th 各 1 張），
+		// 不是一開始就 7 張全部在手上，所以每一格畫面要知道當下發了幾張。
+		// 社區牌家族與換牌家族一開始就發滿，dealt 直接等於底牌張數。
+		dealt: state.dealt||0,
+		exposed: (state.exposed||[]).slice()
 	}
 	frame.sidepots=hrsidepots(frame)
 	// all-in 攤牌鎖定: 未蓋牌者≥2、當街下注都已跟平(或全押), 且還能下注(有計分牌)的人≤1
@@ -426,30 +622,44 @@ function hrfinalpots(seats){
 function hrbuildframes(hand){
 	let frames=[]
 	let seatlist=hand["seatingdata"]||[]
-	let state={ board: [],burns: [],pot: 0,seats: {},award: {},showdown: false,streetkey: "preflop" }
+	let streets=hrstreetplan(hand)
+	let exposed=hrexposedlist(hand)
+	let drawdata=((hand["familydata"]||{})["draws"])||{}
+	hrwinhighlight=hrbuildwinhighlight(hand)
+	// 梭哈是一街一街發牌，第一格畫面只有三街那三張；其餘牌型一開始就發滿。
+	let studed=streets.length>0&&streets[0].dealed
+	let maxhole=0
+	for(let i=0;i<seatlist.length;i=i+1){
+		let count=hrseatcards(seatlist[i]).length
+		if(maxhole<count){
+			maxhole=count
+		}
+	}
+	let state={ board: [],burns: [],pot: 0,seats: {},award: {},showdown: false,streetkey: streets.length?streets[0].key:"preflop",dealt: studed?0:maxhole,exposed: exposed }
 	for(let i=0;i<seatlist.length;i=i+1){
 		let seatno=hrint(seatlist[i]["seatno"])
 		state.seats[seatno]={ bet: 0,invested: 0,folded: false,allin: false,action: null }
 	}
+	if(studed){
+		state.dealt=streets[0].dealt
+	}
 	// 發牌
 	frames.push(hrsnapshot(state,hrtext("deal"),0))
-
-	let board=hrboardcards(hand)
-	let streets=[
-		{ key: "preflop",label: hrtext("preflop"),board: [],burn: "" },
-		{ key: "flop",label: hrtext("flop"),board: board.flop.slice(0,3),burn: board.burnflop },
-		{ key: "turn",label: hrtext("turn"),board: board.flop.slice(0,3).concat(board.turn?[board.turn]:[]),burn: board.burnturn },
-		{ key: "river",label: hrtext("river"),board: board.flop.slice(0,3).concat(board.turn?[board.turn]:[]).concat(board.river?[board.river]:[]),burn: board.burnriver }
-	]
 
 	for(let si=0;si<streets.length;si=si+1){
 		let street=streets[si]
 		state.streetkey=street.key
 		let rows=hrstreetrows(hand,street.key)
-		if(street.key!="preflop"){
-			// 這條街既沒有公共牌也沒有動作 → 手牌已在前一街結束
-			let hasboard=street.board.length>(streets[si-1].board.length)
-			if(!hasboard&&rows.length==0){
+		if(0<si){
+			// 這條街既沒有新公共牌、沒有新發的底牌、沒有換牌，也沒有動作
+			// → 手牌已在前一街結束。
+			// **全下之後仍然要把剩下的牌發完 / 換完**，所以只要這街真的有發生過就不能中斷。
+			// 換牌有沒有發生看 familydata.draws 有沒有那一街的紀錄 ——
+			// 光看「這街是換牌街」會把蓋牌收場的手也演完不存在的換牌。
+			let hasboard=street.board.length>streets[si-1].board.length
+			let hasdeal=street.dealt>streets[si-1].dealt&&street.dealt<=maxhole
+			let hasdraw=street.drawed&&(drawdata[street.key]!=undefined)
+			if(!hasboard&&!hasdeal&&!hasdraw&&rows.length==0){
 				break
 			}
 			// 上一街下注掃進底池, 清掉當前下注與動作標籤
@@ -458,9 +668,18 @@ function hrbuildframes(hand){
 				state.seats[key].bet=0
 				state.seats[key].action=null
 			}
-			// 每條街發牌前都有一張燒牌(插在底池籌碼堆底下); 記錄到牌值代表被秀牌, 否則牌背
-			state.burns.push({ card: street.burn||"",shown: street.burn?true:false })
+			// **每一次發牌前都有一張燒牌**，不是只有社區牌家族才有：
+			// 梭哈的四街到七街各燒一張、換牌的每一次換牌前也燒一張。
+			// 只有第一次發牌（翻牌前 / 三街 / 換牌前）不燒，與德州的翻牌前一致。
+			// 記錄端目前只存得下 burnflop / burnturn / burnriver 三張，所以梭哈與換牌
+			// 的燒牌沒有牌值，畫成牌背（shown:false）—— 那本來就是看不到的牌。
+			if(hasboard||hasdeal||hasdraw){
+				state.burns.push({ card: street.burn||"",shown: street.burn?true:false })
+			}
 			state.board=street.board.slice()
+			if(hasdeal){
+				state.dealt=street.dealt
+			}
 			frames.push(hrsnapshot(state,street.label,0))
 		}
 		for(let r=0;r<rows.length;r=r+1){
@@ -622,7 +841,7 @@ function hrcardvisible(seatno,seatstate,frame){
 	return false
 }
 
-function hrseatposhtml(seat,seatno,x,y,isdealer,frame){
+function hrseatposhtml(seat,seatno,x,y,isdealer,frame,upward){
 	let dealer=isdealer?`<span class="bc-dealer">D</span>`:""
 	if(!seat){
 		return `
@@ -645,16 +864,31 @@ function hrseatposhtml(seat,seatno,x,y,isdealer,frame){
 	if(remain<0){ remain=0 }
 	let visible=hrcardvisible(seatno,ss,frame)
 	let cards=hrseatcards(seat)
-	// 底牌張數依牌型（Hold'em 2 / Omaha 4）；蓋牌者預設收牌(牌背); 但「顯示所有底牌」時仍亮出(座位維持暗化)
+	// 底牌張數依牌型（Hold'em 2 / Omaha 4 / 梭哈 7）；蓋牌者預設收牌(牌背); 但「顯示所有底牌」時仍亮出(座位維持暗化)
 	let holecount=cards.length>0?cards.length:2
+	// **梭哈不是一開始就七張在手上**：三街發三張，之後每街各發一張。
+	// frame.dealt 是這一格畫面已經發到第幾張，超過的還沒發出來就不要畫。
+	if(0<frame.dealt&&frame.dealt<holecount){
+		holecount=frame.dealt
+	}
+	let exposed=frame.exposed||[]
 	let cardshtml=""
-	if(ss.folded&&!visible){
-		for(let i=0;i<holecount;i=i+1){
-			cardshtml=cardshtml+hrcardback(true)
+	for(let i=0;i<holecount;i=i+1){
+		// 梭哈的明牌不畫在座位框裡 —— 現場是攤在選手面前的桌面上，
+		// 由 hrupcardshtml() 另外畫在座位與底池之間。這裡只留暗牌（手上拿著的那幾張）。
+		if(exposed[i]=="up"){
+			continue
 		}
-	}else{
-		for(let i=0;i<holecount;i=i+1){
-			cardshtml=cardshtml+hrcard(cards[i],true,visible)
+		// 蓋牌者的牌收掉了，一律畫牌背（除非開了「顯示所有底牌」）
+		let faceup=visible
+		if(ss.folded&&!visible){
+			faceup=false
+		}
+		let wincls=hrcardwincls(seatno,cards[i],frame)
+		if(faceup){
+			cardshtml=cardshtml+hrcardface(cards[i],true,false,wincls)
+		}else{
+			cardshtml=cardshtml+hrcardback(true,false)
 		}
 	}
 	let actionhtml=ss.action?`<div class="bc-action ${ss.action.cls}">${hresc(ss.action.label)}</div>`:""
@@ -665,6 +899,7 @@ function hrseatposhtml(seat,seatno,x,y,isdealer,frame){
 	let eqcls=equityhtml?" eq":""
 	return `
 		<div class="bc-seatpos${eqcls}" style="left:${x}%;top:${y}%">
+			${hrupcardshtml(seat,seatno,frame,upward)}
 			<div class="bc-seatbox${win}${foldcls}${acting}">${dealer}${allinbadge}${equityhtml}
 				<div class="bc-avatar">${hresc(hrinitial(seat["name"]))}</div>
 				<div class="bc-name">${name}</div>
@@ -673,6 +908,51 @@ function hrseatposhtml(seat,seatno,x,y,isdealer,frame){
 				${actionhtml}
 			</div>
 		</div>`
+}
+
+// 梭哈的明牌攤在**牌桌上**、選手面前，一排橫放。
+//
+// 位置是**貼著座位框朝中心的那一側**，不是用半徑另外算一個座標。
+// 用半徑算過一版，結果壓在頭像上：座位框寬 118px、高約 115px，在 760x475 的桌面上
+// 佔 15.5% x / 24% y，中心又在半徑 45/41 —— 框的內緣落在半徑 37/29，
+// 而要同時閃過框和下注籌碼、又不撞到中央底池，可用的半徑帶幾乎是空的，
+// 斜角座位一定會重疊。改成貼著框放就與角度無關，不管座位在哪裡都不會蓋到頭像。
+// 蓋牌的人牌已經收掉，不畫。
+function hrupcardshtml(seat,seatno,frame,upward){
+	if(!seat){
+		return ""
+	}
+	let exposed=frame.exposed||[]
+	let upped=false
+	for(let i=0;i<exposed.length;i=i+1){
+		if(exposed[i]=="up"){
+			upped=true
+		}
+	}
+	if(!upped){
+		return ""
+	}
+	let ss=frame.seats[seatno]||{ folded: false }
+	if(ss.folded&&!hrrevealall){
+		return ""
+	}
+	let cards=hrseatcards(seat)
+	let holecount=cards.length
+	if(0<frame.dealt&&frame.dealt<holecount){
+		holecount=frame.dealt
+	}
+	let html=""
+	for(let i=0;i<holecount;i=i+1){
+		if(exposed[i]=="up"){
+			// 明牌一律正面 —— 當時全桌都看得到
+			html=html+hrcardface(cards[i],true,true,hrcardwincls(seatno,cards[i],frame))
+		}
+	}
+	if(!html){
+		return ""
+	}
+	// 座位在下半圈就把牌放在框的上方、上半圈放在下方 —— 兩者都是朝牌桌中心那一側
+	return `<div class="bc-upcards ${upward?"above":"below"}">${html}</div>`
 }
 
 // outs 以精簡色字(rank+花色)呈現, 節省空間避免手機卡到
@@ -743,6 +1023,14 @@ function hrtablehtml(hand,frame){
 	}
 	let n=hrmaxseat
 	let dealerseat=hrint(hand["dealerseat"])
+	// 這一手有沒有明牌（只有梭哈家族有）。有的話版面要挪，沒有就完全維持原樣。
+	let uppedlayout=false
+	let exposedlist=frame.exposed||[]
+	for(let i=0;i<exposedlist.length;i=i+1){
+		if(exposedlist[i]=="up"){
+			uppedlayout=true
+		}
+	}
 	// 讓 hero(selfseating)固定落在正下方: 以 hero 為基準旋轉座位排列
 	let offset=(hrhero>=1&&hrhero<=n)?(hrhero-1):0
 	let seatshtml=""
@@ -752,10 +1040,20 @@ function hrtablehtml(hand,frame){
 		let theta=(Math.PI/2)+(k/n)*Math.PI*2
 		let px=Math.round((50+45*Math.cos(theta))*10)/10
 		let py=Math.round((50+41*Math.sin(theta))*10)/10
-		seatshtml=seatshtml+hrseatposhtml(byseat[seatno],seatno,px,py,dealerseat==seatno,frame)
+		// sin>0 表示座位在下半圈，明牌要放在座位框「上方」才是朝向牌桌中心
+		seatshtml=seatshtml+hrseatposhtml(byseat[seatno],seatno,px,py,dealerseat==seatno,frame,0<Math.sin(theta))
 		let ss=frame.seats[seatno]
-		let bx=Math.round((50+27*Math.cos(theta))*10)/10
-		let by=Math.round((50+24*Math.sin(theta))*10)/10
+		// 有明牌時下注籌碼往內讓一圈，否則會和貼在框內緣的明牌疊在一起。
+		// 梭哈沒有公共牌，中央只有底池數字，往內讓不會撞到東西。
+		// 沒有明牌的牌型維持原本的 27/24，畫面完全不變。
+		let betrx=27
+		let betry=24
+		if(uppedlayout){
+			betrx=20
+			betry=17
+		}
+		let bx=Math.round((50+betrx*Math.cos(theta))*10)/10
+		let by=Math.round((50+betry*Math.sin(theta))*10)/10
 		if(byseat[seatno]&&ss&&!ss.folded&&ss.bet>0){
 			bethtml=bethtml+hrbethtml(ss.bet,bx,by)
 		}
@@ -769,7 +1067,7 @@ function hrtablehtml(hand,frame){
 			<div class="bc-felt"></div>
 			${hrsidepotstackhtml(frame)}
 			<div class="bc-center">
-				<div class="bc-board">${hrboardslots(frame.board,false)}</div>
+				<div class="bc-board">${hrboardslots(frame.board,false,frame)}</div>
 			</div>
 			${hrpotgrouphtml(frame)}
 			${bethtml}
