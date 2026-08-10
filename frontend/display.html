@@ -11,6 +11,9 @@
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
 	</head>
 	<body>
+		<!-- 返回鈕：只在窄螢幕（body.displayscaled）顯示，網址由 display.js 依 sessionid 補上。
+		     大螢幕的顯示頁是投影用的，不放這顆。 -->
+		<a href="#" class="displayback" id="displayback">&#8592; Back</a>
 		<div class="sync-indicator" id="syncDot" title="Synchronizing with control desk"></div>
 
 		<div id="root">

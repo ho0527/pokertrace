@@ -2441,8 +2441,13 @@ function renderactionarea(row,timerloaded){
 			${getstructurebuttonhtml(row)}
 		`
 		if(row["linkuser"]){
+			// 報到核對連 scan.html 而不是 checkin.html：checkin 需要單一報名 id
+			// （收據 QR 上的 r，或入場編號 entry），從場次頁進去沒有那個值。
+			// scan.html 才是場次層級的入口 —— 相機掃描或手動輸入入場編號，
+			// 兩條路都會轉到 checkin.html，而且帶 sessionid 進去可以預選這一場。
 			buttonshtml=buttonshtml+`
 				<a href="register.html?sessionid=${sessionid}" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplregisterlist","👥 報名清單")}</a>
+				<a href="scan.html?sessionid=${sessionid}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplcheckin","✅ 報到核對")}</a>
 			`
 			hint.textContent=sessionpagetext("linkopened","本場次已開放關聯使用者報名")
 		}else{
@@ -2455,10 +2460,17 @@ function renderactionarea(row,timerloaded){
 	// 非主辦人, 看是不是開放報名
 	if(row["accessrole"]=="floor"||row["accessrole"]=="assistant"){
 		title.textContent="Staff Actions"
+		// 報到核對對現場人員比對主辦更重要 —— 排隊報到本來就是裁判／助理在做的。
+		// 只有開放報名的場次才有東西可以核對。
+		let staffcheckinhtml=""
+		if(row["linkuser"]){
+			staffcheckinhtml=`<a href="scan.html?sessionid=${sessionid}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplcheckin","✅ 報到核對")}</a>`
+		}
 		btns.innerHTML=`
 			${sessionstatushtml(row)}
 			<a href="control.html?sessionid=${sessionid}" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold">Timer Control</a>
 			<a href="display.html?sessionid=${sessionid}" target="_blank" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-semibold">Display</a>
+			${staffcheckinhtml}
 			${getstructurebuttonhtml(row)}
 		`
 		hint.textContent="You can control this session timer."
@@ -2488,6 +2500,13 @@ function renderactionarea(row,timerloaded){
 	title.textContent=sessionpagetext("titleregister","報名")
 	let mystatus=row["myregistrationstatus"]
 	let status=sessionstatusdata(row)
+	// 報名成功後，選手自己也要能開報到核對頁 —— 原本只有主辦與現場人員有入口。
+	// 選手連的是**自己那一筆**（checkin.html?sessionid=&r=），與收據 QR 掃出來的是同一頁；
+	// 不是 scan.html（那是工作人員掃別人的，選手用不到也不該用）。
+	let mycheckinhtml=""
+	if(row["myregistration"]&&row["myregistration"]["id"]){
+		mycheckinhtml=`<a href="checkin.html?sessionid=${safehtml(sessionid)}&r=${safehtml(row["myregistration"]["id"])}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplmycheckin","✅ 我的報到核對")}</a>`
+	}
 	let reentryed=false
 	if(mystatus=="confirmed"&&row["myregistration"]&&row["myregistration"]["timerstatus"]=="eliminated"&&(int(row["reentrycount"]||0)<=0||int(row["myregistration"]["reentrycount"]||0)<int(row["reentrycount"]||0))){
 		reentryed=true
@@ -2498,6 +2517,7 @@ function renderactionarea(row,timerloaded){
 			${sessionstatushtml(row)}
 			${displaylink}
 			<span class="text-yellow-400 font-semibold">${sessionpagetext("tplbadgeregistered","⏳ 已報名, 等待主辦確認")}</span>
+			${mycheckinhtml}
 			<input type="button" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-semibold" id="unregisterbtn" value="${sessionpagetext("tplunregister","取消報名")}">
 		`
 	}else if(mystatus=="confirmed"){
@@ -2505,6 +2525,7 @@ function renderactionarea(row,timerloaded){
 			${sessionstatushtml(row)}
 			${displaylink}
 			<span class="text-green-400 font-semibold">${sessionpagetext("tplbadgeconfirmed","✅ 已確認入場")}</span>
+			${mycheckinhtml}
 			<input type="button" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-semibold" id="unregisterbtn" value="${sessionpagetext("tplunregister","取消報名")}">
 		`
 		if(reentryed&&status["key"]=="latereg"){
@@ -2512,6 +2533,7 @@ function renderactionarea(row,timerloaded){
 				${sessionstatushtml(row)}
 				${displaylink}
 				<span class="text-zinc-400 font-semibold">${sessionpagetext("tplbusted","已淘汰")}</span>
+				${mycheckinhtml}
 				<input type="button" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold" id="registerbtn" value="${sessionpagetext("tplreregister","重新報名 / 再入")}">
 			`
 		}

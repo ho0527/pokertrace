@@ -1358,5 +1358,59 @@ function restartcursoridle() {
 }
 document.addEventListener("mousemove", restartcursoridle)
 restartcursoridle()
+
+// 窄螢幕整塊等比縮小，不做另一套版面（2026-08-09 使用者要求）。
+//
+// 這一頁是**看板**：三欄各固定 375px，手機放不下就爆版。原本 ≤900px 有一段
+// 手機專用樣式把三欄拆成 grid、字級全部改寫，結果是手機看到的東西跟現場大螢幕
+// 長得不一樣，對不上。改成永遠用設計尺寸排版，塞不下就整塊縮。
+//
+// 設計尺寸取 1280x720（16:9 的常見筆電尺寸）。三欄 375+375+中央，
+// 1280 讓中央面板還有約 490px，是這個版面舒服的下限。
+const DISPLAYDESIGNWIDTH=1280
+const DISPLAYDESIGNHEIGHT=720
+
+function applydisplayscale() {
+	let vw=document.documentElement.clientWidth
+	let vh=document.documentElement.clientHeight
+	// 夠寬就用原本的自適應版面（欄位會自己撐開），不要縮 —— 大螢幕縮放只會變糊。
+	if (DISPLAYDESIGNWIDTH<=vw) {
+		document.body.classList.remove("displayscaled")
+		document.documentElement.style.removeProperty("--displayscale")
+		document.documentElement.style.removeProperty("--displaywidth")
+		document.documentElement.style.removeProperty("--displayheight")
+		document.documentElement.style.removeProperty("--displayoffsetx")
+		document.documentElement.style.removeProperty("--displayoffsety")
+		return
+	}
+	// 寬高都要塞得下才不會被裁掉，所以取兩者較小的比例。
+	// 手機直立時幾乎一定是寬度決定，橫放時才輪到高度。
+	let scale=Math.min(vw/DISPLAYDESIGNWIDTH, vh/DISPLAYDESIGNHEIGHT)
+	document.documentElement.style.setProperty("--displayscale", String(scale))
+	document.documentElement.style.setProperty("--displaywidth", DISPLAYDESIGNWIDTH+"px")
+	document.documentElement.style.setProperty("--displayheight", DISPLAYDESIGNHEIGHT+"px")
+	// 置中：算縮放**後**的實際尺寸與視窗的差，一半當偏移。
+	// 不能用 flex / margin:auto —— transform 不影響版面盒子，那些會拿未縮放的
+	// 1280 寬去置中，比視窗還寬，結果一樣貼左上。
+	// 用 min(vw,vh) 取比例時必有一邊剛好貼齊、偏移為 0，另一邊置中。
+	let offsetx=Math.max(0, (vw-DISPLAYDESIGNWIDTH*scale)/2)
+	let offsety=Math.max(0, (vh-DISPLAYDESIGNHEIGHT*scale)/2)
+	document.documentElement.style.setProperty("--displayoffsetx", offsetx+"px")
+	document.documentElement.style.setProperty("--displayoffsety", offsety+"px")
+	document.body.classList.add("displayscaled")
+}
+
+window.addEventListener("resize", applydisplayscale)
+window.addEventListener("orientationchange", applydisplayscale)
+applydisplayscale()
+
+// 返回鈕（只在窄螢幕顯示，見 display.css）。
+// 這一頁常常是從場次頁用新分頁開的，那種情況沒有上一頁可回，
+// 所以直接指向該場次的場次頁，而不是 history.back()。
+let displayback=document.getElementById("displayback")
+if (displayback) {
+	displayback.href="session.html?id="+encodeURIComponent(SESSIONID)
+}
+
 updatesyncstatus()
 render()

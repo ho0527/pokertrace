@@ -17,6 +17,10 @@ from function.sql import query
 from .initialize import SETTING
 from .timer import buildtimerstate,hastimerreadpermission
 from .hand import sessionaccess,canreadsessionhands,sessionispublicbroadcast
+# userbytoken 的封禁複查用得到。**漏了這個 import 會讓所有帶 token 的 WebSocket
+# 連線在 connect() 就 NameError → 500**，而畫面上只會顯示「連線重試中」，
+# 不會有任何訊息指向這裡。2026-08-09 兩台機器都是壞的。
+from .authhelper import getuserbanned
 
 
 def normalizetimerstate(stateval):

@@ -781,228 +781,68 @@ body.cursor-idle * {
    Responsive
    ========================================================================== */
 
-@media (max-width: 900px) {
-	body{
-	overflow: auto;
-	}
-	/* 整頁可垂直捲動（覆寫桌機 100vh / overflow:hidden） */
-	#root {
-		height: auto;
-		min-height: 100vh;
-		min-height: 100dvh;
-		overflow: visible;
-	}
+/* 窄螢幕不做另一套版面，改成**整塊等比縮小**（2026-08-09 使用者要求）。
 
-	#payoutList {
-		width: auto;
-		height: auto;
-	}
+   原本 ≤900px / ≤520px 有兩段手機專用樣式，把三欄拆成 grid、字級全部改寫。
+   問題是這一頁是**看板**：三欄固定 375px 寬，手機放不下就爆版，而重排之後
+   跟現場大螢幕看到的東西長得不一樣，對不上。
 
-	.display-shell {
-		flex: 1 1 auto;
-		gap: 8px;
-		min-height: 0;
-		height: auto;
-		overflow: visible;
-		padding: 8px 8px 0;
-	}
+   改法：版面永遠以設計尺寸（display.js 的 DISPLAYDESIGNWIDTH/HEIGHT）算，
+   螢幕不夠寬時整塊 transform: scale() 縮到剛好塞得下，寬度 100%。
+   scale 由 display.js 依視窗大小算好寫進 --displayscale。
 
-	section {
-		height: auto;
-	}
+   **那兩段 media query 必須移除、不能只是覆蓋** —— media query 看的是 viewport，
+   縮放後 #root 仍是設計寬度，但 viewport 還是窄的，兩套規則會同時生效互相打架。 */
 
-	.display-header {
-		order: 1;
-		align-items: flex-start;
-		padding: 4px 4px 0;
-	}
-
-	/* 上方三欄：左側資訊 | 中間計時器 | 右側資訊；下方 next blinds / payout 整列 */
-	.display-main {
-		order: 2;
-		display: grid;
-		grid-template-columns: 0.85fr 1.5fr 0.85fr;
-		gap: 6px;
-		align-items: start;
-		min-height: 0;
-	}
-
-	/* 攤平左右欄，讓卡片成為 grid 子項以便分配到兩側 */
-	.payout-column,
-	.info-column {
-		display: contents;
-	}
-
-	/* 中間：計時器（縮小，手機近看夠用；大字是給電腦/電視） */
-	.center-panel {
-		grid-column: 2;
-		grid-row: 1 / span 2;
-		min-height: 46vw;
-		padding: 28px 8px 12px;
-	}
-
-	/* 左側資訊 */
-	#regCountdownCard {
-		grid-column: 1;
-		grid-row: 1;
-	}
-
-	.players-card {
-		grid-column: 1;
-		grid-row: 2;
-	}
-
-	/* 右側資訊 */
-	.avg-card {
-		grid-column: 3;
-		grid-row: 1;
-	}
-
-	#breakCountdownCard {
-		grid-column: 3;
-		grid-row: 2;
-	}
-
-	/* 下方整列 */
-	#nextBlindsCard {
-		grid-column: 1 / -1;
-		grid-row: 3;
-	}
-
-	.payout-card {
-		display: block;
-		grid-column: 1 / -1;
-		grid-row: 4;
-	}
-
-	/* 跑馬燈釘在視窗底部，捲動時恆可見 */
-	.marquee-wrap {
-		order: 3;
-		height: 50px;
-		flex-shrink: 0;
-		position: sticky;
-		bottom: 0;
-		z-index: 20;
-	}
-
-	.marquee-text {
-		font-size: 22px;
-	}
-
-	/* 手機不另外用獨立的 mobile prize card（payout-card 內已含總獎池） */
-	.mobile-prize-card {
-		display: none;
-	}
-
-	/* 字級調小（手機近看） */
-	.timer-main {
-		font-size: clamp(40px, 12.5vw, 64px);
-		letter-spacing: -2px;
-		line-height: 1;
-	}
-
-	.blind-big {
-		font-size: clamp(20px, 6.5vw, 32px);
-	}
-
-	.ante-big {
-		font-size: clamp(14px, 4.5vw, 22px);
-	}
-
-	#breakTimerDisplay {
-		font-size: clamp(38px, 12vw, 56px);
-		letter-spacing: -2px;
-	}
-
-	.break-title {
-		font-size: 14px;
-	}
-
-	.lbl {
-		font-size: 8px;
-		letter-spacing: 1px;
-		margin-bottom: 4px;
-	}
-
-	.card {
-		padding: 8px;
-		border-radius: 8px;
-		min-width: 0;
-	}
-
-	.large-stat,
-	.stat-num,
-	#playersDisplay,
-	#entriesLabel {
-		font-size: 16px;
-		overflow-wrap: anywhere;
-	}
-
-	#regCountdownDisplay,
-	#breakCountdownDisplay {
-		font-size: 15px;
-	}
-
-	#avgStack {
-		font-size: 14px;
-	}
-
-	.prow {
-		font-size: clamp(14px, 4.2vw, 18px);
-		padding: 6px 0;
-	}
-
-	.prize-pool-value {
-		font-size: clamp(24px, 8vw, 38px);
-	}
-
-	/* 中欄窄，計時器會佔滿寬度；把 LEVEL 改成正常流置中於計時器上方，避免重疊 */
-	.level-bar {
-		position: static;
-		top: auto;
-		left: auto;
-		justify-content: center;
-		gap: 5px;
-		margin-bottom: 2px;
-	}
-
-	.level-tag {
-		font-size: 8px;
-	}
-
-	.level-number {
-		font-size: 18px;
-	}
-
-	.reg-status {
-		top: 10px;
-		right: 8px;
-	}
-
-	.reg-status span {
-		padding: 2px 6px;
-		font-size: 9px;
-	}
+body.displayscaled {
+	overflow: hidden;
+	height: 100vh;
+	height: 100dvh;
 }
 
-@media (max-width: 520px) {
-	.display-main {
-		grid-template-columns: 0.8fr 1.5fr 0.8fr;
-		gap: 5px;
-	}
+/* transform 不影響版面盒子，所以置中不能靠 flex／margin:auto —— 那會把
+   **未縮放前**的 1280 寬盒子拿去置中，比視窗還寬，結果一樣貼左上。
+   改由 display.js 算好縮放後的實際尺寸與視窗的差，寫進 --displayoffsetx/y。 */
+body.displayscaled #root {
+	width: var(--displaywidth);
+	height: var(--displayheight);
+	transform: scale(var(--displayscale));
+	transform-origin: top left;
+	margin-left: var(--displayoffsetx);
+	margin-top: var(--displayoffsety);
+}
 
-	.center-panel {
-		min-height: 48vw;
-		padding: 26px 6px 10px;
-	}
+/* 返回鈕只在縮放（＝窄螢幕）時出現。
+   大螢幕的顯示頁是投影用的，多一顆按鈕只會擋到畫面；手機是拿來看的，
+   沒有返回就只能按瀏覽器上一頁，而這一頁常常是用新分頁開的、根本沒有上一頁。
+   固定在視窗左上角，不跟著縮放走（跟著縮的話在手機上會小到按不到）。 */
+#displayback {
+	position: fixed;
+	top: 10px;
+	left: 10px;
+	z-index: 50;
+	display: none;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 14px;
+	border: 1px solid #3f3f46;
+	border-radius: 999px;
+	background: rgba(24,24,27,0.86);
+	color: #e4e4e7;
+	font-size: 14px;
+	font-weight: 700;
+	text-decoration: none;
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
+}
 
-	.timer-main {
-		font-size: clamp(36px, 13vw, 56px);
-	}
+body.displayscaled #displayback {
+	display: inline-flex;
+}
 
-	.card {
-		padding: 7px;
-	}
+#displayback:hover {
+	border-color: #10b981;
+	color: #6ee7b7;
 }
 
 /* ==========================================================================
