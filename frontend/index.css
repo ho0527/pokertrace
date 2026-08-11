@@ -404,6 +404,52 @@ select:not([multiple]) {
 	position: relative;
 }
 
+/* 場次名稱可能很長（賽事全名常帶主辦、買入、席次與保證獎金），
+   而場次列表的表格是 auto layout —— 名稱那一格沒有寬度上限就會被整串文字撐開，
+   其他欄位被擠扁、操作欄被迫換行（2026-08-11 回報）。
+
+   名稱欄吃掉剩下的全部寬度：**width:100% + max-width:0 兩個要一起下**。
+   max-width:0 讓這一格的固有寬度需求變成 0（其他欄位照自己的內容決定寬度），
+   width:100% 再把剩餘空間全給它。只寫 width:100% 的話，auto layout 仍會先滿足
+   內容的最大寬度需求，等於沒限制、照樣被撐開。 */
+/* 其他欄位一律不換行。**這條不能少**：名稱欄一旦 width:100%，瀏覽器會把剩餘空間
+   全給它，而其他欄位就被壓到 min-content —— 時間變三行、操作變四行（實測過）。
+   讓它們 nowrap，min-content 就等於 max-content，誰也壓不動，
+   名稱欄才只吃「真正剩下的」那一段。 */
+.sessionlisttable th,
+.sessionlisttable td {
+	white-space: nowrap;
+}
+
+.sessionnamecol {
+	width: 100%;
+	max-width: 0;
+}
+
+.sessionnamecell {
+	display: flex;
+	gap: 4px;
+	justify-content: center;
+	min-width: 0;
+}
+
+/* 只有名稱本體會被「…」截斷。min-width:0 不能省 ——
+   flex 項目的預設最小寬度是 min-content，不歸零的話它不會縮，
+   text-overflow 就永遠不會生效。 */
+.sessionnametext {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* 後綴的賽制代碼（NDNNLHE 這種）一律完整顯示：同一個系列賽常常只差這一段，
+   截掉就分不出是哪一場。flex-shrink 設 0 讓它永遠不參與收縮。 */
+.sessionnamecode {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
 /* 超出時，隱藏原本文字 */
 .textmarquee.overflowed {
 	color: transparent;

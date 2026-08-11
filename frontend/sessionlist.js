@@ -529,7 +529,7 @@ function renderSessionTable(sessions){
 		return
 	}
 	innerhtml("#main",`
-		<table class="w-full text-sm border-separate border-spacing-0">
+		<table class="sessionlisttable w-full text-sm border-separate border-spacing-0">
 			<thead>
 				<tr class="text-zinc-300" id="sessionlisthead">
 					<th class="sticky top-0 z-10 bg-zinc-800 border-b border-zinc-800 py-2 px-2">#</th>
@@ -545,12 +545,25 @@ function renderSessionTable(sessions){
 				${sessions.map(function(row,index){
 					let profitdata=getprofitdata(row)
 					let rowdivider=index<sessions.length-1?"[&>td]:border-b [&>td]:border-zinc-800":""
+					// 賽制代碼（例如 NDNNLHE）是辨識同名賽事的關鍵，**不能被截掉**，
+					// 所以和名稱本體拆成兩個 span：只有名稱那半會縮、代碼那半固定完整顯示。
+					// getsessioncodetext() 內部已經 safehtml 過，不要再跳脫一次。
+					let codetext=getsessioncodetext(row)
+					let codehtml=""
+					let fullname=safehtml(row["name"])
+					if(codetext){
+						codehtml=`<span class="sessionnamecode">(${codetext})</span>`
+						fullname=fullname+" ("+codetext+")"
+					}
 					return `
 						<tr class="hover:bg-zinc-800/60 transition cursor-pointer ${rowdivider}">
 							<td class="relative py-2 px-2">${startindex+index+1}<a href="session.html?id=${row["id"]}" class="rowlink absolute inset-0 z-10" aria-label="${safehtml(row["name"])}"></a></td>
 							<td class="relative py-2 px-2">${ptformatdatetimeminute(row["starttime"])}<a href="session.html?id=${row["id"]}" class="rowlink absolute inset-0 z-10"></a></td>
-							<td class="relative py-2 px-2">
-								<div data-textmarquee>${safehtml(row["name"])} (${getsessioncodetext(row)})</div>
+							<td class="sessionnamecol relative py-2 px-2">
+								<div class="sessionnamecell" title="${fullname}">
+									<span class="sessionnametext">${safehtml(row["name"])}</span>
+									${codehtml}
+								</div>
 								<a href="session.html?id=${row["id"]}" class="rowlink absolute inset-0 z-10"></a>
 							</td>
 							<td class="relative py-2 px-2">${sessionshowmoney(row)||hasmyregistrationfinance(row)?getbuyintext(row):"-"}<a href="session.html?id=${row["id"]}" class="rowlink absolute inset-0 z-10"></a></td>
