@@ -4,6 +4,7 @@ from django.urls import path,include,re_path
 from . import batch
 from . import club
 from . import contact
+from . import follow
 from . import gto
 from . import hand
 from . import notification
@@ -90,6 +91,12 @@ urlpatterns=[
     re_path(r"^newclub$",club.newclub,name="newclub"),
     re_path(r"^editclub/(?P<clubid>[^/]+)$",club.editclub,name="editclub"),
     re_path(r"^deleteclub/(?P<clubid>[^/]+)$",club.deleteclub,name="deleteclub"),
+
+    re_path(r"^getfollowtargetlist$",follow.getfollowtargetlist,name="getfollowtargetlist"),
+    re_path(r"^getfollowlist$",follow.getfollowlist,name="getfollowlist"),
+    re_path(r"^newfollow$",follow.newfollow,name="newfollow"),
+    re_path(r"^editfollow/(?P<followuserid>[^/]+)$",follow.editfollow,name="editfollow"),
+    re_path(r"^deletefollow/(?P<followuserid>[^/]+)$",follow.deletefollow,name="deletefollow"),
 
     re_path(r"^gettablelist/(?P<sessionid>[^/]+)$",table.gettablelist,name="gettablelist"),
     re_path(r"^getsessiontableboard/(?P<sessionid>[^/]+)$",table.getsessiontableboard,name="getsessiontableboard"),

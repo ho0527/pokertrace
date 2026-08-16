@@ -1353,3 +1353,142 @@
 	display: grid;
 	grid-template-columns: repeat(13, minmax(0, 1fr));
 }
+/* ===================================================================
+	range.html 重做（TASK-117）：情境摘要列、資料等級標記、矩陣橫捲
+
+	選定的 mockup 是 A+C 合併（決策紀錄見
+	ai/artifacts/技術債與安全/mockup-decision-range.md）：
+	A 提供「七排控制收成一行 chip」、C 提供「對戰樹當主軸」。
+
+	色彩／圓角／間距全部取自 ai/context/design-system.md 的既有 token，
+	沒有一次性數值。新元件的風格分別對齊既有的 .chippill（膠囊）與統計格 label。
+=================================================================== */
+
+/* --- 情境摘要列（新元件 1：scenariobar）--- */
+/* 依既有 .chippill（index.css:489）的膠囊風格製作，沿用其 hover / focus-visible / 選中三態 */
+.gtoscenariobar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+.gtoscenariochip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 40px;
+	padding: 0 14px;
+	border: 1px solid var(--color-border, #3f3f46);
+	border-radius: 16px;
+	background: #27272a;
+	color: #f4f4f5;
+	font-size: 14px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background .15s;
+}
+.gtoscenariochip:hover {
+	background: #3f3f46;
+}
+.gtoscenariochip:focus-visible {
+	outline: 2px solid #34d399;
+	outline-offset: 2px;
+}
+.gtoscenariochipopen {
+	border-color: #34d399;
+	background: rgba(5, 150, 105, 0.12);
+	color: #6ee7b7;
+}
+.gtoscenariochipkey {
+	color: #71717a;
+	font-size: 12px;
+	font-weight: 700;
+}
+.gtoscenariochipmore {
+	border-style: dashed;
+	color: #a1a1aa;
+}
+
+/* 控制列預設收合，只有被 chip 打開的那一組顯示 */
+.gtocontrolcollapsed {
+	display: none;
+}
+.gtocontrolgrid.gtocontrolopen {
+	display: grid;
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid #27272a;
+}
+
+/* --- 資料等級標記（新元件 2：datagrade）--- */
+/* 誠信需求：淺碼是迭代求解、深碼是外插參考範圍，使用者必須看得出差別 */
+.gtodatagrade {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 700;
+}
+.gtodatagrade::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-radius: 999px;
+	background: currentColor;
+}
+.gtodatagradesolved {
+	color: #34d399;
+	background: rgba(5, 150, 105, 0.10);
+}
+.gtodatagraderef {
+	color: #a1a1aa;
+	background: rgba(63, 63, 70, 0.35);
+}
+
+/* --- 矩陣橫捲（手機）--- */
+/* 現況 375px 下每格只有 22px，遠低於 44px 觸控建議，而且整頁被撐開橫捲。
+   改成矩陣自己捲、格子鎖最小 32px；min-width 由 JS 依欄數設定（短牌是 9 欄）。 */
+.gtogridwrap {
+	margin-top: 12px;
+	overflow-x: auto;
+	padding-bottom: 4px;
+}
+
+/* --- 無資料節點的空狀態 --- */
+/* 現況 gtodeepactorspot() 回 null 時，畫面是按鈕點得下去、矩陣全空、沒有任何說明 */
+.gtogridempty {
+	margin-top: 12px;
+	padding: 20px;
+	border: 1px dashed #3f3f46;
+	border-radius: 16px;
+	text-align: center;
+}
+.gtogridemptytitle {
+	font-size: 14px;
+	font-weight: 700;
+	color: #d4d4d8;
+}
+.gtogridemptydesc {
+	margin-top: 6px;
+	font-size: 13px;
+	color: #71717a;
+}
+.gtogridemptyhint {
+	margin-top: 14px;
+	font-size: 13px;
+	font-weight: 700;
+	color: #a1a1aa;
+}
+.gtogridemptylist {
+	display: grid;
+	gap: 6px;
+	margin-top: 8px;
+	padding-left: 18px;
+	text-align: left;
+	color: #a1a1aa;
+	font-size: 13px;
+	line-height: 1.55;
+}

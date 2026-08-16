@@ -47,25 +47,27 @@
 			</div>
 
 			<div id="gtostreetpreflop">
-				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
-					<div class="gtocontrolgrid">
-						<div class="gtocontrolrow">
+				<!-- 層 1：情境摘要列（mockup 變體 A）。七排控制收成一行 chip，點哪一顆才展開哪一組。 -->
+				<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-6">
+					<div class="gtoscenariobar" id="gtoscenariobar"></div>
+					<div class="gtocontrolgrid gtocontrolcollapsed" id="gtocontrolgrid">
+						<div class="gtocontrolrow" id="gtorowstructure">
 							<div class="gtocontrollabel" id="gtostructurelabel">下注結構</div>
 							<div class="gtooptrow" id="gtostructure"></div>
 						</div>
-						<div class="gtocontrolrow">
+						<div class="gtocontrolrow" id="gtorowgametype">
 							<div class="gtocontrollabel" id="gtogametypelabel">遊戲類型</div>
 							<div class="gtooptrow" id="gtogametype"></div>
 						</div>
-						<div class="gtocontrolrow">
+						<div class="gtocontrolrow" id="gtorowtabletype">
 							<div class="gtocontrollabel" id="gtotabletypelabel">人數</div>
 							<div class="gtooptrow" id="gtotabletype"></div>
 						</div>
-						<div class="gtocontrolrow">
+						<div class="gtocontrolrow" id="gtorowspot">
 							<div class="gtocontrollabel" id="gtospotlabel">情境</div>
 							<div class="gtooptrow" id="gtospot"></div>
 						</div>
-						<div class="gtocontrolrow">
+						<div class="gtocontrolrow" id="gtorowstack">
 							<div class="gtocontrollabel" id="gtostacklabel">有效計分牌</div>
 							<div class="gtooptrow" id="gtostack"></div>
 						</div>
@@ -73,33 +75,32 @@
 							<div class="gtocontrollabel" id="gtoantelabel">Ante</div>
 							<div class="gtooptrow" id="gtoante"></div>
 						</div>
-						<div class="gtocontrolrow">
+						<div class="gtocontrolrow" id="gtorowpos">
 							<div class="gtocontrollabel" id="gtoposlabel">Hero 位置</div>
 							<div class="gtooptrow" id="gtopos"></div>
 						</div>
 					</div>
-					<div class="mt-4 text-sm text-zinc-300" id="gtosummary">-</div>
+					<div class="mt-3 text-sm text-zinc-300" id="gtosummary">-</div>
+				</section>
 
-					<div id="gtotreepanel" style="display:none">
-						<div class="mt-4 border-t border-zinc-800 pt-4">
-							<div class="flex flex-wrap items-center justify-between gap-2">
-								<div class="text-sm font-extrabold text-zinc-200" id="gtotreetitle">對戰樹</div>
-								<div class="flex gap-2">
-									<input type="button" class="gtotreectl" id="gtotreeback" value="上一步">
-									<input type="button" class="gtotreectl" id="gtotreereset" value="重設">
-								</div>
-							</div>
-							<div class="mt-1 text-xs text-zinc-500" id="gtotreehint">沿翻前順序選每位選手的動作；一旦有人全下，後面就改成跟注/棄牌。矩陣顯示「目前行動者」的範圍。</div>
-							<label class="mt-3 flex items-center gap-2 text-sm font-bold text-zinc-300 cursor-pointer" id="gtoperseattoggle">
-								<input type="checkbox" id="gtoperseat"> <span id="gtoperseatlabel">每座位不同計分牌（MTT，chip-EV 參考）</span>
-							</label>
-							<div class="mt-2 flex flex-wrap gap-2" id="gtoperseatrow" style="display:none"></div>
-							<div class="mt-3 text-sm font-bold text-emerald-300" id="gtotreestatus">-</div>
-							<div class="mt-2 flex flex-wrap gap-2" id="gtotreeactions"></div>
-							<div class="mt-3 flex flex-wrap gap-1.5" id="gtotreestrip"></div>
-							<div class="mt-3 flex flex-wrap gap-1.5" id="gtotreeline"></div>
+				<!-- 層 2：對戰樹（mockup 變體 C）。從控制卡片裡抽出來獨立成卡，當這一頁的主軸。 -->
+				<section class="mt-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8" id="gtotreepanel" style="display:none">
+					<div class="flex flex-wrap items-center justify-between gap-2">
+						<div class="text-lg font-extrabold text-zinc-100" id="gtotreetitle">對戰樹</div>
+						<div class="flex gap-2">
+							<input type="button" class="gtotreectl" id="gtotreeback" value="上一步">
+							<input type="button" class="gtotreectl" id="gtotreereset" value="重設">
 						</div>
 					</div>
+					<div class="mt-1 text-xs text-zinc-500" id="gtotreehint">沿翻前順序選每位選手的動作；一旦有人全下，後面就改成跟注/棄牌。矩陣顯示「目前行動者」的範圍。</div>
+					<div class="mt-3 flex flex-wrap gap-1.5" id="gtotreestrip"></div>
+					<div class="mt-3 text-sm font-bold text-emerald-300" id="gtotreestatus">-</div>
+					<div class="mt-3 flex flex-wrap gap-2" id="gtotreeactions"></div>
+					<div class="mt-3 flex flex-wrap gap-1.5" id="gtotreeline"></div>
+					<label class="mt-4 flex items-center gap-2 border-t border-zinc-800 pt-4 text-sm font-bold text-zinc-300 cursor-pointer" id="gtoperseattoggle">
+						<input type="checkbox" id="gtoperseat"> <span id="gtoperseatlabel">每座位不同計分牌（MTT，chip-EV 參考）</span>
+					</label>
+					<div class="mt-2 flex flex-wrap gap-2" id="gtoperseatrow" style="display:none"></div>
 				</section>
 
 				<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -109,7 +110,9 @@
 							<div class="text-sm text-zinc-400"><span id="gtopercentlabel">出手佔比</span>：<span id="gtopercent" class="font-mono font-extrabold text-emerald-400">-</span></div>
 						</div>
 						<div class="mt-1 text-right text-xs text-zinc-500"><span id="gtocombos">-</span></div>
-						<div id="gtogrid" class="mt-3 grid gap-[2px]" style="grid-template-columns:repeat(13,minmax(0,1fr))"></div>
+						<div class="gtogridempty" id="gtogridempty" style="display:none"></div>
+						<!-- 矩陣自己橫捲，整頁不橫捲。格子最小 32px（原本 375px 下只有 22px）。 -->
+						<div class="gtogridwrap"><div id="gtogrid" class="grid gap-[2px]" style="grid-template-columns:repeat(13,minmax(0,1fr))"></div></div>
 						<div class="mt-2 text-xs text-zinc-500" id="gtosuitednote">右上三角為同花（s），左下為不同花（o），對角線為口袋對。點格子看詳情。</div>
 					</section>
 
@@ -238,9 +241,13 @@
 		<script src="translate.js"></script>
 		<script src="initialize.js"></script>
 		<script src="gtodata.js"></script>
-		<script src="shortdeckdata.js"></script>
+		<!-- shortdeckdata.js（627 KB）與 gtomultiwaycall.js（72 KB）改由 gtoensuredata() 延後載入：
+		     前者只有切到短牌才需要、後者只有正好三人全下池才需要，合計省下約 700 KB。
+		     gtoante.js 維持同步載入 —— gtostate.anteratio 預設 1，預設狀態就會用到。 -->
 		<script src="gtoante.js"></script>
-		<script src="gtomultiwaycall.js"></script>
-		<script src="gto.js"></script>
+		<script src="gtosolvedextra.js"></script>
+		<script src="gtopreflop.js"></script>
+		<script src="gtopostflop.js"></script>
+		<script src="gtostreet.js"></script>
 	</body>
 </html>

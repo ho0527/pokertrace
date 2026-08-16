@@ -24,6 +24,7 @@ from .initialize import *
 from .sessionplayer import _attachfinance
 from .timer import ensuretimertables,buildtimerstate,broadcasttimerupdate,linkedcounts,normalizeaccentcolor,normalizebrandlogourl,normalizehiddenblock,normalizecolumnorder,userdisplaydefault
 from .authhelper import gettokenuser as commonauthuser
+from .follow import notifyfollowernewsession
 
 # main START
 def getmyregistrationfinance(sessionrow,userid):
@@ -377,7 +378,7 @@ def _fastsessionlist(request,tokenuserrow):
 	gametype=request.GET.get("gametype") or ""
 	name=request.GET.get("name") or ""
 	quickfilter=request.GET.get("quickfilter") or ""
-	if quickfilter not in ["registerable","owned","joined"]:
+	if quickfilter not in ["registerable","owned","joined","followed"]:
 		quickfilter=""
 	limit=_int(request.GET.get("limit"),40)
 	if limit<=0:
@@ -421,6 +422,29 @@ def _fastsessionlist(request,tokenuserrow):
 			OR a.isstaff=true
 			OR (a.isown=true AND a."owned"=false)
 		)""")
+	if quickfilter=="followed":
+		# 追隨中: 只看我追隨的主辦者的場次。
+		#
+		# 兩種粒度用同一個 EXISTS 處理:
+		#   f."clubid" IS NULL    = 追這個主辦者的全部地點 (不看 a."clubid")
+		#   f."clubid"=a."clubid" = 只追那一個地點
+		# 這個條件與 api/follow.py notifyfollowernewsession 的收件人查詢
+		# **是同一個形狀, 兩處必須永遠一致**。
+		#
+		# 不需要再檢查一次可見性: 這段套在 access CTE 上, 而 access 已經是
+		# 「我看得到的場次」的全集。被追隨者把場次改成 private 或關掉 linkuser 之後,
+		# 那筆會直接從 access 掉出去, 不必在 userfollow 這一側補償。
+		#
+		# a.isown=false 是防呆: 追隨自己已被 newfollow 擋掉, 這裡再擋一次,
+		# 免得舊資料讓「追隨中」混進自己主辦的場次。
+		where.append("""a.isown=false AND a."owned"=true AND EXISTS(
+			SELECT 1 FROM "userfollow" f
+			WHERE f."userid"=%s
+			  AND f."deletetime" IS NULL
+			  AND f."followuserid"=a."userid"
+			  AND (f."clubid" IS NULL OR f."clubid"=a."clubid")
+		)""")
+		params.append(tokenuserrow["id"])
 	wheresql=" AND ".join(where)
 
 	# 排序（?order=&direction=）。
@@ -1003,6 +1027,20 @@ def newsession(request):
 			"columnorder": brandsdefault["columnorder"]
 		},SETTING["dbsetting"])
 
+		# 通知追隨這位主辦者的人。自帶 try/except, 通知失敗不會影響建立場次。
+		# 上面約 940 行的 10 秒重送去重會提早 return, 所以重送不會二次通知。
+		notifyfollowernewsession({
+			"id": newsessionid,
+			"userid": tokenuserrow["id"],
+			"clubid": clubid,
+			"name": name,
+			# 一律過 _bool: linkuser 是直接從 request 拿的原始值, 可能是字串 "0",
+			# 而 Python 的真值判斷會把 "0" 當成真, 通知就會發到看不到那場的人身上
+			"owned": _bool(owned),
+			"linkuser": _bool(linkuser),
+			"private": privateed
+		})
+
 		return Response({
 			"success": True,
 			"data": newsessionid
@@ -1534,6 +1572,11 @@ def deletesession(request,sessionid):
 			#   （因此 backend/tool/sessioncascade.py 仍會把 staffworklog 列為
 			#    「缺漏」——那是刻意的，不是漏掉。）
 			#
+			# userfollow（追隨主辦者）：**完全不連動，這裡什麼都不用做**。
+			#   那張表沒有 sessionid 欄，追隨綁的是「主辦者 + 地點」而不是任何一場；
+			#   刪掉一場不代表使用者不想再追這位主辦者。同理，已發出的
+			#   type='sessionnew' 通知也照現行政策留著（通知是使用者的紀錄）。
+			#
 			# 時間欄一律用 nowtime()（本地牆上時間），不可以寫 NOW()，見 AGENTS.md「時間欄」。
 			["""UPDATE "tablestaff" SET "endtime"=COALESCE("endtime",%s::timestamptz),"endsource"=COALESCE("endsource",'autoclose'),"deletetime"=NOW(),"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[nowtime(),sessionid]],
 			["""UPDATE "staffworklog" SET "endtime"=%s::timestamptz,"endsource"=COALESCE("endsource",'autoclose'),"updatetime"=NOW() WHERE "sessionid"=%s AND "endtime" IS NULL AND "deletetime" IS NULL""",[nowtime(),sessionid]]
@@ -1726,6 +1769,10 @@ def copysession(request,sessionid):
 				"reward": payout.get("reward") or "",
 				"color": payout.get("color") or "#888"
 			},SETTING["dbsetting"])
+
+		# 複製出來的是一場真的新場次, 追隨者看得到, 所以照發。
+		# 這裡直接用上面從 DB 讀回來的 newsessionrow, 欄位都是真的布林值。
+		notifyfollowernewsession(newsessionrow)
 
 		return Response({
 			"success": True,

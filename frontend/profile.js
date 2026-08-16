@@ -307,10 +307,14 @@ function arrangeprofilesections(){
     let preferences=domgetid("preferencespanel")
     let signout=domgetid("signoutpanel")
     let tools=domgetid("toolspanel")
+    let follow=domgetid("followpanel")
     let deleteaccount=domgetid("deleteaccountpanel")
     if(currentusertype=="player"){
         wrapper.appendChild(basic)
         wrapper.appendChild(report)
+        if(follow){
+            wrapper.appendChild(follow)
+        }
         wrapper.appendChild(employment)
         wrapper.appendChild(preferences)
         if(tools){
@@ -328,6 +332,9 @@ function arrangeprofilesections(){
     wrapper.appendChild(employment)
     wrapper.appendChild(preferences)
     wrapper.appendChild(report)
+    if(follow){
+        wrapper.appendChild(follow)
+    }
     if(tools){
         wrapper.appendChild(tools)
     }
@@ -442,6 +449,7 @@ function gotuserdata(event,data){
     arrangeprofilesections()
     applyprofilelanguage()
     renderemploymentsection(row)
+    loadfollowsection()
     if(currentusertype=="player"){
         loadstafflist()
     }else{
@@ -2174,4 +2182,180 @@ onenterclick("#deleteaccountconfirminput",function(){
 
 onclick("#confirmdeleteaccount2",function(){
     dodeleteaccount()
+})
+
+// ===== 追隨主辦單位 =====
+// 一位主辦單位一張卡。標籤用協會名稱組出來，不顯示主辦者姓名
+// （全站沒有任何地方顯示「這場是誰主辦的」，這個性質要保持）。
+
+function renderfollowsection(followlist){
+    let grid=domgetid("followlist")
+    if(!grid){
+        return
+    }
+    if(!followlist.length){
+        ptshowempty("#followlist",ptfollowtext("emptylist","還沒有追隨任何主辦單位"),`
+            <div class="mt-4 flex flex-wrap justify-center gap-2">
+                <input type="button" class="cursor-pointer rounded bg-emerald-600 px-4 py-2 hover:bg-emerald-700" id="followemptyadd" value="${ptfollowtext("add","新增追隨")}">
+            </div>
+            <div class="mt-3 text-xs text-zinc-500">${ptfollowtext("emptylistnext","在場次頁點主辦單位旁的「追隨」，或用上面的「新增追隨」加入。")}</div>
+        `)
+        onclick("#followemptyadd",function(element,event){
+            openfollowmodal("add",null)
+        })
+        return
+    }
+    let html=""
+    for(let i=0;i<followlist.length;i=i+1){
+        let item=followlist[i]
+        let chiphtml=""
+        let clublist=item["clublist"]||[]
+        let followclubidlist=item["followclubidlist"]||[]
+        for(let n=0;n<clublist.length;n=n+1){
+            if(item["allclubed"]||0<=followclubidlist.indexOf(clublist[n]["clubid"])){
+                chiphtml=chiphtml+`<span class="followscopechip">${safehtml(clublist[n]["clubname"]||"")}</span>`
+            }
+        }
+        let notifyclass="border-zinc-700 bg-zinc-800 text-zinc-100 hover:bg-zinc-700"
+        let notifytext=ptfollowtext("notifyoff","通知已關閉（點擊開啟）")
+        if(item["notifyed"]){
+            notifyclass="border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+            notifytext=ptfollowtext("notifyon","通知已開啟（點擊關閉）")
+        }
+        html=html+`
+            <div class="followcard rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="text-base font-bold text-white">${safehtml(ptfollowlabel(clublist))}</div>
+                    <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-300">${ptfollowtext("following","追隨中")}</span>
+                </div>
+                <div class="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">${ptfollowtext("scope","地點範圍")}</div>
+                <div class="followscopelist mt-2">
+                    <span class="text-sm text-zinc-300">${safehtml(ptfollowscopetext(item))}</span>
+                    ${chiphtml}
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2 border-t border-zinc-800 pt-4">
+                    <input type="button" class="min-h-10 cursor-pointer rounded-2xl border px-4 text-sm font-bold transition ${notifyclass} follownotifybutton" data-followuserid="${item["followuserid"]}" data-notifyed="${item["notifyed"]}" value="${notifytext}">
+                    <input type="button" class="min-h-10 cursor-pointer rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700 followscopebutton" data-followuserid="${item["followuserid"]}" value="${ptfollowtext("scope","地點範圍")}">
+                    <input type="button" class="min-h-10 cursor-pointer rounded-2xl border border-red-900/60 bg-red-950/40 px-4 text-sm font-bold text-red-300 transition hover:bg-red-900/40 followremovebutton" data-followuserid="${item["followuserid"]}" value="${ptfollowtext("unfollow","取消追隨")}">
+                </div>
+            </div>
+        `
+    }
+    grid.innerHTML=html
+    bindfollowcard(followlist)
+}
+
+function bindfollowcard(followlist){
+    let grid=domgetid("followlist")
+    if(!grid){
+        return
+    }
+    let notifylist=grid.querySelectorAll(".follownotifybutton")
+    for(let i=0;i<notifylist.length;i=i+1){
+        notifylist[i].addEventListener("click",function(event){
+            let button=event.currentTarget
+            // 這顆會被連點，沒擋重入的話會送出兩個相反的請求，最後停在哪個值看運氣
+            if(button.disabled){
+                return
+            }
+            let wanted=button.getAttribute("data-notifyed")!="true"
+            ptsetsubmitstate(button,true,ptfollowtext("removing","處理中…"))
+            ptfollownotify(button.getAttribute("data-followuserid"),wanted,function(okayed,responsedata){
+                ptsetsubmitstate(button,false)
+                if(!okayed){
+                    pttoast(pterror(responsedata),"error")
+                    return
+                }
+                loadfollowsection()
+            })
+        })
+    }
+    let scopelist=grid.querySelectorAll(".followscopebutton")
+    for(let i=0;i<scopelist.length;i=i+1){
+        scopelist[i].addEventListener("click",function(event){
+            let followuserid=int(event.currentTarget.getAttribute("data-followuserid"))
+            let target=null
+            for(let n=0;n<followlist.length;n=n+1){
+                if(followlist[n]["followuserid"]==followuserid){
+                    target=followlist[n]
+                }
+            }
+            openfollowmodal("edit",target)
+        })
+    }
+    let removelist=grid.querySelectorAll(".followremovebutton")
+    for(let i=0;i<removelist.length;i=i+1){
+        removelist[i].addEventListener("click",function(event){
+            let button=event.currentTarget
+            if(button.disabled){
+                return
+            }
+            ptconfirm(ptfollowtext("unfollowconfirm","確定要取消追隨嗎？取消後不會再收到新場次通知。"),function(okayed){
+                if(!okayed){
+                    return
+                }
+                ptsetsubmitstate(button,true,ptfollowtext("removing","處理中…"))
+                ptfollowdelete(button.getAttribute("data-followuserid"),function(deleted,responsedata){
+                    ptsetsubmitstate(button,false)
+                    if(!deleted){
+                        pttoast(pterror(responsedata),"error")
+                        return
+                    }
+                    pttoastsuccess(ptfollowtext("unfollowed","已取消追隨"))
+                    loadfollowsection()
+                })
+            })
+        })
+    }
+}
+
+function openfollowmodal(mode,target){
+    ptfollowopenmodal(mode,target,function(saveded){
+        if(saveded){
+            loadfollowsection()
+        }
+    })
+}
+
+function loadfollowsection(){
+    let grid=domgetid("followlist")
+    if(!grid){
+        return
+    }
+    ptfollowloadlist(function(followlist){
+        if(followlist==null){
+            // 只丟 toast 的話這一區會留白，看起來像壞掉；補一顆重新載入
+            ptshowempty("#followlist",ptfollowtext("loadfail","追隨清單載入失敗"),`
+                <div class="mt-4 flex flex-wrap justify-center gap-2">
+                    <input type="button" class="cursor-pointer rounded bg-zinc-700 px-4 py-2 hover:bg-zinc-600" id="followretry" value="${ptfollowtext("retry","重新載入")}">
+                </div>
+            `)
+            onclick("#followretry",function(element,event){
+                loadfollowsection()
+            })
+            return
+        }
+        renderfollowsection(followlist)
+        scrolltofollowpanel()
+    })
+}
+
+// 從場次列表的空狀態按「管理追隨清單」進來時帶著 #followpanel。
+// arrangeprofilesections() 用 appendChild 重排過，瀏覽器自己的錨點捲動會失準，
+// 所以資料畫完之後再手動捲一次。
+let followscrolled=false
+
+function scrolltofollowpanel(){
+    if(followscrolled||location.hash!="#followpanel"){
+        return
+    }
+    let panel=domgetid("followpanel")
+    if(panel){
+        followscrolled=true
+        panel.scrollIntoView({"behavior": "smooth","block": "start"})
+    }
+}
+
+onclick("#followaddbutton",function(element,event){
+    openfollowmodal("add",null)
 })

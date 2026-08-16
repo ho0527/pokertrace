@@ -239,6 +239,18 @@
                     </div>
                 </section>
 
+                <section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8" id="followpanel">
+                    <div class="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <h2 class="mb-1 text-xl font-extrabold text-white" data-i18n="follow.title" id="followtitle">追隨主辦單位</h2>
+                            <p class="text-sm text-zinc-400" data-i18n="follow.desc" id="followsubtitle">追隨之後，對方開新場次時你會收到通知；場次列表也能用「追隨中」只看他們的賽事。</p>
+                            <p class="mt-1 text-xs text-zinc-500" data-i18n="follow.privacynote" id="followprivacynote">這份清單只有你看得到，主辦單位不會知道誰追隨他。</p>
+                        </div>
+                        <input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-i18n-value="follow.add" id="followaddbutton" value="新增追隨">
+                    </div>
+                    <div class="grid grid-cols-1 gap-4" id="followlist"></div>
+                </section>
+
                 <section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8" id="toolspanel">
                     <div class="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div>
@@ -324,6 +336,7 @@
         <script src="translate.js"></script>
         <script src="initialize.js"></script>
         <script src="tooldata.js"></script>
+        <script src="follow.js"></script>
         <script src="profile.js"></script>
     </body>
 </html>

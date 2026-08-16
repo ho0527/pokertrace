@@ -164,7 +164,15 @@ try:
 					"data": "ERROR_no_permission"
 				},status.HTTP_403_FORBIDDEN)
 
-			query(SETTING["dbname"],f"""UPDATE "club" SET "deletetime"=NOW() WHERE "id"=%s""",[clubid],SETTING["dbsetting"])
+			# 這個地點沒了, 綁在它上面的「只追這個地點」也就沒有意義, 一併軟刪。
+			# clubid IS NULL 的「追全部地點」**不動** —— 那是追人不是追地點,
+			# 主辦者換個場地繼續辦, 追隨關係應該延續。
+			result=querytransaction(SETTING["dbname"],[
+				["""UPDATE "club" SET "deletetime"=NOW() WHERE "id"=%s""",[clubid]],
+				["""UPDATE "userfollow" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "clubid"=%s AND "deletetime" IS NULL""",[clubid]]
+			],SETTING["dbsetting"])
+			if result is None:
+				return errorresponse("ERROR_database_error")
 
 			return Response({
 				"success": True,

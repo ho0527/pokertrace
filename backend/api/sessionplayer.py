@@ -21,7 +21,7 @@ from function.thing import *
 from function.function import *
 from .initialize import *
 from .authhelper import gettokenuser as commonauthuser
-from .timer import synctimerplayers,linkedcounts,buildtimerstate,broadcasttimerupdate,latestsessionchips,intval
+from .timer import synctimerplayers,linkedcounts,buildtimerstate,broadcasttimerupdate,latestsessionchips,intval,expectedchiptotal
 from .notification import notifyevent
 
 
@@ -812,10 +812,12 @@ try:
 		if not _caneditsession(sessionrow,user):
 			return errorresponse("ERROR_no_permission")
 
+		synctimerplayers(sessionrow)
+
 		rows=query(SETTING["dbname"],
 			f"""SELECT sp.*,
 			       u."name" AS playername, u."playerid" AS playerplayerid, u."email" AS playeremail,
-			       tp."place" AS timerplace, tp."status" AS timerstatus,
+			       tp."id" AS timerplayerid, tp."place" AS timerplace, tp."status" AS timerstatus,
 			       targetsession."name" AS advancetargetname, targetsession."token" AS advancetargettoken,
 			       COALESCE(adv."advancecount",0) AS advancecount, COALESCE(adv."bestadvancechip",0) AS bestadvancechip
 			    FROM "sessionplayer" sp
@@ -847,6 +849,11 @@ try:
 				totalchipcount=totalchipcount+intval(r.get("advancechip"),0)
 			elif r["status"]=="confirmed" and r.get("timerstatus")!="eliminated":
 				totalchipcount=totalchipcount+(latestchip if latestchip>0 else intval(r.get("startchip"),0))
+		# 應有總計分牌: 這場實際發出去多少碼。與 totalchipcount(存活者身上目前有多少碼)
+		# 相減就是誤差 —— 錦標賽的計分牌是守恆的, 淘汰者的碼會轉到存活者身上,
+		# 所以兩者本來就該相等; 不相等表示有多發/短發, 或是還沒把碼量記錄上來。
+		# 用共用的 expectedchiptotal, 與大螢幕平均碼量的分母同一套公式, 不會兩邊算出不同答案。
+		expectedchipcount=expectedchiptotal(sessionrow,rows)
 		tablerows=query(SETTING["dbname"],f"""SELECT "id","no","token","closedtime" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
 		advancetargets=_multidaytargets(sessionid)
 
@@ -891,6 +898,7 @@ try:
 				"advancetargets": advancetargets,
 				"unifiedhandrecord": unifiedhandrecord,
 				"totalchipcount": totalchipcount,
+				"expectedchipcount": expectedchipcount,
 				"tables": tablerows or [],
 				"stats": stats,
 				"registrations": rows

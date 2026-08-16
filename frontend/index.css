@@ -421,6 +421,26 @@ select:not([multiple]) {
 	white-space: nowrap;
 }
 
+/* 列高不可以被「這一列出現哪些操作控制」決定，而在 2026-08-11 之前就是這樣：
+   操作欄的「複製」「報名」「取消報名」是 <input type="button">，inline-block 會把
+   整個行框撐高；只有 <a> 文字連結的列沒有這個元素，就塌下去。實測同一份程式碼下
+   有按鈕的列 57px、沒按鈕的列 37px，也就是**排版被權限決定** ——
+   非自己主辦的場次、以及個人牌局紀錄那些列，看起來特別擠。
+
+   固定列高後兩種列一律 56px。td 的 height 在表格裡的行為是「最小高度」，
+   內容真的更高時仍會撐開，所以這不會截掉任何東西。 */
+.sessionlisttable tbody td {
+	height: 56px;
+	vertical-align: middle;
+}
+
+/* 按鈕與連結的基線對齊方式不同（inline-block 對 baseline），同一格裡混用會差幾 px。
+   一起改成 middle，操作欄的文字才會真的在同一條線上。 */
+.sessionlisttable tbody td a,
+.sessionlisttable tbody td input[type="button"] {
+	vertical-align: middle;
+}
+
 .sessionnamecol {
 	width: 100%;
 	max-width: 0;
@@ -577,4 +597,64 @@ select:not([multiple]) {
 
 .chippill[role="button"].is-selected .chippill-value {
 	color: #6ee7b7;
+}
+
+/* ===== 追隨主辦單位 ===== */
+
+/* 場次列表名稱欄的追隨標記。8px 圓點遠小於 .sessionlisttable tbody td 的 56px 列高，
+   不可能把列撐高；flex:0 0 auto 讓它不參與 .sessionnamecell 的收縮，
+   名稱截斷的行為維持原樣。 */
+.sessionfollowmark {
+	flex: 0 0 auto;
+	align-self: center;
+	height: 8px;
+	width: 8px;
+	border-radius: 9999px;
+	background: #34d399;
+}
+
+/* 追隨卡片上的地點 chip。地點名稱是使用者自己輸入的，可能很長，
+   單顆最多 140px 後截斷，整列可換行。 */
+.followscopelist {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.followscopechip {
+	display: inline-flex;
+	align-items: center;
+	max-width: 140px;
+	overflow: hidden;
+	border: 1px solid #27272a;
+	border-radius: 9999px;
+	background: rgba(9, 9, 11, 0.7);
+	padding: 4px 12px;
+	font-size: 13px;
+	color: #d4d4d8;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* 對話框與卡片裡的可點選列。44px 是手指可靠的最小點擊目標。 */
+.followclubitem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 44px;
+	padding: 0 8px;
+	border-radius: 12px;
+	cursor: pointer;
+}
+
+.followclubitem:hover {
+	background: rgba(24, 24, 27, 0.9);
+}
+
+/* 選了「全部地點」時，下面的地點清單淡化並停用，但**不清掉勾選狀態** ——
+   使用者切回「只追隨指定地點」時原本勾的還在。 */
+.followclubdisabled {
+	opacity: 0.45;
+	pointer-events: none;
 }

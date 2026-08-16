@@ -585,22 +585,70 @@ def linkedchipgrandtotal(sessionrow,row,latestchips=None):
 			total=total+timerplayerchip(sessionrow,row[i],latestchips)
 	return total
 
-def conservedchiptotal(sessionrow,row):
-	# 守恆總量: Σ 每列「實際注入」的計分牌, 不隨淘汰變動——被淘汰選手的計分牌已轉給存活者仍在場上。
-	# 每列注入 = startchip(單日=起始碼; 多日晉級列=帶入的 advancechip) + 各加買次數 × 該場設定的碼量。
-	# 已晉級離場列要扣回 advancechip: 那些計分牌被帶去下一日, 不在本場檯面上。
-	# rebuychip/reentrychip 未設定(0)時退回起始碼, 單日賽全等於「起始碼 × 總入場人次」的舊守恆公式。
+def advanceinchipmap(sessionid):
+	"""每位選手「從前一日帶入這場」的計分牌，key 是 userid。
+
+	取自**來源場次**那一列的 advancechip。不可以用目標場次的 startchip ——
+	理由見 expectedchiptotal。
+	"""
+	row=query(SETTING["dbname"],f"""
+		SELECT sourceplayer."userid",MAX(sourceplayer."advancechip") AS carrychip
+		FROM "sessionrelation" sr
+		JOIN "sessionplayer" sourceplayer ON sourceplayer."sessionid"=sr."sourceid" AND sourceplayer."deletetime" IS NULL
+		WHERE sr."targetid"=%s AND sr."relationtype"='multiday' AND sr."deletetime" IS NULL
+		  AND sourceplayer."advancetargetid"=%s AND sourceplayer."advancetime" IS NOT NULL
+		GROUP BY sourceplayer."userid"
+	""",[sessionid,sessionid],SETTING["dbsetting"]) or []
+	carrychips={}
+	for i in range(len(row)):
+		carrychips[row[i]["userid"]]=intval(row[i]["carrychip"],0)
+	return carrychips
+
+def expectedchiptotal(sessionrow,row,carrychips=None):
+	"""應有總計分牌（守恆總量）: 這場實際「發出去」多少計分牌，不隨淘汰變動 ——
+	被淘汰選手的計分牌已經轉到存活者身上，仍在檯面上。
+
+	**刻意不看 sessionplayer.startchip。** 那一欄的語意被覆寫過:
+	排座與改碼的每一條路徑（sessionplayer.py 的排座 / 編輯、table.py 的入座）
+	都會把 startchip 寫成「目前碼量」，所以它不是「入場時發的碼」。
+	拿它當注入量算守恆總量，改過碼的場次會**把存活者的碼疊在應有總量上再算一次**。
+
+	2026-08-12 實測 session 194（12 人 × 3,000 起始，6 人已淘汰、存活者碼量都手動改過）:
+	舊公式得 54,000（= 存活者真實的 36,000 ＋ 淘汰者殘留的 3,000×6），
+	大螢幕的平均碼量因此顯示 9,000，正確值是 6,000。最壞情況會接近兩倍。
+
+	入場碼一律回推自不會被覆寫的來源:
+	  多日晉級進來的人 = 來源場次那一列的 advancechip
+	  其餘             = 這場的起始碼 session.chip
+	已晉級離場的列要扣回自己的 advancechip: 那些碼被帶去下一日，不在本場檯面上。
+	rebuychip / reentrychip 未設定(0)時退回起始碼，單日賽等同「起始碼 × 總入場人次」。
+	"""
 	basechip=intval(sessionrow.get("chip"),0)
 	rebuychip=intval(sessionrow.get("rebuychip"),0) or basechip
 	reentrychip=intval(sessionrow.get("reentrychip"),0) or basechip
 	addonchip=intval(sessionrow.get("addonchip"),0)
+	if carrychips is None:
+		carrychips=advanceinchipmap(sessionrow["id"])
 	total=0
 	for i in range(len(row)):
-		total=total+intval(row[i].get("startchip"),0)
+		# 計時器的列用 registrationstatus，報名清單的列用 status，兩邊共用這支所以都認
+		status=row[i].get("registrationstatus") or row[i].get("status") or ""
+		if status not in ("confirmed","advanced"):
+			continue
+		entrychip=intval(carrychips.get(row[i].get("userid")),0)
+		if entrychip<=0:
+			entrychip=basechip
+		if entrychip<=0:
+			# 起始碼設 0（例如純靠帶入的 Day2）而這個人又沒有晉級來源 ——
+			# 直接報名進來的那種。這時候沒有別的資訊，只能退回 startchip。
+			# 它可能已經被改碼路徑覆寫成目前碼量（見上面的說明），但算 0 更糟。
+			# 2026-08-12 實測兩台都是 0 筆，這是給未來的退路。
+			entrychip=intval(row[i].get("startchip"),0)
+		total=total+entrychip
 		total=total+intval(row[i].get("rebuycount"),0)*rebuychip
 		total=total+intval(row[i].get("reentrycount"),0)*reentrychip
 		total=total+intval(row[i].get("addoncount"),0)*addonchip
-		if row[i].get("registrationstatus")=="advanced":
+		if status=="advanced":
 			total=total-intval(row[i].get("advancechip"),0)
 	if total<0:
 		total=0
@@ -1086,7 +1134,7 @@ def buildtimerstate(sessionid,readonly=False):
 		playerlist=attachknockouts(sessionid,serializetimerplayers(counts[2]))
 		averagechiptotal=linkedchiptotal(sessionrow,counts[2])
 		totalchipcount=linkedchipgrandtotal(sessionrow,counts[2])
-		conservedtotal=conservedchiptotal(sessionrow,counts[2])
+		conservedtotal=expectedchiptotal(sessionrow,counts[2])
 	else:
 		players=0
 		totalentries=0
@@ -1106,7 +1154,7 @@ def buildtimerstate(sessionid,readonly=False):
 		playerlist=attachknockouts(sessionid,serializetimerplayers(counts[2]))
 		averagechiptotal=linkedchiptotal(sessionrow,counts[2])
 		totalchipcount=linkedchipgrandtotal(sessionrow,counts[2])
-		conservedtotal=conservedchiptotal(sessionrow,counts[2])
+		conservedtotal=expectedchiptotal(sessionrow,counts[2])
 	state={}
 	state.update(config)
 	state.update(runtime)

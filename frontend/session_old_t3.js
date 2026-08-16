@@ -3595,22 +3595,18 @@ onclick(".settings-side-btn",function(element,event){
 onclick(".settings-scroll-btn",function(element,event){
 	let wrap=domgetid("settingsscroll")
 	if(wrap){
-		let direction=element.getAttribute("data-settingscroll")||""
-		let amount=0
+		let direction=dataset(element,"settingsscroll")
+		let amount=Math.floor(wrap.clientWidth*0.75)
 		if(direction=="left"){
-			amount=0-Math.floor(wrap.clientWidth*0.75)
-		}else if(direction=="right"){
-			amount=Math.floor(wrap.clientWidth*0.75)
+			amount=0-amount
 		}
-		if(amount!=0){
-			if(typeof wrap.scrollBy=="function"){
-				wrap.scrollBy({
-					"left": amount,
-					"behavior": "smooth"
-				})
-			}else{
-				wrap.scrollLeft=wrap.scrollLeft+amount
-			}
+		if(typeof wrap.scrollBy=="function"){
+			wrap.scrollBy({
+				"left": amount,
+				"behavior": "smooth"
+			})
+		}else{
+			wrap.scrollLeft=wrap.scrollLeft+amount
 		}
 	}
 })

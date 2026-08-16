@@ -1272,3 +1272,107 @@ textarea::placeholder {
 		grid-template-columns: repeat(5, minmax(0, 1fr));
 	}
 }
+
+@media (min-width: 1024px) {
+	body {
+		padding-bottom: 56px;
+	}
+
+	.layout {
+		max-width: 1120px;
+		padding: 16px 0 40px;
+	}
+
+	.topbar {
+		padding: 0;
+	}
+
+	.title-row {
+		margin-bottom: 12px;
+	}
+
+	.timer-card {
+		padding: 18px 20px;
+		border-radius: 12px;
+	}
+
+	.timer-display {
+		font-size: clamp(72px, 8vw, 112px);
+		margin: 8px 0 14px;
+	}
+
+	.blinds-row {
+		margin-top: 14px;
+		padding-top: 14px;
+	}
+
+	.section {
+		padding: 12px 0;
+	}
+
+	.section-title {
+		margin-bottom: 8px;
+	}
+
+	.card,
+	.player-card {
+		border-radius: 10px;
+		padding: 16px;
+	}
+
+	.btn {
+		min-height: 44px;
+		border-radius: 8px;
+	}
+
+	.btn-big {
+		min-height: 56px;
+		border-radius: 10px;
+		font-size: 16px;
+	}
+
+	.time-grid {
+		gap: 8px;
+	}
+
+	.input-row {
+		gap: 8px;
+	}
+
+	.player-stepper {
+		gap: 10px;
+	}
+
+	.step-btn {
+		width: 64px;
+		height: 64px;
+		border-radius: 10px;
+		font-size: 30px;
+	}
+
+	.step-num {
+		font-size: 48px;
+	}
+
+	.player-meta {
+		gap: 8px;
+	}
+
+	#playerManualButtons {
+		gap: 8px;
+	}
+
+	.lvl-list {
+		max-height: 420px;
+	}
+
+	.status-bar {
+		padding: 10px 24px;
+	}
+}
+
+@media (min-width: 1280px) {
+	.layout {
+		max-width: 1184px;
+	}
+}

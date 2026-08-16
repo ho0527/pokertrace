@@ -19,6 +19,7 @@ from .authhelper import gettokenuser as commonauthuser
 from .timer import savesplitstate
 from .series import _setseriessessions,_appendseriessessions
 from .session import _savesessionchips
+from .follow import notifyfollowernewsession
 
 MAXFLIGHTS=64
 
@@ -300,6 +301,19 @@ def batchcreatesessions(request):
 	elif _bool(data.get("createseries")):
 		seriesname=str(data.get("seriesname") or "").strip() or cleanflights[0]["name"]
 		seriesid=_createseries(userrow,common,seriesname[:100],data.get("seriesscoringtype") or "profit",list(idbykey.values()))
+
+	# 通知追隨這位主辦者的人。掛在這裡而**不是** _createflight 裡面：
+	#   * 一個多日賽一次可以建到 MAXFLIGHTS 場, 掛在裡面等於一次推 N 則
+	#   * 上面的補償路徑失敗時會把整批軟刪, 掛在裡面會出現「通知已發、場次已刪」
+	# 只用第一場的 id 發一則, 名稱後面補上這一則涵蓋幾場。
+	createdsessionidlist=list(idbykey.values())
+	if createdsessionidlist:
+		firstsessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s""",[createdsessionidlist[0]],SETTING["dbsetting"])
+		if firstsessionrow:
+			namesuffix=""
+			if 1<len(createdsessionidlist):
+				namesuffix="（共 "+str(len(createdsessionidlist))+" 個 Day）"
+			notifyfollowernewsession(firstsessionrow[0],namesuffix)
 
 	return Response({"success": True,"data": {
 		"flights": idbykey,

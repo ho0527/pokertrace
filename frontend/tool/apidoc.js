@@ -690,6 +690,66 @@ const APICATEGORIES=[
 		]
 	},
 	{
+		key: "follow",
+		title: { z: "追隨主辦單位",e: "Following organizers" },
+		desc: { z: "追隨主辦單位，可指定只追隨其中某些協會地點。完全私密：主辦單位查不到誰追隨他，也看不到人數。",e: "Follow an organizer, optionally narrowed to specific venues. Fully private: organizers cannot see who follows them or how many." },
+		endpoints: [
+			{
+				id: "getfollowtargetlist",method: "GET",path: "/getfollowtargetlist",title: { z: "可追隨清單",e: "Followable list" },
+				desc: { z: "從「使用者本來就看得到的場次」反推可追隨的主辦單位與地點，並帶出目前的追隨狀態。不會列出使用者看不到的東西。",e: "Derives followable organizers and venues from sessions the user can already see, with current follow state. Never lists anything the user cannot see." },
+				auth: AUTHTOKEN,
+				params: [queryparam("keyword","string","以協會名稱過濾。","Filter by venue name."),queryparam("limit","int","上限 200，預設 100。","Max 200, default 100.")],
+				response: [R("data","object","可追隨清單。","Followable list.",[
+					SUB("followtargetlist","array","每筆是一個主辦單位，含 clublist 地點清單與 followed / allclubed / notifyed 狀態。","One entry per organizer, with a clublist plus followed / allclubed / notifyed state.")
+				])],
+				errors: [ETOKEN]
+			},
+			{
+				id: "getfollowlist",method: "GET",path: "/getfollowlist",title: { z: "我的追隨清單",e: "My following list" },
+				desc: { z: "以主辦單位為單位回傳自己的追隨設定。不回主辦者姓名。",e: "Returns the caller's follow settings grouped by organizer. Organizer names are never returned." },
+				auth: AUTHTOKEN,params: [],
+				response: [R("data","object","追隨清單。","Following list.",[
+					SUB("followlist","array","每筆含 followuserid / allclubed / notifyed / followclubidlist / clublist。","Each entry has followuserid / allclubed / notifyed / followclubidlist / clublist.")
+				])],
+				errors: [ETOKEN]
+			},
+			{
+				id: "newfollow",method: "POST",path: "/newfollow",title: { z: "設定追隨",e: "Set following" },
+				desc: { z: "建立或更新對某位主辦單位的追隨範圍。這是**整組取代**：body 描述的是最終想要的範圍，重送不會產生第二筆。",e: "Create or update the follow scope for one organizer. This replaces the whole scope; resending does not create duplicates." },
+				auth: AUTHTOKEN,
+				params: [
+					P("followuserid","string",true,"主辦單位的 userid。","Organizer user id.",{ ex: "12" }),
+					P("allclubed","boolean",false,"true = 全部地點（預設）；false = 只追 clubidlist。","true = all venues (default); false = only clubidlist.",{ ex: true }),
+					P("clubidlist","array",false,"allclubed 為 false 時必填，至少一個地點 id。","Required when allclubed is false; at least one venue id.",{ ex: [3] }),
+					P("notifyed","boolean",false,"開新場次時要不要通知，預設 true。","Whether to notify on new sessions, default true.",{ ex: true })
+				],
+				response: [R("data","object","追隨結果。","Follow result.",[
+					SUB("followuserid","int","主辦單位的 userid。","Organizer user id."),
+					SUB("allclubed","boolean","是否為全部地點。","Whether all venues are followed."),
+					SUB("notifyed","boolean","通知是否開啟。","Whether notifications are on.")
+				])],
+				errors: [ETOKEN,EREQ,ERR("400","ERROR_cannot_follow_self","不能追隨自己。","You cannot follow yourself."),ERR("404","ERROR_follow_target_not_found","查無可追隨的主辦單位（包含看不到那位主辦單位、或指定了他沒有的地點）。","Organizer not found, or the venue does not belong to a session you can see.")]
+			},
+			{
+				id: "editfollow",method: "PUT",path: "/editfollow/{followuserid}",title: { z: "追隨通知開關",e: "Follow notification toggle" },
+				desc: { z: "只改通知開關，以主辦單位為單位（他底下每一列都改成同一個值）。",e: "Toggles notifications for one organizer (every row under that organizer is set to the same value)." },
+				auth: AUTHTOKEN,
+				params: [pathparam("followuserid","主辦單位的 userid。","Organizer user id.",12),P("notifyed","boolean",true,"是否開啟通知。","Whether notifications are on.",{ ex: false })],
+				response: [R("data","object","結果。","Result.",[
+					SUB("followuserid","int","主辦單位的 userid。","Organizer user id."),
+					SUB("notifyed","boolean","通知是否開啟。","Whether notifications are on.")
+				])],
+				errors: [ETOKEN,EREQ,ERR("404","ERROR_follow_not_found","查無追隨紀錄。","Follow not found.")]
+			},
+			{
+				id: "deletefollow",method: "DELETE",path: "/deletefollow/{followuserid}",title: { z: "取消追隨",e: "Unfollow" },
+				desc: { z: "取消追隨這位主辦單位（他底下每一列都軟刪）。",e: "Unfollow this organizer (every row under that organizer is soft-deleted)." },
+				auth: AUTHTOKEN,params: [pathparam("followuserid","主辦單位的 userid。","Organizer user id.",12)],
+				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_follow_not_found","查無追隨紀錄。","Follow not found.")]
+			}
+		]
+	},
+	{
 		key: "session",
 		title: { z: "場次",e: "Sessions" },
 		desc: { z: "場次（賽事／現金桌）的查詢、建立、編輯、複製與關聯設定。",e: "Query, create, edit, copy and link sessions (tournaments / cash games)." },
@@ -704,7 +764,7 @@ const APICATEGORIES=[
 					queryparam("club","string","依協會過濾。","Filter by association."),
 					queryparam("gametype","string","依遊戲類型過濾。","Filter by game type."),
 					queryparam("name","string","依名稱過濾。","Filter by name."),
-					queryparam("quickfilter","string","快速過濾：registerable / owned / joined。","Quick filter: registerable / owned / joined."),
+					queryparam("quickfilter","string","快速過濾：registerable / owned / joined / followed。","Quick filter: registerable / owned / joined / followed."),
 					queryparam("page","int","頁碼，預設 1。","Page number, default 1."),
 					queryparam("limit","int","每頁筆數，預設 40。","Page size, default 40."),
 					queryparam("order","string","排序欄位，只接受 <code>starttime</code> / <code>name</code> / <code>profit</code>；其他值一律忽略、退回預設（開始時間新的在前）。<b>欄位名走寫死的白名單</b>。刻意不開放「買入」與「名次」—— 那兩欄的顯示值是前端由多個欄位算出來的，用任何單一欄位排都會與畫面不一致。","Sort column; only <code>starttime</code> / <code>name</code> / <code>profit</code> are accepted. Any other value is ignored and the default (newest start time first) is used. <b>The column name comes from a hardcoded whitelist.</b> Buy-in and place are deliberately not sortable — those displayed values are computed on the client from several columns, so ordering by any single column would disagree with what is shown."),

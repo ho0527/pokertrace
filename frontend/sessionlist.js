@@ -23,6 +23,13 @@ let currentpagination={
 }
 let sessionliststatekey=WEBLSNAME+"sessionliststate"
 let quickfiltermode=""
+// 快速篩選允許的值。restorereviewsessionliststate() 會從 localStorage 還原這個字串，
+// 舊版或手改過的值送出去後端不認（session.py:380 是白名單），會被當成沒篩選、
+// **安靜地回傳全部場次** —— 那比報錯更糟，所以還原時過一次白名單。
+const QUICKFILTERLIST=["registerable","owned","joined","followed"]
+// 我追隨的主辦者 userid。只用來在名稱欄畫一個唯讀小圓點，
+// 以及「追隨中」篩選在同一頁資料重畫時的 client 端二次判定。
+let followeduseridlist=[]
 
 if(!weblsget(WEBLSNAME+"signin")){
 	href("signin.html")
@@ -171,6 +178,7 @@ function applysessionlanguage(){
 	value("#filter-registerable",sessiontext("onlyregisterable"))
 	value("#filter-owned",sessiontext("onlyowned"))
 	value("#filter-joined",sessiontext("onlyjoined"))
+	value("#filter-followed",sessiontext("onlyfollowed"))
 	domgetid("startdate").placeholder=sessiontext("startdate")
 	domgetid("enddate").placeholder=sessiontext("enddate")
 	// type=date 會忽略 placeholder(改顯示日期遮罩), 故未填時以 text 顯示提示文字, 聚焦才切回 date 選日期
@@ -219,7 +227,8 @@ function applyquickfilterbuttons(){
 	let list=[
 		["filter-registerable","registerable"],
 		["filter-owned","owned"],
-		["filter-joined","joined"]
+		["filter-joined","joined"],
+		["filter-followed","followed"]
 	]
 	for(let i=0;i<list.length;i=i+1){
 		let button=domgetid(list[i][0])
@@ -464,6 +473,11 @@ function sessionpassesquickfilter(row){
 		}
 		return row["isstaff"]==true
 	}
+	if(quickfiltermode=="followed"){
+		// 後端已經篩過了（session.py 的 quickfilter=followed）。這裡是同一頁資料
+		// 重新排序 / 重畫時的 client 端二次判定，比對的是本頁載入時取回的追隨清單。
+		return 0<=followeduseridlist.indexOf(row["userid"])
+	}
 	return true
 }
 
@@ -485,6 +499,18 @@ function renderSessionTable(sessions){
 					<input type="button" class="bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded cursor-pointer" id="emptyclearfilters" value="${sessiontext("clearfilter")}">
 				</div>
 				<div class="text-xs text-zinc-500 mt-3">${sessiontext("nextdetail")}</div>
+			`
+		}
+		// 「追隨中」空掉有兩種原因（一個都沒追隨 / 追了但近期沒開場），
+		// 通用的「沒有符合篩選條件」看不出是哪一種，也給不出下一步。
+		if(quickfiltermode=="followed"){
+			message=sessiontext("emptyfollowed")
+			action=`
+				<div class="mt-4 flex flex-wrap gap-2 justify-center">
+					<a href="profile.html#followpanel" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded">${sessiontext("followmanage")}</a>
+					<input type="button" class="bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded cursor-pointer" id="emptyclearfilters" value="${sessiontext("clearfilter")}">
+				</div>
+				<div class="text-xs text-zinc-500 mt-3">${sessiontext("emptyfollowednext")}</div>
 			`
 		}
 		ptshowempty("#main",message,action)
@@ -555,12 +581,20 @@ function renderSessionTable(sessions){
 						codehtml=`<span class="sessionnamecode">(${codetext})</span>`
 						fullname=fullname+" ("+codetext+")"
 					}
+					// 追隨標記是唯讀的 8px 圓點，不是按鈕：追隨的對象是主辦者不是場次，
+					// 同一位主辦者的 N 場會出現 N 顆要互相同步的按鈕，而且操作欄再多一個
+					// 控制項會把名稱欄的截斷平衡與 56px 列高再弄壞一次。
+					let followmarkhtml=""
+					if(row["isown"]!=true&&0<=followeduseridlist.indexOf(row["userid"])){
+						followmarkhtml=`<span class="sessionfollowmark" title="${safehtml(sessiontext("followedmarktitle"))}"></span>`
+					}
 					return `
 						<tr class="hover:bg-zinc-800/60 transition cursor-pointer ${rowdivider}">
 							<td class="relative py-2 px-2">${startindex+index+1}<a href="session.html?id=${row["id"]}" class="rowlink absolute inset-0 z-10" aria-label="${safehtml(row["name"])}"></a></td>
 							<td class="relative py-2 px-2">${ptformatdatetimeminute(row["starttime"])}<a href="session.html?id=${row["id"]}" class="rowlink absolute inset-0 z-10"></a></td>
 							<td class="sessionnamecol relative py-2 px-2">
 								<div class="sessionnamecell" title="${fullname}">
+									${followmarkhtml}
 									<span class="sessionnametext">${safehtml(row["name"])}</span>
 									${codehtml}
 								</div>
@@ -758,9 +792,19 @@ function loadsessions(){
 applysessionlanguage()
 loadclubs()
 restoresessionliststate()
-loadtypes(function(){
-	applyquickfilterbuttons()
-	loadsessions()
+// 先把追隨清單拿回來再畫列表，名稱欄的追隨標記才不會第一次繪製時缺一拍。
+// 拿不到就當成沒追隨任何人（標記不顯示），不擋列表載入。
+ptfollowloadlist(function(followlist){
+	followeduseridlist=[]
+	if(followlist){
+		for(let i=0;i<followlist.length;i=i+1){
+			followeduseridlist.push(followlist[i]["followuserid"])
+		}
+	}
+	loadtypes(function(){
+		applyquickfilterbuttons()
+		loadsessions()
+	})
 })
 
 onkeydown("#name",function(element,event){
@@ -827,6 +871,17 @@ onclick("#filter-joined",function(element,event){
 	loadsessions()
 })
 
+onclick("#filter-followed",function(element,event){
+	if(quickfiltermode=="followed"){
+		quickfiltermode=""
+	}else{
+		quickfiltermode="followed"
+	}
+	applyquickfilterbuttons()
+	currentpage=1
+	loadsessions()
+})
+
 onclick("#togglefilter",function(element,event){
 	let filterbody=domgetid("filterbody")
 	if(filterbody&&filterbody.classList.contains("hidden")){
@@ -860,6 +915,9 @@ function restoresessionliststate(){
 	value("#name",saved["name"]||"",false)
 	currentpage=int(saved["page"]||1)
 	quickfiltermode=saved["quickfiltermode"]||""
+	if(QUICKFILTERLIST.indexOf(quickfiltermode)<0){
+		quickfiltermode=""
+	}
 	applyquickfilterbuttons()
 	setTimeout(function(){
 		if(saved["club"]){

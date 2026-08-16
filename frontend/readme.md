@@ -35,6 +35,7 @@
 - `display.js`
 - `edittable.html`
 - `edittable.js`
+- `follow.js`
 - `gto.js`
 - `gtoante.js`
 - `gtodata.js`

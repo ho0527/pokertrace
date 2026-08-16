@@ -1472,6 +1472,11 @@ def deleteuseraccount(request):
 		["""DELETE FROM "seriessession" WHERE "sessionid" IN ("""+OWNSESSION+""") OR "seriesid" IN (SELECT "id" FROM "series" WHERE "userid"=%s)""",[userid,userid]],
 		["""DELETE FROM "series" WHERE "userid"=%s""",[userid]],
 		["""DELETE FROM "session" WHERE "userid"=%s""",[userid]],
+		# 追隨這個人某個地點的列, **一定要排在刪 club 之前**。
+		# newsession 沒有檢查 clubid 是不是自己的 (只有 batch.py 有), 所以可能存在
+		# 「A 的場次掛著別人的 club」, 那種列不會被下面那條「userid 或 followuserid」清掉,
+		# 而 club 硬刪之後就變成指向不存在 clubid 的死列。
+		["""DELETE FROM "userfollow" WHERE "clubid" IN (SELECT "id" FROM "club" WHERE "userid"=%s)""",[userid]],
 		["""DELETE FROM "club" WHERE "userid"=%s""",[userid]],
 		# 參加別人場次的個人報名/計時器紀錄
 		["""DELETE FROM "sessiontimerplayer" WHERE "userid"=%s""",[userid]],
@@ -1485,6 +1490,8 @@ def deleteuseraccount(request):
 		# 聘用關聯（雙向）、個人設定、通知、聯絡訊息、token，最後刪 user 本體
 		["""DELETE FROM "userstaff" WHERE "userid"=%s OR "staffuserid"=%s""",[userid,userid]],
 		["""DELETE FROM "userdealer" WHERE "userid"=%s OR "userdealerid"=%s""",[userid,userid]],
+		# 追隨關係雙向都刪: 我追的別人、別人追的我
+		["""DELETE FROM "userfollow" WHERE "userid"=%s OR "followuserid"=%s""",[userid,userid]],
 		["""DELETE FROM "userchipsetchip" WHERE "chipsetid" IN (SELECT "id" FROM "userchipset" WHERE "userid"=%s)""",[userid]],
 		["""DELETE FROM "userchipset" WHERE "userid"=%s""",[userid]],
 		["""DELETE FROM "usertoolfavorite" WHERE "userid"=%s""",[userid]],

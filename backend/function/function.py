@@ -71,6 +71,9 @@ ERRORLIST={
 	"ERROR_staff_already_ontable": status.HTTP_409_CONFLICT,
 	"ERROR_staff_already_onbreak": status.HTTP_400_BAD_REQUEST,
 	"ERROR_staff_not_onbreak": status.HTTP_400_BAD_REQUEST,
+	"ERROR_follow_not_found": status.HTTP_404_NOT_FOUND,
+	"ERROR_follow_target_not_found": status.HTTP_404_NOT_FOUND,
+	"ERROR_cannot_follow_self": status.HTTP_400_BAD_REQUEST,
 }
 
 def errorresponse(key):

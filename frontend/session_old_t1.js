@@ -3592,29 +3592,6 @@ onclick(".settings-side-btn",function(element,event){
 	rendersettings(dataset(element,"setting"))
 })
 
-onclick(".settings-scroll-btn",function(element,event){
-	let wrap=domgetid("settingsscroll")
-	if(wrap){
-		let direction=element.getAttribute("data-settingscroll")||""
-		let amount=0
-		if(direction=="left"){
-			amount=0-Math.floor(wrap.clientWidth*0.75)
-		}else if(direction=="right"){
-			amount=Math.floor(wrap.clientWidth*0.75)
-		}
-		if(amount!=0){
-			if(typeof wrap.scrollBy=="function"){
-				wrap.scrollBy({
-					"left": amount,
-					"behavior": "smooth"
-				})
-			}else{
-				wrap.scrollLeft=wrap.scrollLeft+amount
-			}
-		}
-	}
-})
-
 document.addEventListener("dblclick",function(event){
 	let target=event.target
 	if(!target||typeof target.closest!="function"){
