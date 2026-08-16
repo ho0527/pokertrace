@@ -825,10 +825,16 @@ function applycontrolstatictext(){
 	domgetid('regBadge').title=controltext("regbadgetitle")
 	innertext(domgetid('timeAdjustTitle'), controltext("timeadjust"), false)
 	// innertext(domgetid('timeAdjustHint'), controltext("timeadjusthint"), false)
-	innertext(domgetid('timeSetLabel'), controltext("setto"), false)
-	value(domgetid('btnSetTime'), controltext("apply"))
+	if(domgetid('timeSetLabel')){
+		innertext(domgetid('timeSetLabel'), controltext("setto"), false)
+	}
+	if(domgetid('btnSetTime')){
+		value(domgetid('btnSetTime'), controltext("apply"))
+	}
 	value(domgetid('btnResetLv'), controltext("resettime"))
-	value(domgetid('btnEndLv'), controltext("enditem"))
+	if(domgetid('btnEndLv')){
+		value(domgetid('btnEndLv'), controltext("enditem"))
+	}
 	if(domgetid('handControlTitle')){
 		innertext(domgetid('handControlTitle'), controltext("handcontroltitle"), false)
 	}
@@ -879,12 +885,14 @@ function applycontrolstatictext(){
 	innertext(domgetid('rankPreviewTitle'), controltext("rankpreview"), false)
 	innertext(domgetid('otherRewardTitle'), controltext("otherreward"), false)
 	setlinktext('btnEditPayouts', controltext("editpayout"))
-	innertext(domgetid('quickPresetTitle'), controltext("quickpreset"), false)
-	value(domgetid('btnBubble'), controltext("bubblemode"))
-	value(domgetid('btnHandForHand'), controltext("handforhand"))
-	// value(domgetid('btnColorUp'), controltext("colorup"))
-	innertext(domgetid('presetHint1'), controltext("presethint1"), false)
-	innertext(domgetid('presetHint2'), controltext("presethint2"), false)
+	if(domgetid('quickPresetTitle')){
+		innertext(domgetid('quickPresetTitle'), controltext("quickpreset"), false)
+		value(domgetid('btnBubble'), controltext("bubblemode"))
+		value(domgetid('btnHandForHand'), controltext("handforhand"))
+		// value(domgetid('btnColorUp'), controltext("colorup"))
+		innertext(domgetid('presetHint1'), controltext("presethint1"), false)
+		innertext(domgetid('presetHint2'), controltext("presethint2"), false)
+	}
 	innertext(domgetid('structureTitle'), controltext("structuretitle"), false)
 	innertext(domgetid('structureHint'), controltext("structurehint"), false)
 	setlinktext('btnViewStruct', controltext("viewstructure"))
@@ -1022,7 +1030,7 @@ function ensurecontrolworkbench(){
 			</div>
 		`, false)
 		regsection.insertAdjacentElement('beforebegin',danger)
-		domgetid('btnDangerEndLevel').addEventListener('click',function(){ domgetid('btnEndLv').click() })
+		domgetid('btnDangerEndLevel').addEventListener('click',function(){ endItemNow() })
 		domgetid('btnDangerRegToggle').addEventListener('click',function(){ domgetid('regBadge').click() })
 		domgetid('btnDangerAutoItm').addEventListener('click',function(){ domgetid('btnAutoITM').click() })
 		domgetid('btnDangerReset').addEventListener('click',function(){ domgetid('btnReset').click() })
@@ -2369,18 +2377,22 @@ for(let i=0;i<breaktimebuttons.length;i=i+1){
 	});
 }
 
-domgetid('btnSetTime').addEventListener('click', function(){
-	let v=parseTimeInput(getvalue(domgetid('timeSetInput')));
-	if (v == null || isNaN(v)) {
-		showToast(controltext("invalidtime"), 'err');
-		return;
-	}
-	setTimeTo(v);
-	value(domgetid('timeSetInput'), '')
-});
-onenterclick("#timeSetInput",function(){ click("#btnSetTime") })
+if(domgetid('btnSetTime')){
+	domgetid('btnSetTime').addEventListener('click',function(){
+		let v=parseTimeInput(getvalue(domgetid('timeSetInput')))
+		if(v == null || isNaN(v)){
+			showToast(controltext("invalidtime"), 'err')
+		}else{
+			setTimeTo(v)
+			value(domgetid('timeSetInput'), '')
+		}
+	})
+	onenterclick("#timeSetInput",function(){ click("#btnSetTime") })
+}
 domgetid('btnResetLv').addEventListener('click', resetCurrentItem);
-domgetid('btnEndLv').addEventListener('click', endItemNow);
+if(domgetid('btnEndLv')){
+	domgetid('btnEndLv').addEventListener('click', endItemNow)
+}
 if(domgetid('btnHandPlus')){
 	domgetid('btnHandPlus').addEventListener('click', function(){ adjustHand(1); });
 }
@@ -2819,36 +2831,40 @@ domgetid('btnAutoITM').addEventListener('click', function(){
 });
 
 // Presets
-domgetid('btnBubble').addEventListener('click', function(){
-	ensureAudio();
-	STATE.bubbleMode=!STATE.bubbleMode;
-	STATE.running=false;
-	sndAlert();
-	if(STATE.bubbleMode){
-		setLastAction(controltext("bubbleaction"));
-		showToast(controltext("bubbletoast"), 'warn');
-	}else{
-		setLastAction(controltext("bubbleendaction"));
-		showToast(controltext("bubbleendtoast"), 'warn');
-	}
-	broadcast('bubble');
-	render();
-});
-domgetid('btnHandForHand').addEventListener('click', function(){
-	ensureAudio();
-	STATE.handForHand=!STATE.handForHand;
-	STATE.running=false;
-	sndAlert();
-	if(STATE.handForHand){
-		setLastAction(controltext("h4haction"));
-		showToast(controltext("h4htoast"), 'warn');
-	}else{
-		setLastAction(controltext("h4hendaction"));
-		showToast(controltext("h4hendtoast"), 'warn');
-	}
-	broadcast('h4h');
-	render();
-});
+if(domgetid('btnBubble')){
+	domgetid('btnBubble').addEventListener('click',function(){
+		ensureAudio();
+		STATE.bubbleMode=!STATE.bubbleMode;
+		STATE.running=false;
+		sndAlert();
+		if(STATE.bubbleMode){
+			setLastAction(controltext("bubbleaction"));
+			showToast(controltext("bubbletoast"), 'warn');
+		}else{
+			setLastAction(controltext("bubbleendaction"));
+			showToast(controltext("bubbleendtoast"), 'warn');
+		}
+		broadcast('bubble');
+		render();
+	});
+}
+if(domgetid('btnHandForHand')){
+	domgetid('btnHandForHand').addEventListener('click',function(){
+		ensureAudio();
+		STATE.handForHand=!STATE.handForHand;
+		STATE.running=false;
+		sndAlert();
+		if(STATE.handForHand){
+			setLastAction(controltext("h4haction"));
+			showToast(controltext("h4htoast"), 'warn');
+		}else{
+			setLastAction(controltext("h4hendaction"));
+			showToast(controltext("h4hendtoast"), 'warn');
+		}
+		broadcast('h4h');
+		render();
+	});
+}
 // domgetid('btnFinalTable').addEventListener('click', function(){
 // 	ensureAudio();
 // 	showToast(controltext("finaltabletoast"));

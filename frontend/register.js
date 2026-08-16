@@ -31,6 +31,9 @@ let addonallowed=false
 let advancetargets=[]
 let unifiedhandrecord=false
 let totalchipcount=0
+// 應有總計分牌（後端 expectedchiptotal）。與 totalchipcount 相減就是誤差 ——
+// 錦標賽的計分牌守恆，淘汰者的碼會轉到存活者身上，所以兩者本來就該相等。
+let expectedchipcount=0
 let receiptheaderdata={
 	"seriestitle": "",
 	"clubname": "",
@@ -171,6 +174,32 @@ function setregistrationresultsummary(summary){
 	if(typeof ptrenderpagesummary=="function"){
 		ptrenderpagesummary("#registrationresultsummary",registrationresultsummary)
 	}
+}
+
+// 總計分牌旁邊的誤差。誤差 = 已記錄 − 應有，為 0 時整個藏起來（不加任何文字）。
+// 多發是紅的、短發是琥珀色 —— 少記通常只是還沒把碼量更新上來，沒有多發那麼嚴重。
+function rendertotalchipdiff(){
+	let diffbox=domgetid("stattotalchipdiff")
+	if(!diffbox){
+		return
+	}
+	let diff=totalchipcount-expectedchipcount
+	if(expectedchipcount<=0||diff==0){
+		addclass(diffbox,["hidden"])
+		diffbox.textContent=""
+		diffbox.removeAttribute("title")
+		return
+	}
+	removeclass(diffbox,["hidden"])
+	removeclass(diffbox,["text-red-400","text-amber-400"])
+	if(0<diff){
+		addclass(diffbox,["text-red-400"])
+		diffbox.textContent="+"+diff.toLocaleString("en-US")
+	}else{
+		addclass(diffbox,["text-amber-400"])
+		diffbox.textContent="-"+Math.abs(diff).toLocaleString("en-US")
+	}
+	diffbox.title=rt("totalchipdifftitle")+" "+expectedchipcount.toLocaleString("en-US")
 }
 
 function renderregistrationguides(){
@@ -564,6 +593,41 @@ function askadvancechip(defaultchip,done){
 	onenterclick("#advancechipinput",function(){ click(cover.querySelector(".advanceok")) })
 }
 
+function registerconfirm(message,done){
+	let old=domgetid("registerconfirmbox")
+	if(old){
+		ptremovescrollcover(old)
+	}
+	let box=doccreate("div")
+	box.id="registerconfirmbox"
+	box.className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4"
+	box.innerHTML=`
+		<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-sm w-full p-5 shadow-xl">
+			<div class="flex items-center justify-between mb-4">
+				<div class="text-lg font-semibold text-white">${rt("confirmtitle")}</div>
+				<input type="button" class="registerconfirmbtn text-zinc-400 hover:text-white" data-action="cancel" value="×">
+			</div>
+			<div class="whitespace-pre-line text-sm leading-7 text-zinc-200">${message}</div>
+			<div class="flex justify-end gap-2 mt-5">
+				<input type="button" class="registerconfirmbtn bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" data-action="cancel" value="${rt("cancel")}">
+				<input type="button" class="registerconfirmbtn bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded" data-action="ok" value="${rt("confirm")}">
+			</div>
+		</div>
+	`
+	ptlockpagescroll()
+	document.body.appendChild(box)
+	let buttons=box.querySelectorAll(".registerconfirmbtn")
+	for(let i=0;i<buttons.length;i=i+1){
+		buttons[i].addEventListener("click",function(){
+			let action=this.dataset.action
+			ptremovescrollcover(box)
+			if(action=="ok"){
+				done()
+			}
+		})
+	}
+}
+
 function canadvanceregistration(){
 	if(1<advancetargets.length){
 		pttoast(rt("multiadvancetarget"),"warning")
@@ -585,7 +649,7 @@ function financebuttonhtml(r){
 	return `
 		<div class="flex items-center justify-between gap-2 md:block">
 			<div class="text-xs text-zinc-400 leading-5 mb-2">
-				<div>Reentry ${r["reentrycount"]||0}${rt("reentryunit")} / ${payment}</div>
+				<div>${rt("reentry")} ${r["reentrycount"]||0}${rt("reentryunit")} / ${payment}</div>
 				${buyextra?`<div>${rt("addonlabel")}${buyextra}</div>`:""}
 				<div>${rt("prizefixlabel")}${prize}${rt("ticketvaluelabel")}${r["ticketvalue"]||0}</div>
 			</div>
@@ -670,7 +734,7 @@ function searchusers(){
 			if(r["registrationstatus"]){
 				action=`<span class="text-xs text-zinc-400">${r["registrationstatus"]}</span>`
 				if(r["registrationstatus"]=="confirmed"&&r["timerstatus"]=="eliminated"&&0<maxreentry&&int(r["reentrycount"]||0)<maxreentry){
-					action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="Reentry">`
+					action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="${rt("reentry")}">`
 				}
 			}
 			html=html+`
@@ -751,6 +815,7 @@ function loadregistrations(){
 		addonallowed=!!row["addonallowed"]
 		unifiedhandrecord=!!row["unifiedhandrecord"]
 		totalchipcount=int(row["totalchipcount"]||0)
+		expectedchipcount=int(row["expectedchipcount"]||0)
 		receiptheaderdata["seriestitle"]=row["seriestitle"]||""
 		receiptheaderdata["clubname"]=row["clubname"]||""
 		receiptheaderdata["event"]=row["sessionname"]||""
@@ -761,6 +826,7 @@ function loadregistrations(){
 		if(totalchipbox){
 			totalchipbox.textContent=totalchipcount.toLocaleString("en-US")
 		}
+		rendertotalchipdiff()
 		let stats=row["stats"]||{}
 		innertext("#statregistered",stats["registered"]||0,false)
 		innertext("#statconfirmed",(stats["confirmed"]||0)+(stats["advanced"]||0),false)
@@ -1091,11 +1157,12 @@ function renderregistrationlist(){
 				actions=`
 					${advancetargets.length?`<input type="button" class="advancebtn bg-sky-600 hover:bg-sky-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-chip="${(unifiedhandrecord&&int(r["latestchip"]||0)>0)?int(r["latestchip"]):(r["startchip"]||startchip)}" value="${rt("advance")}">`:""}
 					${canrebuyregistration(r)?`<input type="button" class="rebuybtn bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="Rebuy">`:""}
+					${r["tableid"]&&r["seatno"]&&r["timerstatus"]!="eliminated"&&r["timerplayerid"]?`<input type="button" class="eliminatebtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-timerplayerid="${r["timerplayerid"]}" data-playername="${safehtml(r["playername"]||"-")}" value="${rt("eliminate")}">`:""}
 					<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 				`
 				if(canreentryregistration(r)){
 					actions=`
-						<input type="button" class="reentrybtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerplayerid"])}" value="Reentry">
+						<input type="button" class="reentrybtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerplayerid"])}" value="${rt("reentry")}">
 						<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 					`
 				}else if(r["timerstatus"]=="eliminated"){
@@ -1250,7 +1317,7 @@ function bindactions(){
 			if(data["success"]){
 				loadregistrations()
 			}else{
-				pttoast(pterror(data["data"]||"Reentry 失敗"),"error")
+				pttoast(pterror(data["data"]||rt("reentryfail")),"error")
 				element.disabled=false
 			}
 		},str({
@@ -1259,6 +1326,29 @@ function bindactions(){
 			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 		],{
 			loadingtarget: "#reglist"
+		})
+	})
+
+	onclick(".eliminatebtn",function(element,event){
+		let timerplayerid=dataset(element,"timerplayerid")
+		let playername=dataset(element,"playername")||""
+		registerconfirm(rt("eliminateconfirm")+"\n\n"+rt("labelplayer")+" "+safehtml(playername),function(){
+			element.disabled=true
+			ajax("PUT",AJAXURL+"edittimerplayer/"+sessionid+"/"+timerplayerid,function(event,data){
+				if(data["success"]){
+					pttoast(rt("eliminatedone"),"success")
+					loadregistrations()
+				}else{
+					pttoast(pterror(data["data"]||"操作失敗"),"error")
+					element.disabled=false
+				}
+			},str({
+				"action": "eliminate"
+			}),[
+				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+			],{
+				loadingtarget: "#reglist"
+			})
 		})
 	})
 
