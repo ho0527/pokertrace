@@ -355,7 +355,6 @@ ajax("GET",AJAXURL+"gettable/"+id,function(event,data){
 		tablefirstdealerplace=parseInt(row["firstdealerplace"])||1
 		tableselfseating=parseInt(row["selfseating"])||1
 		tablelinkuser=row["linkuser"]?true:false
-		if(domgetid("tablebroadcast")&&tablesessionid&&row["broadcastopen"]&&row["unifiedhandrecord"]&&row["owned"]&&row["linkuser"]&&!row["private"]){domgetid("tablebroadcast").href="broadcast.html?sessionid="+encodeURIComponent(tablesessionid);domgetid("tablebroadcast").classList.remove("hidden")}
 		tablecurrentplayers=row["currentplayers"]||[]
 		tableavailableplayers=row["availableplayers"]||[]
 		tabletables=row["tables"]||[]

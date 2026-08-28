@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>遊戲類型設定 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white">
+		<div id="navigationbar"></div>
+
+		<main class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase text-emerald-400">Admin Settings</p>
+					<h1 class="text-3xl font-extrabold text-white md:text-4xl" id="gametypetitle">遊戲類型設定</h1>
+					<p class="mt-3 max-w-3xl text-sm leading-7 text-zinc-400" id="gametypedesc">管理場次可選的遊戲類型，並用流程節點描述發牌、下注、換牌、攤牌與底池判定方式。</p>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					<a href="profile.html" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="backtoprofile">回偏好設定</a>
+					<input type="button" class="min-h-12 cursor-pointer rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" id="newgametypebutton" value="新增遊戲">
+				</div>
+			</div>
+
+			<div class="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+				<section class="rounded-[28px] border border-zinc-800 bg-zinc-900/70 p-5 lg:sticky lg:top-24 lg:self-start">
+					<div class="mb-3 flex items-center justify-between gap-3">
+						<div class="text-lg font-extrabold text-white" id="gametypelisttitle">遊戲列表</div>
+						<div class="rounded-full bg-zinc-800 px-3 py-1 text-xs font-bold text-zinc-300" id="gametypecount">0</div>
+					</div>
+					<input type="text" class="mb-4 min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="gametypesearch" placeholder="搜尋名稱或代碼">
+					<div class="max-h-[calc(100vh-240px)] space-y-2 overflow-y-auto pr-1" id="gametypelist"></div>
+				</section>
+
+				<section class="space-y-5">
+					<section class="rounded-[28px] border border-zinc-800 bg-zinc-900/70 p-5 md:p-6">
+						<div class="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+							<div>
+								<div class="text-lg font-extrabold text-white" id="basicsettingtitle">基本設定</div>
+								<p class="mt-1 text-sm text-zinc-400" id="basicsettingdesc">代碼會用在手牌紀錄與場次類型，請保持短且不可重複。</p>
+							</div>
+							<div class="flex flex-wrap gap-2">
+								<input type="button" class="min-h-11 cursor-pointer rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="duplicateflowbutton" value="複製德州流程">
+								<input type="button" class="min-h-11 cursor-pointer rounded-2xl bg-emerald-600 px-5 text-sm font-bold text-white transition hover:bg-emerald-500" id="savegametypebutton" value="儲存">
+								<input type="button" class="min-h-11 cursor-pointer rounded-2xl border border-red-500/50 bg-red-500/10 px-5 text-sm font-bold text-red-300 transition hover:bg-red-500/20" id="deletegametypebutton" value="刪除">
+							</div>
+						</div>
+						<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+							<label class="block">
+								<span class="mb-2 block text-sm font-bold text-zinc-300" id="namelabel">名稱</span>
+								<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="gametypename" placeholder="Texas Hold'em">
+							</label>
+							<label class="block">
+								<span class="mb-2 block text-sm font-bold text-zinc-300" id="codelabel">代碼</span>
+								<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 font-mono text-[15px] uppercase text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="gametypecode" maxlength="20" placeholder="HE">
+							</label>
+							<label class="block md:col-span-2">
+								<span class="mb-2 block text-sm font-bold text-zinc-300" id="descriptionlabel">描述</span>
+								<textarea class="min-h-24 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-[15px] leading-7 text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="gametypedescription" placeholder="德州撲克"></textarea>
+							</label>
+							<label class="flex items-center gap-3 rounded-2xl bg-zinc-950/80 px-4 py-3 md:col-span-2">
+								<input type="checkbox" class="h-[18px] w-[18px] cursor-pointer accent-emerald-500" id="gametypeenabled" checked>
+								<span class="text-sm font-bold text-zinc-200" id="enabledlabel">啟用，顯示在場次與手牌遊戲類型選單</span>
+							</label>
+						</div>
+					</section>
+
+					<section class="rounded-[28px] border border-zinc-800 bg-zinc-900/70 p-5 md:p-6">
+						<div class="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+							<div>
+								<div class="text-lg font-extrabold text-white" id="flowpreviewtitle">流程預覽</div>
+								<p class="mt-1 text-sm text-zinc-400" id="flowpreviewdesc">節點由左到右代表一手牌的主要流程。</p>
+							</div>
+							<input type="button" class="min-h-11 cursor-pointer rounded-2xl bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="addstepbutton" value="新增步驟">
+						</div>
+						<div class="overflow-x-auto pb-2">
+							<div class="flex min-w-max items-stretch gap-3" id="flowpreview"></div>
+						</div>
+					</section>
+
+					<section class="rounded-[28px] border border-zinc-800 bg-zinc-900/70 p-5 md:p-6">
+						<div class="mb-5">
+							<div class="text-lg font-extrabold text-white" id="floweditortitle">流程節點</div>
+							<p class="mt-1 text-sm text-zinc-400" id="floweditordesc">每個節點可設定類型、標題、張數、行動來源與結束條件。</p>
+						</div>
+						<div class="space-y-3" id="floweditor"></div>
+					</section>
+				</section>
+			</div>
+		</main>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="gametype.js"></script>
+	</body>
+</html>

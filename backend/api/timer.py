@@ -38,9 +38,37 @@ DEFAULTPAYOUTS=[
 ]
 
 DEFAULTMARQUEE=""
+TIMERLOCKNAMESPACE=20461
 
 # 結構欄位: 寫入內容改到 schedule/payouts/config 這類欄位時, 一律要有 hastimerstructurepermission, 不依賴 client 傳的 action
 STRUCTUREFIELDLIST=["schedule","payouts","tournName","subtitle","startingChips","defaultBreakDur","soundOn","vibeOn","prizePoolMode","prizePoolManual","itmMode","itmPct","itmCount","marqueeText","defaultTimebankSeconds","timebankSoundOn","autoStartByTime","otherReward"]
+ACTIONFIELDLIST={
+	"toggle": ["running"],
+	"time-adjust": ["secondsLeft"],
+	"time-set": ["secondsLeft"],
+	"time-reset": ["secondsLeft"],
+	"next-item": ["currentIndex","secondsLeft","regClosed"],
+	"prev-item": ["currentIndex","secondsLeft"],
+	"jump": ["currentIndex","secondsLeft"],
+	"default-break": ["defaultBreakDur"],
+	"player-change": ["players","totalEntries"],
+	"bust": ["players"],
+	"add-entry": ["players","totalEntries"],
+	"players-edit": ["players","totalEntries","startingChips"],
+	"title": ["tournName","subtitle"],
+	"reg-toggle": ["regClosed"],
+	"marquee": ["marqueeText"],
+	"prize-mode": ["prizePoolMode","prizePoolManual"],
+	"prize-amount": ["prizePoolManual"],
+	"itm-mode": ["itmMode"],
+	"itm-pct": ["itmPct"],
+	"itm-count": ["itmCount"],
+	"auto-itm": ["payouts","itmCount"],
+	"payout-edit": ["payouts","otherReward"],
+	"bubble": ["bubbleMode","running"],
+	"h4h": ["handForHand","running"],
+	"settings": ["soundOn","vibeOn","autoStartByTime","defaultTimebankSeconds","timebankSoundOn"]
+}
 
 def normalizeotherreward(value):
 	# 其他獎勵: 與名次無關的自由標籤獎勵記錄 (例如 Bounty / 首殺獎), 三欄為 label / cash / reward。
@@ -379,6 +407,79 @@ def schedulestructurevalue(schedule):
 			result.append(item)
 	return result
 
+def applyhandcountstate(fullstate,clientstate):
+	index=intval(clientstate.get("currentIndex"),intval(fullstate.get("currentIndex"),0))
+	clientschedule=clientstate.get("schedule") or []
+	fullschedule=fullstate.get("schedule") or []
+	if 0<=index and index<len(clientschedule) and index<len(fullschedule):
+		clientitem=clientschedule[index]
+		fullitem=fullschedule[index]
+		if isinstance(clientitem,dict) and isinstance(fullitem,dict):
+			fullitem["handCount"]=intval(clientitem.get("handCount"),0)
+	return fullstate
+
+def applybreaktogglestate(fullstate,clientstate):
+	if "insertBreakAfterIndex" in clientstate:
+		insertindex=intval(clientstate.get("insertBreakAfterIndex"),intval(fullstate.get("currentIndex"),0))
+		breakdur=max(1,intval(clientstate.get("breakDur"),intval(fullstate.get("defaultBreakDur"),10)))
+		schedule=fullstate.get("schedule") or []
+		if 0<=insertindex and insertindex<len(schedule):
+			alreadyinserted=False
+			if insertindex+1<len(schedule):
+				nextitem=schedule[insertindex+1]
+				if isinstance(nextitem,dict) and nextitem.get("type")=="break" and intval(nextitem.get("dur"),0)==breakdur:
+					alreadyinserted=True
+			if not alreadyinserted:
+				schedule.insert(insertindex+1,{"type": "break","dur": breakdur})
+			fullstate["schedule"]=schedule
+			fullstate["currentIndex"]=min(insertindex+1,len(schedule)-1)
+			fullstate["secondsLeft"]=breakdur*60
+			fullstate["running"]=boolval(clientstate.get("running"))
+	else:
+		if "currentIndex" in clientstate:
+			fullstate["currentIndex"]=intval(clientstate.get("currentIndex"),0)
+		if "secondsLeft" in clientstate:
+			fullstate["secondsLeft"]=intval(clientstate.get("secondsLeft"),0)
+	return fullstate
+
+def mergetimerclientstate(action,clientstate,fullstate,sessionrow):
+	if action=="hand-count":
+		return applyhandcountstate(fullstate,clientstate)
+	if action=="break-toggle":
+		return applybreaktogglestate(fullstate,clientstate)
+	if action=="item-change":
+		return fullstate
+	if action=="reset":
+		oldstartingchips=intval(fullstate.get("startingChips"),intval(sessionrow.get("chip"),40000))
+		oldbuyin=intval(fullstate.get("buyin"),intval(sessionrow.get("buyin"),0))
+		oldfee=intval(fullstate.get("fee"),intval(sessionrow.get("buyinfee"),0))
+		fullstate.update(clientstate)
+		fullstate["startingChips"]=oldstartingchips
+		fullstate["buyin"]=oldbuyin
+		fullstate["fee"]=oldfee
+		return fullstate
+	if action=="struct-edit":
+		fullstate.update(clientstate)
+		return fullstate
+	if action in ACTIONFIELDLIST:
+		fieldlist=ACTIONFIELDLIST[action]
+		for i in range(len(fieldlist)):
+			key=fieldlist[i]
+			if key in clientstate:
+				fullstate[key]=clientstate[key]
+		return fullstate
+	recvfields=set(clientstate.keys())
+	fullfields=set(fullstate.keys())
+	if recvfields!=fullfields:
+		for key in clientstate:
+			if key not in STRUCTUREFIELDLIST:
+				fullstate[key]=clientstate[key]
+		return fullstate
+	for key in clientstate:
+		if key not in STRUCTUREFIELDLIST:
+			fullstate[key]=clientstate[key]
+	return fullstate
+
 def broadcasttimerupdate(sessionid,state):
 	try:
 		layer=get_channel_layer()
@@ -447,6 +548,7 @@ def gettimerplayerrows(sessionid):
 		f"""SELECT tp.*, sp."status" AS registrationstatus, sp."tableid", sp."seatno",
 		          sp."serialno", sp."registertime", sp."confirmtime",
 		          sp."rebuycount", sp."reentrycount", sp."addoncount", sp."startchip", sp."advancechip",
+		          sp."advancesourceid",
 		          sp."prizeoverride", sp."prize",
 		          u."name" AS playername, u."playerid" AS playerplayerid,
 		          u."avatarurl" AS playeravatarurl,
@@ -485,7 +587,10 @@ def linkedcounts(sessionid):
 	total=0
 	active=0
 	for i in range(len(row)):
-		total=total+1+intval(row[i].get("rebuycount"),0)+intval(row[i].get("reentrycount"),0)
+		if row[i].get("advancesourceid") is not None:
+			total=total+intval(row[i].get("rebuycount"),0)+intval(row[i].get("reentrycount"),0)
+		else:
+			total=total+1+intval(row[i].get("rebuycount"),0)+intval(row[i].get("reentrycount"),0)
 		if row[i]["status"]=="active" and row[i].get("registrationstatus")!="advanced":
 			active=active+1
 	return (active,total,row)
@@ -714,7 +819,7 @@ def hasmultidayincoming(sessionid):
 	return False
 
 def multidaysourcetotalentries(sessionid):
-	# 整個多日賽的參賽總入場次數 = 走遍同一多日賽的所有場次, 每場加總「本場入場次數 − 本場晉級承接列數」。
+	# 此場顯示用的多日賽累積入場次數 = 只往此場的來源場次往上走, 每場加總「本場入場次數 − 本場晉級承接列數」。
 	#   本場入場次數 = _sessiontotalentries = SUM(1+rebuy+reentry)（confirmed/advanced）。
 	#   本場晉級承接列數 = 本場 sessionplayer 中 advancesourceid 有值的列(從前一日晉級進來那幾筆)。
 	#   減掉承接列的「基本入場」= 前一日已算過的重複; 他們在本場的 rebuy/reentry 與本場全新報名保留。
@@ -722,8 +827,8 @@ def multidaysourcetotalentries(sessionid):
 	#   target 端一一對應最準; 來源端在多來源或晉級後又異動時可能多扣/少扣(曾出現 14/14 但總數多算 2)。
 	#   例: Day1=127, Day2 有 12 人晉級 + 2 人 Day2 才買進 → _sessiontotalentries(Day2)=14、承接列=12,
 	#       Day2 貢獻 14−12=2, 總計 127+2=129。
-	# 舊版只加總「根場次(第一日)」的報名數, 因此 Day2 之後的 re-entry / 直接報名一律漏算(總數卡在 127)。
-	# 走整張圖(往上找來源、往下找目標)而非只找根, 才能把每一天的新入場都納入; visited 防環、去重。
+	# D2B 這類分支場次只應看自己的上游來源(例如 D1E~D1H)與 D2B 自己的新入場,
+	# 不可以把同一張多日賽圖上的其他分支(例如 D2A 或 D1A~D1D)也納入。
 	try:
 		from .sessionplayer import _sessiontotalentries
 	except Exception as error:
@@ -739,20 +844,17 @@ def multidaysourcetotalentries(sessionid):
 		if currentid in visited:
 			continue
 		visited.add(currentid)
-		# 往上: 誰是 currentid 的來源(sourceid, targetid=current)
-		# 往下: currentid 是誰的來源(targetid, sourceid=current)
+		# 只往上: 誰是 currentid 的來源(sourceid, targetid=current)。
+		# 不往下走 target, 避免 D2B 把兄弟分支 D2A 或後續場次一起算進括號總數。
 		neighbours=query(SETTING["dbname"],f"""
-			SELECT sr."sourceid" AS sid, sr."targetid" AS tid
+			SELECT sr."sourceid" AS sid
 			FROM "sessionrelation" sr
-			WHERE (sr."targetid"=%s OR sr."sourceid"=%s) AND sr."relationtype"='multiday' AND sr."deletetime" IS NULL
-		""",[currentid,currentid],SETTING["dbsetting"])
+			WHERE sr."targetid"=%s AND sr."relationtype"='multiday' AND sr."deletetime" IS NULL
+		""",[currentid],SETTING["dbsetting"])
 		for i in range(len(neighbours or [])):
 			sid=intval(neighbours[i]["sid"],0)
-			tid=intval(neighbours[i]["tid"],0)
 			if 0<sid and sid not in visited:
 				stack.append(sid)
-			if 0<tid and tid not in visited:
-				stack.append(tid)
 	total=0
 	for dayid in visited:
 		# 本場晉級承接列數 = advancesourceid 有值的列(從前一日承接進來那幾筆)。
@@ -1236,7 +1338,6 @@ def savesplitstate(sessionrow,stateval,stateversion=None):
 		},SETTING["dbsetting"])
 	if boolval(sessionrow.get("linkuser")) and boolval(runtime.get("regClosed")):
 		finalizetimerpendingplaces(sessionrow["id"])
-	configrow=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerconfig" WHERE "sessionid"=%s""",[sessionrow["id"]],SETTING["dbsetting"])
 	configdata={
 		"tournname": stateval.get("tournName") or sessionrow["name"],
 		"subtitle": stateval.get("subtitle") or "",
@@ -1261,42 +1362,101 @@ def savesplitstate(sessionrow,stateval,stateversion=None):
 		"updatetime": nowtime(),
 		"deletetime": None
 	}
-	if configrow:
-		queryupdate(SETTING["dbname"],"sessiontimerconfig",configdata,{"sessionid": sessionrow["id"]},SETTING["dbsetting"])
-	else:
-		configdata["sessionid"]=sessionrow["id"]
-		queryinsert(SETTING["dbname"],"sessiontimerconfig",configdata,SETTING["dbsetting"])
-	query(SETTING["dbname"],f"""UPDATE "sessiontimerlevel" SET "deletetime"=NOW() WHERE "sessionid"=%s""",[sessionrow["id"]],SETTING["dbsetting"])
+	transactionlist=[
+		[f"""SELECT pg_advisory_xact_lock(%s,%s)""",[TIMERLOCKNAMESPACE,sessionrow["id"]]],
+		[f"""
+			INSERT INTO "sessiontimerconfig"(
+				"sessionid","tournname","subtitle","startingchips","buyin","fee","defaultbreakdur","soundon","vibeon",
+				"prizepoolmode","prizepoolmanual","itmmode","itmpct","itmcount","marqueetext","defaulttimebankseconds",
+				"timebanksoundon","autostartbytime","otherreward","updatetime","deletetime"
+			) VALUES (
+				%s,%s,%s,%s,%s,%s,%s,%s,%s,
+				%s,%s,%s,%s,%s,%s,%s,
+				%s,%s,%s,%s,%s
+			)
+			ON CONFLICT("sessionid") DO UPDATE SET
+				"tournname"=EXCLUDED."tournname",
+				"subtitle"=EXCLUDED."subtitle",
+				"startingchips"=EXCLUDED."startingchips",
+				"buyin"=EXCLUDED."buyin",
+				"fee"=EXCLUDED."fee",
+				"defaultbreakdur"=EXCLUDED."defaultbreakdur",
+				"soundon"=EXCLUDED."soundon",
+				"vibeon"=EXCLUDED."vibeon",
+				"prizepoolmode"=EXCLUDED."prizepoolmode",
+				"prizepoolmanual"=EXCLUDED."prizepoolmanual",
+				"itmmode"=EXCLUDED."itmmode",
+				"itmpct"=EXCLUDED."itmpct",
+				"itmcount"=EXCLUDED."itmcount",
+				"marqueetext"=EXCLUDED."marqueetext",
+				"defaulttimebankseconds"=EXCLUDED."defaulttimebankseconds",
+				"timebanksoundon"=EXCLUDED."timebanksoundon",
+				"autostartbytime"=EXCLUDED."autostartbytime",
+				"otherreward"=EXCLUDED."otherreward",
+				"updatetime"=EXCLUDED."updatetime",
+				"deletetime"=EXCLUDED."deletetime"
+		""",[
+			sessionrow["id"],configdata["tournname"],configdata["subtitle"],configdata["startingchips"],configdata["buyin"],configdata["fee"],configdata["defaultbreakdur"],configdata["soundon"],configdata["vibeon"],
+			configdata["prizepoolmode"],configdata["prizepoolmanual"],configdata["itmmode"],configdata["itmpct"],configdata["itmcount"],configdata["marqueetext"],configdata["defaulttimebankseconds"],
+			configdata["timebanksoundon"],configdata["autostartbytime"],configdata["otherreward"],configdata["updatetime"],configdata["deletetime"]
+		]],
+		[f"""UPDATE "sessiontimerlevel" SET "deletetime"=%s WHERE "sessionid"=%s AND "deletetime" IS NULL""",[nowtime(),sessionrow["id"]]]
+	]
 	schedule=stateval.get("schedule") or []
 	for i in range(len(schedule)):
 		item=schedule[i]
-		queryinsert(SETTING["dbname"],"sessiontimerlevel",{
-			"sessionid": sessionrow["id"],
-			"sortorder": i,
-			"type": item.get("type") or "level",
-			"smallblind": intval(item.get("sb"),0),
-			"bigblind": intval(item.get("bb"),0),
-			"ante": intval(item.get("ante"),0),
-			"durationminutes": intval(item.get("dur"),20),
-			"timemode": item.get("timemode") or "time",
-			"handtargetcount": intval(item.get("handTargetCount"),0),
-			"handcount": intval(item.get("handCount"),0),
-			"regcloseafter": boolval(item.get("regCloseAfter")),
-			"chipraisevalues": json.dumps((item.get("chipRaiseValues") or [])[:3])
-		},SETTING["dbsetting"])
-	query(SETTING["dbname"],f"""UPDATE "sessiontimerpayout" SET "deletetime"=NOW() WHERE "sessionid"=%s""",[sessionrow["id"]],SETTING["dbsetting"])
+		insertnow=nowtime()
+		transactionlist.append([f"""
+			INSERT INTO "sessiontimerlevel"(
+				"sessionid","sortorder","type","smallblind","bigblind","ante","durationminutes","timemode",
+				"handtargetcount","handcount","regcloseafter","chipraisevalues","createtime","updatetime","deletetime"
+			) VALUES (
+				%s,%s,%s,%s,%s,%s,%s,%s,
+				%s,%s,%s,%s,%s,%s,%s
+			)
+		""",[
+			sessionrow["id"],
+			i,
+			item.get("type") or "level",
+			intval(item.get("sb"),0),
+			intval(item.get("bb"),0),
+			intval(item.get("ante"),0),
+			intval(item.get("dur"),20),
+			item.get("timemode") or "time",
+			intval(item.get("handTargetCount"),0),
+			intval(item.get("handCount"),0),
+			boolval(item.get("regCloseAfter")),
+			json.dumps((item.get("chipRaiseValues") or [])[:3]),
+			insertnow,
+			insertnow,
+			None
+		]])
+	transactionlist.append([f"""UPDATE "sessiontimerpayout" SET "deletetime"=%s WHERE "sessionid"=%s AND "deletetime" IS NULL""",[nowtime(),sessionrow["id"]]])
 	payouts=stateval.get("payouts") or []
 	for i in range(len(payouts)):
 		item=payouts[i]
-		queryinsert(SETTING["dbname"],"sessiontimerpayout",{
-			"sessionid": sessionrow["id"],
-			"sortorder": i,
-			"rank": item.get("rank") or "",
-			"pct": floatval(item.get("pct"),0),
-			"cash": floatval(item.get("cash"),0),
-			"reward": item.get("reward") or "",
-			"color": item.get("color") or "#888"
-		},SETTING["dbsetting"])
+		insertnow=nowtime()
+		transactionlist.append([f"""
+			INSERT INTO "sessiontimerpayout"(
+				"sessionid","sortorder","rank","pct","cash","reward","color","createtime","updatetime","deletetime"
+			) VALUES (
+				%s,%s,%s,%s,%s,%s,%s,%s,%s,%s
+			)
+		""",[
+			sessionrow["id"],
+			i,
+			item.get("rank") or "",
+			floatval(item.get("pct"),0),
+			floatval(item.get("cash"),0),
+			item.get("reward") or "",
+			item.get("color") or "#888",
+			insertnow,
+			insertnow,
+			None
+		]])
+	result=querytransaction(SETTING["dbname"],transactionlist,SETTING["dbsetting"])
+	if result is None:
+		return False
 	return True
 
 try:
@@ -1360,29 +1520,7 @@ try:
 			originalstructure={}
 			for key in STRUCTUREFIELDLIST:
 				originalstructure[key]=fullstate.get(key)
-			recvfields=set(clientstate.keys())
-			fullfields=set(fullstate.keys())
-
-			if action=="toggle":
-				fullstate["running"]=boolval(clientstate.get("running"))
-				stateval=fullstate
-			elif action=="item-change":
-				stateval=fullstate
-			elif action=="reset":
-				oldstartingchips=intval(fullstate.get("startingChips"),intval(sessionrow.get("chip"),40000))
-				oldbuyin=intval(fullstate.get("buyin"),intval(sessionrow.get("buyin"),0))
-				oldfee=intval(fullstate.get("fee"),intval(sessionrow.get("buyinfee"),0))
-				fullstate.update(clientstate)
-				fullstate["startingChips"]=oldstartingchips
-				fullstate["buyin"]=oldbuyin
-				fullstate["fee"]=oldfee
-				stateval=fullstate
-			elif recvfields!=fullfields:
-				# 這是非時間相關的局部更新，需要先讀完整狀態再合併
-				fullstate.update(clientstate)
-				stateval=fullstate
-			else:
-				stateval=dict(clientstate)
+			stateval=mergetimerclientstate(action,clientstate,fullstate,sessionrow)
 
 			# 寫入內容會改到 schedule/payouts/config 這類結構欄位時, 一律要有結構權限, 不看 client 傳的 action
 			if not structureallowed:

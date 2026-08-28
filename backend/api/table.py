@@ -75,6 +75,17 @@ def tablemanageaccess(sessionrow,userrow):
 	staffrow=query(SETTING["dbname"],"""SELECT 1 FROM "sessionstaff" WHERE "sessionid"=%s AND "staffuserid"=%s AND "role"='floor' AND "status"='active' AND "deletetime" IS NULL LIMIT 1""",[sessionrow["id"],userrow["id"]],SETTING["dbsetting"])
 	return True if staffrow else False
 
+def tableplayeroperateaccess(sessionrow,userrow):
+	if tableowneraccess(sessionrow,userrow):
+		return True
+	staffrow=query(SETTING["dbname"],"""SELECT 1 FROM "sessionstaff" WHERE "sessionid"=%s AND "staffuserid"=%s AND "role" IN ('floor','assistant') AND "status"='active' AND "deletetime" IS NULL LIMIT 1""",[sessionrow["id"],userrow["id"]],SETTING["dbsetting"])
+	if staffrow:
+		return True
+	staffrow=query(SETTING["dbname"],"""SELECT 1 FROM "userstaff" WHERE "userid"=%s AND "staffuserid"=%s AND "role" IN ('floor','assistant') AND "status"='active' AND "deletetime" IS NULL LIMIT 1""",[sessionrow["userid"],userrow["id"]],SETTING["dbsetting"])
+	if staffrow:
+		return True
+	return False
+
 def tableactiveplayers(sessionid,tableid):
 	return query(SETTING["dbname"],"""
 		SELECT sp."id" AS sessionplayerid,sp."userid",sp."seatno",sp."startchip",
@@ -984,7 +995,7 @@ def eliminatetableplayer(request,tableid):
 	if not sessionrow:
 		return errorresponse("ERROR_session_not_found")
 	sessionrow=sessionrow[0]
-	if not tableowneraccess(sessionrow,userrow):
+	if not tableplayeroperateaccess(sessionrow,userrow):
 		return errorresponse("ERROR_no_permission")
 	data=json.loads(request.body or "{}")
 	if sessionrow.get("linkuser"):
@@ -993,12 +1004,13 @@ def eliminatetableplayer(request,tableid):
 		if not playerrow:
 			return errorresponse("ERROR_registration_not_found")
 		playerrow=playerrow[0]
+		SQLNOW="%s::timestamptz"
 		query(SETTING["dbname"],"""
 			INSERT INTO "sessiontimerplayer"("sessionid","sessionplayerid","userid","status","eliminatedtime","createtime","updatetime")
-			VALUES(%s,%s,%s,%s,NOW(),NOW(),NOW())
+			VALUES(%s,%s,%s,%s,"""+SQLNOW+""","""+SQLNOW+""",NOW())
 			ON CONFLICT ("sessionid","sessionplayerid")
-			DO UPDATE SET "status"='eliminated',"eliminatedtime"=NOW(),"deletetime"=NULL,"updatetime"=NOW()
-		""",[sessionrow["id"],sessionplayerid,playerrow["userid"],"eliminated"],SETTING["dbsetting"])
+			DO UPDATE SET "status"='eliminated',"eliminatedtime"="""+SQLNOW+""","deletetime"=NULL,"updatetime"=NOW()
+		""",[sessionrow["id"],sessionplayerid,playerrow["userid"],"eliminated",nowtime(),nowtime(),nowtime()],SETTING["dbsetting"])
 		query(SETTING["dbname"],"""UPDATE "sessionplayer" SET "tableid"=NULL,"seatno"=NULL,"updatetime"=NOW() WHERE "id"=%s""",[sessionplayerid],SETTING["dbsetting"])
 		broadcasttablesession(sessionrow)
 		return Response({"success": True,"data": ""},status.HTTP_200_OK)
@@ -1017,29 +1029,60 @@ def movetableplayer(request,tableid):
 	targettableid=data.get("targettableid")
 	if not targettableid or str(targettableid)==str(tableid):
 		return errorresponse("ERROR_request_data_type_error")
+	automoveed=str(targettableid)=="auto"
 	tablerow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[tableid],SETTING["dbsetting"])
-	targetrow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[targettableid],SETTING["dbsetting"])
-	if not tablerow or not targetrow:
+	targetrow=None
+	if not automoveed:
+		targetrow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[targettableid],SETTING["dbsetting"])
+	if not tablerow or (not automoveed and not targetrow):
 		return errorresponse("ERROR_table_not_found")
 	tablerow=tablerow[0]
-	targetrow=targetrow[0]
-	if tablerow["sessionid"]!=targetrow["sessionid"]:
-		return errorresponse("ERROR_table_not_found")
+	if not automoveed:
+		targetrow=targetrow[0]
+		if tablerow["sessionid"]!=targetrow["sessionid"]:
+			return errorresponse("ERROR_table_not_found")
+		if targetrow.get("closedtime"):
+			return errorresponse("ERROR_table_closed")
 	sessionrow=query(SETTING["dbname"],"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[tablerow["sessionid"]],SETTING["dbsetting"])
 	if not sessionrow:
 		return errorresponse("ERROR_session_not_found")
 	sessionrow=sessionrow[0]
-	if not tableowneraccess(sessionrow,userrow):
+	if not tableplayeroperateaccess(sessionrow,userrow):
 		return errorresponse("ERROR_no_permission")
 	maxseat=int(sessionrow.get("maxseat") or 9)
-	targetcurrent=tablecurrentplayers(sessionrow,targettableid)
-	seatno=None
-	for i in range(1,maxseat+1):
-		if i<=len(targetcurrent) and not targetcurrent[i-1].get("player"):
-			seatno=i
-			break
-	if seatno is None:
-		return errorresponse("ERROR_request_data_type_error")
+	targetseatno=int(data.get("targetseatno") or 0)
+	if automoveed:
+		candidatelist=[]
+		targettablelist=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s AND "id"<>%s AND "deletetime" IS NULL AND "closedtime" IS NULL ORDER BY "no" ASC,"id" ASC""",[tablerow["sessionid"],tableid],SETTING["dbsetting"]) or []
+		for targettable in targettablelist:
+			targetcurrent=tablecurrentplayers(sessionrow,targettable["id"])
+			for i in range(1,maxseat+1):
+				if i<=len(targetcurrent) and not targetcurrent[i-1].get("player"):
+					candidatelist.append({
+						"table": targettable,
+						"seatno": i
+					})
+		if len(candidatelist)<1:
+			return errorresponse("ERROR_request_data_type_error")
+		picked=random.choice(candidatelist)
+		targetrow=picked["table"]
+		targettableid=targetrow["id"]
+		seatno=picked["seatno"]
+	else:
+		targetcurrent=tablecurrentplayers(sessionrow,targettableid)
+		seatno=None
+		if 0<targetseatno and targetseatno<=maxseat:
+			if targetseatno<=len(targetcurrent) and not targetcurrent[targetseatno-1].get("player"):
+				seatno=targetseatno
+			else:
+				return errorresponse("ERROR_request_data_type_error")
+		else:
+			for i in range(1,maxseat+1):
+				if i<=len(targetcurrent) and not targetcurrent[i-1].get("player"):
+					seatno=i
+					break
+		if seatno is None:
+			return errorresponse("ERROR_request_data_type_error")
 	if sessionrow.get("linkuser"):
 		sessionplayerid=int(data.get("sessionplayerid") or 0)
 		playerrow=query(SETTING["dbname"],"""
@@ -1054,7 +1097,7 @@ def movetableplayer(request,tableid):
 			return errorresponse("ERROR_registration_not_found")
 		query(SETTING["dbname"],"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s""",[targettableid,seatno,sessionplayerid],SETTING["dbsetting"])
 		broadcasttablesession(sessionrow)
-		return Response({"success": True,"data": ""},status.HTTP_200_OK)
+		return Response({"success": True,"data": {"targettableid": targettableid,"targetseatno": seatno}},status.HTTP_200_OK)
 	sourcecurrent=tablecurrentplayers(sessionrow,tableid)
 	sourceseat=int(data.get("seatno") or 0)
 	if sourceseat<=0 or len(sourcecurrent)<sourceseat or not sourcecurrent[sourceseat-1].get("player"):
@@ -1067,7 +1110,7 @@ def movetableplayer(request,tableid):
 	result=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
 	if result is None:
 		return errorresponse("ERROR_database_error")
-	return Response({"success": True,"data": ""},status.HTTP_200_OK)
+	return Response({"success": True,"data": {"targettableid": targettableid,"targetseatno": seatno}},status.HTTP_200_OK)
 
 @api_view(["POST"])
 def mergetableplayers(request,tableid):

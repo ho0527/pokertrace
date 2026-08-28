@@ -29,6 +29,60 @@
 	color: #ffffff;
 }
 
+.boardcountcontrol {
+	align-items: center;
+	background: var(--color-surface-2);
+	border: 1px solid #3f3f46;
+	border-radius: 16px;
+	display: inline-flex;
+	min-height: 40px;
+	overflow: hidden;
+}
+
+.boardcountbutton {
+	color: #f4f4f5;
+	cursor: pointer;
+	font-size: 18px;
+	font-weight: 800;
+	height: 40px;
+	width: 44px;
+}
+
+.boardcountbutton:hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.boardcountbutton:disabled {
+	color: #71717a;
+	cursor: not-allowed;
+}
+
+.boardcountvalue {
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: 800;
+	min-width: 48px;
+	text-align: center;
+}
+
+.equityboardrow {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: center;
+	width: 100%;
+}
+
+.equityboardrow-label {
+	flex: 0 0 100%;
+	color: #71717a;
+	font-size: 12px;
+	font-weight: 700;
+	margin-right: 0;
+	text-align: center;
+}
+
 /* 手牌列 */
 
 #handlist {
@@ -101,6 +155,15 @@
 	min-height: 72px;
 	min-width: 58px;
 	padding: 8px 12px;
+}
+
+@media (max-width: 420px) {
+	#boardcard .cardslot {
+		font-size: 26px;
+		min-height: 64px;
+		min-width: 50px;
+		padding: 8px 10px;
+	}
 }
 
 .handrow-label {
@@ -193,6 +256,115 @@
 .cardslotbest.cardslotlow::after {
 	box-shadow: 0 0 0 2px rgba(250, 204, 21, .55), 0 0 16px rgba(234, 179, 8, .45);
 	clip-path: inset(50% -100% -100% -100%);
+}
+
+.cardslotlayered {
+	box-shadow: none;
+	overflow: visible;
+	position: relative;
+	transform: translateY(-1px);
+}
+
+.cardslotlayerlist {
+	border-radius: inherit;
+	bottom: -2px;
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	left: -2px;
+	overflow: hidden;
+	pointer-events: none;
+	position: absolute;
+	right: -2px;
+	top: -2px;
+	z-index: 2;
+}
+
+.cardslotlayerlist span {
+	border-left: 2px solid;
+	border-right: 2px solid;
+	box-sizing: border-box;
+	flex: 1 1 0;
+	min-height: 0;
+}
+
+.cardslotlayerlist span:first-child {
+	border-top: 2px solid;
+	border-top-left-radius: inherit;
+	border-top-right-radius: inherit;
+}
+
+.cardslotlayerlist span:last-child {
+	border-bottom: 2px solid;
+	border-bottom-left-radius: inherit;
+	border-bottom-right-radius: inherit;
+}
+
+.cardslotlayerlist span.cardslotlayer-1 {
+	background: transparent;
+	border-color: rgba(52, 211, 153, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-2 {
+	background: transparent;
+	border-color: rgba(250, 204, 21, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-3 {
+	background: transparent;
+	border-color: rgba(248, 113, 113, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-4 {
+	background: transparent;
+	border-color: rgba(96, 165, 250, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-5 {
+	background: transparent;
+	border-color: rgba(192, 132, 252, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-6 {
+	background: transparent;
+	border-color: rgba(34, 211, 238, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-7 {
+	background: transparent;
+	border-color: rgba(251, 146, 60, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-8 {
+	background: transparent;
+	border-color: rgba(244, 114, 182, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-9 {
+	background: transparent;
+	border-color: rgba(163, 230, 53, .95);
+}
+
+.cardslotlayerlist span.cardslotlayer-10 {
+	background: transparent;
+	border-color: rgba(45, 212, 191, .95);
+}
+
+.cardslotlayered {
+	color: #ffffff;
+}
+
+.cardslotlayered::before {
+	display: none;
+}
+
+.cardslotlayered::after {
+	display: none;
+}
+
+.cardslotlayered .cardslottext {
+	position: relative;
+	z-index: 3;
 }
 
 /* 牌面文字顏色改由 carddisplay.css 的 .pt-suittext 依 deckface 兩色/四色決定，

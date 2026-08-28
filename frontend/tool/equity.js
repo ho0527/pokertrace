@@ -3,12 +3,17 @@ const SUITLISTALL=[["s","♠"],["h","♥"],["d","♦"],["c","♣"]]
 const EQUITYSTATEKEY=WEBLSNAME+"equitystate"
 let equityrequestid=0
 let equitysolvetimer=null
+let equitypreviewhandindex=null
+let equitypreviewhovertimer=null
+let equitypreviewtouchtimer=null
 
 const EQUITYMAXHAND=15
 // 合法的牌型代碼。代碼與資料庫 gametype 表對齊：
-// HE 德州 / OM 奧馬哈 / O5 5張奧馬哈 / O8 奧馬哈高低 / BO 5張奧馬哈高低(Big O) / SD 短牌。
-const EQUITYGAMETYPELIST=["HE","OM","O5","O8","BO","SD"]
+// HE 德州 / OM 奧馬哈 / O5 5張奧馬哈 / O8 奧馬哈高低 / BO 5張奧馬哈高低(Big O) /
+// SD 短牌 / SH 超級德州 / DW 萬用 2。
+const EQUITYGAMETYPELIST=["HE","OM","O5","O8","BO","SD","SH","DW"]
 const EQUITYSOLVEDELAYMS=300
+const EQUITYPREVIEWHOVERDELAYMS=120
 
 let equitystate={
 	gametype: "HE",
@@ -18,6 +23,12 @@ let equitystate={
 		turn: "",
 		river: ""
 	},
+	board2: {
+		floplist: ["","",""],
+		turn: "",
+		river: ""
+	},
+	boardmode: "single",
 	deadlist: [],
 	resultlist: [],
 	solvinged: false
@@ -33,6 +44,9 @@ function equitytext(key){
 function holecount(){
 	if(equitystate.gametype=="O5"||equitystate.gametype=="BO"){
 		return 5
+	}
+	if(equitystate.gametype=="SH"){
+		return 3
 	}
 	if(equitystate.gametype=="OM"||equitystate.gametype=="O8"){
 		return 4
@@ -55,7 +69,11 @@ function maxhandcount(){
 	if(equitystate.gametype=="SD"){
 		decksize=36
 	}
-	let cap=Math.floor((decksize-5)/holecount())
+	let boardcardcount=5
+	if(equitystate.boardmode=="double"){
+		boardcardcount=10
+	}
+	let cap=Math.floor((decksize-boardcardcount)/holecount())
 	if(cap>EQUITYMAXHAND){
 		cap=EQUITYMAXHAND
 	}
@@ -100,6 +118,8 @@ function persiststate(){
 		gametype: equitystate.gametype,
 		handlist: equitystate.handlist,
 		board: equitystate.board,
+		board2: equitystate.board2,
+		boardmode: equitystate.boardmode,
 		deadlist: equitystate.deadlist
 	})
 	weblsset(EQUITYSTATEKEY,raw)
@@ -115,6 +135,11 @@ function loadpersistedstate(){
 		let savedgametype=String(saved["gametype"]||"").toUpperCase()
 		if(EQUITYGAMETYPELIST.indexOf(savedgametype)>=0){
 			equitystate.gametype=savedgametype
+		}
+		if(saved["boardmode"]=="double"){
+			equitystate.boardmode="double"
+		}else{
+			equitystate.boardmode="single"
 		}
 		let allowedranklist=ranklist()
 		let needcount=holecount()
@@ -158,6 +183,20 @@ function loadpersistedstate(){
 				river: sanitizecardtext(board["river"],allowedranklist)
 			}
 		}
+		if(saved["board2"]&&typeof saved["board2"]=="object"){
+			let board=saved["board2"]
+			let floplist=["","",""]
+			if(Array.isArray(board["floplist"])){
+				for(let i=0;i<3;i=i+1){
+					floplist[i]=sanitizecardtext(board["floplist"][i],allowedranklist)
+				}
+			}
+			equitystate.board2={
+				floplist: floplist,
+				turn: sanitizecardtext(board["turn"],allowedranklist),
+				river: sanitizecardtext(board["river"],allowedranklist)
+			}
+		}
 	}catch(error){
 	}
 }
@@ -177,6 +216,7 @@ function cardglyph(cardtext,kind){
 	if(!cardtext){
 		return `<span class="cardslot">?</span>`
 	}
+	let layerlist=highlightlayerlist(kind)
 	let rank=cardtext.slice(0,cardtext.length-1).toUpperCase()
 	let suit=cardtext.slice(-1).toLowerCase()
 	let symbol="?"
@@ -186,7 +226,9 @@ function cardglyph(cardtext,kind){
 		}
 	}
 	let markclass=""
-	if(kind=="best"){
+	if(0<layerlist.length){
+		markclass=" cardslotlayered"
+	}else if(kind=="best"){
 		markclass=" cardslotbest"
 	}
 	if(kind=="low"){
@@ -196,7 +238,7 @@ function cardglyph(cardtext,kind){
 		markclass=" cardslotbest cardslotlow"
 	}
 	// 顏色交給 carddisplay.css 的 .deckface-two / .deckface-four 決定，跟牌桌上的牌面同一個開關。
-	return `<span class="cardslot filled pt-suittext${markclass}" data-suit="${symbol}">${rank}${symbol}</span>`
+	return `<span class="cardslot filled pt-suittext${markclass}" data-suit="${symbol}">${highlightlayerhtml(layerlist)}<span class="cardslottext">${rank}${symbol}</span></span>`
 }
 
 // 把「有沒有入選最佳高牌」與「有沒有贏得低池」合成 cardglyph 的 kind。
@@ -211,6 +253,48 @@ function glyphkind(bested,lowed){
 		return "low"
 	}
 	return ""
+}
+
+function highlightlayerlist(kind){
+	let layerlist=[]
+	if(Array.isArray(kind)){
+		for(let i=0;i<kind.length;i=i+1){
+			let layer=parseInt(kind[i],10)
+			if(0<layer&&layerlist.indexOf(layer)==-1){
+				layerlist.push(layer)
+			}
+		}
+	}
+	if(kind=="best"||kind=="high"||kind==true){
+		layerlist.push(1)
+	}
+	if(kind=="low"){
+		layerlist.push(2)
+	}
+	if(kind=="both"){
+		layerlist.push(1)
+		layerlist.push(2)
+	}
+	layerlist.sort(function(a,b){
+		return a-b
+	})
+	return layerlist
+}
+
+function highlightlayerhtml(layerlist){
+	let html=""
+	if(0<layerlist.length){
+		html=`<span class="cardslotlayerlist">`
+		for(let i=0;i<layerlist.length;i=i+1){
+			let layer=layerlist[i]
+			if(layer>10){
+				layer=10
+			}
+			html=html+`<span class="cardslotlayer-${layer}"></span>`
+		}
+		html=html+`</span>`
+	}
+	return html
 }
 
 function getusedcardlist(exceptlist){
@@ -236,6 +320,11 @@ function getusedcardlist(exceptlist){
 	}
 	addcard(equitystate.board.turn)
 	addcard(equitystate.board.river)
+	for(let i=0;i<equitystate.board2.floplist.length;i=i+1){
+		addcard(equitystate.board2.floplist[i])
+	}
+	addcard(equitystate.board2.turn)
+	addcard(equitystate.board2.river)
 	for(let i=0;i<equitystate.deadlist.length;i=i+1){
 		addcard(equitystate.deadlist[i])
 	}
@@ -403,6 +492,9 @@ function rankvalue(rankchar){
 }
 
 function ranklabel(rankvalue){
+	if(rankvalue==1){
+		return "A"
+	}
 	let map={
 		14: "A",
 		13: "K",
@@ -546,21 +638,247 @@ function evaluatefive(cards){
 	return { category: 0,ranks: sortedranks,name: "high card",main: ranklabel(sortedranks[0]) }
 }
 
-// 目前公共牌的清單（只取已選的，順序是 flop → turn → river）。
-function equityboardcardlist(){
-	let cardlist=[]
-	for(let i=0;i<equitystate.board.floplist.length;i=i+1){
-		if(equitystate.board.floplist[i]){
-			cardlist.push(equitystate.board.floplist[i])
+function comparearrays(a,b){
+	let length=Math.max(a.length,b.length)
+	for(let i=0;i<length;i=i+1){
+		let av=a[i]||0
+		let bv=b[i]||0
+		if(av!=bv){
+			return av-bv
 		}
 	}
-	if(equitystate.board.turn){
-		cardlist.push(equitystate.board.turn)
+	return 0
+}
+
+function comparehandvalue(a,b){
+	if(a["category"]!=b["category"]){
+		return a["category"]-b["category"]
 	}
-	if(equitystate.board.river){
-		cardlist.push(equitystate.board.river)
+	return comparearrays(a["ranks"],b["ranks"])
+}
+
+function bestholdemcombo(cardtextlist){
+	let parsed=[]
+	for(let i=0;i<cardtextlist.length;i=i+1){
+		let item=parsecardvalue(cardtextlist[i])
+		if(item){
+			parsed.push(item)
+		}
+	}
+	if(parsed.length<5){
+		return null
+	}
+	let best=null
+	for(let a=0;a<parsed.length-4;a=a+1){
+		for(let b=a+1;b<parsed.length-3;b=b+1){
+			for(let c=b+1;c<parsed.length-2;c=c+1){
+				for(let d=c+1;d<parsed.length-1;d=d+1){
+					for(let e=d+1;e<parsed.length;e=e+1){
+						let combo=[parsed[a],parsed[b],parsed[c],parsed[d],parsed[e]]
+						let value=evaluatefive(combo)
+						if(!best||0<comparehandvalue(value,best["value"])){
+							best={
+								"value": value,
+								"cardlist": [combo[0]["card"],combo[1]["card"],combo[2]["card"],combo[3]["card"],combo[4]["card"]]
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return best
+}
+
+function bestomahacombo(holelist,boardlist){
+	if(holelist.length<2||boardlist.length<3){
+		return null
+	}
+	let best=null
+	for(let a=0;a<holelist.length-1;a=a+1){
+		for(let b=a+1;b<holelist.length;b=b+1){
+			for(let c=0;c<boardlist.length-2;c=c+1){
+				for(let d=c+1;d<boardlist.length-1;d=d+1){
+					for(let e=d+1;e<boardlist.length;e=e+1){
+						let cardtextlist=[holelist[a],holelist[b],boardlist[c],boardlist[d],boardlist[e]]
+						let parsed=[]
+						for(let k=0;k<cardtextlist.length;k=k+1){
+							parsed.push(parsecardvalue(cardtextlist[k]))
+						}
+						let value=evaluatefive(parsed)
+						if(!best||0<comparehandvalue(value,best["value"])){
+							best={
+								"value": value,
+								"cardlist": cardtextlist
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return best
+}
+
+function scorecategorytext(category){
+	let map={
+		"9": "fivekind",
+		"8": "straightflush",
+		"7": "quads",
+		"6": "fullhouse",
+		"5": "flush",
+		"4": "straight",
+		"3": "trips",
+		"2": "twopair",
+		"1": "pair",
+		"0": "highcard"
+	}
+	return equitytext(map[String(category)]||"wildbest")
+}
+
+function deuceswildbestlabel(scorelist){
+	if(!Array.isArray(scorelist)||scorelist.length<1){
+		return ""
+	}
+	let category=Number(scorelist[0])
+	let maintext=""
+	if(category==8||category==4){
+		let high=Number(scorelist[1])||0
+		let low=high-4
+		if(high==5){
+			low=1
+		}
+		maintext=ranklabel(low)+"-"+ranklabel(high)
+	}else if(category==6||category==2){
+		maintext=ranklabel(Number(scorelist[1])||0)+ranklabel(Number(scorelist[2])||0)
+	}else if(category>=0){
+		maintext=ranklabel(Number(scorelist[1])||0)
+	}
+	if(maintext){
+		return "("+scorecategorytext(category)+" "+maintext+")"
+	}
+	return "("+scorecategorytext(category)+")"
+}
+
+// 目前公共牌的清單（只取已選的，順序是 flop → turn → river）。
+function equityboardcardlist(){
+	return equityboardcardlistfromdata(equitystate.board)
+}
+
+function equityboardcardlistfromdata(boarddata){
+	let cardlist=[]
+	for(let i=0;i<boarddata.floplist.length;i=i+1){
+		if(boarddata.floplist[i]){
+			cardlist.push(boarddata.floplist[i])
+		}
+	}
+	if(boarddata.turn){
+		cardlist.push(boarddata.turn)
+	}
+	if(boarddata.river){
+		cardlist.push(boarddata.river)
 	}
 	return cardlist
+}
+
+function addpreviewlayer(data,cardlist,layer){
+	for(let i=0;i<(cardlist||[]).length;i=i+1){
+		let cardtext=cardlist[i]["card"]||cardlist[i]
+		if(!data[cardtext]){
+			data[cardtext]=[]
+		}
+		if(data[cardtext].indexOf(layer)==-1){
+			data[cardtext].push(layer)
+		}
+	}
+}
+
+function equitybasepreviewoffset(lowmap){
+	let offset=0
+	for(let i=0;i<equitystate.resultlist.length;i=i+1){
+		let resultrow=getresultrow(i)
+		if(resultrow&&resultrow["bested"]==true){
+			offset=1
+		}
+	}
+	let boardlowmap=(lowmap||{})["board"]||{}
+	for(let key in boardlowmap){
+		offset=2
+	}
+	let handlowmap=(lowmap||{})["hand"]||{}
+	for(let key in handlowmap){
+		let rowmap=handlowmap[key]||{}
+		for(let cardkey in rowmap){
+			offset=2
+		}
+	}
+	return offset
+}
+
+function combineequityhighlight(kind,preview,offset){
+	let layerlist=highlightlayerlist(kind)
+	let previewlist=highlightlayerlist(preview)
+	for(let i=0;i<previewlist.length;i=i+1){
+		let layer=previewlist[i]+offset
+		if(layerlist.indexOf(layer)==-1){
+			layerlist.push(layer)
+		}
+	}
+	return layerlist
+}
+
+function equitypreviewmap(handindex){
+	let output={
+		"hand": {},
+		"board": {},
+		"board2": {}
+	}
+	if(handindex==null){
+		return output
+	}
+	let holelist=equitystate.handlist[handindex]||[]
+	let boarddatalist=[equitystate.board]
+	let boardkeylist=["board"]
+	if(equitystate.boardmode=="double"){
+		boarddatalist.push(equitystate.board2)
+		boardkeylist.push("board2")
+	}
+	let layer=1
+	for(let i=0;i<boarddatalist.length;i=i+1){
+		let boardlist=equityboardcardlistfromdata(boarddatalist[i])
+		let combo=null
+		if(boardlist.length>=5){
+			if(equitystate.gametype=="DW"&&i==0){
+				let resultrow=getresultrow(handindex)
+				if(resultrow&&Array.isArray(resultrow["bestcardlist"])){
+					combo={
+						"cardlist": resultrow["bestcardlist"]
+					}
+				}
+			}else if(equitystate.gametype=="OM"||equitystate.gametype=="O5"||equitystate.gametype=="O8"||equitystate.gametype=="BO"){
+				combo=bestomahacombo(holelist,boardlist)
+			}else{
+				combo=bestholdemcombo(holelist.concat(boardlist))
+			}
+		}
+		if(combo){
+			addpreviewlayer(output["hand"],combo["cardlist"],layer)
+			addpreviewlayer(output[boardkeylist[i]],combo["cardlist"],layer)
+			layer=layer+1
+		}
+		if(equityhiloed()){
+			let oldboard=equitystate.board
+			equitystate.board=boarddatalist[i]
+			let lowcombo=bestlowcombo(handindex)
+			equitystate.board=oldboard
+			if(lowcombo){
+				addpreviewlayer(output["hand"],lowcombo["cardlist"],layer)
+				addpreviewlayer(output[boardkeylist[i]],lowcombo["cardlist"],layer)
+				layer=layer+1
+			}
+		}
+	}
+	return output
 }
 
 // 這五張是否構成合格的低牌：點數都 8 或更小（A 算 1）、且不能重複。
@@ -731,7 +1049,17 @@ function lowwinnermap(){
 	return output
 }
 
-function besthandlabel(bestcardlist){
+function besthandlabel(resultrow){
+	if(resultrow&&equitystate.gametype=="DW"){
+		let dwlabel=deuceswildbestlabel(resultrow["bestscore"])
+		if(dwlabel){
+			return dwlabel
+		}
+	}
+	let bestcardlist=[]
+	if(resultrow){
+		bestcardlist=resultrow["bestcardlist"]||[]
+	}
 	let parsed=[]
 	for(let i=0;i<(bestcardlist||[]).length;i=i+1){
 		let item=parsecardvalue(bestcardlist[i])
@@ -837,7 +1165,7 @@ function renderhandresult(resultrow){
 	let tievalue=Number(resultrow["tie"])||0
 	let labelhtml=""
 	if(boardcount()>=5){
-		let bestlabel=besthandlabel(resultrow["bestcardlist"]||[])
+		let bestlabel=besthandlabel(resultrow)
 		if(equityhiloed()){
 			// 後端的 bestcardlist 只有高牌那五張，低牌在這裡自己算（規則與後端相同）
 			let lowlabel=lowlabelof(bestlowcombo(resultrow["index"]))
@@ -921,12 +1249,19 @@ function renderhandlist(){
 	host.innerHTML=""
 	// 整份算一次就好，不要每一手各算一次 —— lowwinnermap() 內部會對每一手窮舉 100 組
 	let lowmap=lowwinnermap()
+	let previewmap=equitypreviewmap(equitypreviewhandindex)
+	let previewoffset=equitybasepreviewoffset(lowmap)
 	for(let i=0;i<equitystate.handlist.length;i=i+1){
 		let row=document.createElement("div")
 		row.className="handrow"
+		row.setAttribute("data-previewhand",i)
 		let resultrow=getresultrow(i)
 		if(handrowglowed(resultrow)){
 			row.className=row.className+" handrowbest"
+		}
+		let previewed=false
+		if(equitypreviewhandindex!=null&&equitypreviewhandindex==i){
+			previewed=true
 		}
 		let cardhtml=""
 		let needcount=holecount()
@@ -945,7 +1280,11 @@ function renderhandlist(){
 			if(cardtext&&lowhandmap[cardtext]==true){
 				lowed=true
 			}
-			cardhtml=cardhtml+cardglyph(cardtext,glyphkind(bested,lowed))
+			let kind=glyphkind(bested,lowed)
+			if(previewed&&cardtext&&previewmap["hand"][cardtext]){
+				kind=combineequityhighlight(kind,previewmap["hand"][cardtext],previewoffset)
+			}
+			cardhtml=cardhtml+cardglyph(cardtext,kind)
 		}
 		let resulthtml=""
 		if(equitystate.solvinged){
@@ -1006,92 +1345,176 @@ function renderhandlist(){
 	if(equitystate.handlist.length>=maxhandcount()){
 		addbutton.style.display="none"
 	}
+	bindequitypreviewhand()
+}
+
+function setequitypreviewhand(handindex){
+	if(equitypreviewhovertimer){
+		clearTimeout(equitypreviewhovertimer)
+		equitypreviewhovertimer=null
+	}
+	if(equitypreviewhandindex!=handindex){
+		equitypreviewhandindex=handindex
+		renderhandlist()
+		renderboardcard()
+	}
+}
+
+function clearequitypreviewhand(){
+	if(equitypreviewhovertimer){
+		clearTimeout(equitypreviewhovertimer)
+		equitypreviewhovertimer=null
+	}
+	if(equitypreviewtouchtimer){
+		clearTimeout(equitypreviewtouchtimer)
+		equitypreviewtouchtimer=null
+	}
+	if(equitypreviewhandindex!=null){
+		equitypreviewhandindex=null
+		renderhandlist()
+		renderboardcard()
+	}
+}
+
+function bindequitypreviewhand(){
+	let previewlist=document.querySelectorAll("[data-previewhand]")
+	for(let i=0;i<previewlist.length;i=i+1){
+		previewlist[i].addEventListener("mouseenter",function(){
+			let handindex=parseInt(this.getAttribute("data-previewhand"),10)
+			if(equitypreviewhovertimer){
+				clearTimeout(equitypreviewhovertimer)
+			}
+			equitypreviewhovertimer=setTimeout(function(){
+				equitypreviewhovertimer=null
+				setequitypreviewhand(handindex)
+			},EQUITYPREVIEWHOVERDELAYMS)
+		})
+		previewlist[i].addEventListener("mouseleave",function(){
+			clearequitypreviewhand()
+		})
+		previewlist[i].addEventListener("touchstart",function(){
+			let handindex=parseInt(this.getAttribute("data-previewhand"),10)
+			if(equitypreviewtouchtimer){
+				clearTimeout(equitypreviewtouchtimer)
+			}
+			equitypreviewtouchtimer=setTimeout(function(){
+				equitypreviewtouchtimer=null
+				setequitypreviewhand(handindex)
+			},450)
+		})
+		previewlist[i].addEventListener("touchend",clearequitypreviewhand)
+		previewlist[i].addEventListener("touchcancel",clearequitypreviewhand)
+	}
 }
 
 function renderboardcard(){
 	let host=domgetid("boardcard")
-	let flophtml=""
 	let bestmap=getboardbestmap()
 	let lowmap=lowwinnermap()
-	for(let i=0;i<3;i=i+1){
-		let cardtext=equitystate.board.floplist[i]||""
-		let bested=false
-		if(cardtext&&bestmap[cardtext]==true){
-			bested=true
+	let previewmap=equitypreviewmap(equitypreviewhandindex)
+	let previewoffset=equitybasepreviewoffset(lowmap)
+	function boardhtml(boarddata,boardindex,labeltext){
+		let previewboardmap=previewmap["board"]
+		if(boardindex==2){
+			previewboardmap=previewmap["board2"]
 		}
-		let lowed=false
-		if(cardtext&&lowmap["board"][cardtext]==true){
-			lowed=true
-		}
-		flophtml=flophtml+cardglyph(cardtext,glyphkind(bested,lowed))
-	}
-	let turnbest=false
-	if(equitystate.board.turn&&bestmap[equitystate.board.turn]==true){
-		turnbest=true
-	}
-	let turnlow=false
-	if(equitystate.board.turn&&lowmap["board"][equitystate.board.turn]==true){
-		turnlow=true
-	}
-	let riverbest=false
-	if(equitystate.board.river&&bestmap[equitystate.board.river]==true){
-		riverbest=true
-	}
-	let riverlow=false
-	if(equitystate.board.river&&lowmap["board"][equitystate.board.river]==true){
-		riverlow=true
-	}
-	host.innerHTML=`
-		<div class="boardstreet boardstreetflop handrowcard" data-boardslot="floplist">${flophtml}</div>
-		<div class="boardstreet boardstreetturn handrowcard" data-boardslot="turn">${cardglyph(equitystate.board.turn||"",glyphkind(turnbest,turnlow))}</div>
-		<div class="boardstreet boardstreetriver handrowcard" data-boardslot="river">${cardglyph(equitystate.board.river||"",glyphkind(riverbest,riverlow))}</div>
-	`
-
-	host.querySelector("[data-boardslot=\"floplist\"]").addEventListener("click",function(){
-		let currentcardlist=equitystate.board.floplist.filter(function(cardtext){
-			return !!cardtext
-		})
-		showcardpicker("Flop",currentcardlist,3,getusedcardlist(equitystate.board.floplist),function(selectedcardlist){
-			equitystate.board.floplist=[selectedcardlist[0]||"",selectedcardlist[1]||"",selectedcardlist[2]||""]
-			persiststate()
-			renderboardcard()
-			autosolveequity()
-		})
-	})
-
-	host.querySelector("[data-boardslot=\"turn\"]").addEventListener("click",function(){
-		let currentcardlist=[]
-		if(equitystate.board.turn){
-			currentcardlist.push(equitystate.board.turn)
-		}
-		showcardpicker("Turn",currentcardlist,1,getusedcardlist([equitystate.board.turn]),function(selectedcardlist){
-			if(selectedcardlist[0]){
-				equitystate.board.turn=selectedcardlist[0]
-			}else{
-				equitystate.board.turn=""
+		let flophtml=""
+		for(let i=0;i<3;i=i+1){
+			let cardtext=boarddata.floplist[i]||""
+			let bested=false
+			if(cardtext&&bestmap[cardtext]==true){
+				bested=true
 			}
-			persiststate()
-			renderboardcard()
-			autosolveequity()
-		})
-	})
-
-	host.querySelector("[data-boardslot=\"river\"]").addEventListener("click",function(){
-		let currentcardlist=[]
-		if(equitystate.board.river){
-			currentcardlist.push(equitystate.board.river)
-		}
-		showcardpicker("River",currentcardlist,1,getusedcardlist([equitystate.board.river]),function(selectedcardlist){
-			if(selectedcardlist[0]){
-				equitystate.board.river=selectedcardlist[0]
-			}else{
-				equitystate.board.river=""
+			let lowed=false
+			if(cardtext&&lowmap["board"][cardtext]==true){
+				lowed=true
 			}
-			persiststate()
-			renderboardcard()
-			autosolveequity()
+			let kind=glyphkind(bested,lowed)
+			if(equitypreviewhandindex!=null&&cardtext&&previewboardmap[cardtext]){
+				kind=combineequityhighlight(kind,previewboardmap[cardtext],previewoffset)
+			}
+			flophtml=flophtml+cardglyph(cardtext,kind)
+		}
+		let turnbest=false
+		if(boarddata.turn&&bestmap[boarddata.turn]==true){
+			turnbest=true
+		}
+		let turnlow=false
+		if(boarddata.turn&&lowmap["board"][boarddata.turn]==true){
+			turnlow=true
+		}
+		let riverbest=false
+		if(boarddata.river&&bestmap[boarddata.river]==true){
+			riverbest=true
+		}
+		let riverlow=false
+		if(boarddata.river&&lowmap["board"][boarddata.river]==true){
+			riverlow=true
+		}
+		let turnkind=glyphkind(turnbest,turnlow)
+		if(equitypreviewhandindex!=null&&boarddata.turn&&previewboardmap[boarddata.turn]){
+			turnkind=combineequityhighlight(turnkind,previewboardmap[boarddata.turn],previewoffset)
+		}
+		let riverkind=glyphkind(riverbest,riverlow)
+		if(equitypreviewhandindex!=null&&boarddata.river&&previewboardmap[boarddata.river]){
+			riverkind=combineequityhighlight(riverkind,previewboardmap[boarddata.river],previewoffset)
+		}
+		return `
+			<div class="equityboardrow">
+				<div class="equityboardrow-label">${labeltext}</div>
+				<div class="boardstreet boardstreetflop handrowcard" data-boardindex="${boardindex}" data-boardslot="floplist">${flophtml}</div>
+				<div class="boardstreet boardstreetturn handrowcard" data-boardindex="${boardindex}" data-boardslot="turn">${cardglyph(boarddata.turn||"",turnkind)}</div>
+				<div class="boardstreet boardstreetriver handrowcard" data-boardindex="${boardindex}" data-boardslot="river">${cardglyph(boarddata.river||"",riverkind)}</div>
+			</div>
+		`
+	}
+	let html=boardhtml(equitystate.board,1,equitytext("boardone"))
+	if(equitystate.boardmode=="double"){
+		html=html+boardhtml(equitystate.board2,2,equitytext("boardtwo"))
+	}
+	host.innerHTML=html
+
+	let slotlist=host.querySelectorAll("[data-boardslot]")
+	for(let i=0;i<slotlist.length;i=i+1){
+		slotlist[i].addEventListener("click",function(){
+			let boardindex=parseInt(this.getAttribute("data-boardindex"),10)
+			let boardslot=this.getAttribute("data-boardslot")
+			let boarddata=equitystate.board
+			if(boardindex==2){
+				boarddata=equitystate.board2
+			}
+			if(boardslot=="floplist"){
+				let currentcardlist=boarddata.floplist.filter(function(cardtext){
+					return !!cardtext
+				})
+				showcardpicker(equitytext("flop"),currentcardlist,3,getusedcardlist(boarddata.floplist),function(selectedcardlist){
+					boarddata.floplist=[selectedcardlist[0]||"",selectedcardlist[1]||"",selectedcardlist[2]||""]
+					persiststate()
+					renderboardcard()
+					autosolveequity()
+				})
+			}else{
+				let currentcardlist=[]
+				if(boarddata[boardslot]){
+					currentcardlist.push(boarddata[boardslot])
+				}
+				let titletext=equitytext("turn")
+				if(boardslot=="river"){
+					titletext=equitytext("river")
+				}
+				showcardpicker(titletext,currentcardlist,1,getusedcardlist([boarddata[boardslot]]),function(selectedcardlist){
+					if(selectedcardlist[0]){
+						boarddata[boardslot]=selectedcardlist[0]
+					}else{
+						boarddata[boardslot]=""
+					}
+					persiststate()
+					renderboardcard()
+					autosolveequity()
+				})
+			}
 		})
-	})
+	}
 }
 
 function renderdeadcard(){
@@ -1134,6 +1557,25 @@ function rendergametype(){
 			activeed=true
 		}
 		buttonlist[i].classList.toggle("active",activeed)
+	}
+}
+
+function boardcountvalue(){
+	if(equitystate.boardmode=="double"){
+		return 2
+	}
+	return 1
+}
+
+function renderboardcount(){
+	innertext("#boardcountvalue",String(boardcountvalue()),false)
+	let removebutton=domgetid("removeboardbutton")
+	let addbutton=domgetid("addboardbutton")
+	if(removebutton){
+		removebutton.disabled=boardcountvalue()<=1
+	}
+	if(addbutton){
+		addbutton.disabled=boardcountvalue()>=2
 	}
 }
 
@@ -1183,6 +1625,20 @@ function solveequity(){
 			river: equitystate.board.river
 		},
 		dead: equitystate.deadlist.slice()
+	}
+	if(equitystate.boardmode=="double"){
+		bodydata["boardlist"]=[
+			{
+				"floplist": equitystate.board.floplist.slice(),
+				"turn": equitystate.board.turn,
+				"river": equitystate.board.river
+			},
+			{
+				"floplist": equitystate.board2.floplist.slice(),
+				"turn": equitystate.board2.turn,
+				"river": equitystate.board2.river
+			}
+		]
 	}
 	equityrequestid=equityrequestid+1
 	let requestid=equityrequestid
@@ -1249,6 +1705,7 @@ function applyequitylanguage(){
 	innertext("#equitygametypelabel",equitytext("gametype"),false)
 	innertext("#equityhandlistlabel",equitytext("handlist"),false)
 	innertext("#equityboardlabel",equitytext("board"),false)
+	innertext("#equityboardmodelabel",equitytext("boardmode"),false)
 	innertext("#equitydeadlabel",equitytext("dead"),false)
 	innertext("#equitydeadhint",equitytext("deadhint"),false)
 	value("#addhandbutton","+ "+equitytext("addhand"))
@@ -1266,6 +1723,10 @@ function applyequitylanguage(){
 			buttonlist[i].textContent=equitytext("bigo")
 		}else if(gametype=="SD"){
 			buttonlist[i].textContent=equitytext("shortdeck")
+		}else if(gametype=="SH"){
+			buttonlist[i].textContent=equitytext("superholdem")
+		}else if(gametype=="DW"){
+			buttonlist[i].textContent=equitytext("deuceswild")
 		}else{
 			buttonlist[i].textContent=equitytext("holdem")
 		}
@@ -1303,6 +1764,19 @@ function applyequitygametype(needcount,allowedranklist){
 	if(allowedranklist.indexOf(String(equitystate.board.river||"").slice(0,1).toUpperCase())<0){
 		equitystate.board.river=""
 	}
+	let boardcardlist2=equitystate.board2.floplist.filter(function(cardtext){
+		return !!cardtext
+	})
+	boardcardlist2=boardcardlist2.filter(function(cardtext){
+		return allowedranklist.indexOf(String(cardtext).slice(0,1).toUpperCase())>=0
+	})
+	equitystate.board2.floplist=[boardcardlist2[0]||"",boardcardlist2[1]||"",boardcardlist2[2]||""]
+	if(allowedranklist.indexOf(String(equitystate.board2.turn||"").slice(0,1).toUpperCase())<0){
+		equitystate.board2.turn=""
+	}
+	if(allowedranklist.indexOf(String(equitystate.board2.river||"").slice(0,1).toUpperCase())<0){
+		equitystate.board2.river=""
+	}
 	equitystate.deadlist=equitystate.deadlist.filter(function(cardtext){
 		return allowedranklist.indexOf(String(cardtext).slice(0,1).toUpperCase())>=0
 	})
@@ -1312,6 +1786,7 @@ function applyequitygametype(needcount,allowedranklist){
 	clearequityresult()
 	persiststate()
 	rendergametype()
+	renderboardcount()
 	renderhandlist()
 	renderboardcard()
 	renderdeadcard()
@@ -1349,6 +1824,37 @@ onclick(".gametypebtn",function(element){
 	applyequitygametype(holecount(),ranklist())
 })
 
+onclick("#removeboardbutton",function(){
+	if(equitystate.boardmode=="single"){
+		return
+	}
+	equitystate.boardmode="single"
+	if(equitystate.handlist.length>maxhandcount()){
+		while(equitystate.handlist.length>maxhandcount()){
+			equitystate.handlist.pop()
+		}
+	}
+	clearequityresult()
+	persiststate()
+	renderboardcount()
+	renderhandlist()
+	renderboardcard()
+	autosolveequity()
+})
+
+onclick("#addboardbutton",function(){
+	if(equitystate.boardmode=="double"){
+		return
+	}
+	equitystate.boardmode="double"
+	clearequityresult()
+	persiststate()
+	renderboardcount()
+	renderhandlist()
+	renderboardcard()
+	autosolveequity()
+})
+
 onclick("#addhandbutton",function(){
 	if(equitystate.handlist.length>=maxhandcount()){
 		return
@@ -1378,6 +1884,11 @@ onclick("#clearbutton",function(){
 		turn: "",
 		river: ""
 	}
+	equitystate.board2={
+		floplist: ["","",""],
+		turn: "",
+		river: ""
+	}
 	equitystate.deadlist=[]
 	clearequityresult()
 	persiststate()
@@ -1389,6 +1900,7 @@ onclick("#clearbutton",function(){
 loadpersistedstate()
 applyequitylanguage()
 rendergametype()
+renderboardcount()
 renderhandlist()
 renderboardcard()
 renderdeadcard()

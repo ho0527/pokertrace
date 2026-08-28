@@ -1383,9 +1383,9 @@ def solvehandwinner(request):
 # 這份清單仍**不等於** gametype 表的全部：該表另有 ZZ（其他）尚未實作，
 # 刻意不列入 —— 列進來只會讓 normalizehandgametype 放行一個下游沒有任何分支處理的代碼。
 #
-# equity 端點（勝率試算工具頁）**沒有**跟著加這四種：equityholecount() 對它們仍回 2。
-# 那支工具有自己的牌型選單，不含這四種，所以不會被觸發；要支援是另一件事。
-HANDGAMECODELIST=["HE","OM","O5","O8","BO","SD","SH","CP","ST","RA","S8","AS","AD","AT","DS","DD","DT","BU","DM"]
+# DW（Deuces Wild / 萬用 2）於 2026-08-25 加入 equity 端點。它不是手牌記錄頁的
+# 實戰牌型，只是勝率解算器的規則變體：所有 2 都當萬用牌，高牌可做五條。
+HANDGAMECODELIST=["HE","OM","O5","O8","BO","SD","SH","DW","CP","ST","RA","S8","AS","AD","AT","DS","DD","DT","BU","DM"]
 
 
 def normalizehandgametype(value):
@@ -1425,9 +1425,17 @@ def equityshortdecked(gametype):
 	return False
 
 
+def equitydeuceswilded(gametype):
+	if gametype=="DW":
+		return True
+	return False
+
+
 def equityholecount(gametype):
 	if gametype=="O5" or gametype=="BO":
 		return 5
+	if gametype=="SH":
+		return 3
 	if equityomahaed(gametype):
 		return 4
 	return 2
@@ -1537,6 +1545,241 @@ def shortdeckscore5(cardlist5):
 	return (0,)+tuple(sorted(rankvaluelist,reverse=True)) 
 
 
+def standardscore5(cardlist5):
+	rankcount={}
+	suitcount={}
+	rankvaluelist=[]
+	for i in range(len(cardlist5)):
+		rankvalue=equityrankvalue(equityrankchar(cardlist5[i]))
+		suitchar=equitycardtext(cardlist5[i])[-1].lower()
+		rankvaluelist.append(rankvalue)
+		if rankvalue not in rankcount:
+			rankcount[rankvalue]=0
+		rankcount[rankvalue]=rankcount[rankvalue]+1
+		if suitchar not in suitcount:
+			suitcount[suitchar]=0
+		suitcount[suitchar]=suitcount[suitchar]+1
+	flushsed=False
+	for suitchar in suitcount:
+		if suitcount[suitchar]==5:
+			flushsed=True
+	straighthigh=standardstraighthigh(rankvaluelist)
+	if flushsed and straighthigh>0:
+		return (8,straighthigh)
+	fourrank=0
+	threerank=0
+	pairlist=[]
+	singlelist=[]
+	for rankvalue in sorted(rankcount.keys(),reverse=True):
+		if rankcount[rankvalue]==4:
+			fourrank=rankvalue
+		elif rankcount[rankvalue]==3:
+			threerank=rankvalue
+		elif rankcount[rankvalue]==2:
+			pairlist.append(rankvalue)
+		else:
+			singlelist.append(rankvalue)
+	if fourrank>0:
+		return (7,fourrank,singlelist[0])
+	if threerank>0 and len(pairlist)>0:
+		return (6,threerank,pairlist[0])
+	if flushsed:
+		return (5,)+tuple(sorted(rankvaluelist,reverse=True))
+	if straighthigh>0:
+		return (4,straighthigh)
+	if threerank>0:
+		return (3,threerank)+tuple(sorted(singlelist,reverse=True))
+	if len(pairlist)>=2:
+		pairlist=sorted(pairlist,reverse=True)
+		return (2,pairlist[0],pairlist[1],singlelist[0])
+	if len(pairlist)==1:
+		return (1,pairlist[0])+tuple(sorted(singlelist,reverse=True))
+	return (0,)+tuple(sorted(rankvaluelist,reverse=True))
+
+
+def standardstraighthigh(rankvaluelist):
+	uniquelist=[]
+	for i in range(len(rankvaluelist)):
+		if rankvaluelist[i] not in uniquelist:
+			uniquelist.append(rankvaluelist[i])
+	if 14 in uniquelist:
+		uniquelist.append(1)
+	for high in [14,13,12,11,10,9,8,7,6,5]:
+		needed=[high,high-1,high-2,high-3,high-4]
+		if high==5:
+			needed=[5,4,3,2,1]
+		matched=True
+		for item in needed:
+			if item not in uniquelist:
+				matched=False
+				break
+		if matched:
+			return high
+	return 0
+
+
+def wildstraighthigh(fixedranklist,wildcount):
+	if len(fixedranklist)!=len(set(fixedranklist)):
+		return 0
+	fixedset=set(fixedranklist)
+	for high in [14,13,12,11,10,9,8,7,6,5]:
+		needed=[high,high-1,high-2,high-3,high-4]
+		if high==5:
+			needed=[5,4,3,2,1]
+		missing=0
+		for item in needed:
+			presented=item in fixedset
+			if item==1 and 14 in fixedset:
+				presented=True
+			if not presented:
+				missing=missing+1
+		if missing<=wildcount:
+			return high
+	return 0
+
+
+def wildhighkickerlist(excluderanklist,fixedranklist,needcount):
+	output=[]
+	used=[]
+	for i in range(len(excluderanklist)):
+		used.append(excluderanklist[i])
+	for i in range(len(fixedranklist)):
+		if fixedranklist[i] not in used:
+			output.append(fixedranklist[i])
+			used.append(fixedranklist[i])
+	for rankvalue in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		if len(output)>=needcount:
+			break
+		if rankvalue not in used:
+			output.append(rankvalue)
+			used.append(rankvalue)
+	return tuple(output[:needcount])
+
+
+def deuceswildscore5(cardlist5):
+	wildcount=0
+	fixedranklist=[]
+	fixedsuitlist=[]
+	rankcount={}
+	for i in range(len(cardlist5)):
+		rankchar=equityrankchar(cardlist5[i])
+		if rankchar=="2":
+			wildcount=wildcount+1
+		else:
+			rankvalue=equityrankvalue(rankchar)
+			fixedranklist.append(rankvalue)
+			fixedsuitlist.append(equitycardtext(cardlist5[i])[-1].lower())
+			if rankvalue not in rankcount:
+				rankcount[rankvalue]=0
+			rankcount[rankvalue]=rankcount[rankvalue]+1
+	if wildcount==0:
+		return standardscore5(cardlist5)
+	if len(rankcount)==0:
+		return (9,14)
+	for rankvalue in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		if len(rankcount)==1 and rankcount.get(rankvalue,0)+wildcount>=5:
+			return (9,rankvalue)
+	if len(set(fixedsuitlist))<=1:
+		high=wildstraighthigh(fixedranklist,wildcount)
+		if high>0:
+			return (8,high)
+	best=None
+	for rankvalue in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		count=rankcount.get(rankvalue,0)
+		othercount=len(fixedranklist)-count
+		need=4-count
+		if need>=0 and need<=wildcount and othercount<=1:
+			kickerlist=wildhighkickerlist([rankvalue],[x for x in fixedranklist if x!=rankvalue],1)
+			score=(7,rankvalue)+kickerlist
+			if best is None or score>best:
+				best=score
+	if best is not None:
+		return best
+	best=None
+	for triprank in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		for pairrank in [14,13,12,11,10,9,8,7,6,5,4,3]:
+			if triprank==pairrank:
+				continue
+			valided=True
+			for rankvalue in rankcount:
+				if rankvalue!=triprank and rankvalue!=pairrank:
+					valided=False
+			need=(3-rankcount.get(triprank,0))+(2-rankcount.get(pairrank,0))
+			if valided and need==wildcount and rankcount.get(triprank,0)<=3 and rankcount.get(pairrank,0)<=2:
+				score=(6,triprank,pairrank)
+				if best is None or score>best:
+					best=score
+	if best is not None:
+		return best
+	if len(set(fixedsuitlist))<=1:
+		flushranklist=list(fixedranklist)
+		for rankvalue in [14,13,12,11,10,9,8,7,6,5,4,3]:
+			if len(flushranklist)>=5:
+				break
+			if rankvalue not in flushranklist:
+				flushranklist.append(rankvalue)
+		return (5,)+tuple(sorted(flushranklist,reverse=True)[:5])
+	high=wildstraighthigh(fixedranklist,wildcount)
+	if high>0:
+		return (4,high)
+	best=None
+	for rankvalue in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		count=rankcount.get(rankvalue,0)
+		need=3-count
+		if need>=0 and need<=wildcount:
+			otherlist=[x for x in fixedranklist if x!=rankvalue]
+			valided=True
+			if len(otherlist)!=len(set(otherlist)) or len(otherlist)>2:
+				valided=False
+			if valided:
+				score=(3,rankvalue)+wildhighkickerlist([rankvalue],otherlist,2)
+				if best is None or score>best:
+					best=score
+	if best is not None:
+		return best
+	best=None
+	for highpair in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		for lowpair in [14,13,12,11,10,9,8,7,6,5,4,3]:
+			if highpair<=lowpair:
+				continue
+			valided=True
+			for rankvalue in rankcount:
+				if rankvalue!=highpair and rankvalue!=lowpair and rankcount[rankvalue]>1:
+					valided=False
+			otherlist=[x for x in fixedranklist if x!=highpair and x!=lowpair]
+			need=(2-rankcount.get(highpair,0))+(2-rankcount.get(lowpair,0))
+			if valided and need>=0 and need<=wildcount and len(otherlist)<=1:
+				score=(2,highpair,lowpair)+wildhighkickerlist([highpair,lowpair],otherlist,1)
+				if best is None or score>best:
+					best=score
+	if best is not None:
+		return best
+	best=None
+	for rankvalue in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		otherlist=[x for x in fixedranklist if x!=rankvalue]
+		need=2-rankcount.get(rankvalue,0)
+		valided=True
+		if len(otherlist)!=len(set(otherlist)) or len(otherlist)>3:
+			valided=False
+		if valided and need>=0 and need<=wildcount:
+			score=(1,rankvalue)+wildhighkickerlist([rankvalue],otherlist,3)
+			if best is None or score>best:
+				best=score
+	if best is not None:
+		return best
+	if len(fixedranklist)!=len(set(fixedranklist)):
+		return (0,)+tuple(sorted(fixedranklist,reverse=True))
+	return (0,)+wildhighkickerlist([],fixedranklist,5)
+
+
+def equityserializescore(score):
+	if score is None:
+		return None
+	if isinstance(score,tuple):
+		return list(score)
+	return score
+
+
 def equityvisiblescore(cardlist):
 	rankcount={}
 	for i in range(len(cardlist)):
@@ -1571,10 +1814,56 @@ def equityvisiblescore(cardlist):
 	return (0,)+tuple(sorted(singlelist,reverse=True))
 
 
-def equitypartialsolebest(handlist,board):
+def equitywildvisiblescore(cardlist):
+	wildcount=0
+	rankcount={}
+	fixedranklist=[]
+	for i in range(len(cardlist)):
+		rankvalue=equityrankvalue(equityrankchar(cardlist[i]))
+		if rankvalue==2:
+			wildcount=wildcount+1
+		else:
+			fixedranklist.append(rankvalue)
+			if rankvalue not in rankcount:
+				rankcount[rankvalue]=0
+			rankcount[rankvalue]=rankcount[rankvalue]+1
+	if wildcount==0:
+		return equityvisiblescore(cardlist)
+	if len(rankcount)==0:
+		if wildcount>=4:
+			return (7,14)
+		if wildcount>=3:
+			return (4,14)
+		if wildcount>=2:
+			return (1,14)
+		return (0,14)
+	best=None
+	for rankvalue in [14,13,12,11,10,9,8,7,6,5,4,3]:
+		count=rankcount.get(rankvalue,0)+wildcount
+		otherlist=[x for x in fixedranklist if x!=rankvalue]
+		if count>=4:
+			score=(7,rankvalue)+wildhighkickerlist([rankvalue],otherlist,1)
+		elif count>=3:
+			score=(4,rankvalue)+wildhighkickerlist([rankvalue],otherlist,2)
+		elif count>=2:
+			score=(1,rankvalue)+wildhighkickerlist([rankvalue],otherlist,3)
+		else:
+			score=(0,)+wildhighkickerlist([],fixedranklist,5)
+		if best is None or score>best:
+			best=score
+	return best
+
+
+def equityvisiblescorebygame(cardlist,gametype):
+	if equitydeuceswilded(gametype):
+		return equitywildvisiblescore(cardlist)
+	return equityvisiblescore(cardlist)
+
+
+def equitypartialsolebest(handlist,board,gametype):
 	scores=[]
 	for i in range(len(handlist)):
-		scores.append(equityvisiblescore(handlist[i]+board))
+		scores.append(equityvisiblescorebygame(handlist[i]+board,gametype))
 	best=max(scores)
 	if scores.count(best)==1:
 		return scores.index(best)
@@ -1594,6 +1883,20 @@ def equityhighbestdata(handcardlist,board5,gametype):
 		for combo in itertools.combinations(allcardlist,5):
 			bestcombo=list(combo)
 			score=shortdeckscore5(bestcombo)
+			if bestscore is None or score>bestscore:
+				bestscore=score
+				bestcardlist=[]
+				for carditem in bestcombo:
+					bestcardlist.append(equitycardtext(carditem))
+		return {
+			"score": bestscore,
+			"bestcardlist": bestcardlist
+		}
+	if equitydeuceswilded(gametype):
+		allcardlist=handcardlist+board5
+		for combo in itertools.combinations(allcardlist,5):
+			bestcombo=list(combo)
+			score=deuceswildscore5(bestcombo)
 			if bestscore is None or score>bestscore:
 				bestscore=score
 				bestcardlist=[]
@@ -1796,17 +2099,28 @@ def equity(request):
 				used.append(cardtext)  
 				handcardlist.append(eval7.Card(cardtext))  
 			handlist.append(handcardlist)  
-		boardraw=boardcardsfromdata(data.get("board") or {}) 
-		if len(boardraw)>5: 
-			return errorresponse("ERROR_request_data_type_error") 
-		board=[]  
-		for cardtext in boardraw:  
-			if equityrankchar(cardtext) not in allowedranklist:
+		boardrawdatalist=[]
+		if isinstance(data.get("boardlist"),list):
+			for boarditem in data.get("boardlist"):
+				boardrawdatalist.append(boardcardsfromdata(boarditem or {}))
+		else:
+			boardrawdatalist.append(boardcardsfromdata(data.get("board") or {}))
+		if len(boardrawdatalist)<1 or len(boardrawdatalist)>2:
+			return errorresponse("ERROR_request_data_type_error")
+		boarddatalist=[]
+		for boardraw in boardrawdatalist:
+			if len(boardraw)>5:
 				return errorresponse("ERROR_request_data_type_error")
-			if cardtext in used:  
-				return errorresponse("ERROR_request_data_type_error")  
-			used.append(cardtext)
-			board.append(eval7.Card(cardtext))
+			boarditemlist=[]
+			for cardtext in boardraw:
+				if equityrankchar(cardtext) not in allowedranklist:
+					return errorresponse("ERROR_request_data_type_error")
+				if cardtext in used:
+					return errorresponse("ERROR_request_data_type_error")
+				used.append(cardtext)
+				boarditemlist.append(eval7.Card(cardtext))
+			boarddatalist.append(boarditemlist)
+		board=boarddatalist[0]
 		deadraw=data.get("dead")
 		if deadraw is None:
 			deadraw=data.get("deadlist") or []
@@ -1823,7 +2137,9 @@ def equity(request):
 		usedcards=[]
 		for handcardlist in handlist:
 			usedcards=usedcards+handcardlist
-		usedcards=usedcards+board+deadcards
+		for boarditemlist in boarddatalist:
+			usedcards=usedcards+boarditemlist
+		usedcards=usedcards+deadcards
 		remaining=[]  
 		for carditem in eval7.Deck().cards:  
 			if shortdecked and equityrankchar(carditem) not in allowedranklist:
@@ -1831,13 +2147,16 @@ def equity(request):
 			if carditem not in usedcards:  
 				remaining.append(carditem)  
 		n=len(handlist)  
-		need=5-len(board)  
+		need=5-len(board)
+		totalneed=0
+		for boarditemlist in boarddatalist:
+			totalneed=totalneed+(5-len(boarditemlist))
 		wins=[0]*n  
 		ties=[0]*n  
 		equityshares=[0]*n
 		scoops=[0]*n
 		total=0  
-		def settle(full5):  
+		def boardsharelist(full5):
 			highscorelist=[]
 			for i in range(n):
 				bestdata=equityhighbestdata(handlist[i],full5,gametype)
@@ -1868,22 +2187,48 @@ def equity(request):
 				if len(lowwinnerlist)>0:
 					for i in range(len(lowwinnerlist)):
 						sharelist[lowwinnerlist[i]]=sharelist[lowwinnerlist[i]]+(0.5/len(lowwinnerlist))
+				return sharelist
+			sharelist=[0]*n
+			if len(highwinnerlist)==1:
+				sharelist[highwinnerlist[0]]=1
+			else:
+				for i in range(len(highwinnerlist)):
+					sharelist[highwinnerlist[i]]=1/len(highwinnerlist)
+			return sharelist
+		def settleboard(full5,shareweight):  
+			sharelist=boardsharelist(full5)
+			if hiloed:
 				for i in range(n):
-					equityshares[i]=equityshares[i]+sharelist[i]
+					equityshares[i]=equityshares[i]+(sharelist[i]*shareweight)
 					if sharelist[i]==1:
-						scoops[i]=scoops[i]+1
-				return
-			if len(highwinnerlist)==1: 
-				wins[highwinnerlist[0]]=wins[highwinnerlist[0]]+1 
-			else: 
-				for i in highwinnerlist: 
-					ties[i]=ties[i]+1 
-		if need<=0: 
-			settle(board) 
+						scoops[i]=scoops[i]+shareweight
+			else:
+				for i in range(n):
+					if sharelist[i]==1:
+						wins[i]=wins[i]+shareweight
+					elif sharelist[i]>0:
+						ties[i]=ties[i]+shareweight
+		def settleboardlist(fullboardlist):
+			shareweight=1/len(fullboardlist)
+			for boardindex in range(len(fullboardlist)):
+				settleboard(fullboardlist[boardindex],shareweight)
+		def fullboardlistwithextra(extralist):
+			fullboardlist=[]
+			pos=0
+			for boarditemlist in boarddatalist:
+				item=list(boarditemlist)
+				needcount=5-len(item)
+				if needcount>0:
+					item=item+list(extralist[pos:pos+needcount])
+					pos=pos+needcount
+				fullboardlist.append(item)
+			return fullboardlist
+		if totalneed<=0: 
+			settleboardlist(boarddatalist) 
 			total=1 
-		elif need==1 or (need==2 and omahaed==False and hiloed==False and shortdecked==False): 
-			for combo in itertools.combinations(remaining,need): 
-				settle(board+list(combo)) 
+		elif len(boarddatalist)==1 and (totalneed==1 or (totalneed==2 and omahaed==False and hiloed==False and shortdecked==False)): 
+			for combo in itertools.combinations(remaining,totalneed): 
+				settleboardlist(fullboardlistwithextra(list(combo))) 
 				total=total+1 
 		else: 
 			iters=8000
@@ -1891,6 +2236,8 @@ def equity(request):
 				iters=3000
 			if hiloed:
 				iters=3000
+			if gametype=="DW":
+				iters=1000
 			# Big O 每副牌每家要算 C(5,2)*C(5,3)=100 組高牌再加 100 組低牌，
 			# 是 O8（4 張底牌，60+60）的 1.67 倍。實測 6 人 3000 次要 4.0 秒，
 			# 對一個每次選牌就重算的工具頁太慢；降到 2000 後約 2.7 秒，
@@ -1903,7 +2250,7 @@ def equity(request):
 			rem=remaining[:] 
 			for _ in range(iters): 
 				random.shuffle(rem) 
-				settle(board+rem[:need]) 
+				settleboardlist(fullboardlistwithextra(rem[:totalneed])) 
 				total=total+1 
 		if total<=0: 
 			total=1 
@@ -1953,15 +2300,29 @@ def equity(request):
 				if omahaed or hiloed: 
 					handstatus="need_flop" 
 				else: 
-					sole=equitypartialsolebest(handlist,board) 
-					if sole==i:
+					sole=equitypartialsolebest(handlist,board,gametype) 
+					dwequityaheaded=False
+					if gametype=="DW":
+						handsharevalue=wins[i]+(ties[i]/2)
+						bestsharevalue=None
+						bestsharecount=0
+						for j in range(n):
+							sharevalue=wins[j]+(ties[j]/2)
+							if bestsharevalue is None or sharevalue>bestsharevalue:
+								bestsharevalue=sharevalue
+								bestsharecount=1
+							elif sharevalue==bestsharevalue:
+								bestsharecount=bestsharecount+1
+						if handsharevalue==bestsharevalue and bestsharecount==1:
+							dwequityaheaded=True
+					if (gametype=="DW" and dwequityaheaded) or (gametype!="DW" and sole==i):
 						handstatus="ahead"
 					else:
 						for carditem in remaining: 
 							b1=board+[carditem] 
 							scores=[] 
 							for j in range(n): 
-								scores.append(equityvisiblescore(handlist[j]+b1)) 
+								scores.append(equityvisiblescorebygame(handlist[j]+b1,gametype)) 
 							best=max(scores) 
 							if scores[i]==best and scores.count(best)==1: 
 								outs.append(str(carditem)) 
@@ -1985,6 +2346,24 @@ def equity(request):
 					handstatus="win"
 				elif len(board)>=5 and winp<=0:
 					handstatus="drawing_dead"
+				elif len(board)>=3:
+					currentshare=boardsharelist(board)[i]
+					for carditem in remaining:
+						b1=board+[carditem]
+						nextshare=boardsharelist(b1)[i]
+						if nextshare>currentshare:
+							if nextshare>=1:
+								outs.append(str(carditem))
+							else:
+								chopouts.append(str(carditem))
+					if len(outs)>0:
+						handstatus="out"
+					elif len(chopouts)>0:
+						handstatus="chop_out"
+					elif currentshare>=1:
+						handstatus="ahead"
+					else:
+						handstatus=""
 				else:
 					handstatus=""
 			else:    
@@ -2041,6 +2420,7 @@ def equity(request):
 				"win": round(winp,2),   
 				"tie": round(tiep,2),   
 				"bested": bestscore is not None and currentscorelist[i]==bestscore,  
+				"bestscore": equityserializescore(bestdatalist[i]["score"]),
 				"bestcardlist": bestdatalist[i]["bestcardlist"],  
 				"outlist": outs,  
 				"outs": outs,   

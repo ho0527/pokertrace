@@ -2243,8 +2243,6 @@ function loadsessiondata(silent){
 	if(data["success"]){
 		let row=data["data"]
 		currentsession=row
-		if(domgetid("sessionbroadcast")&&row["broadcastopen"]&&row["unifiedhandrecord"]&&row["owned"]&&row["linkuser"]&&!row["private"]){domgetid("sessionbroadcast").href="broadcast.html?sessionid="+encodeURIComponent(sessionid);domgetid("sessionbroadcast").classList.remove("hidden")}
-		if(domgetid("sessionbroadcastcontrol")&&row["broadcasth4h"]&&(row["isown"]||row["accessrole"]=="floor"||row["accessrole"]=="assistant"||row["accessrole"]=="dealer")){domgetid("sessionbroadcastcontrol").href="broadcastcontrol.html?sessionid="+encodeURIComponent(sessionid);domgetid("sessionbroadcastcontrol").classList.remove("hidden")}
 		updatesessiontabs()
 		// 與列表頁 sessionlist.js 的 getwinprice 演算一致: 扣買入 + 重入 + 重買 + 增購成本
 		let buyintotal=(row["buyin"]||0)+(row["buyinfee"]||0)
@@ -2905,16 +2903,6 @@ function rendersettinggame(){
 			<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setunifiedhandrecord" ${currentsession["unifiedhandrecord"]?"checked":""}>${sessionpagetext("tplunifiedhand","統一紀錄手牌")}</label>
 			<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setticketenabled" ${currentsession["ticketenabled"]?"checked":""}>${sessionpagetext("tplallowticket","允許票券買入")}</label>
 		</div>
-		<div id="broadcastsettings" class="mt-4 rounded border border-zinc-700 bg-zinc-800/40 p-3 ${currentsession["unifiedhandrecord"]?"":"hidden"}">
-			<div class="font-semibold text-zinc-200 mb-2">${sessionpagetext("tplliverelay","現場轉播")}</div>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-				<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setbroadcastopen" ${currentsession["broadcastopen"]?"checked":""}>${sessionpagetext("tplopenbroadcast","開放場外轉播")}</label>
-				<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setbroadcastshowcard" ${currentsession["broadcastshowcard"]!=false?"checked":""}>${sessionpagetext("tplshowhole","顯示底牌")}</label>
-				<label class="block text-sm text-zinc-300">${sessionpagetext("tpldelaybroadcast","延遲播出（分鐘）")}<input type="number" min="0" inputmode="numeric" id="setbroadcastdelay" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" value="${currentsession["broadcastdelay"]||0}"></label>
-				<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setbroadcasth4h" ${currentsession["broadcasth4h"]?"checked":""}>${sessionpagetext("tplh4hmanual","H4H 手動推進")}</label>
-			</div>
-			<div class="mt-2 text-xs text-zinc-500">${sessionpagetext("tplbroadcasthint","僅「統一手牌紀錄 + 公開場次」可轉播；開放後手牌分頁會出現「現場轉播」按鈕，供場外唯讀觀看。")}</div>
-		</div>
 		<div class="mt-6">
 			<div class="flex flex-wrap justify-between items-center gap-2 mb-2">
 				<div class="font-semibold text-zinc-200">${sessionpagetext("tplusechipdenom","使用計分牌面額")}</div>
@@ -2947,20 +2935,6 @@ function rendersettinggame(){
 		pttoast(sessionpagetext("importedprefix","已匯入 ")+(set["name"]||sessionpagetext("chipsetdefault","計分牌組合")),"success")
 	})
 	bindchipremove()
-	// 非統一手牌紀錄不能轉播: 依「統一紀錄手牌」勾選狀態即時顯示/隱藏現場轉播設定
-	let unifiedchk=domgetid("setunifiedhandrecord")
-	if(unifiedchk){
-		unifiedchk.addEventListener("change",function(){
-			let box=domgetid("broadcastsettings")
-			if(box){
-				if(this.checked){
-					box.classList.remove("hidden")
-				}else{
-					box.classList.add("hidden")
-				}
-			}
-		})
-	}
 	onclick("#savesettinggame",function(element,event){
 		let antemode=document.querySelector("input[name='setantemode']:checked").value
 		savesettings(element,{
@@ -2984,10 +2958,6 @@ function rendersettinggame(){
 			"ticketvalue": float(getvalue("setticketvalue")||0),
 			"antemode": antemode,
 			"unifiedhandrecord": domgetid("setunifiedhandrecord").checked,
-			"broadcastopen": domgetid("setbroadcastopen").checked,
-			"broadcastshowcard": domgetid("setbroadcastshowcard").checked,
-			"broadcastdelay": float(getvalue("setbroadcastdelay")||0),
-			"broadcasth4h": domgetid("setbroadcasth4h").checked,
 			"chips": getsettingchips()
 		})
 	})

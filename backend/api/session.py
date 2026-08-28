@@ -517,6 +517,7 @@ def _fastsessionlist(request,tokenuserrow):
 			       COALESCE(ra."realtotalentries",0) AS realtotalentries,
 			       CASE
 			           WHEN sp."id" IS NULL THEN NULL
+			           WHEN sp."advancesourceid" IS NOT NULL THEN 0
 			           WHEN sp."paymenttype"='ticket' THEN COALESCE(a."ticketvalue",0)*(1+COALESCE(sp."reentrycount",0))
 			           ELSE COALESCE(a."buyin",0)+COALESCE(a."buyinfee",0)
 			       END

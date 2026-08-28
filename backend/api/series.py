@@ -1,5 +1,6 @@
 # import
 import json
+import re
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -11,7 +12,7 @@ from function.thing import *
 from function.function import *
 from .initialize import *
 from .authhelper import gettokenuser as commonauthuser
-from .sessionplayer import _attachfinance,_sessiontotalentriesmapping
+from .sessionplayer import _attachfinance,_rankrange,_sessiontotalentriesmapping
 
 # 場次盈虧 / 成本算式 (與 user.py 報表一致, 不含 fee 的成本版本)
 # 成本 = 買入 + 重買 + 重入(無值時用買入) + addon
@@ -37,6 +38,61 @@ def _bool(value):
 	if value==True or value==1 or value=="1" or value=="true" or value=="True":
 		return True
 	return False
+
+def _sessiondaylabel(sessionrow):
+	text=str((sessionrow or {}).get("name") or "")+" "+str((sessionrow or {}).get("token") or "")
+	match=re.search(r"\b(?:day|d)\s*([0-9a-z]+)\b",text,re.IGNORECASE)
+	if match:
+		return "D"+match.group(1).upper()
+	if (sessionrow or {}).get("token"):
+		return str(sessionrow.get("token"))
+	return str((sessionrow or {}).get("name") or "")
+
+def _rankrewarded(payoutlist,place):
+	if place is None:
+		return False
+	for i in range(len(payoutlist or [])):
+		item=payoutlist[i]
+		rankstart,rankend=_rankrange(item.get("rank"),i+1)
+		if rankstart<=place and place<=rankend:
+			return True
+	return False
+
+def _advancepath(row,playermapping,sessionmapping):
+	path=[]
+	visitedsession={}
+	current=row
+	while current and current.get("status")=="advanced" and _int(current.get("advancetargetid"),0)>0:
+		sessionid=_int(current.get("sessionid"),0)
+		targetsessionid=_int(current.get("advancetargetid"),0)
+		if sessionid in visitedsession:
+			current=None
+		else:
+			visitedsession[sessionid]=True
+			label=_sessiondaylabel(sessionmapping.get(sessionid) or {})
+			if label and label not in path:
+				path.append(label)
+			targetlabel=_sessiondaylabel(sessionmapping.get(targetsessionid) or {})
+			if targetlabel:
+				path.append(targetlabel)
+			current=playermapping.get(str(current.get("userid"))+":"+str(targetsessionid))
+	return path
+
+def _advancebest(path):
+	bestlabel=""
+	bestvalue=0
+	for i in range(len(path or [])):
+		label=str(path[i] or "")
+		match=re.match(r"^D([0-9]+)",label,re.IGNORECASE)
+		if match:
+			value=_int(match.group(1),0)
+			if bestvalue<value:
+				bestvalue=value
+				bestlabel=label
+	return {
+		"label": bestlabel,
+		"value": bestvalue
+	}
 
 def _orNone(value):
 	if value is None or value=="":
@@ -371,11 +427,15 @@ def _serieleaderboard(seriesrow):
 	players={}
 	# 批次撈出所有場次的報名紀錄與人次統計, 再於 Python 端依 sessionid 分組, 避免每場各跑 3 次查詢 (N+1)
 	sessionidlist=[]
+	sessionmapping={}
 	for sessionrow in sessionrows:
 		if sessionrow["id"] not in sessionidlist:
 			sessionidlist.append(sessionrow["id"])
+		sessionmapping[sessionrow["id"]]=sessionrow
 	playerrowmapping={}
+	playermapping={}
 	entriesmapping={}
+	payoutmapping={}
 	if sessionidlist:
 		placeholders=",".join(["%s"]*len(sessionidlist))
 		playerrowlist=query(SETTING["dbname"],f"""
@@ -390,10 +450,16 @@ def _serieleaderboard(seriesrow):
 			if prow["sessionid"] not in playerrowmapping:
 				playerrowmapping[prow["sessionid"]]=[]
 			playerrowmapping[prow["sessionid"]].append(prow)
+			playermapping[str(prow["userid"])+":"+str(prow["sessionid"])]=prow
 		# 該場總人次 (含重買/重入), 用來算「擊敗人數」積分: 每場積分 = 總人次 - 名次
 		entriesrowlist=query(SETTING["dbname"],f"""SELECT "sessionid",SUM(1+COALESCE("rebuycount",0)+COALESCE("reentrycount",0)) AS count FROM "sessionplayer" WHERE "sessionid" IN ({placeholders}) AND "status" IN ('registered','confirmed','advanced') AND "deletetime" IS NULL GROUP BY "sessionid" """,sessionidlist,SETTING["dbsetting"]) or []
 		for item in entriesrowlist:
 			entriesmapping[item["sessionid"]]=_int(item["count"],0)
+		payoutrowlist=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerpayout" WHERE "sessionid" IN ({placeholders}) AND "deletetime" IS NULL ORDER BY "sessionid" ASC,"sortorder" ASC""",sessionidlist,SETTING["dbsetting"]) or []
+		for item in payoutrowlist:
+			if item["sessionid"] not in payoutmapping:
+				payoutmapping[item["sessionid"]]=[]
+			payoutmapping[item["sessionid"]].append(item)
 	totalentriesmapping=_sessiontotalentriesmapping(sessionidlist)
 	for sessionrow in sessionrows:
 		rows=_attachfinance(sessionrow,playerrowmapping.get(sessionrow["id"]) or [],totalentriesmapping.get(sessionrow["id"],0))
@@ -414,20 +480,27 @@ def _serieleaderboard(seriesrow):
 					"totalprofit": 0,
 					"cashes": 0,
 					"points": 0,
-					"bestplace": None
+					"bestplace": None,
+					"bestadvancelevel": "",
+					"bestadvancevalue": 0
 				}
 				players[userid]=agg
 			agg["entries"]=agg["entries"]+1
 			agg["totalprize"]=agg["totalprize"]+float(row.get("finalprize") or 0)
 			agg["totalcost"]=agg["totalcost"]+float(row.get("cost") or 0)
 			agg["totalprofit"]=agg["totalprofit"]+float(row.get("profit") or 0)
-			if float(row.get("finalprize") or 0)>0:
-				agg["cashes"]=agg["cashes"]+1
 			place=_int(row.get("timerplace"),0)
 			if place<=0:
 				place=_int(row.get("place"),0)
+			if _rankrewarded(payoutmapping.get(sessionrow["id"]) or [],place if place>0 else None):
+				agg["cashes"]=agg["cashes"]+1
 			if place>0 and (agg["bestplace"] is None or place<agg["bestplace"]):
 				agg["bestplace"]=place
+			advancepath=_advancepath(row,playermapping,sessionmapping)
+			advancebest=_advancebest(advancepath)
+			if agg["bestadvancevalue"]<advancebest["value"]:
+				agg["bestadvancelevel"]=advancebest["label"]
+				agg["bestadvancevalue"]=advancebest["value"]
 			# 擊敗人數積分: 名次越前、人數越多分數越高; 沒名次給 0
 			if place>0 and totalentries>place:
 				agg["points"]=agg["points"]+(totalentries-place)
@@ -435,7 +508,7 @@ def _serieleaderboard(seriesrow):
 	scoringtype=seriesrow.get("scoringtype") or "profit"
 	if scoringtype=="place":
 		# 名次優先 (越小越前), 沒名次的排後面, 同名次再看盈虧
-		board.sort(key=lambda x: (x["bestplace"] if x["bestplace"] is not None else 1000000,-x["totalprofit"]))
+		board.sort(key=lambda x: (x["bestplace"] if x["bestplace"] is not None else 1000000,-x["bestadvancevalue"],-x["totalprofit"]))
 	elif scoringtype=="points":
 		# 擊敗人數積分高者在前, 同分再看盈虧
 		board.sort(key=lambda x: (-x["points"],-x["totalprofit"]))
@@ -444,6 +517,27 @@ def _serieleaderboard(seriesrow):
 	for i in range(len(board)):
 		board[i]["rank"]=i+1
 	return board
+
+def _pagination(total,page,limit):
+	if page<=0:
+		page=1
+	if limit<=0:
+		limit=20
+	if 100<limit:
+		limit=100
+	totalpages=(total+limit-1)//limit
+	if totalpages<=0:
+		totalpages=1
+	if totalpages<page:
+		page=totalpages
+	return {
+		"page": page,
+		"limit": limit,
+		"total": total,
+		"totalpages": totalpages,
+		"hasprev": 1<page,
+		"hasnext": page<totalpages
+	}
 
 @api_view(["GET"])
 def getseriesleaderboard(request,seriesid):
@@ -455,9 +549,16 @@ def getseriesleaderboard(request,seriesid):
 		return errorresponse("ERROR_series_not_found")
 	if not canview:
 		return errorresponse("ERROR_no_permission")
+	page=_int(request.GET.get("page"),1)
+	limit=_int(request.GET.get("limit"),20)
+	board=_serieleaderboard(seriesrow)
+	pagination=_pagination(len(board),page,limit)
+	start=(pagination["page"]-1)*pagination["limit"]
+	end=start+pagination["limit"]
 	return Response({"success": True,"data": {
 		"scoringtype": seriesrow.get("scoringtype") or "profit",
-		"leaderboard": _serieleaderboard(seriesrow)
+		"leaderboard": board[start:end],
+		"pagination": pagination
 	}},status.HTTP_200_OK)
 
 def _appendseriessessions(seriesid,sessionids,ownerid):

@@ -377,10 +377,10 @@ function renderboardstaffpanel(){
 		all=boardstaffdata["stafflist"]||[]
 	}
 	if(all.length==0){
-		addclass("#boardstaffpanel","hidden")
+		addclass("#boardstaffpanel",["hidden"])
 		return
 	}
-	removeclass("#boardstaffpanel","hidden")
+	removeclass("#boardstaffpanel",["hidden"])
 
 	let filterlist=[
 		["all",boardstafftext("filterall","全部")],
@@ -543,6 +543,149 @@ function tablestaffhtml(table){
 	return "<div class=\"mb-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-2\">"+rowhtml+buttonhtml+"</div>"
 }
 
+function boardmovetargetcount(sourceid){
+	let count=0
+	let tablelist=[]
+	if(boardlastdata){
+		tablelist=boardlastdata["tables"]||[]
+	}
+	for(let i=0;i<tablelist.length;i=i+1){
+		let table=tablelist[i]
+		if(String(table["id"])!=String(sourceid)&&!table["closed"]&&0<int(table["empty"]||0)){
+			count=count+1
+		}
+	}
+	return count
+}
+
+function boardemptyseatlist(table){
+	let used={}
+	let playerlist=table["players"]||[]
+	for(let i=0;i<playerlist.length;i=i+1){
+		used[int(playerlist[i]["seatno"])]=true
+	}
+	let emptylist=[]
+	let maxseat=int(table["maxseat"]||9)
+	for(let i=1;i<=maxseat;i=i+1){
+		if(used[i]!=true){
+			emptylist.push(i)
+		}
+	}
+	return emptylist
+}
+
+function openplayermovemodal(tableid,sessionplayerid,seatno,playername){
+	let source=boardfindtable(tableid)
+	if(!source){
+		return
+	}
+	let old=domgetid("boardplayermovemodal")
+	if(old){
+		ptremovescrollcover(old)
+	}
+	let tablelist=boardlastdata["tables"]||[]
+	let optionhtml=""
+	let optioncount=0
+	for(let i=0;i<tablelist.length;i=i+1){
+		let table=tablelist[i]
+		if(String(table["id"])==String(tableid)||table["closed"]||int(table["empty"]||0)<=0){
+			continue
+		}
+		let emptyseatlist=boardemptyseatlist(table)
+		let seathtml=""
+		for(let j=0;j<emptyseatlist.length;j=j+1){
+			seathtml=seathtml+`<input type="button" class="boardplayermoveseat rounded-md bg-zinc-700 px-2 py-1 text-xs font-bold hover:bg-zinc-600" data-id="${boardescape(table["id"])}" data-seatno="${boardescape(emptyseatlist[j])}" value="S${boardescape(emptyseatlist[j])}">`
+			optioncount=optioncount+1
+		}
+		optionhtml=optionhtml+`
+			<div class="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+				<div class="mb-2 flex items-center justify-between gap-2">
+					<div class="min-w-0 truncate text-sm font-bold text-zinc-100">${boardescape(boardtablelabel(table))}</div>
+					<div class="shrink-0 text-xs text-zinc-500">${boardmanagetext("emptycount","{n} 空位").replace("{n}",emptyseatlist.length)}</div>
+				</div>
+				<div class="flex flex-wrap gap-2">${seathtml}</div>
+			</div>
+		`
+	}
+	if(!optionhtml){
+		optionhtml=`<div class="text-sm text-zinc-500">${boardtext("moveempty","沒有可移入且有空位的牌桌")}</div>`
+	}
+	let cover=doccreate("div")
+	cover.id="boardplayermovemodal"
+	cover.className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4"
+	cover.innerHTML=`
+		<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-md w-full p-5 shadow-xl">
+			<div class="flex items-center justify-between mb-4">
+				<div class="text-lg font-semibold text-white">${boardtext("movetitle","移動選手")}</div>
+				<input type="button" class="closeboardplayermove text-zinc-400 hover:text-white" value="×">
+			</div>
+			<div class="text-sm text-zinc-400 mb-4">${boardtext("movedesc","選擇要把「{player}」移到哪張牌桌與座位，或交給系統隨機安排。").replace("{player}",boardescape(playername||"-"))}</div>
+			<input type="button" class="boardplayermoverandom mb-3 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold hover:bg-emerald-700 disabled:opacity-40" value="${boardtext("moverandom","隨機安排")}" ${optioncount<1?"disabled":""}>
+			<div class="grid grid-cols-1 gap-2 max-h-[50vh] overflow-y-auto">${optionhtml}</div>
+			<div class="flex justify-end gap-2 mt-5">
+				<input type="button" class="closeboardplayermove bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="${boardmanagetext("cancel","取消")}">
+			</div>
+		</div>
+	`
+	ptlockpagescroll()
+	document.body.appendChild(cover)
+	onclick(".closeboardplayermove",function(element,event){
+		ptremovescrollcover(domgetid("boardplayermovemodal"))
+	})
+	onclick(".boardplayermoveseat",function(element,event){
+		sendplayermove(tableid,sessionplayerid,seatno,dataset(element,"id"),dataset(element,"seatno"))
+	})
+	onclick(".boardplayermoverandom",function(element,event){
+		sendplayermove(tableid,sessionplayerid,seatno,"auto",0)
+	})
+}
+
+function sendplayermove(tableid,sessionplayerid,seatno,targettableid,targetseatno){
+	let targetvalue=targettableid
+	if(targettableid!="auto"){
+		targetvalue=int(targettableid)
+	}
+	ajax("POST",AJAXURL+"movetableplayer/"+tableid,function(event,data){
+		if(data["success"]){
+			ptremovescrollcover(domgetid("boardplayermovemodal"))
+			pttoast(boardtext("movesuccess","已移動選手"),"success")
+			loadboard()
+		}else{
+			pttoast(pterror(data["data"]||boardtext("movefail","移桌失敗")),"error")
+		}
+	},str({
+		"sessionplayerid": int(sessionplayerid||0),
+		"seatno": int(seatno||0),
+		"targettableid": targetvalue,
+		"targetseatno": int(targetseatno||0)
+	}),[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],{
+		"loadingtarget": "#boardplayermovemodal"
+	})
+}
+
+function sendplayereliminate(tableid,sessionplayerid,seatno,playername){
+	ptconfirm(boardtext("eliminateconfirm","確定要淘汰「{player}」嗎？").replace("{player}",playername||"-"),function(okayed){
+		if(!okayed){
+			return
+		}
+		ajax("POST",AJAXURL+"eliminatetableplayer/"+tableid,function(event,data){
+			if(data["success"]){
+				pttoast(boardtext("eliminatesuccess","已淘汰選手"),"success")
+				loadboard()
+			}else{
+				pttoast(pterror(data["data"]||boardtext("eliminatefail","淘汰失敗")),"error")
+			}
+		},str({
+			"sessionplayerid": int(sessionplayerid||0),
+			"seatno": int(seatno||0)
+		}),[
+			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+		])
+	})
+}
+
 function tablecardhtml(table,avg){
 	let occupied=int(table["occupied"]||0)
 	let maxseat=int(table["maxseat"]||9)
@@ -571,10 +714,17 @@ function tablecardhtml(table,avg){
 	let playerhtml=""
 	for(let i=0;i<players.length;i=i+1){
 		let p=players[i]
+		let moveabled=0<boardmovetargetcount(table["id"])
 		playerhtml=playerhtml+
-			"<div class=\"flex items-center justify-between gap-2 border-t border-zinc-800 py-1.5 text-sm\">"+
-				"<span class=\"min-w-0 truncate text-zinc-200\">S"+boardescape(p["seatno"])+" "+boardescape(p["name"]||"-")+"</span>"+
-				"<span class=\"shrink-0 font-mono text-xs text-zinc-400\">"+boardescape(p["chip"]||0)+"</span>"+
+			"<div class=\"flex items-center gap-2 border-t border-zinc-800 py-1.5 text-sm\">"+
+				"<div class=\"flex shrink-0 gap-1\">"+
+					"<input type=\"button\" class=\"boardplayermove rounded-md bg-zinc-800 px-2 py-0.5 text-[11px] font-bold leading-5 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40\" data-tableid=\""+boardescape(table["id"])+"\" data-sessionplayerid=\""+boardescape(p["sessionplayerid"]||"")+"\" data-seatno=\""+boardescape(p["seatno"])+"\" data-playername=\""+boardescape(p["name"]||"-")+"\" value=\""+boardtext("movebutton","移桌")+"\""+(moveabled?"":" disabled")+">"+
+					"<input type=\"button\" class=\"boardplayereliminate rounded-md bg-rose-600 px-2 py-0.5 text-[11px] font-bold leading-5 hover:bg-rose-700\" data-tableid=\""+boardescape(table["id"])+"\" data-sessionplayerid=\""+boardescape(p["sessionplayerid"]||"")+"\" data-seatno=\""+boardescape(p["seatno"])+"\" data-playername=\""+boardescape(p["name"]||"-")+"\" value=\""+boardtext("eliminatebutton","淘汰")+"\">"+
+				"</div>"+
+				"<div class=\"flex min-w-0 flex-1 items-center justify-between gap-2\">"+
+					"<span class=\"min-w-0 truncate text-zinc-200\">S"+boardescape(p["seatno"])+" "+boardescape(p["name"]||"-")+"</span>"+
+					"<span class=\"shrink-0 font-mono text-xs text-zinc-400\">"+boardescape(p["chip"]||0)+"</span>"+
+				"</div>"+
 			"</div>"
 	}
 	if(!playerhtml){
@@ -653,6 +803,12 @@ function renderboard(data){
 	})
 	onclick(".boardstaffrelease",function(element,event){
 		sendstaffrelease(dataset(element,"tablestaffid"))
+	})
+	onclick(".boardplayermove",function(element,event){
+		openplayermovemodal(dataset(element,"tableid"),dataset(element,"sessionplayerid"),dataset(element,"seatno"),dataset(element,"playername"))
+	})
+	onclick(".boardplayereliminate",function(element,event){
+		sendplayereliminate(dataset(element,"tableid"),dataset(element,"sessionplayerid"),dataset(element,"seatno"),dataset(element,"playername"))
 	})
 	onclick(".boardclosebtn",function(element,event){
 		let tableid=dataset(element,"id")

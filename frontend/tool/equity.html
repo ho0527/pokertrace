@@ -43,10 +43,21 @@
 					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-i18n-value="equitypage.omaha8" data-gametype="O8" value="奧馬哈高低">
 					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-gametype="BO" value="Big O">
 					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-i18n-value="equitypage.shortdeck" data-gametype="SD" value="短牌">
+					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-i18n-value="equitypage.superholdem" data-gametype="SH" value="超級德州">
+					<input type="button" class="gametypebtn rounded-2xl px-4 py-2 text-sm font-bold transition" data-i18n-value="equitypage.deuceswild" data-gametype="DW" value="萬用2">
+				</div>
+
+				<div class="mb-5 flex flex-wrap items-center gap-2">
+					<span class="mr-2 text-sm font-bold text-zinc-300" id="equityboardmodelabel">牌面數量</span>
+					<div class="boardcountcontrol">
+						<input type="button" class="boardcountbutton" id="removeboardbutton" value="-">
+						<span class="boardcountvalue" id="boardcountvalue">1</span>
+						<input type="button" class="boardcountbutton" id="addboardbutton" value="+">
+					</div>
 				</div>
 
 				<div class="mb-2 mt-6 text-sm font-bold text-zinc-300" id="equityboardlabel">公共牌</div>
-				<div class="mb-4 flex items-center gap-2 md:gap-6" id="boardcard"></div>
+				<div class="mb-4 flex flex-col items-stretch gap-3" id="boardcard"></div>
 
 				<div class="mb-1 mt-6 text-sm font-bold text-zinc-300" id="equitydeadlabel">燒牌 / 棄牌</div>
 				<div class="mb-2 text-xs text-zinc-500" id="equitydeadhint">這些牌會從牌堆中移除，不計入勝率計算</div>

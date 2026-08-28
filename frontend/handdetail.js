@@ -2,6 +2,10 @@ let handid=getget("id")
 let tableid=getget("tableid")
 let sessionid=getget("sessionid")
 let currenthand=null
+let previewseatno=null
+let previewhovertimer=null
+let previewtouchtimer=null
+const PREVIEWHOVERDELAYMS=120
 
 if(!weblsget(WEBLSNAME+"signin")){
 	href("signin.html")
@@ -347,21 +351,65 @@ function cardkey(card){
 }
 
 // upped：梭哈的明牌（當時攤開給全桌看的那幾張）。傳 false / 省略就是暗牌。
+function highlightlayerlist(highlighted){
+	let layerlist=[]
+	if(Array.isArray(highlighted)){
+		for(let i=0;i<highlighted.length;i=i+1){
+			let layer=parseInt(highlighted[i],10)
+			if(0<layer&&layerlist.indexOf(layer)==-1){
+				layerlist.push(layer)
+			}
+		}
+	}
+	if(highlighted==true||highlighted=="high"){
+		layerlist.push(1)
+	}
+	if(highlighted=="low"){
+		layerlist.push(2)
+	}
+	if(highlighted=="both"){
+		layerlist.push(1)
+		layerlist.push(2)
+	}
+	layerlist.sort(function(a,b){
+		return a-b
+	})
+	return layerlist
+}
+
+function highlightlayerhtml(layerlist){
+	let html=""
+	if(0<layerlist.length){
+		html=`<span class="pt-card-layerlist">`
+		for(let i=0;i<layerlist.length;i=i+1){
+			let layer=layerlist[i]
+			if(layer>10){
+				layer=10
+			}
+			html=html+`<span class="pt-card-layer-${layer}"></span>`
+		}
+		html=html+`</span>`
+	}
+	return html
+}
+
 function rendercard(card,highlight,rabbited,upped){
 	let parts=cardparts(card)
 	if(parts["rank"]=="?"){
 		return `<span class="pt-card unknown"><span class="pt-card-rank">?</span></span>`
 	}
-	// highlight 的值可能是 true（舊寫法，等同 high）、"high"、"low" 或 "both"
 	let highlighted=highlight&&highlight[cardkey(card)]
+	let layerlist=highlightlayerlist(highlighted)
 	let classes="pt-card"
 	if(parts["reded"]){
 		classes=classes+" red"
 	}
-	if(highlighted&&highlighted!="low"){
+	if(0<layerlist.length){
+		classes=classes+" pt-card-layered"
+	}else if(highlighted&&highlighted!="low"){
 		classes=classes+" pt-card-best"
 	}
-	if(highlighted=="low"||highlighted=="both"){
+	if(layerlist.length==0&&(highlighted=="low"||highlighted=="both")){
 		classes=classes+" pt-card-low"
 	}
 	if(rabbited){
@@ -370,10 +418,9 @@ function rendercard(card,highlight,rabbited,upped){
 	if(upped){
 		classes=classes+" pt-card-up"
 	}
-	return `<span class="${classes}" data-suit="${parts["symbol"]}"><span class="pt-card-rank">${parts["rank"]}</span><span class="pt-card-suit">${parts["symbol"]}</span></span>`
+	return `<span class="${classes}" data-suit="${parts["symbol"]}">${highlightlayerhtml(layerlist)}<span class="pt-card-rank">${parts["rank"]}</span><span class="pt-card-suit">${parts["symbol"]}</span></span>`
 }
 
-// 座位底牌：光暈之外，還要標出梭哈的明牌與瘋狂菠蘿棄掉的那張（打叉）。
 function seatcardhtml(hand,row,highlight){
 	let cards=holecardsof(row["handcard"])
 	if(!cards.length){
@@ -467,6 +514,12 @@ function renderboardrunlist(hand,highlight,rabbitmap){
 	let html=""
 	for(let i=0;i<boardlist.length;i=i+1){
 		let item=boardlist[i]
+		let itemhighlight=null
+		if(Array.isArray(highlight)){
+			itemhighlight=highlight[i]||null
+		}else if(i==0){
+			itemhighlight=highlight
+		}
 		let winnertext=""
 		let allocation=item["allocationlist"]
 		for(let k=0;k<allocation.length;k=k+1){
@@ -481,7 +534,7 @@ function renderboardrunlist(hand,highlight,rabbitmap){
 		html=html+`
 			<div class="flex flex-wrap items-center gap-2 py-1">
 				<span class="shrink-0 rounded-full bg-zinc-700 px-2 py-0.5 text-xs text-zinc-300">${safe(hdt("boardrun").replace("{n}",item["runno"]))}</span>
-				${renderboardgroup(item["board"],i==0?highlight:null,i==0?rabbitmap:null)}
+				${renderboardgroup(item["board"],itemhighlight,i==0?rabbitmap:null)}
 				<span class="ml-auto text-xs text-zinc-400">${safe(winnertext)}</span>
 			</div>`
 	}
@@ -820,6 +873,92 @@ function mergehighlight(high,low){
 		data[key]=data[key]=="high"?"both":"low"
 	}
 	return data
+}
+
+function addlayerhighlight(data,cards,layer){
+	for(let i=0;i<(cards||[]).length;i=i+1){
+		let key=cardkey(cards[i]["card"]||cards[i])
+		if(!data[key]){
+			data[key]=[]
+		}
+		if(data[key].indexOf(layer)==-1){
+			data[key].push(layer)
+		}
+	}
+}
+
+function highlightmaxlayer(highlight){
+	let maxlayer=0
+	for(let key in highlight||{}){
+		let layerlist=highlightlayerlist(highlight[key])
+		for(let i=0;i<layerlist.length;i=i+1){
+			if(maxlayer<layerlist[i]){
+				maxlayer=layerlist[i]
+			}
+		}
+	}
+	return maxlayer
+}
+
+function combinelayerhighlight(base,preview,baseoffset){
+	let output={}
+	let offset=highlightmaxlayer(base)
+	if(baseoffset&&offset<baseoffset){
+		offset=baseoffset
+	}
+	for(let key in base||{}){
+		output[key]=highlightlayerlist(base[key])
+	}
+	for(let key in preview||{}){
+		if(!output[key]){
+			output[key]=[]
+		}
+		let layerlist=highlightlayerlist(preview[key])
+		for(let i=0;i<layerlist.length;i=i+1){
+			let layer=layerlist[i]+offset
+			if(output[key].indexOf(layer)==-1){
+				output[key].push(layer)
+			}
+		}
+	}
+	return output
+}
+
+function seatboardpreview(hand,row){
+	let boardlist=ptboardlistof(hand)
+	if(!ptmultiboarded(hand)){
+		boardlist=[
+			{
+				"board": hand["boardcard"]||{},
+				"runno": 1
+			}
+		]
+	}
+	let output={
+		"hand": {},
+		"boardlist": [],
+		"labellist": []
+	}
+	let layer=1
+	for(let i=0;i<boardlist.length;i=i+1){
+		let boardcardlist=boardcards(boardlist[i]["board"])
+		let info=showdowninfo(row,boardcardlist,hand)
+		let boardhighlight={}
+		if(info){
+			addlayerhighlight(output["hand"],info["best"]["cards"],layer)
+			addlayerhighlight(boardhighlight,info["best"]["cards"],layer)
+			output["labellist"].push(info["label"])
+			layer=layer+1
+			if(info["low"]){
+				addlayerhighlight(output["hand"],info["low"]["cards"],layer)
+				addlayerhighlight(boardhighlight,info["low"]["cards"],layer)
+				output["labellist"].push(info["lowlabel"])
+				layer=layer+1
+			}
+		}
+		output["boardlist"].push(boardhighlight)
+	}
+	return output
 }
 
 function handlabel(best){
@@ -1709,6 +1848,67 @@ function runallinequity(plan){
 	}
 }
 
+function setpreviewseat(seatno){
+	if(previewhovertimer){
+		clearTimeout(previewhovertimer)
+		previewhovertimer=null
+	}
+	if(previewseatno!=seatno){
+		previewseatno=seatno
+		if(currenthand){
+			renderhand(currenthand)
+		}
+	}
+}
+
+function clearpreviewseat(){
+	if(previewhovertimer){
+		clearTimeout(previewhovertimer)
+		previewhovertimer=null
+	}
+	if(previewtouchtimer){
+		clearTimeout(previewtouchtimer)
+		previewtouchtimer=null
+	}
+	if(previewseatno!=null){
+		previewseatno=null
+		if(currenthand){
+			renderhand(currenthand)
+		}
+	}
+}
+
+function bindpreviewseat(){
+	let previewlist=document.querySelectorAll("[data-previewseat]")
+	for(let i=0;i<previewlist.length;i=i+1){
+		previewlist[i].addEventListener("mouseenter",function(){
+			let seatno=this.getAttribute("data-previewseat")
+			if(previewhovertimer){
+				clearTimeout(previewhovertimer)
+			}
+			previewhovertimer=setTimeout(function(){
+				previewhovertimer=null
+				setpreviewseat(seatno)
+			},PREVIEWHOVERDELAYMS)
+		})
+		previewlist[i].addEventListener("mouseleave",function(){
+			clearpreviewseat()
+		})
+		previewlist[i].addEventListener("touchstart",function(){
+			let seatno=this.getAttribute("data-previewseat")
+			if(previewtouchtimer){
+				clearTimeout(previewtouchtimer)
+			}
+			previewtouchtimer=setTimeout(function(){
+				previewtouchtimer=null
+				setpreviewseat(seatno)
+			},450)
+		})
+		previewlist[i].addEventListener("touchend",clearpreviewseat)
+		previewlist[i].addEventListener("touchcancel",clearpreviewseat)
+	}
+}
+
 function renderhand(hand){
 	currenthand=hand
 	// 動畫回放入口: 一般手牌(有座位資料)才顯示按鈕
@@ -1746,6 +1946,18 @@ function renderhand(hand){
 	}
 	let bestseat=bestshowdownseat(showdown)
 	let bestlowseat=bestlowshowdownseat(showdown)
+	let previewdata=null
+	let previewrow=null
+	if(previewseatno!=null){
+		for(let i=0;i<seating.length;i=i+1){
+			if(String(seating[i]["seatno"])==String(previewseatno)){
+				previewrow=seating[i]
+			}
+		}
+		if(previewrow){
+			previewdata=seatboardpreview(hand,previewrow)
+		}
+	}
 	// 公共牌的綠光取自高牌贏家、黃光取自低牌贏家。兩者可能是不同人，
 	// 所以這裡各取各的，不能整包丟同一個座位進去。
 	let bestshowdown={}
@@ -1760,10 +1972,31 @@ function renderhand(hand){
 		}
 	}
 	let boardhighlight=boardhighlightfromshowdown(bestshowdown)
+	let previewoffset=highlightmaxlayer(boardhighlight)
+	if(previewdata){
+		if(ptmultiboarded(hand)){
+			let boardhighlightlist=[]
+			for(let i=0;i<previewdata["boardlist"].length;i=i+1){
+				let basehighlight={}
+				if(i==0&&!Array.isArray(boardhighlight)){
+					basehighlight=boardhighlight
+				}else if(Array.isArray(boardhighlight)){
+					basehighlight=boardhighlight[i]||{}
+				}
+				boardhighlightlist.push(combinelayerhighlight(basehighlight,previewdata["boardlist"][i]||{},previewoffset))
+			}
+			boardhighlight=boardhighlightlist
+		}else{
+			boardhighlight=combinelayerhighlight(boardhighlight,previewdata["boardlist"][0]||{},previewoffset)
+		}
+	}
 	let herohighlight=null
 	let heroed=parseInt(hand["selfseating"]||0,10)>0
 	if(heroed){
 		herohighlight=seatshowdownhighlight(showdown[hand["selfseating"]],hand["selfseating"],bestseat,bestlowseat)
+		if(previewdata&&String(previewseatno)==String(hand["selfseating"])){
+			herohighlight=combinelayerhighlight(herohighlight,previewdata["hand"],previewoffset)
+		}
 	}
 	// 計分牌校正紀錄要用 stackadjust.html 編輯，普通手牌才用 newedithand
 	domgetid("editlink").href=((hand["recordtype"]||"hand")=="stackadjustment"?"stackadjust.html":"newedithand.html")+"?tableid="+tableid+"&handid="+handid
@@ -1822,7 +2055,17 @@ function renderhand(hand){
 			result=winamount-currentinvest
 		}
 		let info=showdown[row["seatno"]]
-		let handhtml=seatcardhtml(hand,row,seatshowdownhighlight(info,row["seatno"],bestseat,bestlowseat))
+		let rowhighlight=seatshowdownhighlight(info,row["seatno"],bestseat,bestlowseat)
+		if(previewdata&&String(previewseatno)==String(row["seatno"])){
+			rowhighlight=combinelayerhighlight(rowhighlight,previewdata["hand"],previewoffset)
+		}
+		let handhtml=seatcardhtml(hand,row,rowhighlight)
+		let previewlabelhtml=""
+		if(previewdata&&String(previewseatno)==String(row["seatno"])){
+			for(let labelindex=0;labelindex<previewdata["labellist"].length;labelindex=labelindex+1){
+				previewlabelhtml=previewlabelhtml+`<div class="text-xs text-zinc-300 mt-1">${safe(previewdata["labellist"][labelindex])}</div>`
+			}
+		}
 		if(!row["handcard"]||(!row["handcard"]["card1"]&&!row["handcard"]["card2"])){
 			handhtml=privatecardstatus(row,hand)
 		}
@@ -1838,17 +2081,17 @@ function renderhand(hand){
 		}
 		let starttext=unknowned?hdt("unknown"):money(row["chip"])
 		seatinghtml=seatinghtml+`
-			<tr class="border-t border-zinc-700">
+			<tr class="border-t border-zinc-700" data-previewseat="${row["seatno"]}">
 				<td class="py-2 px-2">Seat ${row["seatno"]}</td>
 				<td class="py-2 px-2">${safe(row["name"])}</td>
 				<td class="py-2 px-2">${handhtml}</td>
 				<td class="py-2 px-2">${starttext}</td>
 				<td class="py-2 px-2 ${endclass}">${endtext}</td>
-				<td class="py-2 px-2 ${resultclass} font-bold">${resulttext}${info?`<div class="text-xs text-zinc-300 mt-1">${info["label"]}</div>`:""}${info&&info["lowlabel"]?`<div class="text-xs text-amber-300 mt-1">${info["lowlabel"]}</div>`:""}</td>
+				<td class="py-2 px-2 ${resultclass} font-bold">${resulttext}${previewlabelhtml||`${info?`<div class="text-xs text-zinc-300 mt-1">${info["label"]}</div>`:""}${info&&info["lowlabel"]?`<div class="text-xs text-amber-300 mt-1">${info["lowlabel"]}</div>`:""}`}</td>
 			</tr>
 		`
 		seatingcardhtml=seatingcardhtml+`
-			<div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
+			<div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4" data-previewseat="${row["seatno"]}">
 				<div class="mb-3 flex items-start justify-between gap-3">
 					<div class="flex min-w-0 flex-1 items-center gap-2">
 						<span class="shrink-0 rounded-full bg-zinc-800 px-2 py-1 text-xs font-bold text-zinc-300">Seat ${row["seatno"]}</span>
@@ -1860,8 +2103,7 @@ function renderhand(hand){
 				</div>
 				<div class="mb-3 flex gap-3 items-end">
 					${handhtml}
-					${info?`<div class="text-xs text-zinc-300">${info["label"]}</div>`:""}
-					${info&&info["lowlabel"]?`<div class="text-xs text-amber-300">${info["lowlabel"]}</div>`:""}
+					<div>${previewlabelhtml||`${info?`<div class="text-xs text-zinc-300">${info["label"]}</div>`:""}${info&&info["lowlabel"]?`<div class="text-xs text-amber-300">${info["lowlabel"]}</div>`:""}`}</div>
 				</div>
 				<div class="flex items-center gap-4 text-xs">
 					<span class="text-zinc-400">${hdt("start")} <span class="text-zinc-200">${starttext}</span></span>
@@ -1924,6 +2166,7 @@ function renderhand(hand){
 	}
 	innerhtml("#seating",seatinghtml,false)
 	innerhtml("#seatingcards",seatingcardhtml,false)
+	bindpreviewseat()
 	let equityplan=buildallinequityplan(hand)
 	let streetlist=handstreetkeylist(hand)
 	let actionhtml=""
@@ -1948,7 +2191,7 @@ function renderhand(hand){
 		actionhtml=actionhtml+`<div class="bg-zinc-900 rounded p-4"><div class="font-bold mb-2">${streetname(street,hand)}</div>${itemhtml}${drawstreethtml(hand,street)}${equityhtml}</div>`
 	}
 	innerhtml("#actions",actionhtml,false)
-	if(equityplan){
+	if(equityplan&&previewseatno==null){
 		runallinequity(equityplan)
 	}
 	innertext("#note",hand["ps"]||hand["note"]||"-",false)

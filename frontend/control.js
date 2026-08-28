@@ -385,6 +385,7 @@ let applyingfromserver=false  // 防 echo loop
 let wsretrytimer=null
 let serverstateinited=false
 let savebusy=false
+let edittimerplayerpending={}
 let wsdownnotified=false  // 斷線提示去重, 避免重試時重複跳 toast
 let controlblocked=false  // 角色無控制權限 (例如計分員) 時鎖住控制按鈕
 
@@ -551,7 +552,7 @@ function save(action, partialState=null) {
 		console.warn('[control] save: no auth token')
 		return
 	}
-	let payload=STATE
+	let payload=controlsavepayload(action)
 	if(partialState != null){
 		payload=partialState
 	}
@@ -591,6 +592,61 @@ function broadcast(action, partialState=null) {
 	// 不必等伺服器回 echo; echo 回來後 applyserverstate 會再以伺服器權威值重錨一次。
 	setTimerAnchor(STATE.secondsLeft)
 	save(action, partialState);
+}
+
+function controlsavepayload(action){
+	let payload={}
+	if(action=="toggle"){
+		payload["running"]=STATE.running
+	}else if(action=="time-adjust"||action=="time-set"||action=="time-reset"){
+		payload["secondsLeft"]=STATE.secondsLeft
+	}else if(action=="next-item"){
+		payload["currentIndex"]=STATE.currentIndex
+		payload["secondsLeft"]=STATE.secondsLeft
+		payload["regClosed"]=STATE.regClosed
+	}else if(action=="prev-item"||action=="jump"){
+		payload["currentIndex"]=STATE.currentIndex
+		payload["secondsLeft"]=STATE.secondsLeft
+	}else if(action=="hand-count"){
+		payload["currentIndex"]=STATE.currentIndex
+		payload["schedule"]=STATE.schedule
+	}else if(action=="default-break"){
+		payload["defaultBreakDur"]=STATE.defaultBreakDur
+	}else if(action=="player-change"){
+		payload["players"]=STATE.players
+		payload["totalEntries"]=STATE.totalEntries
+	}else if(action=="marquee"){
+		payload["marqueeText"]=STATE.marqueeText
+	}else if(action=="prize-mode"){
+		payload["prizePoolMode"]=STATE.prizePoolMode
+		payload["prizePoolManual"]=STATE.prizePoolManual
+	}else if(action=="prize-amount"){
+		payload["prizePoolManual"]=STATE.prizePoolManual
+	}else if(action=="itm-mode"){
+		payload["itmMode"]=STATE.itmMode
+	}else if(action=="itm-pct"){
+		payload["itmPct"]=STATE.itmPct
+	}else if(action=="itm-count"){
+		payload["itmCount"]=STATE.itmCount
+	}else if(action=="auto-itm"){
+		payload["payouts"]=STATE.payouts
+		payload["itmCount"]=STATE.itmCount
+	}else if(action=="bubble"){
+		payload["bubbleMode"]=STATE.bubbleMode
+		payload["running"]=STATE.running
+	}else if(action=="h4h"){
+		payload["handForHand"]=STATE.handForHand
+		payload["running"]=STATE.running
+	}else if(action=="settings"){
+		payload["soundOn"]=STATE.soundOn
+		payload["vibeOn"]=STATE.vibeOn
+		payload["autoStartByTime"]=STATE.autoStartByTime
+		payload["defaultTimebankSeconds"]=STATE.defaultTimebankSeconds
+		payload["timebankSoundOn"]=STATE.timebankSoundOn
+	}else{
+		payload=STATE
+	}
+	return payload
 }
 
 function loadtimerstate(silent){
@@ -1380,11 +1436,16 @@ function requestedittimerplayer(timerplayerid,action){
 }
 
 function edittimerplayer(timerplayerid,action){
+	let pendingkey=String(timerplayerid)+"-"+String(action)
+	if(edittimerplayerpending[pendingkey]){
+		return
+	}
 	let token=getauthtoken()
 	if(!token){
 		showToast(controltext("signinagain"),"err")
 		return
 	}
+	edittimerplayerpending[pendingkey]=true
 	let loadingid=ptloadingstart("#modalLinkedPlayers")
 	fetch(AJAXURL+"edittimerplayer/"+SESSIONID+"/"+timerplayerid,{
 		method: "PUT",
@@ -1414,6 +1475,7 @@ function edittimerplayer(timerplayerid,action){
 	}).catch(function(error){
 		showToast(controltext("networkfail"),"err")
 	}).finally(function(){
+		edittimerplayerpending[pendingkey]=false
 		ptloadingend(loadingid)
 	})
 }
@@ -2234,13 +2296,17 @@ function toggleBreak() {
 			sndConfirm();
 			setLastAction(controltext("endbreakaction"));
 			showToast(controltext("endbreaktoast"));
-			broadcast('break-toggle');
+			broadcast('break-toggle',{
+				"currentIndex": STATE.currentIndex,
+				"secondsLeft": STATE.secondsLeft
+			});
 			render();
 		})
 		return
 	} else {
 		// Insert a break right after current and jump to it
 		const DUR=STATE.defaultBreakDur || 10;
+		let insertindex=STATE.currentIndex
 		STATE.schedule.splice(STATE.currentIndex + 1, 0, { "type": "break", "dur": DUR });
 		STATE.currentIndex=STATE.currentIndex+1;
 		STATE.secondsLeft=DUR * 60;
@@ -2248,8 +2314,14 @@ function toggleBreak() {
 		sndBreak();
 		setLastAction(controltext("insertbreakaction"));
 		showToast(controltext("breakminuteprefix")+DUR+controltext("breakminutesuffix"), 'warn');
+		broadcast('break-toggle',{
+			"insertBreakAfterIndex": insertindex,
+			"breakDur": DUR,
+			"currentIndex": STATE.currentIndex,
+			"secondsLeft": STATE.secondsLeft,
+			"running": STATE.running
+		});
 	}
-	broadcast('break-toggle');
 	render();
 }
 

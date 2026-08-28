@@ -7,6 +7,11 @@ let seriesdata=null
 let members=[]
 let managing=false
 let leaderboardloaded=false
+let leaderboardpage=1
+let leaderboardlimit=20
+if(window.innerWidth<640){
+	leaderboardlimit=10
+}
 let isowner=false
 
 function seriestext(key){
@@ -39,6 +44,16 @@ function profitdisplay(value){
 function moneydisplay(value){
 	let number=Number(value)||0
 	return Number.isInteger(number)?String(number):number.toFixed(2)
+}
+
+function bestplacedisplay(row){
+	if(row["bestplace"]!=null){
+		return row["bestplace"]
+	}
+	if(row["bestadvancelevel"]){
+		return "晉級"+row["bestadvancelevel"]
+	}
+	return "-"
 }
 
 function datepart(value){
@@ -296,6 +311,7 @@ function savesessions(button){
 			pttoastsuccess(seriestext("sessionssaved"))
 			managing=false
 			leaderboardloaded=false
+			leaderboardpage=1
 			members=(data["data"]||{})["sessions"]||members
 			seriesdata["aggregate"]=(data["data"]||{})["aggregate"]||seriesdata["aggregate"]
 			renderoverview()
@@ -307,19 +323,21 @@ function savesessions(button){
 }
 
 function loadleaderboard(){
-	ajax("GET",AJAXURL+"getseriesleaderboard/"+seriesid,function(event,data){
+	ajax("GET",AJAXURL+"getseriesleaderboard/"+seriesid+"?page="+leaderboardpage+"&limit="+leaderboardlimit,function(event,data){
 		if(!data["success"]){
 			pttoast(data["data"]||seriestext("networkerror"),"error")
 			return
 		}
 		leaderboardloaded=true
-		renderleaderboard((data["data"]||{})["leaderboard"]||[])
+		let pagination=(data["data"]||{})["pagination"]||{}
+		leaderboardpage=pagination["page"]||leaderboardpage
+		renderleaderboard((data["data"]||{})["leaderboard"]||[],pagination)
 	},null,[["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]],{
 		loadingtarget: "#tab-leaderboard"
 	})
 }
 
-function renderleaderboard(rows){
+function renderleaderboard(rows,pagination){
 	if(!rows||rows.length<=0){
 		innerhtml("#tab-leaderboard",`<div class="rounded-2xl border border-dashed border-zinc-800 p-8 text-center text-zinc-500">${seriestext("noleaderboard")}<div class="text-xs mt-2">${seriestext("noleaderboardhint")}</div></div>`,false)
 		return
@@ -349,7 +367,7 @@ function renderleaderboard(rows){
 								<td class="py-2 px-3 text-left">${safehtml(r["playername"])||"—"}</td>
 								<td class="py-2 px-3 text-center">${r["entries"]||0}</td>
 								<td class="py-2 px-3 text-center">${r["cashes"]||0}</td>
-								<td class="py-2 px-3 text-center">${r["bestplace"]!=null?r["bestplace"]:"-"}</td>
+								<td class="py-2 px-3 text-center">${safehtml(bestplacedisplay(r))}</td>
 								<td class="py-2 px-3 text-center">${moneydisplay(r["totalprize"])}</td>
 								<td class="py-2 px-3 text-center font-bold ${profit["class"]}">${profit["text"]}</td>
 								<td class="py-2 px-3 text-center">${r["points"]||0}</td>
@@ -359,7 +377,12 @@ function renderleaderboard(rows){
 				</tbody>
 			</table>
 		</div>
+		<div id="seriesleaderboardpagination"></div>
 	`,false)
+	renderptpagination("seriesleaderboardpagination",pagination,function(pagevalue){
+		leaderboardpage=pagevalue
+		loadleaderboard()
+	})
 }
 
 function filleditform(){
@@ -392,6 +415,7 @@ function loadseries(){
 			domgetid("owneractions").classList.add("hidden")
 		}
 		leaderboardloaded=false
+		leaderboardpage=1
 		rendered()
 	},null,[["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]],{
 		loadingtarget: "#tab-overview"
@@ -462,6 +486,7 @@ domgetid("editform").addEventListener("submit",function(event){
 			leaveguard.clear()
 			domgetid("editpanel").classList.add("hidden")
 			leaderboardloaded=false
+			leaderboardpage=1
 			loadseries()
 		}else{
 			pttoast(data["data"]||seriestext("unknownerror"),"error")

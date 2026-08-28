@@ -579,6 +579,12 @@ function payoutranktext(start, end) {
 	return start + "-" + end
 }
 
+const PAYOUTMAXROWS=12
+const PAYOUTMAXROWSWITHREWARD=10
+const PAYOUTROTATEMS=3000
+let payoutpage=0
+let payoutlastsignature=""
+
 function payoutdisplayvalue(item, amount) {
 	let rewardtext=payoutrewardtext(item)
 	let moneytext=amount > 0 ? ("$" + fmt(amount)) : ""
@@ -600,19 +606,23 @@ function buildpayoutrows() {
 	let totalpct=payoutpercenttotal(payouts)
 	let raws=[]
 	let rows=[]
+	let payoutplayerlimit=parseInt(state["players"], 10) || 0
 	for (let i=0; i<payouts.length; i=i+1) {
 		let amount=payoutcashamount(payouts[i], pool, totalpct)
 		raws.push(amount)
 	}
 	for (let i=0; i<payouts.length; i=i+1) {
 		let rank=payoutrankrange(payouts[i]["rank"], i)
-		if (rank["start"] <= state["players"]) {
+		if (payoutplayerlimit == 0 || rank["start"] <= payoutplayerlimit) {
+			let rankend=rank["end"]
+			if (0 < payoutplayerlimit && payoutplayerlimit < rankend) {
+				rankend=payoutplayerlimit
+			}
 			rows.push({
 				"rankstart": rank["start"],
-				"rankend": rank["end"],
+				"rankend": rankend,
 				"value": payoutdisplayvalue(payouts[i], raws[i]),
-				"color": "#cbd5e1",
-				"inmoney": i < itmcount()
+				"color": "#cbd5e1"
 			})
 		}
 	}
@@ -631,21 +641,84 @@ function buildpayoutrows() {
 	return merged
 }
 
-function visiblepayoutrows(rows) {
-	let maxrows=15
-	if (rows.length <= maxrows) {
+function payoutrowsignature(rows) {
+	let signature=[]
+	for (let i=0;i<rows.length;i=i+1) {
+		signature.push(rows[i]["rankstart"]+"-"+rows[i]["rankend"]+":"+rows[i]["value"]+":"+rows[i]["color"])
+	}
+	return signature.join("|")
+}
+
+function payoutotherrewarded() {
+	let otherrewardlist=state["otherReward"]
+	if (!Array.isArray(otherrewardlist)) {
+		return false
+	}
+	let rewarded=false
+	for (let i=0;i<otherrewardlist.length;i=i+1) {
+		let item=otherrewardlist[i] || {}
+		let label=String(item["label"] || "").replace(/^\s+|\s+$/g, "")
+		let reward=String(item["reward"] || "").replace(/^\s+|\s+$/g, "")
+		let cash=parseFloat(item["cash"])
+		if (isNaN(cash)) {
+			cash=0
+		}
+		if (label != "" || reward != "" || 0 < cash) {
+			rewarded=true
+		}
+	}
+	return rewarded
+}
+
+function payoutmaxrows() {
+	if (payoutotherrewarded()) {
+		return PAYOUTMAXROWSWITHREWARD
+	}
+	return PAYOUTMAXROWS
+}
+
+function payoutmiddlepagelist(rows) {
+	let first=rows[0]
+	let last=rows[rows.length - 1]
+	let middle=rows.slice(1, rows.length - 1)
+	let capacity=Math.max(1, payoutmaxrows() - 2)
+	let pagelist=[]
+	let page=[]
+	for (let i=0;i<middle.length;i=i+1) {
+		if (capacity <= page.length) {
+			pagelist.push(page)
+			page=[]
+		}
+		page.push(middle[i])
+	}
+	if (0 < page.length) {
+		pagelist.push(page)
+	}
+	if (pagelist.length == 0) {
+		pagelist.push([])
+	}
+	return pagelist
+}
+
+function payoutmiddlepagecount(rows) {
+	if (rows.length <= payoutmaxrows()) {
+		return 1
+	}
+	return payoutmiddlepagelist(rows).length
+}
+
+function visiblepayoutrows(rows, page) {
+	if (rows.length <= payoutmaxrows()) {
 		return rows
 	}
 	let first=rows[0]
 	let last=rows[rows.length - 1]
-	let middle=rows.slice(1, rows.length - 1)
-	let pagesize=maxrows - 2
-	let pagecount=Math.max(1, Math.ceil(middle.length / pagesize))
-	let page=Math.floor(Date.now() / 3000) % pagecount
-	let start=page * pagesize
+	let pagelist=payoutmiddlepagelist(rows)
+	let pagecount=pagelist.length
+	let safepage=page % pagecount
 	let output=[first]
-	for (let i=start; i<middle.length && i<start+pagesize; i=i+1) {
-		output.push(middle[i])
+	for (let i=0;i<pagelist[safepage].length;i=i+1) {
+		output.push(pagelist[safepage][i])
 	}
 	output.push(last)
 	return output
@@ -668,16 +741,20 @@ function buildpayouts() {
 	let payouts=state["payouts"] || []
 	let totalpct=payoutpercenttotal(payouts)
 	let payoutcashtotalamount=payoutcashtotal(payouts, pool, totalpct)
-	let itmcountvalue=itmcount()
-	let playersleft=state["players"] || 0
-	let remainingtobubble=playersleft - itmcountvalue
 
-	let payoutrows=visiblepayoutrows(buildpayoutrows())
+	let allpayoutrows=buildpayoutrows()
+	let signature=payoutrowsignature(allpayoutrows)
+	if (signature != payoutlastsignature) {
+		payoutlastsignature=signature
+		payoutpage=0
+	}
+	let pagecount=payoutmiddlepagecount(allpayoutrows)
+	if (pagecount <= payoutpage) {
+		payoutpage=0
+	}
+	let payoutrows=visiblepayoutrows(allpayoutrows, payoutpage)
 	domgetid("payoutList").innerHTML=payoutrows.map(function(p) {
-		let classname="prow mono below-bubble"
-		if (p["inmoney"]) {
-			classname="prow mono in-money"
-		}
+		let classname="prow mono"
 		// value 可能含 reward 自由文字(操作者可控), 走 innerHTML 前先跳脫(含引號)。
 		let valuetext=escapehtml(p["value"]).replace(/"/g, "&quot;").replace(/'/g, "&#39;")
 		return "<div class=\"" + classname + "\"><span>" + payoutranktext(p["rankstart"], p["rankend"]) + "</span><span>" + valuetext + "</span></div>"
@@ -1182,8 +1259,7 @@ function render() {
 	domgetid("avgStack").textContent=fmt(avgstack) + " (" + avgstackbb.toFixed(1) + "BB)"
 	domgetid("playersDisplay").textContent=state["players"]
 	if (state["showMultidayRemaining"]==true) {
-		// 分母用「本日進場人數」(multidayTodayEntries: 晉級 + 本日新進), 不用只算晉級的 multidayRemaining,
-		// 否則 Day2 有 re-entry / 直接報名時在場人數會超過晉級人數, 出現 13/12 這種矛盾。
+		// 括號總數由後端只算此場上游來源與本場新增 / reentry, 不含同系列其他分支。
 		domgetid("entriesLabel").textContent="/" + (state["multidayTodayEntries"] || 0) + "(" + (state["multidaySourceTotalEntries"] || 0) + ")"
 	} else {
 		domgetid("entriesLabel").textContent="/" + state["totalEntries"]
@@ -1225,7 +1301,10 @@ function render() {
 			domgetid("regCountdownDisplay").style.color="#f87171"
 			domgetid("regCloseAfterLabel").textContent="Registration closed"
 		} else {
-			regcard.style.display="none"
+			regcard.style.display="block"
+			domgetid("regCountdownDisplay").textContent="CLOSE"
+			domgetid("regCountdownDisplay").style.color="#f87171"
+			domgetid("regCloseAfterLabel").textContent="Registration close not set"
 		}
 	}
 
@@ -1327,6 +1406,15 @@ setInterval(function() {
 	}
 	render()
 }, 200)
+
+setInterval(function() {
+	let payoutrows=buildpayoutrows()
+	let pagecount=payoutmiddlepagecount(payoutrows)
+	if (1 < pagecount) {
+		payoutpage=(payoutpage + 1) % pagecount
+		buildpayouts()
+	}
+}, PAYOUTROTATEMS)
 // 定時向後端 HTTP 重新校正: 補 WS 漏訊 / 修正各機本機時鐘漂移 / 蓋過殭屍連線。
 // gettimer 回的 secondsLeft 是後端即時算好的, 重新下錨不會讓倒數往回跳。
 // 間隔 10 秒: 顯示螢幕數量少, 對後端幾乎無感; 不更短是因 gettimer 是中等重的查詢。

@@ -74,6 +74,9 @@ ERRORLIST={
 	"ERROR_follow_not_found": status.HTTP_404_NOT_FOUND,
 	"ERROR_follow_target_not_found": status.HTTP_404_NOT_FOUND,
 	"ERROR_cannot_follow_self": status.HTTP_400_BAD_REQUEST,
+	"ERROR_invalid_gametype_code": status.HTTP_400_BAD_REQUEST,
+	"ERROR_duplicate_gametype_code": status.HTTP_409_CONFLICT,
+	"ERROR_zz_required": status.HTTP_400_BAD_REQUEST,
 }
 
 def errorresponse(key):

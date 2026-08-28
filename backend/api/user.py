@@ -180,6 +180,8 @@ def carddeckvalue(value,fallback):
 
 POTMAINSIDELIST=["left","right"]
 
+CARDFACEMODELIST=["two","four"]
+
 def ensureusercarddeckcolumn():
 	# 手牌回放偏好: 牌背皮膚(cardback) + 牌面皮膚(cardface) + 主池位置(potmainside),
 	# 供手牌回放與現場轉播讀取。
@@ -191,6 +193,7 @@ def ensureusercarddeckcolumn():
 	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS potmainside varchar(10) NOT NULL DEFAULT 'right'""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardback varchar(20)""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardface varchar(20)""",[],SETTING["dbsetting"])
+	query(SETTING["dbname"],"""ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardfacemode varchar(10) NOT NULL DEFAULT 'four'""",[],SETTING["dbsetting"])
 	# 只回填還沒設定過的（新欄位可為 NULL，NULL 就代表「沿用 carddeck」），
 	# 所以這行重複執行不會覆蓋使用者已經分開選過的設定。
 	query(SETTING["dbname"],"""UPDATE public."user" SET "cardback"=COALESCE("cardback","carddeck"),"cardface"=COALESCE("cardface","carddeck") WHERE "cardback" IS NULL OR "cardface" IS NULL""",[],SETTING["dbsetting"])
@@ -670,6 +673,7 @@ def getuser(request):
 			"cardback": carddeckvalue(row.get("cardback"),row.get("carddeck")),
 			"cardface": carddeckvalue(row.get("cardface"),row.get("carddeck")),
 			"potmainside": row.get("potmainside") if row.get("potmainside") in POTMAINSIDELIST else "right",
+			"cardfacemode": row.get("cardfacemode") if row.get("cardfacemode") in CARDFACEMODELIST else "four",
 			"chipset": loaduserchipset(row["id"]),
 			"toolfavorite": loadusertoolfavorite(row["id"]),
 			"todaytotalprofit": float(today_profit),
@@ -1217,6 +1221,22 @@ def edituserpotmainside(request):
 	return Response({
 		"success": True,
 		"data": potmainside
+	},status.HTTP_200_OK)
+
+@api_view(["PUT"])
+def editusercardfacemode(request):
+	ensureusercarddeckcolumn()
+	tokenuserrow,autherror=commonauthuser(request)
+	if autherror:
+		return autherror
+	data=json.loads(request.body)
+	cardfacemode=str(data.get("cardfacemode") or "").strip().lower()
+	if cardfacemode not in CARDFACEMODELIST:
+		cardfacemode="four"
+	query(SETTING["dbname"],f"""UPDATE "user" SET "cardfacemode"=%s,"updatetime"=%s WHERE "id"=%s""",[cardfacemode,nowtime(),tokenuserrow["id"]],SETTING["dbsetting"])
+	return Response({
+		"success": True,
+		"data": cardfacemode
 	},status.HTTP_200_OK)
 
 @api_view(["PUT"])

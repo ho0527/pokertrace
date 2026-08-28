@@ -274,6 +274,29 @@ def _payoutcashtotal(sessionrow,pool):
 					total=total+round(pool*pct/100)
 	return total
 
+def _otherrewardcashtotal(sessionrow):
+	configrow=query(SETTING["dbname"],f"""SELECT "otherreward" FROM "sessiontimerconfig" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionrow["id"]],SETTING["dbsetting"])
+	if not configrow:
+		return 0
+	source=configrow[0].get("otherreward") or ""
+	if isinstance(source,str):
+		text=source.strip()
+		if text=="":
+			return 0
+		try:
+			source=json.loads(text)
+		except Exception as error:
+			return 0
+	if not isinstance(source,list):
+		return 0
+	total=0
+	for item in source:
+		if isinstance(item,dict):
+			cash=_num(item.get("cash"),0)
+			if 0<cash:
+				total=total+round(cash)
+	return total
+
 def _sessiontotalentries(sessionid):
 	countrow=query(SETTING["dbname"],f"""SELECT SUM(1+COALESCE("rebuycount",0)+COALESCE("reentrycount",0)) AS count FROM "sessionplayer" WHERE "sessionid"=%s AND "status" IN ('confirmed','advanced') AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
 	if countrow and countrow[0]["count"]:
@@ -297,7 +320,7 @@ def _multidaycarryover(sessionid,visited=None):
 	for row in rows or []:
 		sourceentries=_sessiontotalentries(row["id"])
 		sourcepool=_timerprizepool(row,sourceentries,nextvisited)
-		paid=_payoutcashtotal(row,sourcepool)
+		paid=_payoutcashtotal(row,sourcepool)+_otherrewardcashtotal(row)
 		left=sourcepool-paid
 		if 0<left:
 			total=total+left
@@ -348,7 +371,16 @@ def _cost(sessionrow,row):
 	buyin=_num(sessionrow.get("buyin"),0)
 	fee=_num(sessionrow.get("buyinfee"),0)
 	reentrycount=_int(row.get("reentrycount"),0)
-	if row.get("paymenttype")=="ticket":
+	advancedfromed=row.get("advancesourceid") is not None
+	if advancedfromed:
+		reentrybuyin=_num(sessionrow.get("reentrybuyin"),0)
+		reentryfee=_num(sessionrow.get("reentryfee"),0)
+		if reentrybuyin<=0:
+			reentrybuyin=buyin
+		if reentryfee<=0:
+			reentryfee=fee
+		base=(reentrybuyin+reentryfee)*reentrycount
+	elif row.get("paymenttype")=="ticket":
 		ticketvalue=_num(sessionrow.get("ticketvalue"),0)
 		base=ticketvalue*(1+reentrycount)
 	else:

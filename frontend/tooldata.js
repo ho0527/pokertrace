@@ -6,6 +6,7 @@
     {href:"tool/seatdraw.html",category:"featured live",ztitle:"座位抽籤",etitle:"Seat Draw",zdesc:"隨機分配桌號與座位",edesc:"Random table and seat assignment"},
     {href:"tool/cashreconcile.html",category:"featured operation",ztitle:"現場收款對帳",etitle:"Cash Reconcile",zdesc:"應收 vs 實收差額",edesc:"Expected vs collected cash"},
     {href:"tool/tdarules.html",category:"featured learn live",ztitle:"TDA規則手冊",etitle:"TDA Rulebook",zdesc:"2024 TDA 撲克賽事規則 PDF 預覽",edesc:"2024 TDA tournament rules PDF viewer"},
+    {href:"tool/handbook.html",category:"featured learn live",ztitle:"撲克玩法手冊",etitle:"Poker Handbook",zdesc:"德州、奧馬哈、Draw、Stud 玩法速查",edesc:"Hold'em, Omaha, Draw, and Stud game guide"},
     {href:"tool/timebankdrill.html",category:"strategy",ztitle:"Timebank 計時器",etitle:"Timebank Drill",zdesc:"多情境時間、點一下開始/暫停",edesc:"Practice decision timing"},
     {href:"tool/stackcalc.html",category:"chip strategy",ztitle:"計分牌量換算",etitle:"Stack Calculator",zdesc:"BB 數與 M 值",edesc:"BB count and M value"},
     {href:"tool/sidepot.html",category:"live strategy",ztitle:"邊池計算",etitle:"Side Pot",zdesc:"多人 all-in 主池與邊池分配",edesc:"Main and side pot calculation"},
@@ -105,7 +106,8 @@ const TOOLMAINTENANCEOFFLIST=[
     "tool/structuregen.html",
     "tool/apidoc.html",
     "tool/range.html",
-    "tool/stackcalc.html"
+    "tool/stackcalc.html",
+    "tool/handbook.html"
 ]
 
 function pttoolfindbyhref(href){

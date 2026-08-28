@@ -1,4 +1,4 @@
-/*
+﻿/*
 	製作人員: 賀皓群(小賀) / dc: chris0527 / line: ho960527 / email: chris960527ho@gmail.com / 電話: 0906585605
 
 		|-------    -----    -                     -     -----  -----  -----   -------|
@@ -145,7 +145,7 @@ function ptcardfaceget(){
 ptcardfaceapply(ptcardfaceget())
 
 // TASK-046：牌背 / 牌面皮膚套在 <html> 上，全站都吃得到。
-// 在此之前 .deck-<key> 只加在現場轉播的 body 與手牌回放的覆蓋層上，
+// 在此之前 .deck-<key> 只加在手牌回放的覆蓋層上，
 // 所以 carddisplay.css 為 .pt-card 寫的那 8 套牌面配色在 handdetail / session / table
 // 這些真正用 .pt-card 的頁面上其實不會生效。改成全站套用後才符合
 // 使用者要的「牌面全站同步」。
@@ -1313,7 +1313,7 @@ function loadbackendadminlinks(){
 	}
 	ajax("GET",AJAXURL+"getuser",function(event,data){
 		if(data["success"]){
-			// 牌背 / 主池位置偏好每頁同步到 localStorage, 供手牌回放 / 現場轉播讀取帳號設定
+			// 牌背 / 主池位置偏好每頁同步到 localStorage, 供手牌回放讀取帳號設定
 			try{
 				localStorage.setItem("bc-deck",data["data"]["carddeck"]||"classic")
 				localStorage.setItem("bc-potside",data["data"]["potmainside"]||"right")
@@ -1321,6 +1321,8 @@ function loadbackendadminlinks(){
 				// 舊帳號沒分開設定時後端會回傳與 carddeck 相同的值，所以外觀不變。
 				localStorage.setItem(CARDBACKKEY,data["data"]["cardback"]||data["data"]["carddeck"]||"classic")
 				localStorage.setItem(CARDSKINKEY,data["data"]["cardface"]||data["data"]["carddeck"]||"classic")
+				localStorage.setItem(CARDFACEKEY,data["data"]["cardfacemode"]||"four")
+				ptcardfaceapply(data["data"]["cardfacemode"]||"four")
 				// 兩色 / 四色是另一個軸，後端還沒有對應欄位，維持只存本機。
 				// 這裡刻意不再讀 data["cardface"] 當成兩色/四色——那個欄位現在是皮膚名稱，
 				// 直接餵給 ptcardfaceapply() 會讓使用者選的兩色設定被吃掉。
@@ -1832,6 +1834,9 @@ function pttoolresulttext(){
 
 function pttoolactionbar(){
 	if(!TOOLPAGEED){
+		return
+	}
+	if((document.body.getAttribute("data-toolaction")||"").trim()=="off"){
 		return
 	}
 	let card=document.querySelector("section[class*=\"rounded-[28px]\"]")
@@ -2698,7 +2703,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} a3.0.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} a4.0.0 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>

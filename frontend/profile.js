@@ -12,6 +12,7 @@ let currentreporttype="month"
 let signoutpendinged=false
 let deleteaccountpendinged=false
 let currentplayerid=""
+let currentuserpermission=0
 let profilescrolllockcount=0
 let profilebodyoverflow=""
 let profilehtmloverflow=""
@@ -62,6 +63,7 @@ let carddeck="classic"
 // TASK-046：牌背與牌面分開。舊帳號沒分開設定過時後端回傳與 carddeck 相同的值。
 let cardback="classic"
 let cardfaceskin="classic"
+let cardfacemode="four"
 let potmainside="right"
 let lastreportrow=null
 let lastreportcontext={"type":"month","year":"","month":""}
@@ -173,6 +175,7 @@ function applyprofilelanguage(){
     // （tools/audit/scandeadreference.js 掃出來的）
     settext("#profileeyebrow",profiletext("eyebrow"))
     settext("#profiletitle",profiletext("title"))
+    settext("#profilemobiletitle",profiletext("title"))
     updatefocusbadges()
 
     settext("#basicprofiletitle",profiletext("basicsectiontitle"))
@@ -221,6 +224,9 @@ function applyprofilelanguage(){
     settext("#displaydefaultcardtitle",profiletext("displaydefaultcardtitle"))
     settext("#displaydefaultcarddesc",profiletext("displaydefaultcarddesc"))
     setvalue("#opendisplaydefaultmodal",profiletext("manage"))
+    settext("#gametypeadmincardtitle",profiletext("gametypeadmincardtitle"))
+    settext("#gametypeadmincarddesc",profiletext("gametypeadmincarddesc"))
+    settext("#opengametypeadmin",profiletext("gametypeadminopen"))
     settext("#chipsetcarddesc",profiletext("chipsetcarddesc"))
     settext("#shakecardtitle",profiletext("shakecardtitle"))
     settext("#shakecarddesc",profiletext("shakecarddesc"))
@@ -423,11 +429,13 @@ function gotuserdata(event,data){
     let row=data["data"]
     currentusertype=row["type"]||"player"
     currentplayerid=row["playerid"]||""
+    currentuserpermission=Number(row["permission"]||0)
     chipcolors=row["chipcolors"]||chipcolors
     chipsets=row["chipset"]||chipsets
     carddeck=row["carddeck"]||"classic"
     cardback=row["cardback"]||carddeck
     cardfaceskin=row["cardface"]||carddeck
+    cardfacemode=row["cardfacemode"]||"four"
     potmainside=row["potmainside"]||"right"
     displaydefault={
         "brandname": row["displaybrandname"]||"",
@@ -436,16 +444,19 @@ function gotuserdata(event,data){
         "displayfields": row["displaydisplayfields"]||"",
         "columnorder": row["displaycolumnorder"]||""
     }
-    // 牌背 / 主池位置偏好快取到 localStorage, 供手牌回放 / 現場轉播直接讀取(key 與其共用)
+    // 牌背 / 主池位置偏好快取到 localStorage, 供手牌回放直接讀取(保留既有 key)
     try{
         localStorage.setItem("bc-deck",carddeck)
         localStorage.setItem(CARDBACKKEY,cardback)
         localStorage.setItem(CARDSKINKEY,cardfaceskin)
+        localStorage.setItem(CARDFACEKEY,cardfacemode)
         localStorage.setItem("bc-potside",potmainside)
     }catch(error){
         // localStorage 不可用時忽略
     }
+    ptcardfaceapply(cardfacemode)
     renderbasicprofile(row)
+    rendergametypeadmincard()
     arrangeprofilesections()
     applyprofilelanguage()
     renderemploymentsection(row)
@@ -1624,20 +1635,30 @@ function switchpotside(side){
 // 由 initialize.js 在每一頁把 class 掛到 <html> 上，所以每頁都吃得到。
 // 目前只存 localStorage —— 後端還沒有 cardface 欄位（見 TASK-046），換裝置要重選一次。
 function switchcardface(face){
-    try{
-        localStorage.setItem(CARDFACEKEY,face)
-    }catch(error){
-        // localStorage 不可用時只套用當下這一頁
-    }
-    ptcardfaceapply(face)
-    let cover=domgetid("replaysettingsmodal")
-    if(cover){
-        let opts=cover.querySelectorAll("[data-cardface]")
-        for(let i=0;i<opts.length;i=i+1){
-            let selected=opts[i].getAttribute("data-cardface")==face
-            opts[i].className="rounded-full "+(selected?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300")+" px-6 py-2 text-sm font-bold transition hover:opacity-90"
+    ajax("PUT",AJAXURL+"editusercardfacemode",function(event,data){
+        if(data["success"]){
+            cardfacemode=data["data"]||face
+            try{
+                    }catch(error){
+                // localStorage 不可用時只套用當下這一頁
+            }
+            ptcardfaceapply(cardfacemode)
+            let cover=domgetid("replaysettingsmodal")
+            if(cover){
+                let opts=cover.querySelectorAll("[data-cardface]")
+                for(let i=0;i<opts.length;i=i+1){
+                    let selected=opts[i].getAttribute("data-cardface")==cardfacemode
+                    opts[i].className="rounded-full "+(selected?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300")+" px-6 py-2 text-sm font-bold transition hover:opacity-90"
+                }
+            }
+            return
         }
-    }
+        errorprompt(profiletext("unknownerror"))
+    },str({
+        "cardfacemode": face
+    }),[
+        ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+    ])
 }
 
 // 手牌回放設定燈箱:牌背樣式(實際卡背+牌面預覽,點即套用並存帳號)+ 主池位置
@@ -1703,7 +1724,7 @@ function openreplaysettings(){
         let facesel=facedecks[i]["key"]==cardfaceskin?" sel":""
         faceswatches=faceswatches+`<div class="hr-lbopt deck-${facedecks[i]["key"]}${facesel}" data-cardface-skin="${facedecks[i]["key"]}"><div class="hr-lbswatch"><span class="bc-card red sm"><span class="r">A</span><span class="s">♥</span></span></div><div class="hr-lbname">${facedecks[i]["name"]}</div></div>`
     }
-    let currentface=ptcardfaceget()
+    let currentface=cardfacemode
     let twosel=currentface=="two"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
     let foursel=currentface=="four"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
     let leftsel=potmainside=="left"?"bg-blue-600 text-white":"bg-zinc-700 text-zinc-300"
@@ -2243,6 +2264,17 @@ function renderfollowsection(followlist){
     }
     grid.innerHTML=html
     bindfollowcard(followlist)
+}
+
+function rendergametypeadmincard(){
+    let card=domgetid("gametypeadmincard")
+    if(card){
+        if(5<=currentuserpermission){
+            card.classList.remove("hidden")
+        }else{
+            card.classList.add("hidden")
+        }
+    }
 }
 
 function bindfollowcard(followlist){

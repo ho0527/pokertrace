@@ -17,6 +17,7 @@
             <div class="mb-8">
                 <p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400" id="profileeyebrow">Profile Center</p>
                 <h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" id="profiletitle">個人資料</h1>
+                <h2 class="hidden" data-i18n="profile.title" id="profilemobiletitle">個人資料</h2>
             </div>
 
             <div id="profilesections" class="space-y-8">
@@ -229,6 +230,12 @@
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="displaydefaultcarddesc">設定一次，之後每建一場賽事都會自動帶入。單場改動不會影響這裡。</div>
                             <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="displaydefaultpreview">尚未設定大螢幕品牌預設</div>
                             <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="opendisplaydefaultmodal" value="管理">
+                        </div>
+
+                        <div class="hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5" id="gametypeadmincard">
+                            <div class="mb-2 text-base font-bold text-white" id="gametypeadmincardtitle">遊戲類型設定</div>
+                            <div class="mb-4 text-sm leading-7 text-emerald-100/80" id="gametypeadmincarddesc">新增與管理場次可用遊戲，並設定每種玩法的發牌、下注與勝負流程。</div>
+                            <a href="gametype.html" class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-emerald-600 px-5 text-sm font-bold text-white transition hover:bg-emerald-500" id="opengametypeadmin">前往設定</a>
                         </div>
 
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">

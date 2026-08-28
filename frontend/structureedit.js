@@ -197,8 +197,13 @@ function readstructeditor(){
 	let newschedule=[]
 	for(let i=0;i<rows.length;i=i+1){
 		let row=rows[i]
-		let type=row.querySelector("[data-edit-k=\"type\"]").value
-		let durnum=parseInt(row.querySelector("[data-edit-k=\"dur\"]").value,10)
+		let rowindex=parseInt(row.dataset.structRow,10)
+		let sourceitem=state.schedule[rowindex]||{}
+		let typeinput=row.querySelector("[data-edit-k=\"type\"]")
+		let durinput=row.querySelector("[data-edit-k=\"dur\"]")
+		let reginput=row.querySelector("[data-edit-k=\"reg\"]")
+		let type=typeinput?typeinput.value:"level"
+		let durnum=durinput?parseInt(durinput.value,10):0
 		if(type=="break"){
 			let item={ type: "break", dur: (isNaN(durnum)||durnum<1)?1:durnum }
 			item.chipRaiseValues=[]
@@ -209,26 +214,41 @@ function readstructeditor(){
 					item.chipRaiseValues.push(chipvalue)
 				}
 			}
-			if(row.querySelector("[data-edit-k=\"reg\"]").checked){
+			if(reginput&&reginput.checked){
 				item.regCloseAfter=true
 			}
 			newschedule.push(item)
 			continue
 		}
+		let smallblindinput=row.querySelector("[data-edit-k=\"sb\"]")
+		let bigblindinput=row.querySelector("[data-edit-k=\"bb\"]")
+		let anteinput=row.querySelector("[data-edit-k=\"ante\"]")
+		let smallblind=parseInt(sourceitem["sb"],10)||0
+		let bigblind=parseInt(sourceitem["bb"],10)||0
+		let ante=parseInt(sourceitem["ante"],10)||0
+		if(smallblindinput){
+			smallblind=parseInt(smallblindinput.value,10)||0
+		}
+		if(bigblindinput){
+			bigblind=parseInt(bigblindinput.value,10)||0
+		}
+		if(anteinput){
+			ante=parseInt(anteinput.value,10)||0
+		}
 		let ishands=type=="hands"
 		let item={
-			type: "level",
-			timemode: ishands?"hands":"time",
-			dur: ishands?(parseInt(row.dataset.minutes,10)||20):((isNaN(durnum)||durnum<1)?1:durnum),
-			sb: parseInt(row.querySelector("[data-edit-k=\"sb\"]").value,10)||0,
-			bb: parseInt(row.querySelector("[data-edit-k=\"bb\"]").value,10)||0,
-			ante: parseInt(row.querySelector("[data-edit-k=\"ante\"]").value,10)||0
+			"type": "level",
+			"timemode": ishands?"hands":"time",
+			"dur": ishands?(parseInt(row.dataset.minutes,10)||20):((isNaN(durnum)||durnum<1)?1:durnum),
+			"sb": smallblind,
+			"bb": bigblind,
+			"ante": ante
 		}
 		if(ishands){
 			item.handTargetCount=(isNaN(durnum)||durnum<0)?0:durnum
 			item.handCount=parseInt(row.dataset.handcount,10)||0
 		}
-		if(row.querySelector("[data-edit-k=\"reg\"]").checked){
+		if(reginput&&reginput.checked){
 			item.regCloseAfter=true
 		}
 		newschedule.push(item)

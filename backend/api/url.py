@@ -44,6 +44,7 @@ urlpatterns=[
     re_path(r"^edituserchipcolors$",user.edituserchipcolors,name="edituserchipcolors"),
     re_path(r"^editusercarddeck$",user.editusercarddeck,name="editusercarddeck"),
     re_path(r"^edituserpotmainside$",user.edituserpotmainside,name="edituserpotmainside"),
+    re_path(r"^editusercardfacemode$",user.editusercardfacemode,name="editusercardfacemode"),
     re_path(r"^edituserdisplaydefault$",user.edituserdisplaydefault,name="edituserdisplaydefault"),
     re_path(r"^edituserchipset$",user.edituserchipset,name="edituserchipset"),
     re_path(r"^gettoolfavorite$",user.gettoolfavorite,name="gettoolfavorite"),
@@ -63,6 +64,9 @@ urlpatterns=[
     # gettype / newtype / edittype / deletetype 已於 2026-08-06 移除（TASK-104）：
     # 它們操作的 "type" 表不存在也從來沒存在過，是 session 的前身殘骸。理由見 type.py 檔頭。
     re_path(r"^gettypelist$",type.gettypelist,name="gettypelist"),
+    re_path(r"^getgametypesettinglist$",type.getgametypesettinglist,name="getgametypesettinglist"),
+    re_path(r"^savegametypesetting$",type.savegametypesetting,name="savegametypesetting"),
+    re_path(r"^deletegametypesetting/(?P<gametypeid>[^/]+)$",type.deletegametypesetting,name="deletegametypesetting"),
 
     re_path(r"^getsessionlist$",session.getsessionlist,name="getsessionlist"),
     re_path(r"^getsession/(?P<sessionid>[^/]+)$",session.getsession,name="getsession"),

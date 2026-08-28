@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS public.gametype(
 	name varchar(50) NOT NULL,
 	code varchar(20) NOT NULL UNIQUE,
 	description text,
+	flowjson text NOT NULL DEFAULT '[]',
+	enabled boolean NOT NULL DEFAULT true,
 	createtime timestamp with time zone NOT NULL DEFAULT now(),
 	updatetime timestamp with time zone NOT NULL DEFAULT now(),
 	deletetime timestamp with time zone
@@ -141,6 +143,7 @@ CREATE TABLE IF NOT EXISTS public."user"(
 	carddeck varchar(20) NOT NULL DEFAULT 'classic',
 	cardback varchar(20),
 	cardface varchar(20),
+	cardfacemode varchar(10) NOT NULL DEFAULT 'four',
 	potmainside varchar(10) NOT NULL DEFAULT 'right',
 	chipcolors text NOT NULL DEFAULT '[{"name":"白色","color":"#ffffff"},{"name":"紅色","color":"#ff0000"},{"name":"藍色","color":"#0000ff"},{"name":"綠色","color":"#008000"},{"name":"黑色","color":"#000000"},{"name":"黃色","color":"#ffff00"},{"name":"橘色","color":"#ffa500"},{"name":"紫色","color":"#800080"},{"name":"粉紅色","color":"#ffc0cb"},{"name":"灰色","color":"#808080"},{"name":"亮紅色","color":"#ef4444"},{"name":"琥珀色","color":"#f59e0b"},{"name":"亮綠色","color":"#22c55e"},{"name":"亮藍色","color":"#3b82f6"}]',
 	createtime timestamp with time zone NOT NULL DEFAULT now(),
@@ -154,6 +157,7 @@ ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS carddeck varchar(20) NOT NULL
 -- 新欄位可為 NULL，NULL 代表「沿用 carddeck」，所以既有帳號拆分後外觀完全不變。
 ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardback varchar(20);
 ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardface varchar(20);
+ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS cardfacemode varchar(10) NOT NULL DEFAULT 'four';
 UPDATE public."user" SET "cardback"=COALESCE("cardback","carddeck"),"cardface"=COALESCE("cardface","carddeck") WHERE "cardback" IS NULL OR "cardface" IS NULL;
 ALTER TABLE public."user" ADD COLUMN IF NOT EXISTS potmainside varchar(10) NOT NULL DEFAULT 'right';
 -- 大螢幕品牌的「個人預設值」(TASK-020)。建立場次時帶進 session 表的同名欄位, 之後可在單場覆寫。
@@ -1311,6 +1315,9 @@ BEGIN
 		END IF;
 	END LOOP;
 END$$;
+
+ALTER TABLE public.gametype ADD COLUMN IF NOT EXISTS flowjson text NOT NULL DEFAULT '[]';
+ALTER TABLE public.gametype ADD COLUMN IF NOT EXISTS enabled boolean NOT NULL DEFAULT true;
 
 -- currency
 INSERT INTO public.currency(code,name,symbol,decimals) VALUES

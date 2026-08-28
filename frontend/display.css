@@ -304,21 +304,13 @@ section{
 	gap: 12px;
 	padding: 8px 0;
 	border-bottom: 1px solid #181818;
+	color: #f5f5f5;
 	font-size: 30px;
 }
 
 .prow span:last-child {
 	text-align: right;
 	word-break: keep-all;
-}
-
-.prow.in-money {
-	background: linear-gradient(90deg, var(--accentwash), transparent);
-	border-bottom-color: var(--accentsurface);
-}
-
-.prow.below-bubble {
-	opacity: 0.35;
 }
 
 .itm-banner {

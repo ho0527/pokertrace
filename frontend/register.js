@@ -31,6 +31,7 @@ let addonallowed=false
 let advancetargets=[]
 let unifiedhandrecord=false
 let totalchipcount=0
+let edittimerplayerpending={}
 // 應有總計分牌（後端 expectedchiptotal）。與 totalchipcount 相減就是誤差 ——
 // 錦標賽的計分牌守恆，淘汰者的碼會轉到存活者身上，所以兩者本來就該相等。
 let expectedchipcount=0
@@ -54,6 +55,10 @@ let registrationfilter="all"
 let registrationsortstate={"key": "","ascended": true}
 
 function registrationsortvalue(item,key){
+	if(key=="serialno"){
+		let number=Number(item["serialno"])
+		return isNaN(number)?null:number
+	}
 	if(key=="registertime"){
 		let text=ptformatdatetime(item["registertime"])
 		return text||null
@@ -636,7 +641,7 @@ function canadvanceregistration(){
 	return true
 }
 
-function financebuttonhtml(r){
+function financebuttonhtml(r,serialno){
 	let payment=r["paymenttype"]=="ticket"?rt("paymentticket"):rt("paymentcash")
 	let prize=r["prizeoverride"]==null?rt("prizeauto"):r["prizeoverride"]
 	let buyextra=""
@@ -653,13 +658,15 @@ function financebuttonhtml(r){
 				${buyextra?`<div>${rt("addonlabel")}${buyextra}</div>`:""}
 				<div>${rt("prizefixlabel")}${prize}${rt("ticketvaluelabel")}${r["ticketvalue"]||0}</div>
 			</div>
-			<input type="button" class="openfinancebtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-reentry="${r["reentrycount"]||0}" data-rebuy="${int(r["rebuycount"]||0)}" data-addon="${int(r["addoncount"]||0)}" data-prize="${r["prizeoverride"]==null?"":r["prizeoverride"]}" data-ticket="${r["ticketvalue"]||0}" data-payment="${r["paymenttype"]||"cash"}" value="${rt("financefix")}">
+			<input type="button" class="openfinancebtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-serialno="${safehtml(serialno)}" data-playername="${safehtml(r["playername"]||"-")}" data-reentry="${r["reentrycount"]||0}" data-rebuy="${int(r["rebuycount"]||0)}" data-addon="${int(r["addoncount"]||0)}" data-prize="${r["prizeoverride"]==null?"":r["prizeoverride"]}" data-ticket="${r["ticketvalue"]||0}" data-payment="${r["paymenttype"]||"cash"}" value="${rt("financefix")}">
 		</div>
 	`
 }
 
 function openfinancemodal(button){
 	let id=dataset(button,"id")
+	let serialno=safehtml(dataset(button,"serialno")||"-")
+	let playername=safehtml(dataset(button,"playername")||"-")
 	let old=domgetid("financemodal")
 	if(old){
 		ptremovescrollcover(old)
@@ -673,12 +680,13 @@ function openfinancemodal(button){
 				<div class="text-lg font-semibold text-white">${rt("financetitle")}</div>
 				<input type="button" class="closefinance text-zinc-400 hover:text-white" value="×">
 			</div>
+			<div class="text-sm font-semibold text-zinc-200 mb-2">${rt("printcolno")} ${serialno} / ${rt("labelplayer")} ${playername}</div>
 			<div class="text-sm text-zinc-400 mb-4">${rt("financedesc")}</div>
 			<div class="grid grid-cols-1 gap-3">
 				<label class="text-sm text-zinc-300">${rt("financereentry")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="reentrycount" inputmode="numeric" value="${dataset(button,"reentry")||0}"></label>
 				${rebuyallowed?`<label class="text-sm text-zinc-300">${rt("financerebuy")}<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="rebuycount" value="${dataset(button,"rebuy")||0}" placeholder="${rt("sessionmax")}${maxrebuy}"></label>`:""}
 				${addonallowed?`<label class="text-sm text-zinc-300">${rt("financeaddon")}<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="addoncount" value="${dataset(button,"addon")||0}" placeholder="${rt("sessionmax")}${maxaddon}"></label>`:""}
-				<label class="text-sm text-zinc-300">${rt("financeprize")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="prizeoverride" inputmode="numeric" value="${dataset(button,"prize")}" placeholder=rt("autoprizehint")></label>
+				<label class="text-sm text-zinc-300">${rt("financeprize")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="prizeoverride" inputmode="numeric" value="${dataset(button,"prize")}" placeholder="自動獎金"></label>
 				<label class="text-sm text-zinc-300">${rt("financeticket")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="ticketvalue" inputmode="numeric" value="${dataset(button,"ticket")||0}"></label>
 				<label class="text-sm text-zinc-300">${rt("financepayment")}<select class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="paymenttype">
 					<option value="cash" ${dataset(button,"payment")!="ticket"?"selected":""}>${rt("paymentcashbuy")}</option>
@@ -764,19 +772,8 @@ function searchusers(){
 			element.disabled=true
 			ajax("POST",AJAXURL+"registersessionplayer/"+sessionid,function(event,data){
 				if(data["success"]){
-					setregistrationresultsummary({
-						"showed": true,
-						"type": "success",
-						"eyebrow": rt("panelregisterresult"),
-						"title": rt("paneladded1"),
-						"message": rt("paneladdedmsg"),
-						"items": [
-							{"label": rt("labelsuccess"), "value": "1"},
-							{"label": rt("labelfail"), "value": "0"},
-							{"label": rt("labelnext"), "value": rt("valueconfirmseat")}
-						]
-					})
 					loadregistrations()
+					pttoast(rt("paneladded1"),"success")
 				}else{
 					pttoast(pterror(data["data"]||"報名失敗"),"error")
 					element.disabled=false
@@ -1147,6 +1144,7 @@ function renderregistrationlist(){
 		let cardhtml=""
 		for(let i=0;i<list.length;i=i+1){
 			let r=list[i]
+			let serialno=r["serialno"]||(start+i+1)
 			let actions=""
 			if(r["status"]=="registered"){
 				actions=`
@@ -1201,6 +1199,7 @@ function renderregistrationlist(){
 					<td class="px-3 py-2">
 						${selectedhtml}
 					</td>
+					<td class="px-3 py-2 font-semibold text-zinc-200">${serialno}</td>
 					<td class="px-3 py-2">
 						<div>${escapehtml(r["playername"]||"-")}</div>
 						<div class="text-xs text-zinc-500">${escapehtml(r["playerplayerid"]||"")}</div>
@@ -1218,7 +1217,7 @@ function renderregistrationlist(){
 						<div class="${profitclass} font-bold">${moneytext(r["profit"])}</div>
 					</td>
 					<td class="px-3 py-2">
-						${financebuttonhtml(r)}
+						${financebuttonhtml(r,serialno)}
 					</td>
 					<td class="px-3 py-2 text-right">
 						<div class="flex flex-wrap justify-end gap-1">${actions}${receiptbtn}</div>
@@ -1235,6 +1234,7 @@ function renderregistrationlist(){
 							<div class="flex items-start gap-3">
 								<div class="pt-1">${mobilecheckbox}</div>
 								<div>
+									<div class="text-xs font-semibold text-emerald-300">${rt("printcolno")} ${serialno}</div>
 									<div class="font-semibold">${escapehtml(r["playername"]||"-")}</div>
 									<div class="text-xs text-zinc-500">${escapehtml(r["playerplayerid"]||"")}</div>
 									<div class="text-xs text-zinc-500 mt-1"> ${formattime(r["registertime"])}</div>
@@ -1258,7 +1258,7 @@ function renderregistrationlist(){
 							<div class="${profitclass} font-bold mt-1">${moneytext(r["profit"])}</div>
 						</div>
 						<div class="pt-3">
-							${financebuttonhtml(r)}
+							${financebuttonhtml(r,serialno)}
 						</div>
 					</div>
 					<div class="mt-4 flex flex-wrap justify-end gap-2">
@@ -1333,22 +1333,27 @@ function bindactions(){
 		let timerplayerid=dataset(element,"timerplayerid")
 		let playername=dataset(element,"playername")||""
 		registerconfirm(rt("eliminateconfirm")+"\n\n"+rt("labelplayer")+" "+safehtml(playername),function(){
-			element.disabled=true
-			ajax("PUT",AJAXURL+"edittimerplayer/"+sessionid+"/"+timerplayerid,function(event,data){
-				if(data["success"]){
-					pttoast(rt("eliminatedone"),"success")
-					loadregistrations()
-				}else{
-					pttoast(pterror(data["data"]||"操作失敗"),"error")
-					element.disabled=false
-				}
-			},str({
-				"action": "eliminate"
-			}),[
-				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
-			],{
-				loadingtarget: "#reglist"
-			})
+			let pendingkey=String(timerplayerid)+"-eliminate"
+			if(!edittimerplayerpending[pendingkey]){
+				edittimerplayerpending[pendingkey]=true
+				element.disabled=true
+				ajax("PUT",AJAXURL+"edittimerplayer/"+sessionid+"/"+timerplayerid,function(event,data){
+					edittimerplayerpending[pendingkey]=false
+					if(data["success"]){
+						pttoast(rt("eliminatedone"),"success")
+						loadregistrations()
+					}else{
+						pttoast(pterror(data["data"]||"操作失敗"),"error")
+						element.disabled=false
+					}
+				},str({
+					"action": "eliminate"
+				}),[
+					["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+				],{
+					loadingtarget: "#reglist"
+				})
+			}
 		})
 	})
 
@@ -1627,23 +1632,12 @@ function saveseat(sessionplayerid,source){
 	}
 	ajax("PUT",AJAXURL+"editsessionplayerseat/"+sessionplayerid,function(event,data){
 		if(data["success"]){
-			setregistrationresultsummary({
-				"showed": true,
-				"type": "success",
-				"eyebrow": rt("panelseatsaved"),
-				"title": rt("panelseatsavedtitle"),
-				"message": rt("panelseatsavedmsg"),
-				"items": [
-					{"label": rt("labelplayer"), "value": String(sessionplayerid)},
-					{"label": rt("labelmode"), "value": rt("valuesingleseat")},
-					{"label": rt("labelnext"), "value": rt("valuechecktable")}
-				]
-			})
 			loadregistrations()
 			let modal=domgetid("financemodal")
 			if(modal){
 				ptremovescrollcover(modal)
 			}
+			pttoast(rt("edited"),"success")
 		}else{
 			pttoast(pterror(data["data"]||"儲存座位失敗"),"error")
 		}
