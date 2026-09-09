@@ -15,6 +15,7 @@ const PRECACHE = [
 	"offline.html",
 	"manifest.json",
 	"initialize.js",
+	"copydata.js",
 	"translate.js",
 	"index.css",
 	// Tailwind 從 Play CDN 改成本地建置產物後，這支是全站版面的命脈，沒有它整頁沒樣式。

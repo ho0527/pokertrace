@@ -425,6 +425,38 @@ def _icmvaluebychip(chiplist,prizelist):
 				problist[mask|(1<<i)]=problist[mask|(1<<i)]+nextprob
 	return _icmroundlist(value)
 
+def _icmapproxvaluebychip(chiplist,prizelist):
+	count=len(chiplist)
+	paidcount=0
+	for i in range(len(prizelist)):
+		if 0<prizelist[i]:
+			paidcount=i+1
+	trialcount=2000000//count
+	if trialcount<10000:
+		trialcount=10000
+	if 100000<trialcount:
+		trialcount=100000
+	randomgenerator=random.Random("|".join([str(item) for item in chiplist])+";"+"|".join([str(item) for item in prizelist]))
+	value=[0]*count
+	for trial in range(trialcount):
+		remaininglist=list(range(count))
+		remainingchip=sum(chiplist)
+		for place in range(paidcount):
+			pick=randomgenerator.random()*remainingchip
+			running=0
+			pickedposition=0
+			for position in range(len(remaininglist)):
+				running=running+chiplist[remaininglist[position]]
+				if pick<running:
+					pickedposition=position
+					break
+			picked=remaininglist.pop(pickedposition)
+			value[picked]=value[picked]+prizelist[place]
+			remainingchip=remainingchip-chiplist[picked]
+	for i in range(count):
+		value[i]=value[i]/trialcount
+	return _icmroundlist(value)
+
 def _cost(sessionrow,row):
 	buyin=_num(sessionrow.get("buyin"),0)
 	fee=_num(sessionrow.get("buyinfee"),0)
@@ -1356,9 +1388,6 @@ try:
 		rows=rows or []
 		if len(rows)<1:
 			return errorresponse("ERROR_icm_no_player")
-		if 18<len(rows):
-			return errorresponse("ERROR_icm_player_limit")
-
 		latestchips=latestsessionchips(sessionid)
 		playerlist=[]
 		chiplist=[]
@@ -1375,7 +1404,10 @@ try:
 		prizelist=_icmprizelist(sessionrow,totalentries,len(playerlist))
 		if sum(prizelist)<=0:
 			return errorresponse("ERROR_icm_no_prize")
-		valuelist=_icmvaluebychip(chiplist,prizelist)
+		if len(playerlist)<=18:
+			valuelist=_icmvaluebychip(chiplist,prizelist)
+		else:
+			valuelist=_icmapproxvaluebychip(chiplist,prizelist)
 		for i in range(len(playerlist)):
 			row=playerlist[i]
 			query(SETTING["dbname"],

@@ -2804,7 +2804,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} a4.2.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} a4.2.1 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>
@@ -4644,3 +4644,9 @@ function renderptpagination(containerid,pagination,gotopage){
 	})
 }
 ptapplytoolseo()
+if(!document.querySelector("script[data-ptcopydata]")){
+	const COPYDATASCRIPT=document.createElement("script")
+	COPYDATASCRIPT.src=new URL("copydata.js",document.baseURI).href
+	COPYDATASCRIPT.setAttribute("data-ptcopydata","")
+	document.head.appendChild(COPYDATASCRIPT)
+}
