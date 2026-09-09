@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="範圍選取器：用 13×13 起手牌矩陣標記、匯出與保存德州撲克範圍。Poker Range Picker for marking and exporting preflop ranges.">
+		<title>範圍選取器 (Range Picker) - PokerTrace 免費撲克工具</title>
+		<base href="../">
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="tool.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white" data-backfallback="toollist.html">
+		<div id="navigationbar"></div>
+		<main class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+			<div class="mb-6 flex items-end justify-between gap-3">
+				<div>
+					<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Tools</p>
+					<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" data-i18n="rangepickerpage.title">範圍選取器</h1>
+				</div>
+				<a href="toollist.html" class="rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n="rangepickerpage.back">回上一頁</a>
+			</div>
+			<section class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
+				<div class="rangepicker-layout">
+					<div class="rangepicker-capture" id="rangepickercapture">
+						<h2 class="rangepicker-title" id="rangepickertitledisplay">未命名範圍</h2>
+						<div class="rangepicker-grid" id="rangepickergrid"></div>
+					</div>
+					<div class="rangepicker-panel">
+						<label class="rangepicker-label" data-i18n="rangepickerpage.rangetitle" for="rangepickertitle">範圍標題</label>
+						<input type="text" class="rangepicker-input" data-i18n-placeholder="rangepickerpage.placeholder" id="rangepickertitle" placeholder="例如：UTG 對 BTN">
+						<div class="rangepicker-label" data-i18n="rangepickerpage.color">標記顏色</div>
+						<div class="rangepicker-palette" id="rangepickerpalette">
+							<input type="button" class="rangepicker-swatch rangepicker-red active" data-color="red" title="紅色" value="紅">
+							<input type="button" class="rangepicker-swatch rangepicker-green" data-color="green" title="綠色" value="綠">
+							<input type="button" class="rangepicker-swatch rangepicker-blue" data-color="blue" title="藍色" value="藍">
+							<input type="button" class="rangepicker-swatch rangepicker-none" data-color="none" title="清除標記" value="清除">
+						</div>
+						<div class="rangepicker-label" data-i18n="rangepickerpage.selected">已選範圍</div>
+						<textarea class="rangepicker-output" id="rangepickeroutput" rows="4" readonly></textarea>
+						<div class="rangepicker-actions">
+							<input type="button" class="rangepicker-primary" data-i18n-value="rangepickerpage.copy" id="rangepickercopy" value="複製範圍">
+							<input type="button" class="rangepicker-secondary" data-i18n-value="rangepickerpage.export" id="rangepickerexport" value="匯出配置">
+							<input type="button" class="rangepicker-secondary" data-i18n-value="rangepickerpage.import" id="rangepickerimport" value="匯入配置">
+							<input type="file" class="hidden" id="rangepickerfile" accept=".poker,application/json">
+							<input type="button" class="rangepicker-danger" data-i18n-value="rangepickerpage.clear" id="rangepickerclear" value="清除全部">
+						</div>
+					</div>
+				</div>
+			</section>
+		</main>
+		<div id="footer"></div>
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="tool/rangepicker.js"></script>
+	</body>
+</html>

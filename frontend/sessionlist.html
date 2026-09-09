@@ -50,17 +50,19 @@
 						</select>
 						<input type="text" class="min-h-12 flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="sessionlist.sessionnamefilter" id="name" placeholder="名稱" aria-label="場次名稱">
 					</div>
-					<div class="mb-1 mt-4 text-[13px] font-bold uppercase tracking-[0.14em] text-zinc-500" id="quickfiltertitle">快速篩選</div>
-					<div class="grid grid-cols-1 gap-2 md:flex md:items-center md:justify-between">
-						<div class="grid grid-cols-2 gap-2 md:grid-cols-4" id="quickfilterbuttons">
-							<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-4 py-2 text-sm font-bold text-white transition quickfilterbutton" id="filter-registerable" value="可報名">
-							<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-4 py-2 text-sm font-bold text-white transition quickfilterbutton" id="filter-owned" value="主辦">
-							<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-4 py-2 text-sm font-bold text-white transition quickfilterbutton" id="filter-joined" value="有參與">
-							<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-4 py-2 text-sm font-bold text-white transition quickfilterbutton" id="filter-followed" value="追隨中">
+					<div class="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto] md:items-center">
+						<div class="order-1 grid grid-cols-2 gap-2 md:order-3 md:flex md:justify-end">
+							<input type="button" class="order-1 min-h-11 cursor-pointer rounded-2xl bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition hover:bg-zinc-600 md:order-2" id="clearsearch" value="清空">
+							<input type="button" class="order-2 min-h-11 cursor-pointer rounded-2xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 md:order-1" data-entersubmit id="search" value="搜尋">
 						</div>
-						<div class="grid grid-cols-2 gap-2 md:flex md:justify-end">
-							<input type="button" class="cursor-pointer rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-5 py-2 text-sm font-bold text-white transition" data-entersubmit id="search" value="搜尋">
-							<input type="button" class="cursor-pointer rounded-2xl bg-zinc-700 hover:bg-zinc-600 px-5 py-2 text-sm font-bold text-white transition" id="clearsearch" value="清空">
+						<div class="order-2 mb-1 text-[13px] font-bold uppercase tracking-[0.14em] text-zinc-500 md:order-1 md:col-span-3" id="quickfiltertitle">快速篩選</div>
+						<div class="order-3 grid grid-cols-4 gap-2 md:order-2 md:flex md:items-center" id="quickfilterbuttons">
+							<input type="button" class="min-h-11 cursor-pointer rounded-2xl bg-zinc-700 px-1 py-2 text-xs font-bold text-white transition hover:bg-zinc-600 sm:px-4 sm:text-sm quickfilterbutton" id="filter-registerable" value="可報名">
+							<input type="button" class="min-h-11 cursor-pointer rounded-2xl bg-zinc-700 px-1 py-2 text-xs font-bold text-white transition hover:bg-zinc-600 sm:px-4 sm:text-sm quickfilterbutton" id="filter-owned" value="主辦">
+							<input type="button" class="min-h-11 cursor-pointer rounded-2xl bg-zinc-700 px-1 py-2 text-xs font-bold text-white transition hover:bg-zinc-600 sm:px-4 sm:text-sm quickfilterbutton" id="filter-joined" value="有參與">
+							<input type="button" class="min-h-11 cursor-pointer rounded-2xl bg-zinc-700 px-1 py-2 text-xs font-bold text-white transition hover:bg-zinc-600 sm:px-4 sm:text-sm quickfilterbutton" id="filter-followed" value="追隨中">
+						</div>
+						<div class="order-4 grid grid-cols-2 gap-2 md:flex md:justify-end">
 							<input type="button" class="cursor-pointer rounded-2xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" data-i18n-value="sessionlist.printlist" id="printsessionlist" value="列印列表">
 							<input type="button" class="cursor-pointer rounded-2xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 text-sm font-bold text-white transition" id="exportsessioncsv" value="匯出 CSV">
 						</div>

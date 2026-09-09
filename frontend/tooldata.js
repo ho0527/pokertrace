@@ -1,11 +1,12 @@
 ﻿const TOOLITEMLIST=[
     {href:"tool/equity.html",category:"featured strategy",ztitle:"勝率解算器",etitle:"Equity Solver",zdesc:"德州 / 奧馬哈 手牌勝率與 outs",edesc:"Hold'em / Omaha equity and outs"},
+    {href:"tool/rangepicker.html",category:"featured strategy",ztitle:"範圍選取器",etitle:"Range Picker",zdesc:"13×13 起手牌矩陣標記與匯出",edesc:"Mark and export 13×13 preflop ranges"},
     {href:"tool/potodds.html",category:"featured strategy",ztitle:"底池賠率",etitle:"Pot Odds",zdesc:"底池賠率與所需勝率",edesc:"Pot odds and required equity"},
     {href:"tool/icm.html",category:"featured payout",ztitle:"ICM / 拆彩金",etitle:"ICM / Chop",zdesc:"ICM 期望值與 chip-chop",edesc:"ICM value and chip chop"},
     {href:"tool/structuregen.html",category:"featured live",ztitle:"結構產生器",etitle:"Structure Generator",zdesc:"即時盲注結構與匯出 JSON",edesc:"Build blind structures and export JSON"},
     {href:"tool/seatdraw.html",category:"featured live",ztitle:"座位抽籤",etitle:"Seat Draw",zdesc:"隨機分配桌號與座位",edesc:"Random table and seat assignment"},
     {href:"tool/cashreconcile.html",category:"featured operation",ztitle:"現場收款對帳",etitle:"Cash Reconcile",zdesc:"應收 vs 實收差額",edesc:"Expected vs collected cash"},
-    {href:"tool/tdarules.html",category:"featured learn live",ztitle:"TDA規則手冊",etitle:"TDA Rulebook",zdesc:"2024 TDA 撲克賽事規則 PDF 預覽",edesc:"2024 TDA tournament rules PDF viewer"},
+    {href:"tool/tdarule2024.html",category:"featured learn live",ztitle:"TDA規則手冊",etitle:"TDA Rulebook",zdesc:"2024 TDA 撲克賽事規則 PDF 預覽",edesc:"2024 TDA tournament rules PDF viewer"},
     {href:"tool/handbook.html",category:"featured learn live",ztitle:"撲克玩法手冊",etitle:"Poker Handbook",zdesc:"德州、奧馬哈、Draw、Stud 玩法速查",edesc:"Hold'em, Omaha, Draw, and Stud game guide"},
     {href:"tool/timebankdrill.html",category:"strategy",ztitle:"Timebank 計時器",etitle:"Timebank Drill",zdesc:"多情境時間、點一下開始/暫停",edesc:"Practice decision timing"},
     {href:"tool/stackcalc.html",category:"chip strategy",ztitle:"計分牌量換算",etitle:"Stack Calculator",zdesc:"BB 數與 M 值",edesc:"BB count and M value"},
@@ -90,7 +91,7 @@
 // 個人資料與首頁宣傳小工具固定顯示這六個，順序由此清單決定。
 const PTTOOLPROMODEFAULT=[
     "tool/equity.html",
-    "tool/tdarules.html",
+    "tool/tdarule2024.html",
     "tool/structuregen.html",
     "tool/range.html",
     "tool/handbook.html",
@@ -100,8 +101,9 @@ const PTTOOLPROMODEFAULT=[
 const PTTOOLPROMOMAX=6
 // 維護完成後，把對應的 tool 路徑加到這裡，就不再顯示維護中。
 const TOOLMAINTENANCEOFFLIST=[
-    "tool/tdarules.html",
+    "tool/tdarule2024.html",
     "tool/equity.html",
+    "tool/rangepicker.html",
     "tool/structuregen.html",
     "tool/apidoc.html",
     "tool/range.html",
@@ -109,7 +111,20 @@ const TOOLMAINTENANCEOFFLIST=[
     "tool/handbook.html"
 ]
 
+const PTTOOLHREFALIAS={
+    "tool/tdarules.html": "tool/tdarule2024.html"
+}
+
+function pttoolhrefnormalize(href){
+    let value=String(href||"").trim()
+    if(PTTOOLHREFALIAS[value]){
+        value=PTTOOLHREFALIAS[value]
+    }
+    return value
+}
+
 function pttoolfindbyhref(href){
+    href=pttoolhrefnormalize(href)
     for(let i=0;i<TOOLITEMLIST.length;i=i+1){
         if(TOOLITEMLIST[i].href==href){
             return TOOLITEMLIST[i]

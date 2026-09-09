@@ -9,7 +9,7 @@ function indextext(key){
 
 let TOOLLIST=[
 	["tool/equity.html","toolequity"],
-	["tool/tdarules.html","tooltdarule"],
+	["tool/tdarule2024.html","tooltdarule"],
 	["tool/structuregen.html","toolstructuregen"],
 	["tool/range.html","toolgto"],
 	["tool/handbook.html","toolhandbook"],

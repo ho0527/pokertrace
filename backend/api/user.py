@@ -42,6 +42,113 @@ from .sessionplayer import _attachfinance
 def async_send_mail(*args,**kwargs):
 	threading.Thread(target=send_mail,args=args,kwargs=kwargs).start()
 
+def buildsignupthankyouemail(language):
+	contacturl=BASERUL+"contact.html"
+	if language=="zhtw":
+		subject="PokerTrace 註冊成功，感謝加入"
+		body=f"""敬啟者:
+
+感謝你註冊 PokerTrace。
+
+你現在可以開始建立自己的場次、報名開放中的場次，或在個人檔案查看你的紀錄與統計。
+
+目前全系統仍在測試中還沒正式上線，如果有問題、功能建議，或合作詢問，可以透過聯絡我們頁面告訴我們：
+{contacturl}
+
+祝你使用順利。
+
+PokerTrace 敬上
+"""
+		htmlbody=f"""敬啟者:<br>
+感謝你註冊 PokerTrace。<br>
+你現在可以開始建立自己的場次、報名開放中的場次，或在個人檔案查看紀錄與統計。<br>
+目前全系統仍在測試中還沒正式上線，如果有問題、功能建議，或合作詢問，可以透過<a href="{contacturl}">聯絡我們</a>頁面告訴我們。<br>
+祝你使用順利。<br>
+PokerTrace 敬上
+"""
+	else:
+		subject="Welcome to PokerTrace"
+		body=f"""Dear user,
+
+Thank you for signing up for PokerTrace.
+
+You can now create your own sessions, register for open sessions, or review your records and statistics from your profile.
+
+The full system is still in testing and has not officially launched yet. If you have any questions, feature suggestions, or partnership inquiries, you can reach us through the contact page:
+{contacturl}
+
+Best regards,
+
+PokerTrace Team
+"""
+		htmlbody=f"""Dear user,<br>
+Thank you for signing up for PokerTrace.<br>
+You can now create your own sessions, register for open sessions, or review your records and statistics from your profile.<br>
+The full system is still in testing and has not officially launched yet. If you have any questions, feature suggestions, or partnership inquiries, you can reach us through the <a href="{contacturl}">contact page</a>.<br>
+Best regards,<br>
+PokerTrace Team
+"""
+	return subject,body,htmlbody
+
+def buildblockbanemail(language,actiontype,reason,blocktime=""):
+	contacturl=BASERUL+"contact.html"
+	if language=="zhtw":
+		if actiontype=="block":
+			subject="[PokerTrace] 您的帳號已被限時封鎖"
+			body=f"""敬啟者:
+您好，
+您的 PokerTrace 帳號已被限時封鎖，封鎖期間將無法登入或使用需要帳號權限的功能。
+封鎖到期時間：{blocktime}
+封鎖原因：{reason}
+如果您認為此處有異議，請聯絡我們：
+Email：chris960527ho@gmail.com
+聯絡我們：{contacturl}
+PokerTrace 敬上
+"""
+		else:
+			subject="[PokerTrace] 您的帳號已被永久停權"
+			body=f"""敬啟者:
+您好，
+您的 PokerTrace 帳號已被永久停權，將無法登入或使用需要帳號權限的功能。
+停權原因：{reason}
+如果您認為此處有異議，請聯絡我們：
+Email：chris960527ho@gmail.com
+聯絡我們：{contacturl}
+PokerTrace 敬上
+"""
+	else:
+		if actiontype=="block":
+			subject="[PokerTrace] Your account has been temporarily blocked"
+			body=f"""To whom it may concern:
+Hello,
+Your PokerTrace account has been temporarily blocked. During the block period, you will not be able to sign in or use features that require account access.
+Block expires at: {blocktime}
+Reason: {reason}
+If you believe this action is in dispute, please contact us:
+Email: chris960527ho@gmail.com
+Contact us: {contacturl}
+PokerTrace Team
+"""
+		else:
+			subject="[PokerTrace] Your account has been permanently suspended"
+			body=f"""To whom it may concern:
+Hello,
+Your PokerTrace account has been permanently suspended. You will not be able to sign in or use features that require account access.
+Reason: {reason}
+If you believe this action is in dispute, please contact us:
+Email: chris960527ho@gmail.com
+Contact us: {contacturl}
+PokerTrace Team
+"""
+	return subject,body
+
+def sendblockbanemail(userid,actiontype,reason,blocktime=""):
+	userrow=query(SETTING["dbname"],"""SELECT "email","language" FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[userid],SETTING["dbsetting"])
+	if userrow and userrow[0].get("email"):
+		language=userrow[0].get("language") or "en"
+		subject,body=buildblockbanemail(language,actiontype,reason,blocktime)
+		async_send_mail(subject,body,None,[userrow[0]["email"]],fail_silently=True)
+
 def defaultchipcolors():
 	return [
 		{"name": "白色","color": "#ffffff"},
@@ -179,12 +286,11 @@ def carddeckvalue(value,fallback):
 	return "classic"
 
 POTMAINSIDELIST=["left","right"]
-
 CARDFACEMODELIST=["two","four"]
 
 def ensureusercarddeckcolumn():
 	# 手牌回放偏好: 牌背皮膚(cardback) + 牌面皮膚(cardface) + 主池位置(potmainside),
-	# 供手牌回放與現場轉播讀取。
+	# 供手牌回放讀取。
 	#
 	# TASK-046：原本只有一個 carddeck 同時決定牌背與牌面，現在拆成兩個。
 	# 依專案規則 carddeck **保留不刪、不改名**，仍然繼續寫入，作為兩者的相容來源；
@@ -314,7 +420,7 @@ def signin(request):
 		# 封禁檢查：必須在發新 token 之前擋掉，否則被封禁者重新登入就能拿到全新可用的 token，
 		# 封禁當下撤銷舊 token 的動作等於白做。
 		if getuserbanned(row[0]["id"]):
-			return errorresponse("ERROR_no_permission")
+			return errorresponse("ERROR_user_banned")
 
 		token=randomtext()
 
@@ -387,6 +493,9 @@ def signup(request):
 					},{
 						"id": row["id"]
 					},SETTING["dbsetting"])
+					if row.get("email"):
+						subject,body,htmlbody=buildsignupthankyouemail(language)
+						async_send_mail(subject,body,None,[row["email"]],fail_silently=True,html_message=htmlbody)
 
 					return Response({
 						"success": True,
@@ -983,6 +1092,10 @@ def blockuser(request,userid):
 					"success": False,
 					"data": "ERROR_database_error"
 				},status.HTTP_500_INTERNAL_SERVER_ERROR)
+			try:
+				sendblockbanemail(userid,"block",reason,blocktime)
+			except Exception as error:
+				printcolorhaveline("fail","[ERROR] send_mail "+str(error),"")
 			return Response({
 				"success": True,
 				"data": ""
@@ -1023,6 +1136,10 @@ def banuser(request,userid):
 					"success": False,
 					"data": "ERROR_database_error"
 				},status.HTTP_500_INTERNAL_SERVER_ERROR)
+			try:
+				sendblockbanemail(userid,"ban",reason)
+			except Exception as error:
+				printcolorhaveline("fail","[ERROR] send_mail "+str(error),"")
 			return Response({
 				"success": True,
 				"data": ""
@@ -1131,7 +1248,7 @@ def edituserchipcolors(request):
 
 @api_view(["PUT"])
 def editusercarddeck(request):
-	# 更新牌背皮膚偏好(classic/crimson/midnight);供手牌回放與現場轉播讀取
+	# 更新牌背皮膚偏好(classic/crimson/midnight);供手牌回放讀取
 	ensureusercarddeckcolumn()
 	tokenuserrow,autherror=commonauthuser(request)
 	if autherror:

@@ -77,5 +77,5 @@ def gettokenuser(request):
 		return (None,errorresponse("ERROR_user_not_found"))
 	# 縱深防禦：封禁時已撤銷 token，這裡再擋一次，避免封禁後才發出的 token 或漏撤的舊 token 仍可用。
 	if getuserbanned(userrow[0]["id"]):
-		return (None,errorresponse("ERROR_no_permission"))
+		return (None,errorresponse("ERROR_user_banned"))
 	return (userrow[0],None)

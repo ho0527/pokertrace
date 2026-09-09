@@ -72,6 +72,28 @@
 				if(!page||typeof page!=="string"){
 					return
 				}
+				var hash=""
+				var hashindex=page.indexOf("#")
+				if(hashindex>=0){
+					hash=page.slice(hashindex)
+					page=page.slice(0,hashindex)
+				}
+				var query=""
+				var queryindex=page.indexOf("?")
+				if(queryindex>=0){
+					query=page.slice(queryindex)
+					page=page.slice(0,queryindex)
+				}
+				var pagelower=page.toLowerCase()
+				var rootpage=" admin.html batchcreate.html benefit.html blocked.html broadcast.html broadcastcontrol.html checkin.html clublist.html contact.html contactadmin.html control.html display.html edittable.html gametype.html guide.html handdetail.html index.html main.html newedithand.html newsession.html newtable.html notification.html offline.html payoutedit.html privacy.html profile.html quickhand.html receipt.html register.html scan.html series.html serieslist.html session.html sessionlist.html signin.html signup.html stackadjust.html staffverify.html staffwork.html structure.html structureedit.html table.html tableboard.html terms.html toollist.html "
+				if(page.indexOf("/")<0&&rootpage.indexOf(" "+pagelower+" ")<0){
+					page="tool/"+page
+					pagelower=page.toLowerCase()
+				}
+				if(pagelower=="tdarules.html"||pagelower=="tool/tdarules.html"){
+					page="tool/tdarule2024.html"
+				}
+				page=page+query+hash
 				var name=(page.split("?")[0].split("#")[0]||"").toLowerCase()
 				if(name===""||name==="index.html"||name==="signin.html"||name==="signup.html"){
 					return

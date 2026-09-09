@@ -16,6 +16,9 @@ let state={
     row: {},
     context: {},
     loadinged: true,
+    edithandloadeded: false,
+    islatest: true,
+    recordtype: "hand",
     step: 1,
     step2view: "hub",
     maxseat: 9,
@@ -85,6 +88,18 @@ function unifiedpublicallowed(){
 
 function publicrecorded(){
     return unifiedpublicallowed()&&num(state.selfseating)==0
+}
+
+function scoreeditlocked(){
+    return !!handid&&state.edithandloadeded&&state.islatest!=true&&state.recordtype!="quickhand"
+}
+
+function scorelockguard(){
+    if(scoreeditlocked()){
+        pttoast(newedithandtext("editlocktoast","舊手牌只能修改手牌、公共牌與備註；位置、盲注、下注與結果已鎖定。"),"warn")
+        return true
+    }
+    return false
 }
 
 // 目前手牌遊戲類型的底牌數 / 牌面（短牌只用 6-A）。沿用 handgame 註冊表，與 tool/equity 共用同一套定義。
@@ -1831,6 +1846,24 @@ function validRaiseAmount(street,seat,amount){
     return true
 }
 
+// 已經行動過的選手遇到未達完整加注的 short all-in 時，下注權不會自動重開。
+// 多次 short all-in 的累積增量若達到本輪最後一次完整下注／加注額，則重新開放。
+function raiseavailableed(street,seat){
+    let call=callAmount(street,seat)
+    if(remainingChip(seat)<=call){
+        return false
+    }
+    let acted=manualActionSeats(street)
+    if(!acted[seat]){
+        return true
+    }
+    let facedincrease=maxStreetBet(street)-num(streetPot(street)[seat]||0)
+    if(facedincrease>=lastRaiseAmount(street)){
+        return true
+    }
+    return false
+}
+
 function minimumRaiseTarget(street,seat){
     return num(streetPot(street)[seat]||0)+minimumRaiseAmount(street,seat)
 }
@@ -2028,6 +2061,10 @@ function addQuickAction(action,amount,allined){
     let seat=nextActionSeat(street)
     if(!seat){
         pttoast(newedithandtext("toastnoseat","找不到可操作座位"),"error")
+        return
+    }
+    if((action=="bet"||action=="raise")&&!raiseavailableed(street,seat)){
+        pttoast(newedithandtext("raiserestricted","目前下注未達完整加注，這位選手只能跟注或蓋牌"),"warn")
         return
     }
     // 投入額把剩餘計分牌跟光時自動視為 all-in，不必只靠手動勾選
@@ -2272,6 +2309,10 @@ function showRaiseModal(){
         pttoast(newedithandtext("toastnoseat","找不到可操作座位"),"error")
         return
     }
+    if(!raiseavailableed(street,seat)){
+        pttoast(newedithandtext("raiserestricted","目前下注未達完整加注，這位選手只能跟注或蓋牌"),"warn")
+        return
+    }
     let call=callAmount(street,seat)
     let current=num(streetPot(street)[seat]||0)
     let remain=remainingChip(seat)
@@ -2450,6 +2491,9 @@ function renderStatus(){
     settext("blindlabel",money(state.smallblind)+"/"+money(state.bigblind)+" ("+money(state.ante)+")")
     settext("playercountlabel",activeSeats().length+newedithandtext("playercountunit"," 人"))
     dom("saveandnext").classList.toggle("hidden",!!handid)
+    if(dom("editlocknotice")){
+        dom("editlocknotice").classList.toggle("hidden",!scoreeditlocked())
+    }
 }
 
 function loadHandBitting(rows){
@@ -2481,6 +2525,9 @@ function loadHandBitting(rows){
 }
 
 function applyHandEdit(hand){
+    state.edithandloadeded=true
+    state.islatest=hand["islatest"]==true
+    state.recordtype=hand["recordtype"]||"hand"
     state.step=1
     state.dealerseat=num(hand["dealerseat"]||state.dealerseat)
     state.selfseating=num(hand["selfseating"]||state.selfseating)
@@ -2923,8 +2970,7 @@ function renderGameTypes(){
         let row=state.gametypes[i]
         let code=String(row["code"]||"")
         let enableded=handgameenabled(code)
-        // 已實作的用 handgame 註冊表的中文名；未實作的退回後端 description（中文）並標記未支援、disabled
-        let label=enableded?handgamename(code):(row["description"]||row["name"]||code)
+        let label=row["name"]||handgamename(code)||code
         if(!enableded){
             label=label+newedithandtext("unsupported","（未支援）")
         }
@@ -3337,6 +3383,9 @@ function renderActions(){
     let btns=document.querySelectorAll(".removeaction")
     for(let i=0;i<btns.length;i=i+1){
         btns[i].addEventListener("click",function(){
+            if(scorelockguard()){
+                return
+            }
             let street=this.getAttribute("data-street")
             let index=num(this.getAttribute("data-index"))
             state.bittingdata[street].splice(index,1)
@@ -3374,6 +3423,7 @@ function renderQuickAction(){
         renderTimebank()
         return
     }
+    dom("quickraise").disabled=!raiseavailableed(street,seat)
     settext("currentactionseat",seatlabel(seat))
     settext("currentactionmeta",newedithandtext("actionmeta","已投入 {put}，需跟注 {call}").replace("{put}",money(streetPot(street)[seat]||0)).replace("{call}",money(call)))
     setval("quickcheckcall",call>0?"Call "+money(call):"Check")
@@ -3594,6 +3644,9 @@ function bindShowdown(){
     let showbtns=document.querySelectorAll(".showcards")
     for(let i=0;i<showbtns.length;i=i+1){
         showbtns[i].addEventListener("click",function(){
+            if(scorelockguard()){
+                return
+            }
             let seat=this.getAttribute("data-seat")
             let count=herogamecount()
             let current=state.showdowndata[seat]||{ shown: false,mucked: false }
@@ -3615,6 +3668,9 @@ function bindShowdown(){
     let muckbtns=document.querySelectorAll(".muckcards")
     for(let i=0;i<muckbtns.length;i=i+1){
         muckbtns[i].addEventListener("click",function(){
+            if(scorelockguard()){
+                return
+            }
             let seat=this.getAttribute("data-seat")
             state.showdowndata[seat]={ card1: "",card2: "",shown: false,mucked: true }
             savecache()
@@ -3624,6 +3680,10 @@ function bindShowdown(){
     let winners=document.querySelectorAll(".winnercheck")
     for(let i=0;i<winners.length;i=i+1){
         winners[i].addEventListener("change",function(){
+            if(scorelockguard()){
+                this.checked=state.winner[this.getAttribute("data-seat")]==true
+                return
+            }
             state.winnerauto={}
             state.winner[this.getAttribute("data-seat")]=this.checked
             applySidePotWinnerPrices()
@@ -3634,6 +3694,10 @@ function bindShowdown(){
     let amounts=document.querySelectorAll(".winneramount")
     for(let i=0;i<amounts.length;i=i+1){
         amounts[i].addEventListener("input",function(){
+            if(scorelockguard()){
+                this.value=num(state.winnerprice[this.getAttribute("data-seat")]||0)
+                return
+            }
             state.winnerauto={}
             state.winnerprice[this.getAttribute("data-seat")]=num(this.value)
             savecache()
@@ -3812,6 +3876,26 @@ function renderLoadingLock(){
         if(dom(fields[i])){
             dom(fields[i]).disabled=state.loadinged
         }
+    }
+    let scoreselectors=["#quickfold","#quickcheckcall","#quickraise","#solvewinner","#rebuildblinds",".removeaction",".showcards",".muckcards",".winnercheck",".winneramount","#timebankStart","#timebankPause","#timebankReset"]
+    for(let s=0;s<scoreselectors.length;s=s+1){
+        let items=document.querySelectorAll(scoreselectors[s])
+        for(let i=0;i<items.length;i=i+1){
+            items[i].disabled=state.loadinged||scoreeditlocked()
+        }
+    }
+    let scorefields=["dealerseat","selfseating","blindlevelselect","handsmallblind","handbigblind","handante","handgametype","emptybutton","deadsmallblind","actionstreet"]
+    for(let i=0;i<scorefields.length;i=i+1){
+        if(dom(scorefields[i])){
+            dom(scorefields[i]).disabled=state.loadinged||scoreeditlocked()
+        }
+    }
+    let hubitems=document.querySelectorAll("[data-hub]")
+    for(let i=0;i<hubitems.length;i=i+1){
+        let hub=hubitems[i].getAttribute("data-hub")
+        let locked=scoreeditlocked()&&(hub=="betting"||hub=="result")
+        hubitems[i].classList.toggle("scorelocked",locked)
+        hubitems[i].setAttribute("aria-disabled",locked?"true":"false")
     }
     settext("savestatus",state.loadinged?newedithandtext("statusloading","載入中..."):(handid?newedithandtext("statusnotupdated","尚未更新"):newedithandtext("statusnotsaved","尚未儲存")))
 }
@@ -4054,6 +4138,15 @@ function payload(){
     let handcard=state.handcard
     if(publicrecorded()){
         handcard={}
+    }
+    if(scoreeditlocked()){
+        return {
+            handcard: handcard,
+            boardcard: state.boardcard,
+            ps: val("ps"),
+            note: val("ps"),
+            actionsjson: []
+        }
     }
     return {
         recordtype: quickmode?"quickhand":"hand",
@@ -4388,6 +4481,9 @@ function bindEvents(){
                 }
                 return
             }
+            if((target=="betting"||target=="result")&&scorelockguard()){
+                return
+            }
             state.step2view=target
             savecache()
             renderAll()
@@ -4403,10 +4499,18 @@ function bindEvents(){
         })
     }
     dom("dealerseat").addEventListener("change",function(){
+        if(scorelockguard()){
+            this.value=state.dealerseat
+            return
+        }
         state.dealerseat=num(this.value)
         rebuildDefaultBets()
     })
     dom("selfseating").addEventListener("change",function(){
+        if(scorelockguard()){
+            this.value=state.selfseating
+            return
+        }
         let oldseat=state.selfseating
         if(state.showdowndata[oldseat]&&state.showdowndata[oldseat]["heroed"]){
             delete state.showdowndata[oldseat]
@@ -4421,6 +4525,10 @@ function bindEvents(){
         renderAll()
     })
     dom("blindlevelselect").addEventListener("change",function(){
+        if(scorelockguard()){
+            this.value=state.blindlevel
+            return
+        }
         state.blindlevel=this.value
         state.cachedblinded=true
         for(let i=0;i<state.blindstructures.length;i=i+1){
@@ -4436,6 +4544,12 @@ function bindEvents(){
     let blindids=["handsmallblind","handbigblind","handante"]
     for(let i=0;i<blindids.length;i=i+1){
         dom(blindids[i]).addEventListener("input",function(){
+            if(scorelockguard()){
+                setval("handsmallblind",state.smallblind)
+                setval("handbigblind",state.bigblind)
+                setval("handante",state.ante)
+                return
+            }
             state.cachedblinded=true
             state.smallblind=num(val("handsmallblind"))
             state.bigblind=num(val("handbigblind"))
@@ -4447,6 +4561,10 @@ function bindEvents(){
         })
     }
     dom("handgametype").addEventListener("change",function(){
+        if(scorelockguard()){
+            this.value=state.handgametype
+            return
+        }
         let previous=state.handgametype
         let selected=this.value
         let prevfamily=handgamefamily(previous)
@@ -4478,21 +4596,33 @@ function bindEvents(){
         apply()
     })
     dom("emptybutton").addEventListener("change",function(){
+        if(scorelockguard()){
+            this.checked=state.emptybuttoned
+            return
+        }
         state.emptybuttoned=this.checked
         dom("emptybutton").checked=state.emptybuttoned
         rebuildDefaultBets()
     })
     dom("deadsmallblind").addEventListener("change",function(){
+        if(scorelockguard()){
+            this.checked=state.deadsmallblinded
+            return
+        }
         state.deadsmallblinded=this.checked
         dom("deadsmallblind").checked=state.deadsmallblinded
         rebuildDefaultBets()
     })
-    dom("rebuildblinds").addEventListener("click",rebuildDefaultBets)
+    dom("rebuildblinds").addEventListener("click",function(){
+        if(!scorelockguard()){
+            rebuildDefaultBets()
+        }
+    })
     dom("actionstreet").addEventListener("change",function(){
         renderAll()
     })
     dom("quickcheckcall").addEventListener("click",function(){
-        if(loadingguard()){
+        if(loadingguard()||scorelockguard()){
             return
         }
         let street=val("actionstreet")||firststreet()
@@ -4501,20 +4631,20 @@ function bindEvents(){
         addQuickAction(amount>0?"call":"check",amount)
     })
     dom("quickraise").addEventListener("click",function(){
-        if(loadingguard()){
+        if(loadingguard()||scorelockguard()){
             return
         }
         showRaiseModal()
     })
     dom("quickfold").addEventListener("click",function(){
-        if(loadingguard()){
+        if(loadingguard()||scorelockguard()){
             return
         }
         addQuickAction("fold",0)
     })
     if(dom("timebankStart")){
         dom("timebankStart").addEventListener("click",function(){
-            if(loadingguard()){
+            if(loadingguard()||scorelockguard()){
                 return
             }
             starttimebank()
@@ -4522,7 +4652,7 @@ function bindEvents(){
     }
     if(dom("timebankPause")){
         dom("timebankPause").addEventListener("click",function(){
-            if(loadingguard()){
+            if(loadingguard()||scorelockguard()){
                 return
             }
             pausetimebank()
@@ -4530,7 +4660,7 @@ function bindEvents(){
     }
     if(dom("timebankReset")){
         dom("timebankReset").addEventListener("click",function(){
-            if(loadingguard()){
+            if(loadingguard()||scorelockguard()){
                 return
             }
             resettimebank(timebankcurrentseconds(),false)
@@ -4572,7 +4702,11 @@ function bindEvents(){
             })
         })
     }
-    dom("solvewinner").addEventListener("click",solveWinner)
+    dom("solvewinner").addEventListener("click",function(){
+        if(!scorelockguard()){
+            solveWinner()
+        }
+    })
     dom("savehand").addEventListener("click",function(){
         if(loadingguard()){
             return

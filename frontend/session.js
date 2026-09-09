@@ -561,16 +561,16 @@ function sessionbooltext(value){
 }
 
 function sessiontypetext(typekey,idvalue,fallback){
-	let rows=settingtypes[typekey]||[]
-	for(let i=0;i<rows.length;i=i+1){
-		if(String(rows[i]["id"])==String(idvalue)||String(rows[i]["code"])==String(idvalue)){
-			let code=rows[i]["code"]
-			if(TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][typekey]&&TRANSLATE[LANGUAGE]["type"][typekey][code]){
-				return TRANSLATE[LANGUAGE]["type"][typekey][code]
-			}
-			return rows[i]["name"]||code||rows[i]["id"]
-		}
-	}
+        let rows=settingtypes[typekey]||[]
+        for(let i=0;i<rows.length;i=i+1){
+                if(String(rows[i]["id"])==String(idvalue)||String(rows[i]["code"])==String(idvalue)){
+                        let code=rows[i]["code"]
+                        if(typekey!="game"&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][typekey]&&TRANSLATE[LANGUAGE]["type"][typekey][code]){
+                                return TRANSLATE[LANGUAGE]["type"][typekey][code]
+                        }
+                        return rows[i]["name"]||code||rows[i]["id"]
+                }
+        }
 	if(typekey=="game"&&TRANSLATE[LANGUAGE]["gametype"]&&TRANSLATE[LANGUAGE]["gametype"][fallback]){
 		return TRANSLATE[LANGUAGE]["gametype"][fallback]
 	}
@@ -2304,12 +2304,12 @@ function loadsessiondata(silent){
 		// if(showremaining){
 		// 	remaininghtml=sessioninfocard("Players Remaining",row["multidayremaining"]||0,"text-center")
 		// }
-		innerhtml("#info",`
-			${sessioninfocard(sessionpagetext("cardvenue","地點"),row["clubname"]||"-","text-center")}
-			${sessioninfocard(sessionpagetext("cardgametypelabel","遊戲類型"),TRANSLATE[LANGUAGE]["gametype"][row["gametype"]]||"-","text-center")}
-			${sessioninfocard(sessionpagetext("cardprofit","盈虧"),profittext,profitclass+" text-center")}
-			${sessioninfocard(sessionpagetext("cardplace","名次"),placetext+(placecontext?" ("+placecontext+")":""),"text-center")}
-		`,false)
+                innerhtml("#info",`
+                        ${sessioninfocard(sessionpagetext("cardvenue","地點"),row["clubname"]||"-","text-center")}
+                        ${sessioninfocard(sessionpagetext("cardgametypelabel","遊戲類型"),sessiontypetext("game",row["gametypeid"],row["gametype"]),"text-center")}
+                        ${sessioninfocard(sessionpagetext("cardprofit","盈虧"),profittext,profitclass+" text-center")}
+                        ${sessioninfocard(sessionpagetext("cardplace","名次"),placetext+(placecontext?" ("+placecontext+")":""),"text-center")}
+                `,false)
 		rendersessiondetailinfo(row)
 		innertext("#description",sessiondisplayvalue(row["description"]),false)
 
@@ -2644,15 +2644,15 @@ function settingauthheaders(){
 }
 
 function optionhtml(rows,selected,labelkey){
-	let html=""
-	for(let i=0;i<rows.length;i=i+1){
-		let text=rows[i]["name"]||rows[i]["code"]||rows[i]["id"]
-		if(labelkey&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][labelkey]&&TRANSLATE[LANGUAGE]["type"][labelkey][rows[i]["code"]]){
-			text=TRANSLATE[LANGUAGE]["type"][labelkey][rows[i]["code"]]
-		}
-		html=html+`<option value="${safehtml(rows[i]["id"])}" ${String(selected)==String(rows[i]["id"])?"selected":""}>${safehtml(text)}</option>`
-	}
-	return html
+        let html=""
+        for(let i=0;i<rows.length;i=i+1){
+                let text=rows[i]["name"]||rows[i]["code"]||rows[i]["id"]
+                if(labelkey&&labelkey!="game"&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][labelkey]&&TRANSLATE[LANGUAGE]["type"][labelkey][rows[i]["code"]]){
+                        text=TRANSLATE[LANGUAGE]["type"][labelkey][rows[i]["code"]]
+                }
+                html=html+`<option value="${safehtml(rows[i]["id"])}" ${String(selected)==String(rows[i]["id"])?"selected":""}>${safehtml(text)}</option>`
+        }
+        return html
 }
 
 function loadsettingdata(){

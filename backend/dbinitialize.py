@@ -1339,7 +1339,7 @@ INSERT INTO public.gametype(name,code,description) VALUES
 	('7 card Stud Razz','RA','7張梭哈低牌'),
 	('7 card Stud Hi-Lo','S8','7張梭哈高低'),
 	('Crazy Pineapple','CP','瘋狂菠蘿'),
-	('Super Hold''em','SH','超級德州(三卡賽)'),
+	('Super Hold''em','SH','超級德州'),
 	('Short Deck','SD','短牌'),
 	('Badugi','BU','巴杜基'),
 	('A-5 Single Draw','AS','A-5單次換牌'),

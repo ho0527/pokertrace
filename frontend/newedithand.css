@@ -242,6 +242,33 @@
     white-space: nowrap;
 }
 
+.newhand-editlock {
+    background: rgba(69,26,3,0.72);
+    border: 1px solid #92400e;
+    border-radius: 16px;
+    color: #fed7aa;
+    display: grid;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+}
+
+.newhand-editlock strong {
+    color: #ffedd5;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.newhand-editlock span {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.newhand-hubbtn.scorelocked {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
 .newhand-step{
     display: none;
 }

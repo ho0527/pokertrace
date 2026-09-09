@@ -1463,23 +1463,103 @@ document.addEventListener("keydown",function(event){
 })
 
 function currentpagepath(){
-	let page=location.pathname.split("/").pop()||""
+	let pathname=(location.pathname||"").replace(/\\/g,"/")
+	let page=pathname.split("/").pop()||""
+	if(pathname.toLowerCase().indexOf("/tool/")>=0&&page){
+		page="tool/"+page
+	}
 	let query=location.search||""
 	let hash=location.hash||""
-	return page+query+hash
+	return ptnormalizereturnpage(page+query+hash)
 }
 
 function getcurrentpagename(){
 	return CURRENTPAGENAME
 }
 
+function ptnormalizereturnpage(page){
+	let target=String(page||"").trim()
+	if(!target){
+		return ""
+	}
+	let hash=""
+	let hashindex=target.indexOf("#")
+	if(hashindex>=0){
+		hash=target.slice(hashindex)
+		target=target.slice(0,hashindex)
+	}
+	let query=""
+	let queryindex=target.indexOf("?")
+	if(queryindex>=0){
+		query=target.slice(queryindex)
+		target=target.slice(0,queryindex)
+	}
+	let path=target.toLowerCase()
+	let rootpage=[
+		"admin.html",
+		"batchcreate.html",
+		"benefit.html",
+		"blocked.html",
+		"broadcast.html",
+		"broadcastcontrol.html",
+		"checkin.html",
+		"clublist.html",
+		"contact.html",
+		"contactadmin.html",
+		"control.html",
+		"display.html",
+		"edittable.html",
+		"gametype.html",
+		"guide.html",
+		"handdetail.html",
+		"index.html",
+		"main.html",
+		"newedithand.html",
+		"newsession.html",
+		"newtable.html",
+		"notification.html",
+		"offline.html",
+		"payoutedit.html",
+		"privacy.html",
+		"profile.html",
+		"quickhand.html",
+		"receipt.html",
+		"register.html",
+		"scan.html",
+		"series.html",
+		"serieslist.html",
+		"session.html",
+		"sessionlist.html",
+		"signin.html",
+		"signup.html",
+		"stackadjust.html",
+		"staffverify.html",
+		"staffwork.html",
+		"structure.html",
+		"structureedit.html",
+		"table.html",
+		"tableboard.html",
+		"terms.html",
+		"toollist.html"
+	]
+	if(target.indexOf("/")<0&&rootpage.indexOf(path)<0){
+		target="tool/"+target
+		path=target.toLowerCase()
+	}
+	if(path=="tdarules.html"||path=="tool/tdarules.html"){
+		target="tool/tdarule2024.html"
+	}
+	return target+query+hash
+}
+
 function ptcanrememberreturnpage(page){
-	let target=(page||getcurrentpagename()).toLowerCase()
+	let target=(ptnormalizereturnpage(page)||getcurrentpagename()).toLowerCase()
 	let blocked=[
 		"",
 		"index.html",
 		"signin.html",
-		"signup.html"
+		"signup.html",
+		"blocked.html"
 	]
 	for(let i=0;i<blocked.length;i=i+1){
 		if(target==blocked[i]){
@@ -1490,7 +1570,7 @@ function ptcanrememberreturnpage(page){
 }
 
 function ptrememberreturnpage(page){
-	let target=page||currentpagepath()
+	let target=ptnormalizereturnpage(page||currentpagepath())
 	let pagename=(target.split("?")[0]||"").toLowerCase()
 	if(!ptcanrememberreturnpage(pagename)){
 		return
@@ -1499,7 +1579,7 @@ function ptrememberreturnpage(page){
 }
 
 function ptgetreturnpage(){
-	let page=weblsget(WEBLSNAME+"returnpage")
+	let page=ptnormalizereturnpage(weblsget(WEBLSNAME+"returnpage"))
 	if(!page){
 		return ""
 	}
@@ -1611,6 +1691,7 @@ function canshowautobackbutton(){
 		"admin.html",
 		"signin.html",
 		"signup.html",
+		"blocked.html",
 		"equity.html",
 		"timebankdrill.html",
 		"potodds.html",
@@ -2209,7 +2290,15 @@ function pttoolfavoritelist(){
 	try{
 		let list=JSON.parse(raw)
 		if(Array.isArray(list)){
-			return list
+			let output=pttoolfavoritesanitize(list)
+			if(JSON.stringify(output)!=JSON.stringify(list)){
+				try{
+					localStorage.setItem(pttoolfavoritekey(),JSON.stringify(output))
+				}catch(error){
+					// 無痕模式或容量已滿時 setItem 會丟例外，保存失敗不該中斷流程
+				}
+			}
+			return output
 		}
 	}catch(error){
 	}
@@ -2223,6 +2312,9 @@ function pttoolfavoritesanitize(list){
 	}
 	for(let i=0;i<list.length;i=i+1){
 		let item=String(list[i]||"").trim()
+		if(typeof pttoolhrefnormalize=="function"){
+			item=pttoolhrefnormalize(item)
+		}
 		if(!item){
 			continue
 		}
@@ -2248,6 +2340,9 @@ function pttoolfavoritemerge(list,otherlist){
 }
 
 function pttoolfavoritehas(href){
+	if(typeof pttoolhrefnormalize=="function"){
+		href=pttoolhrefnormalize(href)
+	}
 	let list=pttoolfavoritelist()
 	for(let i=0;i<list.length;i=i+1){
 		if(list[i]==href){
@@ -2319,6 +2414,9 @@ function pttoolfavoritesyncfrombackend(done){
 }
 
 function pttoolfavoritetoggle(href){
+	if(typeof pttoolhrefnormalize=="function"){
+		href=pttoolhrefnormalize(href)
+	}
 	let list=pttoolfavoritelist()
 	let newlist=[]
 	let removed=false
@@ -2706,7 +2804,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} a4.1.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} a4.2.0 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>
@@ -2844,6 +2942,7 @@ function pterror(key){
 		"ERROR_token_not_found": "登入狀態已失效，請重新登入",
 		"ERROR_token_error": "登入狀態已失效，請重新登入",
 		"ERROR_no_permission": "沒有操作權限",
+		"ERROR_user_banned": "此帳號已被封鎖或停權",
 		"ERROR_session_not_found": "找不到賽事",
 		"ERROR_table_not_found": "找不到牌桌",
 		"ERROR_user_not_found": "找不到使用者",
@@ -2913,6 +3012,9 @@ function pttoast(message,type){
 }
 
 function ptauthtarget(reasonkey){
+	if(reasonkey=="ERROR_user_banned"){
+		return "blocked.html?reason="+encodeURIComponent(reasonkey)
+	}
 	let query=[]
 	if(reasonkey){
 		query.push("reason="+encodeURIComponent(reasonkey))
@@ -3006,7 +3108,7 @@ function pthandleauthfailure(reasonkey,options){
 }
 
 function ptisauthfailure(message){
-	if(message=="ERROR_token_error"||message=="ERROR_token_not_found"){
+	if(message=="ERROR_token_error"||message=="ERROR_token_not_found"||message=="ERROR_user_banned"){
 		return true
 	}
 	return false

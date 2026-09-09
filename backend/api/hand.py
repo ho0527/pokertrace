@@ -2055,6 +2055,235 @@ def equityratelimited(request):
 	return limited
 
 
+def equityrangecombovalid(combo,holecount,allowedranklist,fixedused):
+	if not isinstance(combo,list):
+		return False
+	if len(combo)!=holecount:
+		return False
+	seen=[]
+	for cardtext in combo:
+		cardtext=str(cardtext or "")
+		if equityrankchar(cardtext) not in allowedranklist:
+			return False
+		try:
+			eval7.Card(cardtext)
+		except Exception as error:
+			return False
+		if cardtext in fixedused or cardtext in seen:
+			return False
+		seen.append(cardtext)
+	return True
+
+
+def equityrangechoose(rangelist):
+	handlist=[]
+	used=set()
+	orderlist=list(range(len(rangelist)))
+	orderlist.sort(key=lambda item: len(rangelist[item]))
+	def pick(pos):
+		if pos>=len(orderlist):
+			return True
+		index=orderlist[pos]
+		candidatelist=rangelist[index][:]
+		random.shuffle(candidatelist)
+		for combo in candidatelist:
+			conflicted=False
+			for carditem in combo:
+				if carditem in used:
+					conflicted=True
+			if not conflicted:
+				for carditem in combo:
+					used.add(carditem)
+				handlist[index]=combo
+				if pick(pos+1):
+					return True
+				for carditem in combo:
+					used.remove(carditem)
+		return False
+	for i in range(len(rangelist)):
+		handlist.append([])
+	if pick(0):
+		return handlist
+	return None
+
+
+def equityrangecalc(data,gametype,holecount,hiloed,shortdecked,allowedranklist):
+	rangeinputlist=data.get("rangelist")
+	if not isinstance(rangeinputlist,list):
+		return None
+	if len(rangeinputlist)<2 or len(rangeinputlist)>15:
+		return errorresponse("ERROR_request_data_type_error")
+	if holecount!=2:
+		return errorresponse("ERROR_request_data_type_error")
+	boardrawdatalist=[]
+	if isinstance(data.get("boardlist"),list):
+		for boarditem in data.get("boardlist"):
+			boardrawdatalist.append(boardcardsfromdata(boarditem or {}))
+	else:
+		boardrawdatalist.append(boardcardsfromdata(data.get("board") or {}))
+	if len(boardrawdatalist)<1 or len(boardrawdatalist)>2:
+		return errorresponse("ERROR_request_data_type_error")
+	fixedused=[]
+	boarddatalist=[]
+	for boardraw in boardrawdatalist:
+		if len(boardraw)>5:
+			return errorresponse("ERROR_request_data_type_error")
+		boarditemlist=[]
+		for cardtext in boardraw:
+			cardtext=str(cardtext or "")
+			if equityrankchar(cardtext) not in allowedranklist:
+				return errorresponse("ERROR_request_data_type_error")
+			if cardtext in fixedused:
+				return errorresponse("ERROR_request_data_type_error")
+			fixedused.append(cardtext)
+			boarditemlist.append(eval7.Card(cardtext))
+		boarddatalist.append(boarditemlist)
+	deadraw=data.get("dead")
+	if deadraw is None:
+		deadraw=data.get("deadlist") or []
+	deadcards=[]
+	for cardtext in deadraw:
+		if not cardtext:
+			continue
+		cardtext=str(cardtext or "")
+		if equityrankchar(cardtext) not in allowedranklist:
+			return errorresponse("ERROR_request_data_type_error")
+		if cardtext in fixedused:
+			return errorresponse("ERROR_request_data_type_error")
+		fixedused.append(cardtext)
+		deadcards.append(eval7.Card(cardtext))
+	rangelist=[]
+	for rangeitem in rangeinputlist:
+		if not isinstance(rangeitem,list) or len(rangeitem)<=0 or len(rangeitem)>1326:
+			return errorresponse("ERROR_request_data_type_error")
+		combolist=[]
+		combokeylist=[]
+		for combo in rangeitem:
+			if not equityrangecombovalid(combo,holecount,allowedranklist,fixedused):
+				return errorresponse("ERROR_request_data_type_error")
+			key=",".join(sorted([str(combo[i]) for i in range(len(combo))]))
+			if key not in combokeylist:
+				combokeylist.append(key)
+				combolist.append([eval7.Card(str(cardtext)) for cardtext in combo])
+		if len(combolist)<=0:
+			return errorresponse("ERROR_request_data_type_error")
+		rangelist.append(combolist)
+	n=len(rangelist)
+	totalneed=0
+	for boarditemlist in boarddatalist:
+		totalneed=totalneed+(5-len(boarditemlist))
+	wins=[0]*n
+	ties=[0]*n
+	equityshares=[0]*n
+	scoops=[0]*n
+	total=0
+	iters=12000
+	if len(boarddatalist)>1:
+		iters=8000
+	if hiloed:
+		iters=5000
+	if shortdecked:
+		iters=9000
+	for attempt in range(iters*3):
+		if total>=iters:
+			break
+		handlist=equityrangechoose(rangelist)
+		if handlist is None:
+			return errorresponse("ERROR_request_data_type_error")
+		usedcards=[]
+		for handcardlist in handlist:
+			usedcards=usedcards+handcardlist
+		for boarditemlist in boarddatalist:
+			usedcards=usedcards+boarditemlist
+		usedcards=usedcards+deadcards
+		remaining=[]
+		for carditem in eval7.Deck().cards:
+			if shortdecked and equityrankchar(carditem) not in allowedranklist:
+				continue
+			if carditem not in usedcards:
+				remaining.append(carditem)
+		random.shuffle(remaining)
+		fullboardlist=[]
+		pos=0
+		for boarditemlist in boarddatalist:
+			item=list(boarditemlist)
+			needcount=5-len(item)
+			if needcount>0:
+				item=item+list(remaining[pos:pos+needcount])
+				pos=pos+needcount
+			fullboardlist.append(item)
+		shareweight=1/len(fullboardlist)
+		for full5 in fullboardlist:
+			highscorelist=[]
+			for i in range(n):
+				bestdata=equityhighbestdata(handlist[i],full5,gametype)
+				highscorelist.append(bestdata["score"])
+			besthigh=max(highscorelist)
+			highwinnerlist=[]
+			for i in range(n):
+				if highscorelist[i]==besthigh:
+					highwinnerlist.append(i)
+			if hiloed:
+				lowwinnerlist=[]
+				bestlow=None
+				for i in range(n):
+					lowscore=equitylowscore(handlist[i],full5,gametype)
+					if lowscore is None:
+						continue
+					if bestlow is None or lowscore<bestlow:
+						bestlow=lowscore
+						lowwinnerlist=[i]
+					elif lowscore==bestlow:
+						lowwinnerlist.append(i)
+				sharelist=[0]*n
+				highshare=1
+				if len(lowwinnerlist)>0:
+					highshare=0.5
+				for i in range(len(highwinnerlist)):
+					sharelist[highwinnerlist[i]]=sharelist[highwinnerlist[i]]+(highshare/len(highwinnerlist))
+				if len(lowwinnerlist)>0:
+					for i in range(len(lowwinnerlist)):
+						sharelist[lowwinnerlist[i]]=sharelist[lowwinnerlist[i]]+(0.5/len(lowwinnerlist))
+				for i in range(n):
+					equityshares[i]=equityshares[i]+(sharelist[i]*shareweight)
+					if sharelist[i]==1:
+						scoops[i]=scoops[i]+shareweight
+			else:
+				if len(highwinnerlist)==1:
+					wins[highwinnerlist[0]]=wins[highwinnerlist[0]]+shareweight
+				else:
+					for i in range(len(highwinnerlist)):
+						ties[highwinnerlist[i]]=ties[highwinnerlist[i]]+shareweight
+		total=total+1
+	if total<=0:
+		return errorresponse("ERROR_request_data_type_error")
+	results=[]
+	for i in range(n):
+		winp=wins[i]/total*100
+		tiep=ties[i]/total*100
+		if hiloed:
+			winp=equityshares[i]/total*100
+			tiep=scoops[i]/total*100
+		results.append({
+			"index": i,
+			"gametype": gametype,
+			"win": round(winp,2),
+			"tie": round(tiep,2),
+			"bested": False,
+			"bestscore": None,
+			"bestcardlist": [],
+			"outlist": [],
+			"outs": [],
+			"chopoutlist": [],
+			"status": "range",
+			"lowwinnered": False,
+			"lowcardlist": [],
+			"rangecount": len(rangelist[i]),
+			"sample": total
+		})
+	return Response({"success": True,"data": {"resultlist": results,"results": results}},status.HTTP_200_OK)
+
+
 @api_view(["POST"])
 def equity(request):
 	# 公開端點：有帶 token 就驗（驗過視為登入使用者、略過限流），無 token 允許匿名但走每 IP 限流
@@ -2079,6 +2308,8 @@ def equity(request):
 		hiloed=equityhiloed(gametype)
 		shortdecked=equityshortdecked(gametype)
 		allowedranklist=equityallowedranklist(gametype)
+		if isinstance(data.get("rangelist"),list):
+			return equityrangecalc(data,gametype,holecount,hiloed,shortdecked,allowedranklist)
 		handrawlist=data.get("handlist")  
 		if handrawlist is None:  
 			handrawlist=data.get("hands") or []  

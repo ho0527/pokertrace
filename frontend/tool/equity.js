@@ -5,9 +5,9 @@ let equityrequestid=0
 let equitysolvetimer=null
 let equitypreviewhandindex=null
 let equitypreviewhovertimer=null
-let equitypreviewtouchtimer=null
 
 const EQUITYMAXHAND=15
+const EQUITYRANGEMAXCOMBO=1326
 // 合法的牌型代碼。代碼與資料庫 gametype 表對齊：
 // HE 德州 / OM 奧馬哈 / O5 5張奧馬哈 / O8 奧馬哈高低 / BO 5張奧馬哈高低(Big O) /
 // SD 短牌 / SH 超級德州 / DW 萬用 2。
@@ -18,6 +18,7 @@ const EQUITYPREVIEWHOVERDELAYMS=120
 let equitystate={
 	gametype: "HE",
 	handlist: [["",""],["",""]],
+	rangelist: ["",""],
 	board: {
 		floplist: ["","",""],
 		turn: "",
@@ -117,6 +118,7 @@ function persiststate(){
 	let raw=JSON.stringify({
 		gametype: equitystate.gametype,
 		handlist: equitystate.handlist,
+		rangelist: equitystate.rangelist,
 		board: equitystate.board,
 		board2: equitystate.board2,
 		boardmode: equitystate.boardmode,
@@ -158,6 +160,12 @@ function loadpersistedstate(){
 		}
 		if(2<=newhandlist.length&&newhandlist.length<=maxhandcount()){
 			equitystate.handlist=newhandlist
+		}
+		if(Array.isArray(saved["rangelist"])){
+			equitystate.rangelist=[]
+			for(let i=0;i<equitystate.handlist.length;i=i+1){
+				equitystate.rangelist.push(String(saved["rangelist"][i]||""))
+			}
 		}
 		let newdeadlist=[]
 		if(Array.isArray(saved["deadlist"])){
@@ -638,6 +646,340 @@ function evaluatefive(cards){
 	return { category: 0,ranks: sortedranks,name: "high card",main: ranklabel(sortedranks[0]) }
 }
 
+function ensureequityrangelist(){
+	if(!Array.isArray(equitystate.rangelist)){
+		equitystate.rangelist=[]
+	}
+	while(equitystate.rangelist.length<equitystate.handlist.length){
+		equitystate.rangelist.push("")
+	}
+	while(equitystate.rangelist.length>equitystate.handlist.length){
+		equitystate.rangelist.pop()
+	}
+}
+
+function currentdecklist(){
+	let output=[]
+	let availableranklist=ranklist()
+	for(let rankindex=0;rankindex<availableranklist.length;rankindex=rankindex+1){
+		for(let suitindex=0;suitindex<SUITLISTALL.length;suitindex=suitindex+1){
+			output.push(availableranklist[rankindex]+SUITLISTALL[suitindex][0])
+		}
+	}
+	return output
+}
+
+function rankindexof(rankchar){
+	let availableranklist=ranklist()
+	return availableranklist.indexOf(String(rankchar||"").toUpperCase())
+}
+
+function normalizehandtoken(token){
+	let text=String(token||"").trim().toUpperCase()
+	text=text.replace(/10/g,"T")
+	return text
+}
+
+function addrangecombo(combolist,cardone,cardtwo){
+	if(cardone==cardtwo){
+		return
+	}
+	let combo=[cardone,cardtwo]
+	combo.sort()
+	let key=combo[0]+combo[1]
+	let existed=false
+	for(let i=0;i<combolist.length;i=i+1){
+		if(combolist[i][0]+combolist[i][1]==key){
+			existed=true
+		}
+	}
+	if(!existed){
+		combolist.push(combo)
+	}
+}
+
+function addrangehand(combolist,rankone,ranktwo,suitedmode){
+	let decklist=currentdecklist()
+	for(let i=0;i<decklist.length;i=i+1){
+		for(let j=i+1;j<decklist.length;j=j+1){
+			let cardone=decklist[i]
+			let cardtwo=decklist[j]
+			let ranka=cardone.slice(0,1).toUpperCase()
+			let rankb=cardtwo.slice(0,1).toUpperCase()
+			let suita=cardone.slice(-1).toLowerCase()
+			let suitb=cardtwo.slice(-1).toLowerCase()
+			let matched=false
+			if(ranka==rankone&&rankb==ranktwo){
+				matched=true
+			}
+			if(ranka==ranktwo&&rankb==rankone){
+				matched=true
+			}
+			if(matched){
+				if(suitedmode=="s"&&suita!=suitb){
+					matched=false
+				}
+				if(suitedmode=="o"&&suita==suitb){
+					matched=false
+				}
+			}
+			if(matched){
+				addrangecombo(combolist,cardone,cardtwo)
+			}
+		}
+	}
+}
+
+function addrangeabstract(combolist,token){
+	let text=normalizehandtoken(token)
+	let rangedata=text.match(/^([AKQJT98765432])([AKQJT98765432])([SO])?(\+)?$/)
+	if(rangedata){
+		let rankone=rangedata[1]
+		let ranktwo=rangedata[2]
+		let suitedmode=String(rangedata[3]||"").toLowerCase()
+		let plussed=rangedata[4]=="+"
+		if(rankindexof(rankone)<0||rankindexof(ranktwo)<0){
+			return false
+		}
+		if(rankone==ranktwo){
+			let startindex=rankindexof(rankone)
+			let endindex=startindex
+			if(plussed){
+				endindex=0
+			}
+			for(let i=startindex;i>=endindex;i=i-1){
+				addrangehand(combolist,ranklist()[i],ranklist()[i],"")
+			}
+			return true
+		}
+		let highrank=rankone
+		let kickerrank=ranktwo
+		if(rankindexof(ranktwo)<rankindexof(rankone)){
+			highrank=ranktwo
+			kickerrank=rankone
+		}
+		let startindex=rankindexof(kickerrank)
+		let endindex=startindex
+		if(plussed){
+			endindex=rankindexof(highrank)+1
+		}
+		for(let i=startindex;i>=endindex;i=i-1){
+			addrangehand(combolist,highrank,ranklist()[i],suitedmode)
+		}
+		return true
+	}
+	return false
+}
+
+function addrangetoken(combolist,token){
+	let text=normalizehandtoken(token)
+	if(!text){
+		return true
+	}
+	if(text=="*"||text=="ANY"||text=="RANDOM"){
+		let decklist=currentdecklist()
+		for(let i=0;i<decklist.length;i=i+1){
+			for(let j=i+1;j<decklist.length;j=j+1){
+				addrangecombo(combolist,decklist[i],decklist[j])
+			}
+		}
+		return true
+	}
+	let exact=text.match(/^([AKQJT98765432][SHDC])([AKQJT98765432][SHDC])$/)
+	if(exact){
+		let cardone=sanitizecardtext(exact[1],ranklist())
+		let cardtwo=sanitizecardtext(exact[2],ranklist())
+		if(cardone&&cardtwo&&cardone!=cardtwo){
+			addrangecombo(combolist,cardone,cardtwo)
+			return true
+		}
+		return false
+	}
+	let rangematch=text.match(/^([AKQJT98765432]{2}[SO]?)-([AKQJT98765432]{2}[SO]?)$/)
+	if(rangematch){
+		let left=rangematch[1]
+		let right=rangematch[2]
+		let leftone=left.slice(0,1)
+		let lefttwo=left.slice(1,2)
+		let rightone=right.slice(0,1)
+		let righttwo=right.slice(1,2)
+		let suitedmode=String(left.slice(2,3)||right.slice(2,3)||"").toLowerCase()
+		if(leftone==lefttwo&&rightone==righttwo){
+			let startindex=rankindexof(leftone)
+			let endindex=rankindexof(rightone)
+			if(startindex>=0&&endindex>=0){
+				let step=1
+				if(startindex>endindex){
+					step=-1
+				}
+				for(let i=startindex;step==1?i<=endindex:i>=endindex;i=i+step){
+					addrangehand(combolist,ranklist()[i],ranklist()[i],"")
+				}
+				return true
+			}
+		}
+		if(leftone==rightone&&lefttwo!=righttwo){
+			let startindex=rankindexof(lefttwo)
+			let endindex=rankindexof(righttwo)
+			if(startindex>=0&&endindex>=0){
+				let step=1
+				if(startindex>endindex){
+					step=-1
+				}
+				for(let i=startindex;step==1?i<=endindex:i>=endindex;i=i+step){
+					addrangehand(combolist,leftone,ranklist()[i],suitedmode)
+				}
+				return true
+			}
+		}
+		return false
+	}
+	return addrangeabstract(combolist,text)
+}
+
+function parserangetext(rangetext){
+	let text=String(rangetext||"").replace(/\s+/g,"")
+	let combolist=[]
+	if(!text){
+		return combolist
+	}
+	let tokenlist=text.split(/[,\uff0c]+/)
+	for(let i=0;i<tokenlist.length;i=i+1){
+		if(!addrangetoken(combolist,tokenlist[i])){
+			return null
+		}
+		if(combolist.length>EQUITYRANGEMAXCOMBO){
+			return null
+		}
+	}
+	return combolist
+}
+
+function hasrangetext(){
+	ensureequityrangelist()
+	for(let i=0;i<equitystate.rangelist.length;i=i+1){
+		if(String(equitystate.rangelist[i]||"").trim()){
+			return true
+		}
+	}
+	return false
+}
+
+function rangecompatibleed(combolist,blockedlist){
+	for(let i=0;i<combolist.length;i=i+1){
+		let blockeded=false
+		for(let j=0;j<combolist[i].length;j=j+1){
+			if(blockedlist.indexOf(combolist[i][j])>=0){
+				blockeded=true
+			}
+		}
+		if(!blockeded){
+			return true
+		}
+	}
+	return false
+}
+
+function equityrangehandlabel(row,column){
+	let availableranklist=ranklist()
+	if(row==column){
+		return availableranklist[row]+availableranklist[column]
+	}
+	if(row<column){
+		return availableranklist[row]+availableranklist[column]+"s"
+	}
+	return availableranklist[column]+availableranklist[row]+"o"
+}
+
+function showequityrangepicker(handindex){
+	if(holecount()!=2){
+		pttoast(equitytext("rangeonlyholdem"),"warning")
+		return
+	}
+	let selectedlist=[]
+	let savedtokenlist=String(equitystate.rangelist[handindex]||"").split(/[,，]+/)
+	for(let i=0;i<savedtokenlist.length;i=i+1){
+		let token=normalizehandtoken(savedtokenlist[i])
+		if(/^[AKQJT98765432]{2}[SO]?$/.test(token)&&selectedlist.indexOf(token)<0){
+			selectedlist.push(token)
+		}
+	}
+	let modal=document.createElement("div")
+	modal.className="toolmodal"
+	modal.innerHTML=`
+		<div class="toolmodal-body equityrange-modalbody">
+			<div class="toolmodal-head">
+				<div class="toolmodal-title">${equitytext("selectrange")}</div>
+				<input type="button" class="toolmodal-close" value="${equitytext("close")}">
+			</div>
+			<div class="equityrange-picker" id="equityrangepicker"></div>
+			<div class="equityrange-selection" id="equityrangeselection"></div>
+			<div class="toolmodal-actions">
+				<input type="button" class="toolmodal-cancel" value="${equitytext("cancel")}">
+				<input type="button" class="toolmodal-confirm" value="${equitytext("confirm")}">
+			</div>
+		</div>
+	`
+	ptlockpagescroll()
+	document.body.appendChild(modal)
+
+	function closemodal(){
+		if(modal.parentElement){
+			ptremovescrollcover(modal)
+		}
+	}
+
+	function renderselection(){
+		let grid=modal.querySelector("#equityrangepicker")
+		grid.innerHTML=""
+		let availableranklist=ranklist()
+		for(let row=0;row<availableranklist.length;row=row+1){
+			for(let column=0;column<availableranklist.length;column=column+1){
+				let hand=equityrangehandlabel(row,column)
+				let button=document.createElement("input")
+				button.type="button"
+				button.className="equityrange-cell"
+				button.setAttribute("data-rangehand",hand)
+				button.value=hand
+				if(selectedlist.indexOf(hand)>=0){
+					button.className=button.className+" selected"
+				}
+				button.addEventListener("click",function(){
+					let selectedindex=selectedlist.indexOf(hand)
+					if(selectedindex>=0){
+						selectedlist.splice(selectedindex,1)
+					}else{
+						selectedlist.push(hand)
+					}
+					renderselection()
+				})
+				grid.appendChild(button)
+			}
+		}
+		let summary=equitytext("selectedrange")+" "+selectedlist.length
+		if(selectedlist.length>0){
+			summary=summary+" · "+selectedlist.join(",")
+		}
+		modal.querySelector("#equityrangeselection").textContent=summary
+	}
+
+	renderselection()
+	modal.querySelector(".toolmodal-close").addEventListener("click",closemodal)
+	modal.querySelector(".toolmodal-cancel").addEventListener("click",closemodal)
+	modal.querySelector(".toolmodal-confirm").addEventListener("click",function(){
+		equitystate.rangelist[handindex]=selectedlist.join(",")
+		if(selectedlist.length>0){
+			equitystate.handlist[handindex]=["",""]
+		}
+		clearequityresult()
+		persiststate()
+		closemodal()
+		renderhandlist()
+		renderboardcard()
+		autosolveequity()
+	})
+}
+
 function comparearrays(a,b){
 	let length=Math.max(a.length,b.length)
 	for(let i=0;i<length;i=i+1){
@@ -1098,6 +1440,9 @@ function pctformat(value){
 	if(percentvalue<0.1){
 		return "<0.1"
 	}
+	if(percentvalue>99&&percentvalue<100){
+		return ">99"
+	}
 	if(percentvalue>=10){
 		return String(Math.round(percentvalue))
 	}
@@ -1164,6 +1509,10 @@ function renderhandresult(resultrow){
 	let winvalue=Number(resultrow["win"])||0
 	let tievalue=Number(resultrow["tie"])||0
 	let labelhtml=""
+	let rangehtml=""
+	if(resultrow["rangecount"]){
+		rangehtml=`<div class="equityrangemeta">${equitytext("rangecount")} ${resultrow["rangecount"]} · ${equitytext("rangesample")} ${resultrow["sample"]||0}</div>`
+	}
 	if(boardcount()>=5){
 		let bestlabel=besthandlabel(resultrow)
 		if(equityhiloed()){
@@ -1190,6 +1539,7 @@ function renderhandresult(resultrow){
 		return `
 			${labelhtml}
 			<div class="equityinline">
+				${rangehtml}
 				<div class="equitybar">
 					<div class="equitybar-win" data-equitywidth="${winvalue}"></div>
 				</div>
@@ -1207,6 +1557,7 @@ function renderhandresult(resultrow){
 	return `
 		${labelhtml}
 		<div class="equityinline">
+			${rangehtml}
 			<div class="equitybar">
 				<div class="equitybar-win" data-equitywidth="${winvalue}"></div>
 				<div class="equitybar-tie" data-equitywidth="${tievalue}"></div>
@@ -1245,6 +1596,7 @@ function handrowglowed(resultrow){
 }
 
 function renderhandlist(){
+	ensureequityrangelist()
 	let host=domgetid("handlist")
 	host.innerHTML=""
 	// 整份算一次就好，不要每一手各算一次 —— lowwinnermap() 內部會對每一手窮舉 100 組
@@ -1301,7 +1653,11 @@ function renderhandlist(){
 				<span class="handrow-label">${equitytext("hand")} ${i+1}</span>
 				<input type="button" class="handrow-remove" data-removeindex="${i}" value="${equitytext("remove")}"${removedisabled}>
 			</div>
-			<div class="handrowcard" data-handindex="${i}">${cardhtml}</div>
+			<div class="handrowcard" role="button" tabindex="0" data-handindex="${i}">${cardhtml}</div>
+			<div class="equityrangebox">
+				<input type="button" class="equityrangeselect" data-rangeindex="${i}" value="${equitytext("selectrange")}">
+				<div class="equityrangehint">${String(equitystate.rangelist[i]||equitytext("norangeset"))}</div>
+			</div>
 			${resulthtml}
 		`
 		applyequitybarwidth(row)
@@ -1317,14 +1673,23 @@ function renderhandlist(){
 			})
 			showcardpicker(equitytext("hand")+" "+(handindex+1),currentcardlist,holecount(),getusedcardlist(equitystate.handlist[handindex]),function(selectedcardlist){
 				equitystate.handlist[handindex]=buildfixedcardlist(selectedcardlist)
+				if(selectedcardlist.length>0){
+					equitystate.rangelist[handindex]=""
+				}
 				persiststate()
 				renderhandlist()
 				autosolveequity()
 			})
 		})
+		handarealist[i].addEventListener("keydown",function(event){
+			if(event.key=="Enter"||event.key==" "){
+				event.preventDefault()
+				this.click()
+			}
+		})
 	}
 
-	let removelist=host.querySelectorAll("[data-removeindex]")
+		let removelist=host.querySelectorAll("[data-removeindex]")
 	for(let i=0;i<removelist.length;i=i+1){
 		removelist[i].addEventListener("click",function(){
 			if(equitystate.handlist.length<=2){
@@ -1333,6 +1698,7 @@ function renderhandlist(){
 			}
 			let handindex=parseInt(this.getAttribute("data-removeindex"),10)
 			equitystate.handlist.splice(handindex,1)
+			equitystate.rangelist.splice(handindex,1)
 			clearequityresult()
 			persiststate()
 			renderhandlist()
@@ -1344,6 +1710,13 @@ function renderhandlist(){
 	addbutton.style.display=""
 	if(equitystate.handlist.length>=maxhandcount()){
 		addbutton.style.display="none"
+	}
+	let rangebuttonlist=host.querySelectorAll("[data-rangeindex]")
+	for(let i=0;i<rangebuttonlist.length;i=i+1){
+		rangebuttonlist[i].addEventListener("click",function(){
+			let rangeindex=parseInt(this.getAttribute("data-rangeindex"),10)
+			showequityrangepicker(rangeindex)
+		})
 	}
 	bindequitypreviewhand()
 }
@@ -1364,10 +1737,6 @@ function clearequitypreviewhand(){
 	if(equitypreviewhovertimer){
 		clearTimeout(equitypreviewhovertimer)
 		equitypreviewhovertimer=null
-	}
-	if(equitypreviewtouchtimer){
-		clearTimeout(equitypreviewtouchtimer)
-		equitypreviewtouchtimer=null
 	}
 	if(equitypreviewhandindex!=null){
 		equitypreviewhandindex=null
@@ -1392,18 +1761,6 @@ function bindequitypreviewhand(){
 		previewlist[i].addEventListener("mouseleave",function(){
 			clearequitypreviewhand()
 		})
-		previewlist[i].addEventListener("touchstart",function(){
-			let handindex=parseInt(this.getAttribute("data-previewhand"),10)
-			if(equitypreviewtouchtimer){
-				clearTimeout(equitypreviewtouchtimer)
-			}
-			equitypreviewtouchtimer=setTimeout(function(){
-				equitypreviewtouchtimer=null
-				setequitypreviewhand(handindex)
-			},450)
-		})
-		previewlist[i].addEventListener("touchend",clearequitypreviewhand)
-		previewlist[i].addEventListener("touchcancel",clearequitypreviewhand)
 	}
 }
 
@@ -1418,6 +1775,7 @@ function renderboardcard(){
 		if(boardindex==2){
 			previewboardmap=previewmap["board2"]
 		}
+
 		let flophtml=""
 		for(let i=0;i<3;i=i+1){
 			let cardtext=boarddata.floplist[i]||""
@@ -1588,33 +1946,90 @@ function allhandreadyed(){
 	if(equitystate.handlist.length<2){
 		return false
 	}
+	ensureequityrangelist()
+	let ranged=hasrangetext()
 	for(let i=0;i<equitystate.handlist.length;i=i+1){
-		let filledcount=0
-		for(let j=0;j<equitystate.handlist[i].length;j=j+1){
-			if(equitystate.handlist[i][j]){
-				filledcount=filledcount+1
+		if(ranged&&String(equitystate.rangelist[i]||"").trim()){
+			let combolist=parserangetext(equitystate.rangelist[i])
+			if(combolist==null||combolist.length<=0){
+				return false
 			}
-		}
-		if(filledcount!=holecount()){
-			return false
+		}else{
+			let filledcount=0
+			for(let j=0;j<equitystate.handlist[i].length;j=j+1){
+				if(equitystate.handlist[i][j]){
+					filledcount=filledcount+1
+				}
+			}
+			if(filledcount!=holecount()){
+				return false
+			}
 		}
 	}
 	return true
 }
 
 function solveequity(){
+	ensureequityrangelist()
+	if(hasrangetext()&&holecount()!=2){
+		clearequityresult()
+		renderhandlist()
+		renderboardcard()
+		pttoast(equitytext("rangeonlyholdem"),"warning")
+		return
+	}
 	let handlist=[]
-	for(let i=0;i<equitystate.handlist.length;i=i+1){
-		let selectedcardlist=equitystate.handlist[i].filter(function(cardtext){
-			return !!cardtext
-		})
-		if(selectedcardlist.length!=holecount()){
-			clearequityresult()
-			renderhandlist()
-			renderboardcard()
-			return
+	let rangelist=[]
+	let blockedlist=equitystate.deadlist.slice()
+	for(let i=0;i<equitystate.board.floplist.length;i=i+1){
+		if(equitystate.board.floplist[i]){
+			blockedlist.push(equitystate.board.floplist[i])
 		}
-		handlist.push(selectedcardlist)
+	}
+	if(equitystate.board.turn){
+		blockedlist.push(equitystate.board.turn)
+	}
+	if(equitystate.board.river){
+		blockedlist.push(equitystate.board.river)
+	}
+	if(equitystate.boardmode=="double"){
+		for(let i=0;i<equitystate.board2.floplist.length;i=i+1){
+			if(equitystate.board2.floplist[i]){
+				blockedlist.push(equitystate.board2.floplist[i])
+			}
+		}
+		if(equitystate.board2.turn){
+			blockedlist.push(equitystate.board2.turn)
+		}
+		if(equitystate.board2.river){
+			blockedlist.push(equitystate.board2.river)
+		}
+	}
+	for(let i=0;i<equitystate.handlist.length;i=i+1){
+		if(String(equitystate.rangelist[i]||"").trim()){
+			let combolist=parserangetext(equitystate.rangelist[i])
+			if(combolist==null||combolist.length<=0||!rangecompatibleed(combolist,blockedlist)){
+				clearequityresult()
+				renderhandlist()
+				renderboardcard()
+				pttoast(equitytext("rangeerror"),"warning")
+				return
+			}
+			rangelist.push(combolist)
+			handlist.push(combolist[0])
+		}else{
+			let selectedcardlist=equitystate.handlist[i].filter(function(cardtext){
+				return !!cardtext
+			})
+			if(selectedcardlist.length!=holecount()){
+				clearequityresult()
+				renderhandlist()
+				renderboardcard()
+				return
+			}
+			handlist.push(selectedcardlist)
+			rangelist.push([selectedcardlist])
+		}
 	}
 	let bodydata={
 		gametype: equitystate.gametype,
@@ -1625,6 +2040,9 @@ function solveequity(){
 			river: equitystate.board.river
 		},
 		dead: equitystate.deadlist.slice()
+	}
+	if(hasrangetext()){
+		bodydata["rangelist"]=rangelist
 	}
 	if(equitystate.boardmode=="double"){
 		bodydata["boardlist"]=[
@@ -1864,6 +2282,7 @@ onclick("#addhandbutton",function(){
 		newcardlist.push("")
 	}
 	equitystate.handlist.push(newcardlist)
+	equitystate.rangelist.push("")
 	clearequityresult()
 	persiststate()
 	renderhandlist()
@@ -1878,6 +2297,7 @@ onclick("#clearbutton",function(){
 			emptycardlist.push("")
 		}
 		equitystate.handlist[i]=emptycardlist
+		equitystate.rangelist[i]=""
 	}
 	equitystate.board={
 		floplist: ["","",""],

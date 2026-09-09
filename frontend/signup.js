@@ -1,6 +1,26 @@
 // 沒登入過 → 回 signin 頁面
 if(!weblsget(WEBLSNAME+"signin")){
 	href("signin.html")
+}else{
+	document.body.style.visibility="hidden"
+	ajax("GET",AJAXURL+"getuser",function(event,data){
+		if(data["success"]&&data["data"]&&data["data"]["type"]){
+			href("main.html")
+		}else{
+			document.body.style.visibility=""
+			if(!data["success"]){
+				if(data["data"]=="ERROR_token_error"||data["data"]=="ERROR_token_not_found"||data["data"]=="ERROR_no_permission"){
+					pthandleauthfailure(data["data"],{
+						"toasted": false
+					})
+				}else{
+					pttoasterror(data["data"]||signuptext("unknownerror"))
+				}
+			}
+		}
+	},null,[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	])
 }
 
 let leaveguard=bindleaveguard()

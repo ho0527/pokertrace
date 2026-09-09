@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>帳號無法使用 - PokerTrace</title>
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+		<link rel="stylesheet" href="tailwind.css">
+	</head>
+	<body class="min-h-screen bg-zinc-950 text-white">
+		<div id="navigationbar"></div>
+
+		<main class="mx-auto flex min-h-[calc(100vh-160px)] w-full max-w-2xl items-center px-4 py-10">
+			<section class="w-full rounded-lg bg-zinc-900/95 p-8 shadow-[0_24px_60px_rgba(0,0,0,0.35)] md:p-10">
+				<div class="flex items-start gap-4">
+					<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-rose-500/15 text-2xl text-rose-200" aria-hidden="true">!</div>
+					<div>
+						<p class="text-[13px] font-bold uppercase tracking-[0.16em] text-rose-300" data-i18n="blockedpage.eyebrow">Account notice</p>
+						<h1 class="mt-2 text-3xl font-extrabold text-white md:text-4xl" data-i18n="blockedpage.title">您的帳號目前無法使用</h1>
+						<p class="mt-4 text-base leading-7 text-zinc-300" data-i18n="blockedpage.message">此帳號已被封鎖或停權，因此無法登入或使用需要帳號權限的功能。</p>
+					</div>
+				</div>
+
+				<div class="mt-8 border-t border-zinc-800 pt-6">
+					<div class="text-sm font-bold text-zinc-100" data-i18n="blockedpage.reviewtitle">需要複查？</div>
+					<p class="mt-2 text-sm leading-7 text-zinc-400" data-i18n="blockedpage.reviewbody">如果您認為此處有異議，請透過 Email 或聯絡我們頁面與我們聯絡。</p>
+					<div class="mt-4 space-y-2 text-sm">
+						<a href="mailto:chris960527ho@gmail.com" class="block font-semibold text-emerald-300 transition hover:text-emerald-200">chris960527ho@gmail.com</a>
+						<a href="contact.html" class="block font-semibold text-emerald-300 transition hover:text-emerald-200" data-i18n="blockedpage.contact">前往聯絡我們</a>
+					</div>
+				</div>
+
+				<div class="mt-8 flex flex-col gap-3 sm:flex-row">
+					<a href="contact.html" class="inline-flex min-h-12 items-center justify-center rounded-lg bg-emerald-500 px-5 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400" data-i18n="blockedpage.contactbutton">聯絡我們</a>
+					<a href="index.html" class="inline-flex min-h-12 items-center justify-center rounded-lg bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n="blockedpage.homebutton">回首頁</a>
+				</div>
+			</section>
+		</main>
+
+		<div id="footer"></div>
+
+		<script src="translate.js"></script>
+		<script src="initialize.js"></script>
+		<script src="blocked.js"></script>
+	</body>
+</html>

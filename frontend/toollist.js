@@ -73,10 +73,24 @@ function toollistfavoritekey(){
     return WEBLSNAME+"toolfavoritelist"
 }
 
+function toollisthrefnormalize(href){
+    let value=String(href||"").trim()
+    if(typeof pttoolhrefnormalize=="function"){
+        value=pttoolhrefnormalize(value)
+    }
+    return value
+}
+
 function toollistloadfavorite(){
     toolfavoritelist=[]
     if(typeof pttoolfavoritelist=="function"){
-        toolfavoritelist=pttoolfavoritelist()
+        let list=pttoolfavoritelist()
+        for(let i=0;i<list.length;i=i+1){
+            let href=toollisthrefnormalize(list[i])
+            if(href&&toolfavoritelist.indexOf(href)<0){
+                toolfavoritelist.push(href)
+            }
+        }
         return
     }
     let raw=localStorage.getItem(toollistfavoritekey())||""
@@ -87,8 +101,9 @@ function toollistloadfavorite(){
         let list=JSON.parse(raw)
         if(Array.isArray(list)){
             for(let i=0;i<list.length;i=i+1){
-                if(typeof list[i]=="string"&&list[i]!=""){
-                    toolfavoritelist.push(list[i])
+                let href=toollisthrefnormalize(list[i])
+                if(href&&toolfavoritelist.indexOf(href)<0){
+                    toolfavoritelist.push(href)
                 }
             }
         }
@@ -110,8 +125,9 @@ function toollistsavefavorite(){
 }
 
 function toollistisfavorite(href){
+    href=toollisthrefnormalize(href)
     for(let i=0;i<toolfavoritelist.length;i=i+1){
-        if(toolfavoritelist[i]==href){
+        if(toollisthrefnormalize(toolfavoritelist[i])==href){
             return true
         }
     }
@@ -119,13 +135,15 @@ function toollistisfavorite(href){
 }
 
 function toollisttogglefavorite(href){
+    href=toollisthrefnormalize(href)
     let newlist=[]
     let removed=false
     for(let i=0;i<toolfavoritelist.length;i=i+1){
-        if(toolfavoritelist[i]==href){
+        let item=toollisthrefnormalize(toolfavoritelist[i])
+        if(item==href){
             removed=true
-        }else{
-            newlist.push(toolfavoritelist[i])
+        }else if(item&&newlist.indexOf(item)<0){
+            newlist.push(item)
         }
     }
     if(!removed){
@@ -153,10 +171,12 @@ function toollistloadrecent(){
         let list=JSON.parse(raw)
         if(Array.isArray(list)){
             for(let i=0;i<list.length;i=i+1){
-                if(typeof list[i]=="string"&&list[i]!=""){
-                    toolrecentlist.push(list[i])
+                let href=toollisthrefnormalize(list[i])
+                if(href&&toolrecentlist.indexOf(href)<0){
+                    toolrecentlist.push(href)
                 }
             }
+            toollistsaverecent()
         }
     }catch(error){
         toolrecentlist=[]
@@ -172,8 +192,9 @@ function toollistsaverecent(){
 }
 
 function toollistisrecent(href){
+    href=toollisthrefnormalize(href)
     for(let i=0;i<toolrecentlist.length;i=i+1){
-        if(toolrecentlist[i]==href){
+        if(toollisthrefnormalize(toolrecentlist[i])==href){
             return true
         }
     }
@@ -181,13 +202,15 @@ function toollistisrecent(href){
 }
 
 function toollistrecordrecent(href){
+    href=toollisthrefnormalize(href)
     if(!href){
         return
     }
     let newlist=[href]
     for(let i=0;i<toolrecentlist.length;i=i+1){
-        if(toolrecentlist[i]!=href&&newlist.length<TOOLRECENTMAX){
-            newlist.push(toolrecentlist[i])
+        let item=toollisthrefnormalize(toolrecentlist[i])
+        if(item&&item!=href&&newlist.indexOf(item)<0&&newlist.length<TOOLRECENTMAX){
+            newlist.push(item)
         }
     }
     toolrecentlist=newlist
@@ -195,6 +218,7 @@ function toollistrecordrecent(href){
 }
 
 function toollistfindbyhref(href){
+    href=toollisthrefnormalize(href)
     for(let i=0;i<TOOLITEMLIST.length;i=i+1){
         if(TOOLITEMLIST[i].href==href){
             return TOOLITEMLIST[i]
