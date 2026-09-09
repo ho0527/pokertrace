@@ -746,7 +746,12 @@ function getsessiondetailplacetext(row){
 		}
 		return place+" / "+total
 	}
-	return (row["place"]||"-")+" / "+(row["multidayremaining"]||row["totalbuyin"]||"-")
+	let place=row["place"]||0
+	let total=row["multidayremaining"]||row["displaytotalbuyin"]||row["totalbuyin"]||"-"
+	if(!int(place)&&(row["multidayremaining"]||row["displaytotalbuyin"])){
+		return total
+	}
+	return (place||"-")+" / "+total
 }
 
 function getmyregistrationhtml(row){
@@ -2015,8 +2020,8 @@ function rendersessionpayout(){
 					<table class="w-full text-sm">
 						<thead>
 							<tr class="bg-zinc-700 text-zinc-300">
-								<th class="py-2 px-2 text-left">${sessionpagetext("tplplace","名次")}</th>
-								<th class="py-2 px-2 text-right">${sessionpagetext("tplprize","獎項")}</th>
+								<th class="py-2 px-2">${sessionpagetext("tplplace","名次")}</th>
+								<th class="py-2 px-2">${sessionpagetext("tplprize","獎項")}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -2067,10 +2072,10 @@ function rendersessionpayout(){
 					<table class="w-full text-sm">
 						<thead>
 							<tr class="bg-zinc-700 text-zinc-300">
-								<th class="py-2 px-2 text-left">${sessionpagetext("tplplayer","選手")}</th>
-								<th class="py-2 px-2 text-left">${sessionpagetext("tplseatpos","桌位")}</th>
-								<th class="py-2 px-2 text-left">${sessionpagetext("tplplace","名次")}</th>
-								<th class="py-2 px-2 text-right">${sessionpagetext("tplprize","獎項")}</th>
+								<th class="py-2 px-2">${sessionpagetext("tplplayer","選手")}</th>
+								<th class="py-2 px-2">${sessionpagetext("tplseatpos","桌位")}</th>
+								<th class="py-2 px-2">${sessionpagetext("tplplace","名次")}</th>
+								<th class="py-2 px-2">${sessionpagetext("tplprize","獎項")}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -2281,6 +2286,10 @@ function loadsessiondata(silent){
 		rendersessionquicklinks(row)
 		rendersessionhostbar(row)
 		let placetext=getsessiondetailplacetext(row)
+		let placecontext=row["multidaytotalbuyin"]||row["multidayremaining"]||""
+		if(placetext==placecontext){
+			placecontext=""
+		}
 		let remaininghtml=""
 		let showremaining=false
 		let relationkeys=["incoming","outgoing"]
@@ -2299,7 +2308,7 @@ function loadsessiondata(silent){
 			${sessioninfocard(sessionpagetext("cardvenue","地點"),row["clubname"]||"-","text-center")}
 			${sessioninfocard(sessionpagetext("cardgametypelabel","遊戲類型"),TRANSLATE[LANGUAGE]["gametype"][row["gametype"]]||"-","text-center")}
 			${sessioninfocard(sessionpagetext("cardprofit","盈虧"),profittext,profitclass+" text-center")}
-			${sessioninfocard(sessionpagetext("cardplace","名次"),placetext+(row["multidayremaining"]?" ("+row["multidayremaining"]+")":""),"text-center")}
+			${sessioninfocard(sessionpagetext("cardplace","名次"),placetext+(placecontext?" ("+placecontext+")":""),"text-center")}
 		`,false)
 		rendersessiondetailinfo(row)
 		innertext("#description",sessiondisplayvalue(row["description"]),false)
@@ -3038,10 +3047,10 @@ function rendersettingresult(){
 		<div class="text-lg font-semibold mb-4">${safehtml(sessionresulttext("title","我的成績"))}</div>
 		<div class="text-xs text-zinc-500 mb-4">${safehtml(sessionresulttext("description","登錄自己在本場次的獎金、獎品與名次，會同步反映在總覽的盈虧統計。"))}</div>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("winprice","獲獎金額"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setwinprice" min="0" inputmode="numeric" value="${safehtml(currentsession["winprice"]||0)}"></label>
-			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("place","名次"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setplace" min="0" inputmode="numeric" value="${safehtml(currentsession["place"]||0)}"></label>
-			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("totalbuyin","總買入"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="settotalbuyin" min="0" inputmode="numeric" value="${safehtml(currentsession["totalbuyin"]||0)}"></label>
-			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("winthing","獲獎獎品"))}<input type="text" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setwinthing" placeholder="${safehtml(sessionresulttext("winthingplaceholder","如無獎品可填 N/A"))}" value="${safehtml(currentsession["winthing"]||"N/A")}"></label>
+			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("winprice","獲獎金額"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setwinprice" min="0" inputmode="numeric" value="${safehtml(currentsession["winprice"]||"")}"></label>
+			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("place","名次"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setplace" min="0" inputmode="numeric" value="${safehtml(currentsession["place"]||"")}"></label>
+			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("totalbuyin","總買入"))}<input type="number" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="settotalbuyin" min="0" inputmode="numeric" value="${safehtml(currentsession["totalbuyin"]||"")}"></label>
+			<label class="block text-sm text-zinc-300">${safehtml(sessionresulttext("winthing","獲獎獎品"))}<input type="text" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" id="setwinthing" placeholder="${safehtml(sessionresulttext("winthingplaceholder","如無獎品可填 N/A"))}" value="${safehtml(currentsession["winthing"]||"")}"></label>
 			<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setinmoney" ${currentsession["inmoney"]?"checked":""}>${safehtml(sessionresulttext("inmoney","有進錢圈 (ITM)"))}</label>
 			<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setinft" ${currentsession["inft"]?"checked":""}>${safehtml(sessionresulttext("inft","有進 Final Table"))}</label>
 		</div>

@@ -1631,15 +1631,14 @@ function switchpotside(side){
     ])
 }
 
-// 牌面配色（兩色 / 四色）。與牌背不同，這是全站生效的顯示偏好，
-// 由 initialize.js 在每一頁把 class 掛到 <html> 上，所以每頁都吃得到。
-// 目前只存 localStorage —— 後端還沒有 cardface 欄位（見 TASK-046），換裝置要重選一次。
+// 牌面配色（兩色 / 四色）。與牌背不同，這是全站生效的顯示偏好。
 function switchcardface(face){
     ajax("PUT",AJAXURL+"editusercardfacemode",function(event,data){
         if(data["success"]){
             cardfacemode=data["data"]||face
             try{
-                    }catch(error){
+                localStorage.setItem(CARDFACEKEY,cardfacemode)
+            }catch(error){
                 // localStorage 不可用時只套用當下這一頁
             }
             ptcardfaceapply(cardfacemode)

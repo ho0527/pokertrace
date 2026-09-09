@@ -22,7 +22,7 @@ const RECEIPTSAMPLE={
 // 每一聯要顯示哪些區塊。共通抬頭（logo / 標題 / 賽事 / 選手 / 號碼 / QR）四聯都有。
 const COPYLIST=[
 	{"key": "house","label": "HOUSE COPY","sections": ["buyin","issue","stamp"]},
-	{"key": "player","label": "PLAYER COPY","sections": ["buyin","issue","attention"]},
+	{"key": "player","label": "PLAYER COPY","sections": ["buyin","issue"]},
 	{"key": "dealer","label": "DEALER COPY","sections": ["seat","issue","stamp"]},
 	{"key": "table","label": "TABLE COPY","sections": ["tablenotice"]}
 ]
@@ -255,20 +255,27 @@ function receiptsignsection(){
 	return `
 		<div class="receiptsignrow">
 			<div class="receiptsignline"></div>
-			<div class="receiptsignlabel">領獎人簽名 Signature</div>
 		</div>
 	`
 }
 
 function receiptprizeslip(data,copy){
-	let html=receiptcommon(data)
-	html=html+`<div class="receiptprizerankline">名次 Place ${receiptfield(data["place"])}</div>`
-	html=html+`<div class="receiptprizelabel">獎金 PRIZE</div>`
-	html=html+`<div class="receiptprizeamount">${receiptfield(data["prize"])}</div>`
-	html=html+receiptkvgroup([
-		["入場編號 Entry",receiptfield(data["entryno"])]
-	])
-	html=html+`<div class="receiptqr">${receiptqr(data["qrdata"]||data["entryno"])}</div>`
+	let bigclass="receiptbig"
+	if(data["entryno"]!=null&&data["entryno"]!=""&&isNaN(data["entryno"])){
+		bigclass="receiptbig receiptbigtext"
+	}
+	let body=`
+		<div class="receiptidrow receiptprizeidentity">
+			<div class="${bigclass}">${receiptfield(data["entryno"])}</div>
+			<div class="receiptqr">${receiptqr(data["qrdata"]||data["entryno"])}</div>
+		</div>
+		<div class="receiptprizeinfo">
+			<div class="receiptprizerankline">Place ${receiptfield(data["place"])}</div>
+			<div class="receiptprizelabel">PRIZE</div>
+			<div class="receiptprizeamount">${receiptfield(data["prize"])}</div>
+		</div>
+	`
+	let html=receiptcommon(data)+`<div class="receiptbody receiptprizebody">${body}</div>`
 	html=html+receiptkvgroup([
 		["ISSUE DATE:",receiptfield(data["issuedate"])],
 		["ISSUER:",receiptfield(data["issuer"])]
@@ -280,7 +287,7 @@ function receiptprizeslip(data,copy){
 	if(receipthassection(copy,"stamp")){
 		html=html+receiptstampsection()
 	}
-	return `<div class="receiptslip" data-copy="prize-${copy["key"]}">${html}</div>`
+	return `<div class="receiptslip receiptprizeslip" data-copy="prize-${copy["key"]}">${html}</div>`
 }
 
 function receiptprizesheethtml(data){

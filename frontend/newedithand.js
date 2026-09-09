@@ -866,6 +866,15 @@ function positionnames(count){
     return ["SB","BB","UTG","U+1","U+2","MP","M+1","LJ","HJ","CO","BTN"]
 }
 
+function emptybuttonseated(){
+    let dealerseat=num(state.dealerseat)
+    let active=activeSeats()
+    if(state.emptybuttoned&&0<dealerseat&&active.indexOf(dealerseat)<0){
+        return true
+    }
+    return false
+}
+
 function positionname(seat){
     let seatno=num(seat)
     let active=activeSeats()
@@ -884,7 +893,11 @@ function positionname(seat){
         start=state.bigblindseat||nextActiveSeat(state.dealerseat)
     }
     let order=orderedFrom(start)
-    let names=state.deadsmallblinded?positionnames(order.length+1).slice(1):positionnames(order.length)
+    let positioncount=order.length
+    if(emptybuttonseated()){
+        positioncount=positioncount+1
+    }
+    let names=state.deadsmallblinded?positionnames(positioncount+1).slice(1):positionnames(positioncount)
     for(let i=0;i<order.length;i=i+1){
         if(order[i]==seatno){
             return names[i]||""
@@ -1153,8 +1166,12 @@ function rebuildDefaultBets(){
         renderActions()
         return
     }
-    // Dealer 必須落在在局座位（快速紀錄自行入座時 dealer 可能還停在預設空位）
-    if(active.indexOf(state.dealerseat)<0){
+    // 一般 button 必須落在在局座位；空 button 開啟時可停在空座，當成假的 BTN 位置。
+    if(state.emptybuttoned){
+        if(num(state.dealerseat)<1||state.maxseat<num(state.dealerseat)){
+            state.dealerseat=active[0]
+        }
+    }else if(active.indexOf(state.dealerseat)<0){
         state.dealerseat=active[0]
     }
     // 梭哈：改貼前注（每人）+ 帶入注（bring-in），沒有大小盲。

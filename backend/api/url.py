@@ -173,6 +173,7 @@ urlpatterns=[
     re_path(r"^gettimer/(?P<sessionid>[^/]+)$",timer.gettimer,name="gettimer"),
     re_path(r"^savetimer/(?P<sessionid>[^/]+)$",timer.savetimer,name="savetimer"),
     re_path(r"^gettimerplayers/(?P<sessionid>[^/]+)$",timer.gettimerplayers,name="gettimerplayers"),
+    re_path(r"^updatetimerplaces/(?P<sessionid>[^/]+)$",timer.updatetimerplaces,name="updatetimerplaces"),
     re_path(r"^edittimerplayer/(?P<sessionid>[^/]+)/(?P<timerplayerid>[^/]+)$",timer.edittimerplayer,name="edittimerplayer"),
 
     re_path(r"^registersession/(?P<sessionid>[^/]+)$",sessionplayer.registersession,name="registersession"),
@@ -189,6 +190,7 @@ urlpatterns=[
     re_path(r"^rebuysessionplayer/(?P<sessionplayerid>[^/]+)$",sessionplayer.rebuysessionplayer,name="rebuysessionplayer"),
     re_path(r"^cancelsessionplayer/(?P<sessionplayerid>[^/]+)$",sessionplayer.cancelsessionplayer,name="cancelsessionplayer"),
     re_path(r"^editsessionplayerfinance/(?P<sessionplayerid>[^/]+)$",sessionplayer.editsessionplayerfinance,name="editsessionplayerfinance"),
+    re_path(r"^applysessionplayericm/(?P<sessionid>[^/]+)$",sessionplayer.applysessionplayericm,name="applysessionplayericm"),
     re_path(r"^editsessionplayerseat/(?P<sessionplayerid>[^/]+)$",sessionplayer.editsessionplayerseat,name="editsessionplayerseat"),
     re_path(r"^randomizesessionplayerseats/(?P<sessionid>[^/]+)$",sessionplayer.randomizesessionplayerseats,name="randomizesessionplayerseats"),
 ]

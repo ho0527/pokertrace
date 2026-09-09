@@ -1164,7 +1164,7 @@ function hrbuildoverlay(){
 	document.addEventListener("keydown",hrkeydown)
 }
 
-// 牌面牌背皮膚(與現場轉播共用 localStorage bc-deck)
+// 牌面牌背皮膚(保留既有 localStorage bc-deck key)
 function hrapplyskin(skin){
 	let valid=["classic","crimson","midnight","royal","ocean","sunset","rose","graphite","minimal"]
 	if(valid.indexOf(skin)<0){

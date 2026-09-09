@@ -6,6 +6,7 @@
 		"build:css": "tailwindcss -c tailwind.config.js -i tailwind.input.css -o frontend/tailwind.css --minify",
 		"watch:css": "tailwindcss -c tailwind.config.js -i tailwind.input.css -o frontend/tailwind.css --watch",
 		"verify:css": "node verifycss.js",
+		"verify:encoding": "python tools/audit/checkencoding.py",
 		"verify:defaults": "node verifydefaults.js",
 		"verify:load": "node scantdz.js && node scanloadorder.js",
 		"kanban": "node tools/kanban/server.mjs",
@@ -43,7 +44,8 @@
 		"verify:machineconfig": "python tools/audit/checkmachineconfig.py",
 		"verify:clockmix": "python tools/audit/checkclockmix.py && python tools/audit/checkclockcolumn.py",
 		"verify:deadcode": "python tools/audit/checkdeadcode.py",
-		"verify:errortext": "python tools/audit/checkerrortext.py"
+		"verify:errortext": "python tools/audit/checkerrortext.py",
+		"verify:preflop": "python tools/audit/checkpreflop.py"
 	},
 	"devDependencies": {
 		"tailwindcss": "^3.4.19"

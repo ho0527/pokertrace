@@ -11,3 +11,4 @@ backend/backup/dumps/
 /testbot/
 /testbotplopko/
 tools/
+.editorconfig

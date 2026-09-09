@@ -455,7 +455,7 @@ function renderboardstaffpanel(){
 		<div class="mb-3 flex flex-wrap gap-2">${chiphtml}</div>
 		<div class="overflow-x-auto">
 			<table class="w-full min-w-[520px]">
-				<thead class="text-left text-xs font-bold uppercase tracking-wider text-zinc-400" id="boardstaffhead">
+				<thead class="text-xs font-bold uppercase tracking-wider text-zinc-400" id="boardstaffhead">
 					<tr class="border-b border-zinc-800">
 						<th class="ptsortth select-none py-2 px-2" data-sortkey="name"><span class="pointer-events-none">${boardstafftext("colname","姓名")}</span><span class="ptsortarrow pointer-events-none text-emerald-400" data-sortkey="name"></span></th>
 						<th class="ptsortth select-none py-2 px-2" data-sortkey="role"><span class="pointer-events-none">${boardstafftext("colrole","角色")}</span><span class="ptsortarrow pointer-events-none text-emerald-400" data-sortkey="role"></span></th>
@@ -1119,7 +1119,7 @@ function autobalance(){
 		}
 		tableids.push(tables[i]["id"])
 	}
-	if(tableids.length<2){
+	if(tableids.length<1){
 		return
 	}
 	ptconfirm(boardtext("confirmbalance","確定要自動把未入座／可調整的選手平衡到各桌嗎？"),function(okayed){

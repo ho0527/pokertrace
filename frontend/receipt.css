@@ -86,7 +86,7 @@ html, body {
 	--receiptdesignwidth: 80mm;
 	--receiptzoom: 0.725;
 	--receiptside: 6mm;
-	--receiptqrsize: 36mm;
+	--receiptqrsize: 40mm;
 	width: var(--receiptdesignwidth);
 	zoom: var(--receiptzoom);
 	margin: 20px auto;
@@ -173,8 +173,34 @@ html, body {
 	flex: 0 0 auto;
 }
 
+.receiptprizebody {
+	margin-top: 4px;
+}
+
+.receiptprizeidentity {
+	align-items: center;
+	margin-top: 2px;
+	margin-bottom: 10px;
+}
+
+.receiptprizeidentity .receiptbig {
+	min-width: 25mm;
+	margin: 0;
+	text-align: left;
+}
+
+.receiptprizeidentity .receiptqrsvg {
+	width: 34mm;
+	height: 34mm;
+}
+
+.receiptprizeinfo {
+	text-align: center;
+	margin: 6px 0 8px;
+}
+
 .receiptprizerankline {
-	margin-top: 6px;
+	margin-top: 0;
 	font-size: 13px;
 	font-weight: 700;
 }
@@ -191,6 +217,20 @@ html, body {
 	font-size: 40px;
 	font-weight: 800;
 	line-height: 1.1;
+}
+
+.receiptprizeslip .receiptkvgroup {
+	margin-top: 16px;
+}
+
+.receiptprizeslip .receiptcopylabel {
+	margin-top: 12px;
+	margin-bottom: 10px;
+}
+
+.receiptprizeslip .receiptsignrow {
+	margin-top: 0;
+	margin-bottom: 12px;
 }
 
 .receiptsignrow {
@@ -216,8 +256,8 @@ html, body {
    58mm 紙（zoom 0.725）下 36mm -> 實印約 26mm，維持與原本 80mm 版相同的實體大小，
    熱感紙才掃得清楚。要再放大改這裡一個值即可。 */
 .receiptqrsvg {
-	width: var(--receiptqrsize, 36mm);
-	height: var(--receiptqrsize, 36mm);
+	width: var(--receiptqrsize, 40mm);
+	height: var(--receiptqrsize, 40mm);
 }
 
 .receiptkvgroup {
@@ -358,11 +398,20 @@ html, body {
 	/* 每一聯各自成一頁：熱感紙印完一聯就走紙裁切，不會四聯連在一起。
 	   底部虛線是每頁的裁切基準線，最後一聯也要有。 */
 	.receiptslip {
+		position: relative;
 		break-inside: avoid;
 		page-break-inside: avoid;
 		break-after: page;
 		page-break-after: always;
 		padding-bottom: 6mm;
+	}
+
+	.receiptslip::after {
+		content: "";
+		position: absolute;
+		right: var(--receiptside);
+		bottom: 0;
+		left: var(--receiptside);
 		border-bottom: 1px dashed #000000;
 	}
 

@@ -759,19 +759,28 @@ def expectedchiptotal(sessionrow,row,carrychips=None):
 		total=0
 	return total
 
-def finalizetimerpendingplaces(sessionid):
+def finalizetimerpendingplaces(sessionid,overwrite=False):
 	registeredcount=len(gettimerplayerrows(sessionid))
-	row=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimerplayer" WHERE "sessionid"=%s AND "status"='eliminated' AND "deletetime" IS NULL ORDER BY "eliminatedtime" ASC, "id" ASC""",[sessionid],SETTING["dbsetting"])
+	row=query(SETTING["dbname"],f"""
+		SELECT tp.*
+		FROM "sessiontimerplayer" tp
+		JOIN "sessionplayer" sp ON sp."id"=tp."sessionplayerid" AND sp."deletetime" IS NULL
+		WHERE tp."sessionid"=%s AND tp."status"='eliminated' AND tp."deletetime" IS NULL AND sp."status"<>'advanced'
+		ORDER BY tp."eliminatedtime" ASC, tp."id" ASC
+	""",[sessionid],SETTING["dbsetting"])
 	for i in range(len(row or [])):
-		if row[i]["place"] is None:
+		if overwrite or row[i]["place"] is None:
 			place=registeredcount-i
 			query(SETTING["dbname"],f"""UPDATE "sessiontimerplayer" SET "place"=%s,"updatetime"=NOW() WHERE "id"=%s""",[place,row[i]["id"]],SETTING["dbsetting"])
 
-def timerregclosed(sessionid):
+def timerregclosed(sessionid,statechecked=False):
 	row=query(SETTING["dbname"],f"""SELECT*FROM "sessiontimer" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
-	if not row:
-		return False
-	stateval=normalizetimerstate(row[0]["state"])
+	if statechecked:
+		stateval=buildtimerstate(sessionid)
+	elif row:
+		stateval=normalizetimerstate(row[0]["state"])
+	else:
+		stateval={}
 	return boolval(stateval.get("regClosed"))
 
 def multidaycarryover(sessionid):
@@ -1565,6 +1574,28 @@ try:
 		return Response({"success": True,"data": serializetimerplayers(gettimerplayerrows(sessionid))},status.HTTP_200_OK)
 
 	@api_view(["PUT"])
+	def updatetimerplaces(request,sessionid):
+		userrow,errresp=gettimerpermissionuser(request)
+		if errresp:
+			return errresp
+		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+		if not sessionrow:
+			return errorresponse("ERROR_session_not_found")
+		sessionrow=sessionrow[0]
+		if not hastimercontrolpermission(sessionrow,userrow):
+			return errorresponse("ERROR_no_permission")
+		ensuretimertables()
+		if not boolval(sessionrow.get("linkuser")):
+			return Response({"success": True,"data": buildtimerstate(sessionid)},status.HTTP_200_OK)
+		synctimerplayers(sessionrow)
+		finalizetimerpendingplaces(sessionid,True)
+		state=buildtimerstate(sessionid)
+		savesplitstate(sessionrow,state)
+		state=buildtimerstate(sessionid)
+		broadcasttimerupdate(sessionid,state)
+		return Response({"success": True,"data": state},status.HTTP_200_OK)
+
+	@api_view(["PUT"])
 	def edittimerplayer(request,sessionid,timerplayerid):
 		userrow,errresp=gettimerpermissionuser(request)
 		if errresp:
@@ -1587,13 +1618,20 @@ try:
 		if action=="eliminate":
 			counts=linkedcounts(sessionid)
 			place=None
-			if timerregclosed(sessionid):
+			if timerregclosed(sessionid,True):
 				finalizetimerpendingplaces(sessionid)
 				place=counts[0]
 			query(SETTING["dbname"],f"""UPDATE "sessiontimerplayer" SET "status"='eliminated',"eliminatedtime"=NOW(),"place"=%s,"updatetime"=NOW() WHERE "id"=%s""",[place,timerplayerid],SETTING["dbsetting"])
 			query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "tableid"=NULL,"seatno"=NULL,"updatetime"=NOW() WHERE "id"=%s""",[row["sessionplayerid"]],SETTING["dbsetting"])
 		elif action=="restore":
 			query(SETTING["dbname"],f"""UPDATE "sessiontimerplayer" SET "status"='active',"eliminatedtime"=NULL,"place"=NULL,"updatetime"=NOW() WHERE "id"=%s""",[timerplayerid],SETTING["dbsetting"])
+		elif action=="place":
+			place=None
+			if str(data.get("place") or "").strip()!="":
+				place=intval(data.get("place"),0)
+				if place<=0:
+					return errorresponse("ERROR_request_data_type_error")
+			query(SETTING["dbname"],f"""UPDATE "sessiontimerplayer" SET "place"=%s,"updatetime"=NOW() WHERE "id"=%s""",[place,timerplayerid],SETTING["dbsetting"])
 		else:
 			return errorresponse("ERROR_request_data_not_found")
 		state=buildtimerstate(sessionid)

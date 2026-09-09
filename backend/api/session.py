@@ -22,7 +22,7 @@ from function.thing import *
 from function.function import *
 from .initialize import *
 from .sessionplayer import _attachfinance
-from .timer import ensuretimertables,buildtimerstate,broadcasttimerupdate,linkedcounts,normalizeaccentcolor,normalizebrandlogourl,normalizehiddenblock,normalizecolumnorder,userdisplaydefault
+from .timer import ensuretimertables,buildtimerstate,broadcasttimerupdate,linkedcounts,normalizeaccentcolor,normalizebrandlogourl,normalizehiddenblock,normalizecolumnorder,userdisplaydefault,multidaysourcetotalentries
 from .authhelper import gettokenuser as commonauthuser
 from .follow import notifyfollowernewsession
 
@@ -602,6 +602,10 @@ def _fastsessionlist(request,tokenuserrow):
 				displaytotalbuyin=realtotalentries
 			elif 0<timertotalentries:
 				displaytotalbuyin=timertotalentries
+		elif _bool(item.get("owned")) and not _bool(item.get("linkuser")) and _int(item.get("totalbuyin"),0)<=0:
+			timerstate=buildtimerstate(item["id"],True)
+			if timerstate and 0<_int(timerstate.get("totalEntries"),0):
+				displaytotalbuyin=_int(timerstate.get("totalEntries"),0)
 		myregistration=None
 		displayplace=None
 		if item.get("myregistrationid"):
@@ -633,6 +637,7 @@ def _fastsessionlist(request,tokenuserrow):
 		item["sessionended"]=sessionended
 		item["displayplace"]=displayplace
 		item["displaytotalbuyin"]=displaytotalbuyin
+		item["multidayremaining"]=_multidayremainingcount(item["id"])
 		for key in ["totalrows","statgamecount","stattotalprofit","statavgduration","statcount","statprofit","statduration","myregistrationid","mybuyin","myfee","myrebuycount","myreentrycount","myaddoncount","mypaymenttype","myticketvalue","myprize","myprizeoverride","myplace","mytimerplace","mytimerstatus","mycost","myfinalprize","timerregclosed","timerplayercount","timernotplacedcount","timeractivecount","timertotalentries","realtotalentries"]:
 			if key in item:
 				del item[key]
@@ -770,6 +775,10 @@ def getsession(request,sessionid):
 				active
 			)
 			myregistration["timerplace"]=displayplace
+	elif _bool(row.get("owned")) and not _bool(row.get("linkuser")) and _int(row.get("totalbuyin"),0)<=0:
+		timerstate=buildtimerstate(sessionid,True)
+		if timerstate and 0<_int(timerstate.get("totalEntries"),0):
+			displaytotalbuyin=_int(timerstate.get("totalEntries"),0)
 	clubdata=None
 	clubname="協會被刪除"
 	if clubrow:
@@ -795,6 +804,7 @@ def getsession(request,sessionid):
 			"relations": _sessionrelations(sessionid),
 			"relationdata": _sessionrelationdata(sessionid),
 			"multidayremaining": _multidayremainingcount(sessionid),
+			"multidaytotalbuyin": multidaysourcetotalentries(sessionid),
 			"chips": _sessionchips(sessionid),
 			"schedule": _sessionschedule(sessionid),
 			"autostartbytime": _sessiontimerautostart(sessionid)

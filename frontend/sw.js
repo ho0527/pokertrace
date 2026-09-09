@@ -2,12 +2,12 @@
 // 策略：
 //  - 導覽請求（HTML 頁面）：network-first，失敗時回快取，再失敗回 offline.html
 //  - 程式碼檔（.js / .css）：network-first，線上一律拿最新，離線才回快取
-//    （避免改版後使用者卡在舊快取，不必每次手動加 CACHE_VERSION）
+//    （避免改版後使用者卡在舊快取，不必每次手動加 CACHEVERSION）
 //  - 其他同源靜態檔（圖片等）：stale-while-revalidate
 //  - API 請求、非 GET、跨來源（CDN）：一律直接走網路，不快取
-// 改版時把 CACHE_VERSION 加一，activate 會清掉舊快取。
+// 改版時把 CACHEVERSION 加一，activate 會清掉舊快取。
 
-const CACHE_VERSION = "pokertrace-v6"
+const CACHEVERSION="pokertrace-v7"
 const OFFLINE_URL = "offline.html"
 
 // 預先快取的核心資源（相對於 SW scope，即 frontend/）
@@ -49,7 +49,7 @@ function isapi(url){
 
 self.addEventListener("install", function(event){
 	event.waitUntil(
-		caches.open(CACHE_VERSION).then(function(cache){
+		caches.open(CACHEVERSION).then(function(cache){
 			// 個別加入，避免某一支 404 導致整批失敗
 			return Promise.all(PRECACHE.map(function(asset){
 				return cache.add(asset).catch(function(){ return null })
@@ -64,7 +64,7 @@ self.addEventListener("activate", function(event){
 	event.waitUntil(
 		caches.keys().then(function(keys){
 			return Promise.all(keys.map(function(key){
-				if(key !== CACHE_VERSION){
+				if(key != CACHEVERSION){
 					return caches.delete(key)
 				}
 				return null
@@ -95,7 +95,7 @@ self.addEventListener("fetch", function(event){
 			fetch(request).then(function(response){
 				if(response && response.ok){
 					let copy = response.clone()
-					caches.open(CACHE_VERSION).then(function(cache){
+					caches.open(CACHEVERSION).then(function(cache){
 						cache.put(request, copy)
 					})
 				}
@@ -115,7 +115,7 @@ self.addEventListener("fetch", function(event){
 			fetch(request).then(function(response){
 				if(response && response.status === 200 && response.type === "basic"){
 					let copy = response.clone()
-					caches.open(CACHE_VERSION).then(function(cache){
+					caches.open(CACHEVERSION).then(function(cache){
 						cache.put(request, copy)
 					})
 				}
@@ -133,7 +133,7 @@ self.addEventListener("fetch", function(event){
 			let network = fetch(request).then(function(response){
 				if(response && response.status === 200 && response.type === "basic"){
 					let copy = response.clone()
-					caches.open(CACHE_VERSION).then(function(cache){
+					caches.open(CACHEVERSION).then(function(cache){
 						cache.put(request, copy)
 					})
 				}

@@ -173,11 +173,21 @@ function moneytext(value){
 }
 
 function setregistrationresultsummary(summary){
-	registrationresultsummary=summary||{
+	if(summary&&summary["showed"]){
+		let toasttext=summary["title"]||summary["message"]||rt("edited")
+		let toasttype="success"
+		if(summary["type"]=="warning"){
+			toasttype="warning"
+		}
+		pttoast(toasttext,toasttype)
+	}
+	registrationresultsummary={
 		"showed": false
 	}
-	if(typeof ptrenderpagesummary=="function"){
-		ptrenderpagesummary("#registrationresultsummary",registrationresultsummary)
+	let resultbox=domgetid("registrationresultsummary")
+	if(resultbox){
+		resultbox.innerHTML=""
+		resultbox.classList.add("hidden")
 	}
 }
 
@@ -658,7 +668,7 @@ function financebuttonhtml(r,serialno){
 				${buyextra?`<div>${rt("addonlabel")}${buyextra}</div>`:""}
 				<div>${rt("prizefixlabel")}${prize}${rt("ticketvaluelabel")}${r["ticketvalue"]||0}</div>
 			</div>
-			<input type="button" class="openfinancebtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-serialno="${safehtml(serialno)}" data-playername="${safehtml(r["playername"]||"-")}" data-reentry="${r["reentrycount"]||0}" data-rebuy="${int(r["rebuycount"]||0)}" data-addon="${int(r["addoncount"]||0)}" data-prize="${r["prizeoverride"]==null?"":r["prizeoverride"]}" data-ticket="${r["ticketvalue"]||0}" data-payment="${r["paymenttype"]||"cash"}" value="${rt("financefix")}">
+			<input type="button" class="openfinancebtn rounded bg-zinc-700 px-3 py-1 text-xs text-white hover:bg-zinc-600" data-id="${r["id"]}" data-serialno="${safehtml(serialno)}" data-playername="${safehtml(r["playername"]||"-")}" data-reentry="${r["reentrycount"]||0}" data-rebuy="${int(r["rebuycount"]||0)}" data-addon="${int(r["addoncount"]||0)}" data-prize="${r["prizeoverride"]==null?"":r["prizeoverride"]}" data-autoprize="${r["autoprize"]||0}" data-place="${r["timerplace"]||r["place"]||""}" data-registrationstatus="${r["status"]||""}" data-ticket="${r["ticketvalue"]||0}" data-payment="${r["paymenttype"]||"cash"}" value="${rt("financefix")}">
 		</div>
 	`
 }
@@ -667,6 +677,12 @@ function openfinancemodal(button){
 	let id=dataset(button,"id")
 	let serialno=safehtml(dataset(button,"serialno")||"-")
 	let playername=safehtml(dataset(button,"playername")||"-")
+	let prizevalue=dataset(button,"prize")||""
+	let placevalue=dataset(button,"place")||""
+	let placehtml=""
+	if(dataset(button,"registrationstatus")!="advanced"){
+		placehtml=`<label class="text-sm text-zinc-300">${rt("placelabel").trim()}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="place" min="1" inputmode="numeric" value="${placevalue}" placeholder="${rt("placelabel").trim()}"></label>`
+	}
 	let old=domgetid("financemodal")
 	if(old){
 		ptremovescrollcover(old)
@@ -686,7 +702,8 @@ function openfinancemodal(button){
 				<label class="text-sm text-zinc-300">${rt("financereentry")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="reentrycount" inputmode="numeric" value="${dataset(button,"reentry")||0}"></label>
 				${rebuyallowed?`<label class="text-sm text-zinc-300">${rt("financerebuy")}<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="rebuycount" value="${dataset(button,"rebuy")||0}" placeholder="${rt("sessionmax")}${maxrebuy}"></label>`:""}
 				${addonallowed?`<label class="text-sm text-zinc-300">${rt("financeaddon")}<input type="number" min="0" inputmode="numeric" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="addoncount" value="${dataset(button,"addon")||0}" placeholder="${rt("sessionmax")}${maxaddon}"></label>`:""}
-				<label class="text-sm text-zinc-300">${rt("financeprize")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="prizeoverride" inputmode="numeric" value="${dataset(button,"prize")}" placeholder="自動獎金"></label>
+				<label class="text-sm text-zinc-300">${rt("financeprize")}<input type="text" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="prizeoverride" data-autoprize="${dataset(button,"autoprize")||0}" inputmode="numeric" value="${prizevalue}" placeholder="${rt("autoprizehint")}"></label>
+				${placehtml}
 				<label class="text-sm text-zinc-300">${rt("financeticket")}<input type="number" class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="ticketvalue" inputmode="numeric" value="${dataset(button,"ticket")||0}"></label>
 				<label class="text-sm text-zinc-300">${rt("financepayment")}<select class="financeinput mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" data-id="${id}" data-field="paymenttype">
 					<option value="cash" ${dataset(button,"payment")!="ticket"?"selected":""}>${rt("paymentcashbuy")}</option>
@@ -1177,6 +1194,7 @@ function renderregistrationlist(){
 				actions=actions.replace(/<input type="button" class="cancelbtn[^>]*?>/g,"")
 			}
 			let receiptbtn=`<input type="button" class="printreceiptbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("printreceipt")}">`
+			let prizereceiptbtn=`<input type="button" class="printprizereceiptbtn bg-violet-700 hover:bg-violet-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("printprizereceipt")}">`
 			let profitclass=0<=float(r["profit"])?"text-green-400":"text-red-400"
 			let selectedhtml=(r["status"]=="registered"||r["status"]=="confirmed")?`<input type="checkbox" class="selectplayer" value="${r["id"]}" data-status="${r["status"]}">`:""
 			let seathtml=`<span class="text-zinc-500 text-xs">${rt("seatafterconfirm")}</span>`
@@ -1220,7 +1238,7 @@ function renderregistrationlist(){
 						${financebuttonhtml(r,serialno)}
 					</td>
 					<td class="px-3 py-2 text-right">
-						<div class="flex flex-wrap justify-end gap-1">${actions}${receiptbtn}</div>
+						<div class="flex flex-wrap justify-end gap-1">${actions}${receiptbtn}${prizereceiptbtn}</div>
 					</td>
 				</tr>
 			`
@@ -1262,7 +1280,7 @@ function renderregistrationlist(){
 						</div>
 					</div>
 					<div class="mt-4 flex flex-wrap justify-end gap-2">
-						${actions}${receiptbtn}
+						${actions}${receiptbtn}${prizereceiptbtn}
 					</div>
 				</div>
 			`
@@ -1439,6 +1457,15 @@ function bindactions(){
 		}
 		receiptprint(buildreceiptdata(r))
 	})
+
+	onclick(".printprizereceiptbtn",function(element,event){
+		let r=findregistrationbyid(dataset(element,"id"))
+		if(!r){
+			pttoast(rt("registrationnotfound"),"error")
+			return
+		}
+		receiptprizeprint(buildprizereceiptdata(r))
+	})
 }
 
 function findregistrationbyid(id){
@@ -1487,6 +1514,25 @@ function buildreceiptdata(r){
 		"seatno": r["seatno"]||"",
 		"qrdata": qrdata
 	}
+}
+
+function buildprizereceiptdata(r){
+	let data=buildreceiptdata(r)
+	let prizevalue=r["finalprize"]
+	if(prizevalue==null||prizevalue==undefined){
+		prizevalue=r["autoprize"]
+	}
+	let now=new Date()
+	let year=now.getFullYear()
+	let month=String(now.getMonth()+1).padStart(2,"0")
+	let day=String(now.getDate()).padStart(2,"0")
+	let hour=String(now.getHours()).padStart(2,"0")
+	let minute=String(now.getMinutes()).padStart(2,"0")
+	let second=String(now.getSeconds()).padStart(2,"0")
+	data["place"]=r["timerplace"]||r["place"]||"-"
+	data["prize"]="NT$ "+(prizevalue||0)
+	data["issuedate"]=year+"-"+month+"-"+day+" "+hour+":"+minute+":"+second
+	return data
 }
 
 function confirmselectedplayers(button){
@@ -1657,6 +1703,20 @@ function savefinance(sessionplayerid){
 			payload[field]=inputs[i].value
 		}else if(field=="prizeoverride"&&inputs[i].value==""){
 			payload[field]=null
+		}else if(field=="prizeoverride"){
+			let text=String(inputs[i].value||"").trim()
+			if(text.substring(0,1)=="+"||text.substring(0,1)=="-"){
+				payload[field]=Math.round((float(inputs[i].dataset.autoprize)||0)+(float(text)||0))
+			}else{
+				payload[field]=Math.round(float(text)||0)
+			}
+		}else if(field=="place"){
+			let text=String(inputs[i].value||"").trim()
+			if(text!=""&&(parseInt(text,10)<=0||isNaN(parseInt(text,10)))){
+				pttoast(rt("invalidplace"),"error")
+				return
+			}
+			payload[field]=text
 		}else{
 			payload[field]=float(inputs[i].value)||0
 		}
@@ -1685,6 +1745,43 @@ function savefinance(sessionplayerid){
 }
 
 // 匯出目前場次的報名名單為 CSV
+function updatetimerplaces(element){
+	element.disabled=true
+	ajax("PUT",AJAXURL+"updatetimerplaces/"+sessionid,function(event,data){
+		element.disabled=false
+		if(data["success"]){
+			pttoast(rt("placeupdated"),"success")
+			loadregistrations()
+		}else{
+			pttoast(pterror(data["data"]||"操作失敗"),"error")
+		}
+	},str({}),[
+		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+	],{
+		loadingtarget: "#reglist"
+	})
+}
+
+function applysessionplayericm(element){
+	registerconfirm(rt("applyicmconfirm"),function(){
+		element.disabled=true
+		ajax("PUT",AJAXURL+"applysessionplayericm/"+sessionid,function(event,data){
+			element.disabled=false
+			if(data["success"]){
+				let count=(data["data"]&&data["data"]["count"])?data["data"]["count"]:0
+				pttoast(rt("applyicmdone").replace("{n}",String(count)),"success")
+				loadregistrations()
+			}else{
+				pttoast(pterror(data["data"]||"操作失敗"),"error")
+			}
+		},str({}),[
+			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+		],{
+			loadingtarget: "#reglist"
+		})
+	})
+}
+
 function exportregistercsv(){
 	if(!registrationdatalist||registrationdatalist.length<1){
 		pttoast(rt("csv_none"),"error")
@@ -1719,6 +1816,14 @@ function exportregistercsv(){
 if(domgetid("exportregistercsv")){
 	domgetid("exportregistercsv").value=rt("csv_btn")
 }
+
+onclick("#updatetimerplaces",function(element,event){
+	updatetimerplaces(element)
+})
+
+onclick("#applysessionplayericm",function(element,event){
+	applysessionplayericm(element)
+})
 
 onclick("#exportregistercsv",function(element,event){
 	exportregistercsv()

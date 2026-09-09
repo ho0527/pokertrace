@@ -7,6 +7,7 @@ let state={
     dealerseat: 1,
     seatinglist: [null],
     adjustments: {},
+    "adjustsignlist": {},
     editlatest: true,
     selfseating: null
 }
@@ -68,6 +69,7 @@ function savecache(){
     }
     weblsset(cachekey(),str({
         adjustments: state.adjustments,
+        "adjustsignlist": state.adjustsignlist,
         dealerseat: state.dealerseat,
         exceptiontype: val("exceptiontype"),
         ps: val("ps")
@@ -89,6 +91,9 @@ function loadcache(){
     if(data["adjustments"]){
         state.adjustments=data["adjustments"]
     }
+    if(data["adjustsignlist"]){
+        state.adjustsignlist=data["adjustsignlist"]
+    }
     if(data["dealerseat"]){
         state.dealerseat=num(data["dealerseat"])
     }
@@ -102,6 +107,29 @@ function loadcache(){
 
 function clearcache(){
     weblsset(cachekey(),null)
+}
+
+function adjustsign(seat){
+    let seatkey=String(seat)
+    if(state.adjustsignlist[seatkey]=="negative"){
+        return -1
+    }
+    if(num(state.adjustments[seat])<0||num(state.adjustments[seatkey])<0){
+        return -1
+    }
+    return 1
+}
+
+function setadjustment(seat,amount,sign){
+    let seatkey=String(seat)
+    let value=Math.abs(num(amount))
+    if(sign<0){
+        state.adjustsignlist[seatkey]="negative"
+        state.adjustments[seatkey]=0-value
+    }else{
+        state.adjustsignlist[seatkey]="positive"
+        state.adjustments[seatkey]=value
+    }
 }
 
 function api(method,url,body,callback){
@@ -149,11 +177,20 @@ function render(){
     for(let i=0;i<seats.length;i=i+1){
         let seat=seats[i]
         let adjust=num(state.adjustments[seat])
+        let sign=adjustsign(seat)
+        let inputvalue=Math.abs(adjust)
+        let signclass=""
+        if(sign<0){
+            signclass=" active"
+        }
         total=total+adjust
         html=html+`
             <div class="newhand-seatcard">
                 <div>Seat ${seat}<br><span class="text-zinc-400 text-xs">${stackadjusttext("nowlabel","目前")} ${chip(seat).toLocaleString("en-US")} / ${stackadjusttext("afterlabel","校正後")} <span id="after-${seat}">${(chip(seat)+adjust).toLocaleString("en-US")}</span></span></div>
-                <input type="number" class="adjustinput bg-zinc-700 text-white rounded px-2 py-2 w-32" data-seat="${seat}" inputmode="numeric" value="${adjust}" placeholder="+/-">
+                <div class="stackadjust-control">
+                    <input type="button" class="stackadjust-sign${signclass}" data-seat="${seat}" value="-">
+                    <input type="number" class="adjustinput bg-zinc-700 text-white rounded px-2 py-2 w-32" data-seat="${seat}" min="0" inputmode="numeric" value="${inputvalue}" placeholder="0">
+                </div>
             </div>
         `
     }
@@ -168,7 +205,36 @@ function render(){
             continue
         }
         inputs[i].addEventListener("input",function(){
-            state.adjustments[this.getAttribute("data-seat")]=num(this.value)
+            let seat=this.getAttribute("data-seat")
+            setadjustment(seat,this.value,adjustsign(seat))
+            updatetotals()
+            savecache()
+        })
+    }
+    let signbuttons=document.querySelectorAll(".stackadjust-sign")
+    for(let i=0;i<signbuttons.length;i=i+1){
+        if(noteonly()){
+            signbuttons[i].disabled=true
+            signbuttons[i].classList.add("disabled")
+            continue
+        }
+        signbuttons[i].addEventListener("click",function(){
+            let seat=this.getAttribute("data-seat")
+            let input=document.querySelector(".adjustinput[data-seat=\""+seat+"\"]")
+            let amount=0
+            if(input){
+                amount=num(input.value)
+            }
+            let sign=-1
+            if(adjustsign(seat)<0){
+                sign=1
+            }
+            setadjustment(seat,amount,sign)
+            if(sign<0){
+                this.classList.add("active")
+            }else{
+                this.classList.remove("active")
+            }
             updatetotals()
             savecache()
         })

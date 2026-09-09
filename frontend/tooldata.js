@@ -87,14 +87,13 @@
     {href:"tool/apidoc.html",category:"develop",ztitle:"公開 API 文件",etitle:"Public API Doc",zdesc:"小工具的公開 API 說明",edesc:"Public API reference for tools"}
 ]
 
-// 個人資料「宣傳小工具」預設收藏（依序）：使用者尚未收藏任何工具時，顯示這六個；
-// 之後依使用者收藏排序取前六名，不足六個再用此清單補滿。
+// 個人資料與首頁宣傳小工具固定顯示這六個，順序由此清單決定。
 const PTTOOLPROMODEFAULT=[
     "tool/equity.html",
-    "tool/potodds.html",
     "tool/tdarules.html",
     "tool/structuregen.html",
     "tool/range.html",
+    "tool/handbook.html",
     "tool/apidoc.html"
 ]
 
@@ -193,18 +192,9 @@ function pttoolitemdesc(item){
     return item.zdesc
 }
 
-// 計算宣傳小工具區要顯示的工具清單（最多六個）：先取使用者收藏，再用預設清單補滿。
+// 計算宣傳小工具區要顯示的工具清單（最多六個）。
 function pttoolpromodisplay(){
-    let favs=[]
-    if(typeof pttoolfavoritelist=="function"){
-        favs=pttoolfavoritelist()
-    }
     let out=[]
-    for(let i=0;i<favs.length&&out.length<PTTOOLPROMOMAX;i=i+1){
-        if(pttoolitemvisible(favs[i])&&out.indexOf(favs[i])<0){
-            out.push(favs[i])
-        }
-    }
     for(let i=0;i<PTTOOLPROMODEFAULT.length&&out.length<PTTOOLPROMOMAX;i=i+1){
         if(pttoolitemvisible(PTTOOLPROMODEFAULT[i])&&out.indexOf(PTTOOLPROMODEFAULT[i])<0){
             out.push(PTTOOLPROMODEFAULT[i])

@@ -359,7 +359,7 @@ const APICATEGORIES=[
 			},
 			{
 				id: "editusercarddeck",method: "PUT",path: "/editusercarddeck",title: { z: "修改牌背／牌面皮膚",e: "Update card back / face skin" },
-				desc: { z: "更新牌背與牌面的皮膚偏好，供手牌回放、現場轉播與手牌明細讀取。三個參數都可省略：只給 carddeck 是舊行為（牌背與牌面一起換），給 cardback / cardface 則只換那一邊。",e: "Update the card back and card face skin preferences, read by hand replay, live broadcast and hand detail. All three parameters are optional: passing carddeck alone keeps the old behaviour (changes both), while cardback / cardface change only that side." },
+				desc: { z: "更新牌背與牌面的皮膚偏好，供手牌回放與手牌明細讀取。三個參數都可省略：只給 carddeck 是舊行為（牌背與牌面一起換），給 cardback / cardface 則只換那一邊。",e: "Update the card back and card face skin preferences, read by hand replay and hand detail. All three parameters are optional: passing carddeck alone keeps the old behaviour (changes both), while cardback / cardface change only that side." },
 				auth: AUTHTOKEN,
 				params: [
 					P("carddeck","string",false,"classic / crimson / midnight / royal / ocean / sunset / rose / graphite / minimal。給了就牌背與牌面一起換（舊行為）。非法值忽略。","classic / crimson / midnight / royal / ocean / sunset / rose / graphite / minimal. Changes both back and face (legacy behaviour). Invalid values are ignored.",{ ex: "royal" }),
@@ -1893,65 +1893,6 @@ const APICATEGORIES=[
 				response: [R("data","object[]","計分牌設定陣列。","Array of chip settings.",chipfields())],
 				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
 			},
-			{
-				id: "getbroadcasthandlist",method: "GET",path: "/getbroadcasthandlist/{sessionid}",title: { z: "場外轉播手牌列表",e: "Public broadcast hand list" },
-				desc: { z: "唯讀、免登入端點，僅對開放轉播的公開統一手牌記錄場次生效。依場次設定套用延遲分鐘數或 H4H 逐手放行，並依「是否顯示底牌」遮蔽自家以外的手牌。",e: "Read-only endpoint requiring no login; only works for sessions with public broadcast enabled under unified hand recording. Applies the session's delay minutes or H4H manual release, and masks hole cards per the show-card setting." },
-				auth: AUTHOPEN,params: [pathparam("sessionid","場次 id。","Session id.",101)],
-				response: [
-					R("data","object[]","手牌陣列（依設定套用延遲／放行與遮蔽）。","Array of hands (delay/release and masking applied per settings).",handfields()),
-					R("session","object","場次轉播中繼資料。","Session broadcast metadata.",[
-						SUB("id","int","場次 id。","Session id."),
-						SUB("name","string","場次名稱。","Session name."),
-						SUB("unifiedhandrecord","bool","是否啟用統一手牌記錄。","Whether unified hand recording is enabled."),
-						SUB("maxseat","int","每桌座位數。","Seats per table."),
-						SUB("broadcastdelay","int","延遲分鐘數。","Delay in minutes."),
-						SUB("broadcastshowcard","bool","是否顯示底牌。","Whether hole cards are shown."),
-						SUB("broadcasth4h","bool","是否為 H4H 手動推進。","Whether H4H manual release is enabled."),
-						R("chips","object[]","計分牌設定。","Chip settings.",chipfields())
-					])
-				],
-				errors: [ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
-			},
-			{
-				id: "getbroadcastcontrol",method: "GET",path: "/getbroadcastcontrol/{sessionid}",title: { z: "取得轉播控制台",e: "Get broadcast control" },
-				desc: { z: "裁判／主辦端 H4H 控制台：回傳已放行／總手數、下一手待放行預覽與各手放行狀態。僅擁有者、管理員或有計時器／記錄權限者可存取。",e: "Referee/host H4H control console: returns released/total counts, a preview of the next pending hand and each hand's release status. Accessible only to the owner, admins, or callers with timer/record permission." },
-				auth: AUTHOWNER,params: [pathparam("sessionid","場次 id。","Session id.",101)],
-				response: [R("data","object","控制台狀態。","Control console state.",[
-					SUB("total","int","總手數。","Total hand count."),
-					SUB("released","int","已放行手數。","Number of released hands."),
-					SUB("pending","int","待放行手數。","Number of pending hands."),
-					SUB("h4h","bool","是否為 H4H 手動推進。","Whether H4H manual release is enabled."),
-					R("nexthand","object","下一手待放行預覽（無則為 null）。","Preview of the next pending hand (null if none).",[
-						SUB("id","int","手牌 id。","Hand id."),
-						SUB("createtime","string","建立時間。","Creation time."),
-						SUB("smallblind","int","小盲。","Small blind."),
-						SUB("bigblind","int","大盲。","Big blind."),
-						SUB("ante","int","前注。","Ante."),
-						SUB("tablename","string","桌號。","Table number."),
-						SUB("order","int","在放行序列中的序號。","Order within the release sequence.")
-					]),
-					R("hands","object[]","全部手牌的放行狀態陣列。","Array of all hands with release status.",[
-						SUB("id","int","手牌 id。","Hand id."),
-						SUB("createtime","string","建立時間。","Creation time."),
-						SUB("released","bool","是否已放行。","Whether it has been released."),
-						SUB("order","int","序號。","Order.")
-					]),
-					SUB("name","string","場次名稱。","Session name.")
-				])],
-				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
-			},
-			{
-				id: "broadcastrelease",method: "PUT",path: "/broadcastrelease/{sessionid}",title: { z: "放行轉播手牌",e: "Release broadcast hands" },
-				desc: { z: "裁判／主辦操作 H4H 逐手放行：advance 推進一手、all 全部放行、back 退回一手。放行後會即時通知轉播觀眾端重新載入。",e: "Referee/host H4H release action: advance releases one more hand, all releases everything, back retracts one hand. Broadcast viewers are notified to reload after the update." },
-				auth: AUTHOWNER,
-				params: [pathparam("sessionid","場次 id。","Session id.",101),P("action","string",false,"advance / all / back，預設 advance。","advance / all / back, default advance.",{ ex: "advance" })],
-				response: [R("data","object","更新後的放行狀態。","Updated release state.",[
-					SUB("released","int","已放行手數。","Number of released hands."),
-					SUB("total","int","總手數。","Total hand count."),
-					SUB("pending","int","待放行手數。","Number of pending hands.")
-				])],
-				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
-			}
 		]
 	},
 	{

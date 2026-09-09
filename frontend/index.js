@@ -9,10 +9,10 @@ function indextext(key){
 
 let TOOLLIST=[
 	["tool/equity.html","toolequity"],
-	["tool/range.html","toolgto"],
 	["tool/tdarules.html","tooltdarule"],
-	["tool/timebankdrill.html","tooltb"],
-	["tool/potodds.html","toolpo"],
+	["tool/structuregen.html","toolstructuregen"],
+	["tool/range.html","toolgto"],
+	["tool/handbook.html","toolhandbook"],
 	["tool/apidoc.html","toolapidoc"]
 ]
 
@@ -61,6 +61,18 @@ function rendertools(){
 	for(let i=0;i<TOOLLIST.length;i=i+1){
 		let href=TOOLLIST[i][0]
 		let key=TOOLLIST[i][1]
+		let title=indextext(key+"title")
+		let desc=indextext(key+"desc")
+		let item=null
+		if(typeof pttoolfindbyhref=="function"){
+			item=pttoolfindbyhref(href)
+		}
+		if(item&&typeof pttoolitemtitle=="function"){
+			title=pttoolitemtitle(item)
+		}
+		if(item&&typeof pttoolitemdesc=="function"){
+			desc=pttoolitemdesc(item)
+		}
 		// 正式區（pokertrace.net）隱藏還沒通過的維護中工具；測試機 / 本機照常全顯示。
 		if(typeof pttoolitemvisible=="function"&&!pttoolitemvisible(href)){
 			continue
@@ -68,8 +80,8 @@ function rendertools(){
 		count=count+1
 		html=html+`
 			<a href="${href}" class="block rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 transition hover:border-emerald-500">
-				<div class="text-lg font-bold text-white">${indextext(key+"title")}</div>
-				<div class="mt-1 text-sm text-zinc-400 leading-6">${indextext(key+"desc")}</div>
+				<div class="text-lg font-bold text-white">${title}</div>
+				<div class="mt-1 text-sm text-zinc-400 leading-6">${desc}</div>
 			</a>
 		`
 	}

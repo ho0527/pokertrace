@@ -367,6 +367,64 @@ def _payoutamount(sessionrow,place,totalentries):
 			return round(pool*pct/100)
 	return 0
 
+def _icmprizelist(sessionrow,totalentries,count):
+	prizelist=[]
+	for i in range(count):
+		prizelist.append(_payoutamount(sessionrow,i+1,totalentries))
+	return prizelist
+
+def _icmroundlist(valuelist):
+	result=[]
+	remainlist=[]
+	target=round(sum(valuelist))
+	for i in range(len(valuelist)):
+		base=int(valuelist[i])
+		result.append(base)
+		remainlist.append({
+			"index": i,
+			"remain": valuelist[i]-base
+		})
+	diff=target-sum(result)
+	remainlist=sorted(remainlist,key=lambda item:item["remain"],reverse=True)
+	for i in range(diff):
+		if i<len(remainlist):
+			result[remainlist[i]["index"]]=result[remainlist[i]["index"]]+1
+	return result
+
+def _icmvaluebychip(chiplist,prizelist):
+	count=len(chiplist)
+	maskcount=1<<count
+	stacksum=[0]*maskcount
+	for mask in range(maskcount):
+		total=0
+		for i in range(count):
+			if mask&(1<<i):
+				total=total+chiplist[i]
+		stacksum[mask]=total
+	totalchip=sum(chiplist)
+	problist=[0]*maskcount
+	problist[0]=1
+	value=[0]*count
+	for mask in range(maskcount):
+		prob=problist[mask]
+		if prob<=0:
+			continue
+		place=0
+		for i in range(count):
+			if mask&(1<<i):
+				place=place+1
+		if count<=place:
+			continue
+		remaining=totalchip-stacksum[mask]
+		if remaining<=0:
+			continue
+		for i in range(count):
+			if not mask&(1<<i):
+				nextprob=prob*(chiplist[i]/remaining)
+				value[i]=value[i]+nextprob*prizelist[place]
+				problist[mask|(1<<i)]=problist[mask|(1<<i)]+nextprob
+	return _icmroundlist(value)
+
 def _cost(sessionrow,row):
 	buyin=_num(sessionrow.get("buyin"),0)
 	fee=_num(sessionrow.get("buyinfee"),0)
@@ -1231,6 +1289,13 @@ try:
 
 		newrebuycount=data.get("rebuycount") if data.get("rebuycount") is not None else row.get("rebuycount") or 0
 		newaddoncount=data.get("addoncount") if data.get("addoncount") is not None else row.get("addoncount") or 0
+		newplace=data.get("place") if data.get("place") is not None else row.get("place") or ""
+		if "place" in data:
+			newplace=str(newplace).strip()
+			if newplace!="":
+				if _int(newplace,0)<=0:
+					return errorresponse("ERROR_request_data_type_error")
+				newplace=str(_int(newplace,0))
 		warnings=[]
 		if _int(newrebuycount,0)>_int(sessionrow.get("rebuycount"),0):
 			warnings.append("WARNING_rebuycount_exceeded")
@@ -1239,20 +1304,94 @@ try:
 
 		query(SETTING["dbname"],
 			f"""UPDATE "sessionplayer" SET "buyin"=%s,"fee"=%s,"rebuycount"=%s,"reentrycount"=%s,"addoncount"=%s,"prize"=%s,"prizeoverride"=%s,"ticketvalue"=%s,"paymenttype"=%s,"place"=%s,"updatetime"=NOW() WHERE "id"=%s""",
-			[data.get("buyin") if data.get("buyin") is not None else row.get("buyin") or 0,data.get("fee") if data.get("fee") is not None else row.get("fee") or 0,newrebuycount,data.get("reentrycount") if data.get("reentrycount") is not None else row.get("reentrycount") or 0,newaddoncount,data.get("prize") if data.get("prize") is not None else row.get("prize") or 0,newprizeoverride,data.get("ticketvalue") if data.get("ticketvalue") is not None else row.get("ticketvalue") or 0,paymenttype,data.get("place") if data.get("place") is not None else row.get("place") or "",sessionplayerid],
+			[data.get("buyin") if data.get("buyin") is not None else row.get("buyin") or 0,data.get("fee") if data.get("fee") is not None else row.get("fee") or 0,newrebuycount,data.get("reentrycount") if data.get("reentrycount") is not None else row.get("reentrycount") or 0,newaddoncount,data.get("prize") if data.get("prize") is not None else row.get("prize") or 0,newprizeoverride,data.get("ticketvalue") if data.get("ticketvalue") is not None else row.get("ticketvalue") or 0,paymenttype,newplace,sessionplayerid],
 			SETTING["dbsetting"]
 		)
+		if "place" in data:
+			timerplace=None
+			if newplace!="":
+				timerplace=_int(newplace,0)
+			query(SETTING["dbname"],
+				f"""UPDATE "sessiontimerplayer" SET "place"=%s,"updatetime"=%s WHERE "sessionid"=%s AND "sessionplayerid"=%s AND "deletetime" IS NULL""",
+				[timerplace,nowtime(),row["sessionid"],sessionplayerid],
+				SETTING["dbsetting"]
+			)
 
 		# 稽核：記錄金額／名次異動的前後值（檢查表 1.7）
 		writeauditlog(SETTING["dbname"],SETTING["dbsetting"],user["id"],"sessionplayer","editfinance",sessionplayerid,
 			{"buyin": row.get("buyin"),"fee": row.get("fee"),"prize": row.get("prize"),"place": row.get("place")},
-			{"buyin": data.get("buyin"),"fee": data.get("fee"),"prize": data.get("prize"),"place": data.get("place")},
+			{"buyin": data.get("buyin"),"fee": data.get("fee"),"prize": data.get("prize"),"place": newplace},
 			request)
 
 		return Response({
 			"success": True,
 			"data": {
 				"warnings": warnings
+			}
+		},status.HTTP_200_OK)
+
+	@api_view(["PUT"])
+	def applysessionplayericm(request,sessionid):
+		user,errresp=_gettokenuser(request)
+		if errresp:
+			return errresp
+
+		sessionrow=query(SETTING["dbname"],f"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionid],SETTING["dbsetting"])
+		if not sessionrow:
+			return errorresponse("ERROR_session_not_found")
+		sessionrow=sessionrow[0]
+
+		if not _caneditsession(sessionrow,user):
+			return errorresponse("ERROR_no_permission")
+
+		synctimerplayers(sessionrow)
+		rows=query(SETTING["dbname"],f"""
+			SELECT sp."id",sp."startchip",sp."prizeoverride",tp."status" AS timerstatus
+			FROM "sessionplayer" sp
+			JOIN "sessiontimerplayer" tp ON tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."deletetime" IS NULL
+			WHERE sp."sessionid"=%s AND sp."status"='confirmed' AND sp."deletetime" IS NULL
+			  AND COALESCE(tp."status",'')<>'eliminated'
+			ORDER BY sp."serialno" ASC,sp."registertime" ASC,sp."id" ASC
+		""",[sessionid],SETTING["dbsetting"])
+		rows=rows or []
+		if len(rows)<1:
+			return errorresponse("ERROR_icm_no_player")
+		if 18<len(rows):
+			return errorresponse("ERROR_icm_player_limit")
+
+		latestchips=latestsessionchips(sessionid)
+		playerlist=[]
+		chiplist=[]
+		for row in rows:
+			chip=intval(latestchips.get("sp:"+str(row["id"])),0)
+			if chip<=0:
+				chip=intval(row.get("startchip"),0)
+			if chip<=0:
+				return errorresponse("ERROR_icm_chip_missing")
+			playerlist.append(row)
+			chiplist.append(chip)
+
+		totalentries=_sessiontotalentries(sessionid)
+		prizelist=_icmprizelist(sessionrow,totalentries,len(playerlist))
+		if sum(prizelist)<=0:
+			return errorresponse("ERROR_icm_no_prize")
+		valuelist=_icmvaluebychip(chiplist,prizelist)
+		for i in range(len(playerlist)):
+			row=playerlist[i]
+			query(SETTING["dbname"],
+				f"""UPDATE "sessionplayer" SET "prizeoverride"=%s,"updatetime"=%s WHERE "id"=%s""",
+				[valuelist[i],nowtime(),row["id"]],
+				SETTING["dbsetting"]
+			)
+			writeauditlog(SETTING["dbname"],SETTING["dbsetting"],user["id"],"sessionplayer","applyicm",row["id"],
+				{"prizeoverride": row.get("prizeoverride")},
+				{"prizeoverride": valuelist[i],"chip": chiplist[i]},
+				request)
+
+		return Response({
+			"success": True,
+			"data": {
+				"count": len(playerlist)
 			}
 		},status.HTTP_200_OK)
 
@@ -1489,8 +1628,7 @@ try:
 				best=random.choice(candidates)
 				seatno=tabledata[best]["seats"].pop(0)
 				tabledata[best]["count"]=tabledata[best]["count"]+1
-				query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"startchip"=%s,"updatetime"=NOW() WHERE "id"=%s""",[tabledata[best]["table"]["id"],seatno,startchip,rows[i]["id"]],SETTING["dbsetting"])
-			query(SETTING["dbname"],f"""UPDATE "sessiontimerconfig" SET "startingchips"=%s,"updatetime"=NOW() WHERE "sessionid"=%s AND "deletetime" IS NULL""",[startchip,sessionrow["id"]],SETTING["dbsetting"])
+				query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s""",[tabledata[best]["table"]["id"],seatno,rows[i]["id"]],SETTING["dbsetting"])
 			_broadcastsessiontimer(sessionrow)
 			return Response({"success": True,"data": ""},status.HTTP_200_OK)
 

@@ -2587,7 +2587,6 @@ if(domgetid('linkedTableSearch')){
 if(domgetid('linkedSeatSearch')){
 	domgetid('linkedSeatSearch').addEventListener('input',buildlinkedplayerlist);
 }
-
 // Title
 domgetid('btnEditTitle').addEventListener('click', function(){
 	value(domgetid('editTname'), STATE.tournName)

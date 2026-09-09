@@ -49,6 +49,7 @@ const GAMETYPETEXT={
 		"detail": "說明",
 		"moveup": "上移",
 		"movedown": "下移",
+		"copy": "複製",
 		"remove": "刪除",
 		"newname": "新遊戲",
 		"newcode": "NEW",
@@ -92,6 +93,7 @@ const GAMETYPETEXT={
 		"detail": "Detail",
 		"moveup": "Move Up",
 		"movedown": "Move Down",
+		"copy": "Copy",
 		"remove": "Delete",
 		"newname": "New Game",
 		"newcode": "NEW",
@@ -222,7 +224,7 @@ function gametypeapplylanguage(){
 	}
 }
 
-function gametypeload(){
+function gametypeload(keepid){
 	gametypeapi("GET","getgametypesettinglist",null,function(data){
 		if(!data["success"]){
 			if(data["data"]=="ERROR_no_permission"){
@@ -235,7 +237,18 @@ function gametypeload(){
 		}
 		gametypelist=data["data"]||[]
 		if(gametypelist.length>0){
-			gametypecurrentid=gametypelist[0]["id"]
+			let matched=false
+			if(keepid){
+				for(let i=0;i<gametypelist.length;i=i+1){
+					if(String(gametypelist[i]["id"])==String(keepid)){
+						gametypecurrentid=gametypelist[i]["id"]
+						matched=true
+					}
+				}
+			}
+			if(!matched){
+				gametypecurrentid=gametypelist[0]["id"]
+			}
 		}
 		gametyperender()
 	})
@@ -358,6 +371,7 @@ function gametyperendereditor(row){
 					"<div class=\"flex flex-wrap gap-2\">"+
 						"<input type=\"button\" class=\"flowup min-h-10 rounded-xl bg-zinc-800 px-3 text-xs font-bold text-zinc-200 transition hover:bg-zinc-700\" data-index=\""+i+"\" value=\""+gametypeescape(gametypetext("moveup"))+"\">"+
 						"<input type=\"button\" class=\"flowdown min-h-10 rounded-xl bg-zinc-800 px-3 text-xs font-bold text-zinc-200 transition hover:bg-zinc-700\" data-index=\""+i+"\" value=\""+gametypeescape(gametypetext("movedown"))+"\">"+
+						"<input type=\"button\" class=\"flowcopy min-h-10 rounded-xl bg-zinc-800 px-3 text-xs font-bold text-zinc-200 transition hover:bg-zinc-700\" data-index=\""+i+"\" value=\""+gametypeescape(gametypetext("copy"))+"\">"+
 						"<input type=\"button\" class=\"flowdelete min-h-10 rounded-xl border border-red-500/40 bg-red-500/10 px-3 text-xs font-bold text-red-300 transition hover:bg-red-500/20\" data-index=\""+i+"\" value=\""+gametypeescape(gametypetext("remove"))+"\">"+
 					"</div>"+
 				"</div>"+
@@ -438,6 +452,15 @@ function gametypedeletestep(index){
 	}
 }
 
+function gametypecopystep(index){
+	let row=gametypecurrent()
+	if(row&&row["flow"]&&row["flow"][index]){
+		let item=JSON.parse(JSON.stringify(row["flow"][index]))
+		row["flow"].splice(index+1,0,item)
+		gametyperenderform()
+	}
+}
+
 function gametypenew(){
 	let newid="new"+Date.now()
 	let row={
@@ -487,7 +510,11 @@ function gametypesave(){
 		gametypeapi("POST","savegametypesetting",body,function(data){
 			if(data["success"]){
 				gametypetoast(gametypetext("saved"),"success")
-				gametypeload()
+				let keepid=row["id"]
+				if(data["data"]&&data["data"]["id"]){
+					keepid=data["data"]["id"]
+				}
+				gametypeload(keepid)
 			}else{
 				gametypetoast(gametypetext("savefail"),"error")
 			}
@@ -570,6 +597,9 @@ function gametypebind(){
 		}
 		if(target.classList.contains("flowdown")){
 			gametypemovestep(Number(target.getAttribute("data-index")||0),1)
+		}
+		if(target.classList.contains("flowcopy")){
+			gametypecopystep(Number(target.getAttribute("data-index")||0))
 		}
 		if(target.classList.contains("flowdelete")){
 			gametypedeletestep(Number(target.getAttribute("data-index")||0))

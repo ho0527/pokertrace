@@ -22,6 +22,7 @@ let currentpagination={
 	"hasnext": false
 }
 let sessionliststatekey=WEBLSNAME+"sessionliststate"
+const SESSIONSETTINGTABPREFIX=WEBLSNAME+"session-setting-tab-"
 let quickfiltermode=""
 // 快速篩選允許的值。restorereviewsessionliststate() 會從 localStorage 還原這個字串，
 // 舊版或手改過的值送出去後端不認（session.py:380 是白名單），會被當成沒篩選、
@@ -34,6 +35,23 @@ let followeduseridlist=[]
 if(!weblsget(WEBLSNAME+"signin")){
 	href("signin.html")
 }
+
+function clearsessionsettingtabstorage(){
+	let removelist=[]
+	try{
+		for(let i=0;i<localStorage.length;i=i+1){
+			let key=localStorage.key(i)
+			if(key&&key.indexOf(SESSIONSETTINGTABPREFIX)==0){
+				removelist.push(key)
+			}
+		}
+		for(let i=0;i<removelist.length;i=i+1){
+			localStorage.removeItem(removelist[i])
+		}
+	}catch(error){}
+}
+
+clearsessionsettingtabstorage()
 
 function safehtml(value){
 	if(value==null||value==undefined){
@@ -371,14 +389,19 @@ function getplacetext(row){
 			return total
 		}
 		let place=row["myregistration"]["timerplace"]||row["displayplace"]||row["myregistration"]["place"]||0
-		// 有報名還沒名次: - / 報名總人次
+		// 有報名還沒名次: 只顯示報名總人次
 		if(!int(place)){
-			return "- / "+total
+			return total
 		}
 		// 有名次: 名次 / 報名總人次
 		return place+" / "+total
 	}
-	return row["place"]+" / "+row["totalbuyin"]
+	let place=row["place"]||0
+	let total=row["multidayremaining"]||row["displaytotalbuyin"]||row["totalbuyin"]
+	if(!int(place)&&(row["multidayremaining"]||row["displaytotalbuyin"])){
+		return total
+	}
+	return (place||"-")+" / "+total
 }
 
 function getprofitdata(row){

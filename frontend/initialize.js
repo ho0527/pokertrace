@@ -1,4 +1,4 @@
-﻿/*
+/*
 	製作人員: 賀皓群(小賀) / dc: chris0527 / line: ho960527 / email: chris960527ho@gmail.com / 電話: 0906585605
 
 		|-------    -----    -                     -     -----  -----  -----   -------|
@@ -390,6 +390,10 @@ appuistyle.textContent=`
 
 	table {
 		border-collapse: collapse;
+	}
+
+	table thead tr > th:first-child {
+		text-align: center;
 	}
 
 	#navigationbar nav {
@@ -1323,8 +1327,7 @@ function loadbackendadminlinks(){
 				localStorage.setItem(CARDSKINKEY,data["data"]["cardface"]||data["data"]["carddeck"]||"classic")
 				localStorage.setItem(CARDFACEKEY,data["data"]["cardfacemode"]||"four")
 				ptcardfaceapply(data["data"]["cardfacemode"]||"four")
-				// 兩色 / 四色是另一個軸，後端還沒有對應欄位，維持只存本機。
-				// 這裡刻意不再讀 data["cardface"] 當成兩色/四色——那個欄位現在是皮膚名稱，
+				// 這裡刻意不讀 data["cardface"] 當成兩色/四色——那個欄位現在是皮膚名稱，
 				// 直接餵給 ptcardfaceapply() 會讓使用者選的兩色設定被吃掉。
 			}catch(error){
 				// localStorage 不可用時忽略
@@ -2703,7 +2706,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} a4.0.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} a4.1.0 | Made with ♠ ♥ ♦ ♣ in Taipei
 			</div>
 		</div>
 	</footer>

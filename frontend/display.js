@@ -389,6 +389,13 @@ function updatesyncstatus() {
 function fmt(number) {
 	return Math.round(number).toLocaleString()
 }
+function formatmoney(number) {
+	let value=parseFloat(number)
+	if(isNaN(value)){
+		value=0
+	}
+	return value.toLocaleString(undefined,{"minimumFractionDigits":0,"maximumFractionDigits":2})
+}
 function fmttime(second) {
 	second=Math.max(0, Math.floor(second))
 	return String(Math.floor(second / 60)).padStart(2, "0") + ":" + String(second % 60).padStart(2, "0")
@@ -518,11 +525,11 @@ function payoutpercentamount(item, pool, totalpct) {
 function payoutcashamount(item, pool, totalpct) {
 	let cash=parseFloat(item["cash"]) || 0
 	if (cash > 0) {
-		return Math.round(cash)
+		return cash
 	}
 	let rewardmoney=payoutrewardmoney(item["reward"])
 	if (rewardmoney != null) {
-		return Math.round(rewardmoney)
+		return rewardmoney
 	}
 	return payoutpercentamount(item, pool, totalpct)
 }
@@ -581,13 +588,17 @@ function payoutranktext(start, end) {
 
 const PAYOUTMAXROWS=12
 const PAYOUTMAXROWSWITHREWARD=10
+const PAYOUTMAXROWSWITHTWOREWARD=9
 const PAYOUTROTATEMS=3000
+const OTHERREWARDMAXROWS=2
 let payoutpage=0
 let payoutlastsignature=""
+let otherrewardpage=0
+let otherrewardlastsignature=""
 
 function payoutdisplayvalue(item, amount) {
 	let rewardtext=payoutrewardtext(item)
-	let moneytext=amount > 0 ? ("$" + fmt(amount)) : ""
+	let moneytext=amount > 0 ? ("$" + formatmoney(amount)) : ""
 	if (moneytext != "" && rewardtext != "") {
 		return moneytext + "+" + rewardtext
 	}
@@ -649,12 +660,12 @@ function payoutrowsignature(rows) {
 	return signature.join("|")
 }
 
-function payoutotherrewarded() {
+function buildotherrewardrows() {
 	let otherrewardlist=state["otherReward"]
 	if (!Array.isArray(otherrewardlist)) {
-		return false
+		otherrewardlist=[]
 	}
-	let rewarded=false
+	let rowlist=[]
 	for (let i=0;i<otherrewardlist.length;i=i+1) {
 		let item=otherrewardlist[i] || {}
 		let label=String(item["label"] || "").replace(/^\s+|\s+$/g, "")
@@ -664,14 +675,57 @@ function payoutotherrewarded() {
 			cash=0
 		}
 		if (label != "" || reward != "" || 0 < cash) {
-			rewarded=true
+			let parts=[]
+			if (0 < cash) {
+				parts.push("$" + formatmoney(cash))
+			}
+			if (reward != "") {
+				parts.push(reward)
+			}
+			rowlist.push({
+				"label": label,
+				"value": parts.join("+")
+			})
 		}
 	}
-	return rewarded
+	return rowlist
+}
+
+function otherrewardrowsignature(rowlist) {
+	let signature=[]
+	for (let i=0;i<rowlist.length;i=i+1) {
+		signature.push(rowlist[i]["label"]+":"+rowlist[i]["value"])
+	}
+	return signature.join("|")
+}
+
+function visibleotherrewardrows(rowlist, page) {
+	if (rowlist.length <= OTHERREWARDMAXROWS) {
+		return rowlist
+	}
+	let pagecount=Math.max(1, Math.ceil(rowlist.length / OTHERREWARDMAXROWS))
+	let safepage=page % pagecount
+	let start=safepage * OTHERREWARDMAXROWS
+	let output=[]
+	for (let i=start;i<rowlist.length && i<start+OTHERREWARDMAXROWS;i=i+1) {
+		output.push(rowlist[i])
+	}
+	return output
+}
+
+function otherrewardpagecount(rowlist) {
+	if (rowlist.length <= OTHERREWARDMAXROWS) {
+		return 1
+	}
+	return Math.max(1, Math.ceil(rowlist.length / OTHERREWARDMAXROWS))
 }
 
 function payoutmaxrows() {
-	if (payoutotherrewarded()) {
+	let rowlist=buildotherrewardrows()
+	if (2 <= rowlist.length) {
+		return PAYOUTMAXROWSWITHTWOREWARD
+	}
+	if (rowlist.length == 1) {
 		return PAYOUTMAXROWSWITHREWARD
 	}
 	return PAYOUTMAXROWS
@@ -743,7 +797,7 @@ function buildpayouts() {
 	let payoutcashtotalamount=payoutcashtotal(payouts, pool, totalpct)
 
 	let allpayoutrows=buildpayoutrows()
-	let signature=payoutrowsignature(allpayoutrows)
+	let signature=payoutrowsignature(allpayoutrows)+":maxrows:"+payoutmaxrows()
 	if (signature != payoutlastsignature) {
 		payoutlastsignature=signature
 		payoutpage=0
@@ -759,7 +813,7 @@ function buildpayouts() {
 		let valuetext=escapehtml(p["value"]).replace(/"/g, "&quot;").replace(/'/g, "&#39;")
 		return "<div class=\"" + classname + "\"><span>" + payoutranktext(p["rankstart"], p["rankend"]) + "</span><span>" + valuetext + "</span></div>"
 	}).join("")
-	let prizepooltext="$" + fmt(payoutcashtotalamount)
+	let prizepooltext="$" + formatmoney(payoutcashtotalamount)
 	// let prizepoolcalctext="名次現金加總 · 原獎池 " + state["totalEntries"] + " × $" + fmt(state["buyin"])
 	// if (0 < (parseFloat(state["prizePoolCarryover"]) || 0)) {
 	// 	prizepoolcalctext=prizepoolcalctext + " + 前日未用 $" + fmt(state["prizePoolCarryover"])
@@ -773,27 +827,22 @@ function buildpayouts() {
 	// 其他獎勵: 三欄清單(自由標籤 / 獎金 / 獎品), 純顯示記錄, 不列入 payoutcashtotal / 獎池, 也不參與任何結算。
 	// 這頁固定英文不做中譯, 標題已寫死在 display.html; label / reward 是主辦自由輸入,
 	// 走 innerHTML 前一律 escapehtml 並跳脫引號防 XSS。
-	let otherrewardlist=state["otherReward"]
-	if (!Array.isArray(otherrewardlist)) {
-		otherrewardlist=[]
+	let otherrewardrowlist=buildotherrewardrows()
+	let otherrewardsignature=otherrewardrowsignature(otherrewardrowlist)
+	if (otherrewardsignature != otherrewardlastsignature) {
+		otherrewardlastsignature=otherrewardsignature
+		otherrewardpage=0
 	}
+	let otherrewardpagecountvalue=otherrewardpagecount(otherrewardrowlist)
+	if (otherrewardpagecountvalue <= otherrewardpage) {
+		otherrewardpage=0
+	}
+	let visibleotherrewardrowlist=visibleotherrewardrows(otherrewardrowlist, otherrewardpage)
 	let otherrewardhtml=""
-	for (let i=0; i<otherrewardlist.length; i=i+1) {
-		let item=otherrewardlist[i] || {}
-		let cash=parseFloat(item["cash"])
-		if (isNaN(cash)) {
-			cash=0
-		}
-		let reward=String(item["reward"] || "").replace(/^\s+|\s+$/g, "")
-		let parts=[]
-		if (0 < cash) {
-			parts.push("$" + fmt(cash))
-		}
-		if (reward != "") {
-			parts.push(reward)
-		}
-		let labeltext=escapehtml(String(item["label"] || "").replace(/^\s+|\s+$/g, "")).replace(/"/g, "&quot;").replace(/'/g, "&#39;")
-		let valuetext=escapehtml(parts.join("+")).replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+	for (let i=0; i<visibleotherrewardrowlist.length; i=i+1) {
+		let item=visibleotherrewardrowlist[i]
+		let labeltext=escapehtml(item["label"]).replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+		let valuetext=escapehtml(item["value"]).replace(/"/g, "&quot;").replace(/'/g, "&#39;")
 		otherrewardhtml=otherrewardhtml + "<div class=\"other-reward-row mono\"><span>" + labeltext + "</span><span>" + valuetext + "</span></div>"
 	}
 	domgetid("otherRewardList").innerHTML=otherrewardhtml
@@ -1345,7 +1394,11 @@ function render() {
 		bd.style.color="#fbbf24"
 		domgetid("breakAfterLabel").textContent=fmttime(state["secondsLeft"]) + " remaining"
 	} else {
-		bc.style.display="none"
+		bc.style.display="block"
+		let bd=domgetid("breakCountdownDisplay")
+		bd.textContent="TO END"
+		bd.style.color="#888"
+		domgetid("breakAfterLabel").textContent="No more breaks"
 	}
 
 	// Marquee
@@ -1412,6 +1465,15 @@ setInterval(function() {
 	let pagecount=payoutmiddlepagecount(payoutrows)
 	if (1 < pagecount) {
 		payoutpage=(payoutpage + 1) % pagecount
+		buildpayouts()
+	}
+}, PAYOUTROTATEMS)
+
+setInterval(function() {
+	let otherrewardrowlist=buildotherrewardrows()
+	let pagecount=otherrewardpagecount(otherrewardrowlist)
+	if (1 < pagecount) {
+		otherrewardpage=(otherrewardpage + 1) % pagecount
 		buildpayouts()
 	}
 }, PAYOUTROTATEMS)

@@ -348,7 +348,7 @@ function renderleaderboard(rows,pagination){
 				<thead>
 					<tr class="text-zinc-300">
 						<th class="sticky top-0 bg-zinc-800 border-b border-zinc-800 py-2 px-3 text-center">${seriestext("rank")}</th>
-						<th class="sticky top-0 bg-zinc-800 border-b border-zinc-800 py-2 px-3 text-left">${seriestext("player")}</th>
+						<th class="sticky top-0 bg-zinc-800 border-b border-zinc-800 py-2 px-3">${seriestext("player")}</th>
 						<th class="sticky top-0 bg-zinc-800 border-b border-zinc-800 py-2 px-3 text-center">${seriestext("entries")}</th>
 						<th class="sticky top-0 bg-zinc-800 border-b border-zinc-800 py-2 px-3 text-center">${seriestext("cashes")}</th>
 						<th class="sticky top-0 bg-zinc-800 border-b border-zinc-800 py-2 px-3 text-center">${seriestext("bestplace")}</th>
