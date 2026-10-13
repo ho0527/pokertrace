@@ -28,9 +28,13 @@
 - `control.css`
 - `control.html`
 - `control.js`
+
+`control.html` 底部另有一組不連動主賽事時鐘的短秒計時器，提供 10、15、20、30 秒預設值；點預設值或綠色按鈕會立即從所選秒數重新倒數，次要按鈕負責暫停／繼續，倒數顯示到小數一位。
 - `display.css`
 - `display.html`
 - `display.js`
+
+手數級別的控制端與顯示端皆顯示剩餘手數（目標手數減已完成手數），不顯示「已完成 / 目標」。控制端的「＋」增加剩餘手數、「－」減少剩餘手數；主按鈕在手數模式顯示「下一手牌」，作用與「－」相同，每按一次減少一手，減至零時自動進入下一項。顯示端的手數標籤固定使用 `HAND`。若目前到下一個休息前全部都是有目標的手數級別，Next Break 會改顯示 `IN X HAND`（不使用複數 `HANDS`）；只要混入分鐘級別就維持時間倒數。
 - `edittable.html`
 - `edittable.js`
 - `follow.js`
@@ -99,11 +103,15 @@
 - `structure.js`
 - `structureedit.html`
 - `structureedit.js`
+
+`structureedit.html` 的「快速套用」可統一設定所有 Level 的分鐘或目標手數；套用分鐘會把所有 Level 切回計時模式，套用手數則會把所有 Level 切成手數模式。Ante 狀態按鈕在所有 Level 都已有 ante 時會全部關閉，否則會全部開啟並把各級 ante 設成該級大盲。
 - `sw.js`
 - `table.html`
 - `table.js`
 - `tableboard.html`
 - `tableboard.js`
+
+`table.html` 的牌桌設定可鎖定特定座位。鎖定位在多桌看板以琥珀色顯示，且報名工作台、隨機排座、移桌與併桌都不會把選手排入該座位。
 - `tailwind.css`（Tailwind 建置產物，由 `npm run build:css` 產生，必須進版控；不要手改）
 - `terms.html`
 - `tool.css`
@@ -357,12 +365,15 @@ git diff --check -- frontend\tool\{toolname}.html frontend\tool\{toolname}.js fr
 - `session.html` 的「其他 → 設定」側欄除了「一般」「牌局設定」「刪除賽事」，另有「我的成績」：編輯自己在該場次的獲獎金額、名次、總買入、獲獎獎品、有進錢圈（ITM）與有進 Final Table，送 `editsessionresult`。舊的 `editsession.html` / `editsession.js` 已移除，這裡是唯一入口；`sessionlist` 的「編輯」與場次頁個人紀錄區的「編輯」都導到 `session.html?id=<id>#other-settings-result`，重新整理也會停在同一個分頁。該端點是整列覆寫，七個欄位一定要送齊，只有 `reentrycount` 本頁沒有欄位可編輯、會用 `currentsession` 目前值原樣帶回，避免被洗成 0；儲存後呼叫 `loadsessiondata()` 讓總覽盈虧同步。整個設定分頁由 `canviewsessionsettings()`（`isown` / `isadmin` / `isstaff`）控管，對應後端 `_cansessionsetting`。
 - `clublist` 手機版以卡片呈現並有前端分頁；`sessionlist` 手機版搜尋區可收合，兩者搜尋都提供清空按鈕。
 - `initialize.js` 會注入共用 manifest 與 `touch-action: manipulation`，也提供計時器頁共用常數與 loading helper；計時器相關頁面會載入 `initialize.js`，但依頁面類型跳過站台 nav / footer 注入。
+- `copydata.js` 提供全站手機長按複製資料：131 個載入 `initialize.js` 的頁面由共用初始化自動載入，`receipt.html` 與 `offline.html` 直接引用，因此 133 個有效 HTML 全數涵蓋。標題、表頭、標籤、連結與互動控制項不觸發也不會進入複製文字。
 - `display.html` 是目前唯一不做中譯的前端頁面，計時器顯示端固定維持英文顯示文案。
 - `initialize.js` 提供「搖一搖聯絡我們」：手機劇烈搖晃時跳出燈箱引導到 `contact.html`；使用者可在燈箱內或個人資料偏好設定關閉（localStorage `shakecontactoff`）。iOS 未授權動作感應時會顯示一次性引導橫幅（點「允許」的手勢當下請求系統授權；「先不要」記錄在 `shakecontactiosasked` 不再打擾），也可之後在 `profile.html` 的開關點擊時再授權。計時器頁不啟用。
 - `newtable` 支援用起始與結束牌桌編號一次新增多個牌桌，例如 1 到 9 會建立 9 個牌桌；名稱欄在範圍模式會當作前綴。
 - 舊的 `registrations.html` 已由 `register.html` / `register.js` 取代。
+- `register.html` 工作人員報名／重新入場可在每位選手的列填寫當次 buy-in 備註；新入場會覆寫目前備註，空白會清除。備註沿用 `sessionplayer.note`，名單與手機卡片都會顯示。
 - 報到有兩條路徑，用的是**不同編號**，不可混用：`scan.html` 掃收據 QR 走 `checkin.html?s=<場次id>&r=<報名id>`（`r` 是 `sessionplayer.id`，QR 由 `register.js` 產生）；手動輸入走 `checkin.html?s=<場次id>&entry=<入場編號>`（`entry` 是收據上印的「入場編號」＝ `sessionplayer.serialno`，只在單一場次內唯一，所以一定要帶 `s`）。`checkin.js` 有 `r` 就打 `getcheckininfo`，只有 `entry`+`s` 就打 `getcheckininfobyentry`，兩支回傳結構相同。
 - `scan.html` 手動輸入區有場次下拉：清單取 `getsessionlist?limit=200&page=1`，前端只留「主辦場次（`owned`）＋ 自己可操作（`isown` / `isstaff`）＋ 未結束（`sessionended` 不為 true）＋ 結束未超過一天」的場次；只有一場時自動選定，帶 `?s=<場次id>` 進來（`register.html` 的「掃描 QR」會帶）則預選該場並仍可切換。文案在 `translate.js` 的 `scanpage` / `checkinpage`。
 - `register.js` 加入玩家輸入框旁有「測試使用者」開關按鈕：預設關閉，查詢結果一律過濾掉測試使用者（`backend/defultuser.py` 產生、playerid `0` 開頭）；開啟後按鈕會 highlight（綠色），查詢結果才會包含測試使用者，且關鍵字為空時會自動以 `TUP_` 前綴列出測試玩家。
+- `register.js` 的 ICM 分配在 18 人內採精確計算，19 人以上採固定種子的抽樣計算，因此不限制在場人數且相同輸入可重現；手機長按報名卡片空白處會複製該選手的獎金與盈虧摘要，互動控制項不觸發長按複製。
 - 全站按鈕目前以 `<input type="button|submit|reset">` 為主；少數需要包含子元素的互動區塊使用 `role="button"`、`tabindex="0"` 與鍵盤事件。
 - 若本目錄用途或重要檔案改變，請同步更新本 README 與 `AGENTS.md`。

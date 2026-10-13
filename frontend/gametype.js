@@ -26,15 +26,17 @@ const GAMETYPETEXT={
 		"back": "回偏好設定",
 		"newgame": "新增遊戲",
 		"listtitle": "遊戲列表",
-		"search": "搜尋名稱或代碼",
+		"search": "搜尋英文名稱、中文名稱或代碼",
 		"basic": "基本設定",
 		"basicdesc": "代碼會用在手牌紀錄與場次類型，請保持短且不可重複。",
 		"copyholdem": "複製德州流程",
 		"save": "儲存",
 		"delete": "刪除",
-		"name": "名稱",
+		"name": "英文名稱",
 		"code": "代碼",
-		"description": "描述",
+		"description": "中文名稱",
+		"nameplaceholder": "Texas Hold'em",
+		"descriptionplaceholder": "德州撲克",
 		"enabled": "啟用，顯示在場次與手牌遊戲類型選單",
 		"preview": "流程預覽",
 		"previewdesc": "節點由左到右代表一手牌的主要流程。",
@@ -51,9 +53,10 @@ const GAMETYPETEXT={
 		"movedown": "下移",
 		"copy": "複製",
 		"remove": "刪除",
-		"newname": "新遊戲",
+		"newname": "New Game",
+		"newdescription": "新遊戲",
 		"newcode": "NEW",
-		"required": "請填名稱與代碼",
+		"required": "請填英文名稱、中文名稱與代碼",
 		"saved": "遊戲類型已儲存",
 		"deleted": "遊戲類型已刪除",
 		"deleteconfirm": "確定刪除此遊戲類型?",
@@ -70,15 +73,17 @@ const GAMETYPETEXT={
 		"back": "Back to Preferences",
 		"newgame": "Add Game",
 		"listtitle": "Game List",
-		"search": "Search name or code",
+		"search": "Search English name, Chinese name, or code",
 		"basic": "Basic Settings",
 		"basicdesc": "Codes are used by hand records and session game types. Keep them short and unique.",
 		"copyholdem": "Copy Hold'em Flow",
 		"save": "Save",
 		"delete": "Delete",
-		"name": "Name",
+		"name": "English Name",
 		"code": "Code",
-		"description": "Description",
+		"description": "Chinese Name",
+		"nameplaceholder": "Texas Hold'em",
+		"descriptionplaceholder": "德州撲克",
 		"enabled": "Enabled, shown in session and hand game type menus",
 		"preview": "Flow Preview",
 		"previewdesc": "Nodes run left to right through one hand.",
@@ -96,8 +101,9 @@ const GAMETYPETEXT={
 		"copy": "Copy",
 		"remove": "Delete",
 		"newname": "New Game",
+		"newdescription": "新遊戲",
 		"newcode": "NEW",
-		"required": "Name and code are required",
+		"required": "English name, Chinese name, and code are required",
 		"saved": "Game type saved",
 		"deleted": "Game type deleted",
 		"deleteconfirm": "Delete this game type?",
@@ -221,6 +227,14 @@ function gametypeapplylanguage(){
 	let search=domgetid("gametypesearch")
 	if(search){
 		search.placeholder=gametypetext("search")
+	}
+	let nameinput=domgetid("gametypename")
+	if(nameinput){
+		nameinput.placeholder=gametypetext("nameplaceholder")
+	}
+	let descriptioninput=domgetid("gametypedescription")
+	if(descriptioninput){
+		descriptioninput.placeholder=gametypetext("descriptionplaceholder")
 	}
 }
 
@@ -467,7 +481,7 @@ function gametypenew(){
 		"id": newid,
 		"name": gametypetext("newname"),
 		"code": gametypetext("newcode"),
-		"description": "",
+		"description": gametypetext("newdescription"),
 		"enabled": true,
 		"flow": gametypenewflow(),
 		"newed": true
@@ -493,7 +507,7 @@ function gametypesave(){
 	let row=gametypecurrent()
 	if(row){
 		gametypeupdatefromform()
-		if(!row["name"]||!row["code"]){
+		if(!row["name"]||!row["description"]||!row["code"]){
 			gametypetoast(gametypetext("required"),"error")
 			return
 		}

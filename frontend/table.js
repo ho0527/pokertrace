@@ -39,6 +39,7 @@ let date=""
 let chip=0
 let tablelinkuser=false
 let tablecurrentplayers=[]
+let tablelockedseatlist=[]
 let tableavailableplayers=[]
 let tabletables=[]
 let tableplayerbinded=false
@@ -113,6 +114,8 @@ function applytablelanguage(){
 	settabletext("#tablemaxseat10",tabletext("seat10"))
 	settabletext("#tablefirstdealerlabel",tabletext("firstdealer"))
 	settabletext("#tableselfseatlabel",tabletext("selfseat"))
+	settabletext("#tablelockedseattitle",tabletext("lockedseattitle"))
+	settabletext("#tablelockedseathint",tabletext("lockedseathint"))
 	let save=domgetid("save")
 	if(save){
 		save.value=tabletext("save")
@@ -356,6 +359,7 @@ ajax("GET",AJAXURL+"gettable/"+id,function(event,data){
 		tableselfseating=parseInt(row["selfseating"])||1
 		tablelinkuser=row["linkuser"]?true:false
 		tablecurrentplayers=row["currentplayers"]||[]
+		tablelockedseatlist=row["lockedseatlist"]||[]
 		tableavailableplayers=row["availableplayers"]||[]
 		tabletables=row["tables"]||[]
 		chip=row["chip"]
@@ -439,7 +443,8 @@ onsubmit("#settingform",function(element,event){
 	},str({
 		"maxseat": getvalue("maxseat"),
 		"firstdealerplace": getvalue("firstdealerplace"),
-		"selfseating": getvalue("selfseating")
+		"selfseating": getvalue("selfseating"),
+		"lockedseatlist": tablelockedseatlist
 	}),[
 		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 	])
@@ -1020,6 +1025,54 @@ function renderseatsettingselects(maxseat){
 	}
 }
 
+function renderlockedseatlist(maxseat){
+	let container=domgetid("tablelockedseatlist")
+	let summary=domgetid("tablelockedseatsummary")
+	if(container&&summary){
+		let html=""
+		for(let i=1;i<=maxseat;i=i+1){
+			let locked=tablelockedseatlist.indexOf(i)!=-1
+			let occupied=tablecurrentplayers[i-1]&&tablecurrentplayers[i-1]["player"]
+			let classes="tablelockedseatbutton min-h-10 rounded-xl border px-4 text-sm font-bold transition"
+			let text=String(i)
+			let disabled=""
+			if(locked){
+				classes=classes+" border-amber-400/60 bg-amber-400/15 text-amber-200"
+				text="🔒 "+i
+			}else if(occupied){
+				classes=classes+" cursor-not-allowed border-zinc-700 bg-zinc-800 text-zinc-500"
+				text=i+" "+tabletext("seatused")
+				disabled="disabled"
+			}else{
+				classes=classes+" border-zinc-700 bg-zinc-800 text-zinc-200 hover:border-zinc-500 hover:bg-zinc-700"
+			}
+			html=html+`<input type="button" class="${classes}" data-seat="${i}" value="${text}" ${disabled}>`
+		}
+		innerhtml(container,html,false)
+		if(tablelockedseatlist.length){
+			innertext(summary,tabletext("lockedseatsummary").replace("{seatlist}",tablelockedseatlist.join(", ")),false)
+		}else{
+			innertext(summary,tabletext("lockedseatnone"),false)
+		}
+		let buttonlist=container.querySelectorAll(".tablelockedseatbutton")
+		for(let i=0;i<buttonlist.length;i=i+1){
+			buttonlist[i].addEventListener("click",function(){
+				let seatno=int(this.dataset.seat)
+				let index=tablelockedseatlist.indexOf(seatno)
+				if(index==-1){
+					tablelockedseatlist.push(seatno)
+					tablelockedseatlist.sort(function(a,b){
+						return a-b
+					})
+				}else{
+					tablelockedseatlist.splice(index,1)
+				}
+				renderlockedseatlist(maxseat)
+			})
+		}
+	}
+}
+
 function tableoptionhtml(currentid){
 	let html=`<option value="">${tabletext("moveplaceholder")}</option>`
 	for(let i=0;i<tabletables.length;i=i+1){
@@ -1080,6 +1133,7 @@ function renderCurrentPlayerTable(maxSeat){
 	let maxseat=parseInt(maxSeat)||9
 	ensurecurrentplayers(maxseat)
 	renderseatsettingselects(maxseat)
+	renderlockedseatlist(maxseat)
 	rendermergetableoptions()
 	let tbody=domgetid("seat-player-table-body")
 	if(tbody&&tbody.parentNode&&tbody.parentNode.querySelector("thead tr")){

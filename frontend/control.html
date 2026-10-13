@@ -14,7 +14,7 @@
 	<link rel="stylesheet" href="control.css">
 	<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
 	<link rel="stylesheet" href="tailwind.css">
-	<script src="translate.js"></script>
+	<script src="translate.js?v=20261001nexthand"></script>
 </head>
 
 <body class="bg-neutral-950 text-neutral-100">
@@ -73,7 +73,6 @@
 				<div class="mt-2 flex gap-1.5">
 					<input type="button" class="btn btn-ghost btn-sm flex-1" id="btnHandReset" value="↺ Reset Hands">
 				</div>
-				<div class="mt-1.5 text-[11px] leading-normal text-neutral-600" id="handHint"></div>
 			</div>
 		</div>
 
@@ -285,6 +284,25 @@
 			</div>
 		</div>
 
+		<div class="section section-quick-timer">
+			<div class="section-title" id="quickTimerTitle">Short Timer</div>
+			<div class="card quick-timer-card" id="quickTimerCard">
+				<div class="quick-timer-display" id="quickTimerDisplay" role="timer" aria-live="polite" aria-atomic="true">15.0</div>
+				<div class="quick-timer-status" id="quickTimerStatus">Ready · 15 seconds</div>
+				<div class="quick-timer-preset-list" aria-label="Timer seconds">
+					<input type="button" class="quick-timer-preset" data-quick-timer-seconds="10" value="10">
+					<input type="button" class="quick-timer-preset is-selected" data-quick-timer-seconds="15" value="15">
+					<input type="button" class="quick-timer-preset" data-quick-timer-seconds="20" value="20">
+					<input type="button" class="quick-timer-preset" data-quick-timer-seconds="30" value="30">
+				</div>
+				<div class="quick-timer-action-list">
+					<input type="button" class="btn btn-primary quick-timer-main" id="quickTimerToggle" value="↺ Restart 15s">
+					<input type="button" class="btn btn-ghost" id="quickTimerReset" value="⏸ Pause" disabled>
+				</div>
+				<div class="quick-timer-hint" id="quickTimerHint">This timer is independent from the tournament clock.</div>
+			</div>
+		</div>
+
 	</div>
 
 	<div class="status-bar">
@@ -381,7 +399,7 @@
 	</div>
 
 	<script src="initialize.js"></script>
-	<script src="control.js"></script>
+	<script src="control.js?v=20261001nexthand"></script>
 </body>
 
 </html>

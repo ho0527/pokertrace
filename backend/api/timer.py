@@ -415,7 +415,15 @@ def applyhandcountstate(fullstate,clientstate):
 		clientitem=clientschedule[index]
 		fullitem=fullschedule[index]
 		if isinstance(clientitem,dict) and isinstance(fullitem,dict):
-			fullitem["handCount"]=intval(clientitem.get("handCount"),0)
+			count=intval(clientitem.get("handCount"),0)
+			fullitem["handCount"]=count
+			target=intval(fullitem.get("handTargetCount"),0)
+			if 0<target and target<=count and index<len(fullschedule)-1:
+				if boolval(fullitem.get("regCloseAfter")):
+					fullstate["regClosed"]=True
+				fullstate["currentIndex"]=index+1
+				fullstate["secondsLeft"]=timerseconds(fullschedule[index+1])
+				fullstate["running"]=False
 	return fullstate
 
 def applybreaktogglestate(fullstate,clientstate):

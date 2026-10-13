@@ -23,6 +23,101 @@ def asyncsendmail(*args,**kwargs):
 	threading.Thread(target=send_mail,args=args,kwargs=kwargs).start()
 
 
+def getcontactemaillanguage(userid=None,email="",admined=False):
+	language="zhtw"
+	languagerow=None
+	if userid:
+		languagerow=query(SETTING["dbname"],"""SELECT "language" FROM "user" WHERE "id"=%s AND "deletetime" IS NULL""",[userid],SETTING["dbsetting"])
+	elif email:
+		if admined:
+			languagerow=query(SETTING["dbname"],"""SELECT "language" FROM "user" WHERE "email"=%s AND "permission">=4 AND "deletetime" IS NULL ORDER BY "permission" DESC,"id" ASC LIMIT 1""",[email],SETTING["dbsetting"])
+		else:
+			languagerow=query(SETTING["dbname"],"""SELECT "language" FROM "user" WHERE "email"=%s AND "deletetime" IS NULL ORDER BY "id" ASC LIMIT 1""",[email],SETTING["dbsetting"])
+	if languagerow and languagerow[0].get("language")=="en":
+		language="en"
+	return language
+
+
+def buildcontactnotifyemail(language,name,email,subject,message,notifytime):
+	if language=="en":
+		notifysubject="PokerTrace New contact message"
+		if subject:
+			notifysubject=notifysubject+": "+subject
+		notifybody=f"""PokerTrace received a new contact message:
+
+Name: {name}
+Email: {email}
+Subject: {subject or "No subject"}
+Time: {notifytime}
+
+Message:
+{message}
+
+Please review and reply in the contact message console.
+"""
+	else:
+		notifysubject="PokerTrace 新聯絡訊息"
+		if subject:
+			notifysubject=notifysubject+"："+subject
+		notifybody=f"""PokerTrace 收到新的聯絡訊息：
+
+姓名：{name}
+Email：{email}
+主旨：{subject or "未填主旨"}
+時間：{notifytime}
+
+內容：
+{message}
+
+請到聯絡訊息後台查看與回覆。
+"""
+	return notifysubject,notifybody
+
+
+def buildcontactreplyemail(language,message,replysubject,replymessage):
+	if language=="en":
+		if not replysubject:
+			if message["subject"]:
+				replysubject="Re: "+str(message["subject"])
+			else:
+				replysubject="Re: Contact PokerTrace"
+		body=f"""Hi {message["name"]},
+
+Thank you for contacting PokerTrace. Here is our reply:
+
+{replymessage}
+
+---
+Your original message:
+Subject: {message["subject"] or "No subject"}
+Message:
+{message["message"]}
+
+PokerTrace
+"""
+	else:
+		if not replysubject:
+			if message["subject"]:
+				replysubject="Re: "+str(message["subject"])
+			else:
+				replysubject="Re: PokerTrace 聯絡我們"
+		body=f"""您好 {message["name"]}：
+
+感謝你聯絡 PokerTrace，以下是我們的回覆：
+
+{replymessage}
+
+---
+你原本送出的訊息：
+主旨：{message["subject"] or "未填主旨"}
+內容：
+{message["message"]}
+
+PokerTrace
+"""
+	return replysubject,body
+
+
 def gettokenuser(request):
 	"""Bearer token → 使用者列。**委派給共用的 authhelper.gettokenuser**。
 
@@ -123,28 +218,9 @@ def newcontactmessage(request):
 			INSERT INTO "contactmessage"("userid","name","email","subject","message","ip","useragent","createtime","updatetime")
 			VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
 		""",[userid,name,email,subject,message,ip,useragent,nowtime(),nowtime()],SETTING["dbsetting"])
-		# TASK-070：中英並列，不做語系分流（收件人語系偏好沒有存，分流要先加欄位）。
-		# 這一封是**寄給站方**的內部通知，不是寄給填表的人。
-		#
-		# 這裡刻意**不把整封信複製成中英兩段**：訊息內容上限 5000 字，
-		# 複製一次等於信件長度加倍。固定文案中英並列、變動內容只出現一次。
-		notifysubject="PokerTrace 新聯絡訊息 / New contact message"
-		if subject:
-			notifysubject=notifysubject+"："+subject
-		notifybody=f"""PokerTrace 收到新的聯絡訊息：
-PokerTrace received a new contact message:
-
-姓名 Name：{name}
-Email：{email}
-主旨 Subject：{subject or "未填主旨 (no subject)"}
-時間 Time：{nowtime()}
-
-內容 Message：
-{message}
-
-請到聯絡訊息後台查看與回覆。
-Please review and reply in the contact message console.
-"""
+		# 這一封是寄給站方的內部通知，依收件管理員帳號的資料庫語言設定選擇模板。
+		notifylanguage=getcontactemaillanguage(None,CONTACTNOTIFYEMAIL,True)
+		notifysubject,notifybody=buildcontactnotifyemail(notifylanguage,name,email,subject,message,nowtime())
 		asyncsendmail(notifysubject,notifybody,None,[CONTACTNOTIFYEMAIL],fail_silently=True)
 		return Response({
 			"success": True,
@@ -276,29 +352,9 @@ def replycontactmessage(request,messageid):
 		if not row:
 			return errorresponse("ERROR_request_data_not_found")
 		message=row[0]
-		if not replysubject:
-			if message["subject"]:
-				replysubject="Re: "+str(message["subject"])
-			else:
-				replysubject="Re: PokerTrace 聯絡我們 / Contact us"
-		# TASK-070：中英並列。同上，變動內容（回覆內文、原始訊息）只出現一次，
-		# 只有固定文案與欄位標籤中英並列 —— 回覆內文上限 5000 字，複製會讓信長度加倍。
-		body=f"""您好 {message["name"]}：
-Hi {message["name"]},
-
-感謝你聯絡 PokerTrace，以下是我們的回覆：
-Thank you for contacting PokerTrace. Here is our reply:
-
-{replymessage}
-
----
-你原本送出的訊息 / Your original message:
-主旨 Subject：{message["subject"] or "未填主旨 (no subject)"}
-內容 Message：
-{message["message"]}
-
-PokerTrace
-"""
+		# 已登入留言以 userid 為準；未登入留言才用 Email 找語言設定，找不到時回退中文。
+		replylanguage=getcontactemaillanguage(message.get("userid"),message["email"])
+		replysubject,body=buildcontactreplyemail(replylanguage,message,replysubject,replymessage)
 		asyncsendmail(replysubject,body,None,[message["email"]],fail_silently=False)
 		query(SETTING["dbname"],f"""
 			UPDATE "contactmessage"

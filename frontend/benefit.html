@@ -25,9 +25,8 @@
             <section class="mb-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
                 <div class="mb-5">
                     <div class="text-lg font-extrabold text-white" data-i18n="benefit.filtertitle" id="benefitfiltertitle">日期篩選</div>
-                    <div class="mt-2 text-sm leading-7 text-zinc-400" data-i18n="benefit.filterdesc" id="benefitfilterdesc">依區間檢視累積收益走勢與結果摘要。</div>
                 </div>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
                     <div>
                         <label for="startdate" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="benefit.startdate" id="startdatelabel">開始日期</label>
                         <input type="date" id="startdate" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15">
@@ -36,11 +35,11 @@
                         <label for="enddate" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="benefit.enddate" id="enddatelabel">結束日期</label>
                         <input type="date" id="enddate" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15">
                     </div>
-                    <div class="flex items-end">
-                        <input type="button" class="min-h-12 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit data-i18n-value="benefit.search" id="search" value="查詢">
-                    </div>
-                    <div class="flex items-end">
+                    <div class="flex items-end md:order-4">
                         <input type="button" class="min-h-12 inline-flex w-full items-center justify-center rounded-2xl bg-zinc-800 px-6 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="benefit.reset" id="reset" value="重置">
+                    </div>
+                    <div class="flex items-end md:order-3">
+                        <input type="button" class="min-h-12 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 text-sm font-bold text-white transition hover:from-emerald-400 hover:to-emerald-500" data-entersubmit data-i18n-value="benefit.search" id="search" value="查詢">
                     </div>
                 </div>
             </section>
@@ -85,10 +84,10 @@
                     <div id="clubtablewrap" class="mt-5 overflow-x-auto">
                         <table class="w-full min-w-[420px] border-collapse text-sm">
                             <thead>
-                                <tr class="border-b border-zinc-800 text-left text-zinc-400" id="clubtablehead">
-                                    <th class="ptsortth select-none py-2 pr-4 font-bold" data-sortkey="name"><span data-i18n="benefit.clubheadname" id="clubheadname">協會</span><span class="ptsortarrow text-emerald-400" data-sortkey="name"></span></th>
-                                    <th class="ptsortth select-none py-2 pr-4 font-bold" data-sortkey="count"><span data-i18n="benefit.clubheadcount" id="clubheadcount">場次數</span><span class="ptsortarrow text-emerald-400" data-sortkey="count"></span></th>
-                                    <th class="ptsortth select-none py-2 font-bold" data-sortkey="profit"><span data-i18n="benefit.clubheadprofit" id="clubheadprofit">淨盈虧</span><span class="ptsortarrow text-emerald-400" data-sortkey="profit"></span></th>
+                                <tr class="border-b border-zinc-800 text-center text-zinc-400" id="clubtablehead">
+                                    <th class="ptsortth select-none py-2 px-2 font-bold" data-sortkey="name"><span data-i18n="benefit.clubheadname" id="clubheadname">協會</span><span class="ptsortarrow text-emerald-400" data-sortkey="name"></span></th>
+                                    <th class="ptsortth select-none py-2 px-2 font-bold" data-sortkey="count"><span data-i18n="benefit.clubheadcount" id="clubheadcount">場次數</span><span class="ptsortarrow text-emerald-400" data-sortkey="count"></span></th>
+                                    <th class="ptsortth select-none py-2 px-2 font-bold" data-sortkey="profit"><span data-i18n="benefit.clubheadprofit" id="clubheadprofit">淨盈虧</span><span class="ptsortarrow text-emerald-400" data-sortkey="profit"></span></th>
                                 </tr>
                             </thead>
                             <tbody id="clubtablebody"></tbody>

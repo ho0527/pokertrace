@@ -6,7 +6,8 @@
     {href:"tool/structuregen.html",category:"featured live",ztitle:"結構產生器",etitle:"Structure Generator",zdesc:"即時盲注結構與匯出 JSON",edesc:"Build blind structures and export JSON"},
     {href:"tool/seatdraw.html",category:"featured live",ztitle:"座位抽籤",etitle:"Seat Draw",zdesc:"隨機分配桌號與座位",edesc:"Random table and seat assignment"},
     {href:"tool/cashreconcile.html",category:"featured operation",ztitle:"現場收款對帳",etitle:"Cash Reconcile",zdesc:"應收 vs 實收差額",edesc:"Expected vs collected cash"},
-    {href:"tool/tdarule2024.html",category:"featured learn live",ztitle:"TDA規則手冊",etitle:"TDA Rulebook",zdesc:"2024 TDA 撲克賽事規則 PDF 預覽",edesc:"2024 TDA tournament rules PDF viewer"},
+    {href:"tool/tdarule2026.html",category:"featured learn live",ztitle:"2026 TDA規則手冊",etitle:"2026 TDA Rulebook",zdesc:"2026 TDA撲克賽事規則繁中及英文版",edesc:"2026 TDA tournament rules in Traditional Chinese and English"},
+    {href:"tool/tdarule2024.html",category:"learn live",ztitle:"2024 TDA規則手冊",etitle:"2024 TDA Rulebook",zdesc:"2024 TDA 撲克賽事規則中英對照",edesc:"2024 TDA tournament rules in Chinese and English"},
     {href:"tool/handbook.html",category:"featured learn live",ztitle:"撲克玩法手冊",etitle:"Poker Handbook",zdesc:"德州、奧馬哈、Draw、Stud 玩法速查",edesc:"Hold'em, Omaha, Draw, and Stud game guide"},
     {href:"tool/timebankdrill.html",category:"strategy",ztitle:"Timebank 計時器",etitle:"Timebank Drill",zdesc:"多情境時間、點一下開始/暫停",edesc:"Practice decision timing"},
     {href:"tool/stackcalc.html",category:"chip strategy",ztitle:"計分牌量換算",etitle:"Stack Calculator",zdesc:"BB 數與 M 值",edesc:"BB count and M value"},
@@ -85,13 +86,13 @@
     {href:"tool/chipaudit.html",category:"chip operation",ztitle:"計分牌總量稽核",etitle:"Chip Audit",zdesc:"應有 vs 清點差異",edesc:"Expected vs counted chip total"},
     {href:"tool/partnersplit.html",category:"operation payout",ztitle:"收益夥伴分配",etitle:"Partner Split",zdesc:"依比例分配收益",edesc:"Split profit by share"},
     {href:"tool/payouttable.html",category:"payout",ztitle:"獎金分配表",etitle:"Payout Table",zdesc:"總獎池到各名次獎金",edesc:"Prize pool to place payouts"},
-    {href:"tool/apidoc.html",category:"develop",ztitle:"公開 API 文件",etitle:"Public API Doc",zdesc:"小工具的公開 API 說明",edesc:"Public API reference for tools"}
+    {href:"tool/apidoc.html",category:"develop",ztitle:"公開 API 文件",etitle:"Public API Doc",zdesc:"此網站的公開 API 說明",edesc:"Public API reference for this website"}
 ]
 
 // 個人資料與首頁宣傳小工具固定顯示這六個，順序由此清單決定。
 const PTTOOLPROMODEFAULT=[
     "tool/equity.html",
-    "tool/tdarule2024.html",
+    "tool/tdarule2026.html",
     "tool/structuregen.html",
     "tool/range.html",
     "tool/handbook.html",
@@ -101,6 +102,7 @@ const PTTOOLPROMODEFAULT=[
 const PTTOOLPROMOMAX=6
 // 維護完成後，把對應的 tool 路徑加到這裡，就不再顯示維護中。
 const TOOLMAINTENANCEOFFLIST=[
+    "tool/tdarule2026.html",
     "tool/tdarule2024.html",
     "tool/equity.html",
     "tool/rangepicker.html",

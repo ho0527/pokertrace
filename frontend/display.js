@@ -421,6 +421,14 @@ function handtargetof(item) {
 function handcountof(item) {
 	return parseInt(item && item["handCount"], 10) || 0
 }
+function handremainingof(item) {
+	let target=handtargetof(item)
+	let remaining=target-handcountof(item)
+	if(remaining<0){
+		remaining=0
+	}
+	return remaining
+}
 function totallevels() {
 	let count=0
 	for (let i=0; i<state["schedule"].length; i=i+1) {
@@ -449,13 +457,31 @@ function nextlevelitem(fromidx) {
 }
 function nextbreakitem(fromidx) {
 	let secs=state["secondsLeft"]
+	let currentitem=state["schedule"][fromidx]
+	let handsonlyed=ishanditem(currentitem)&&0<handtargetof(currentitem)
+	let handsuntil=0
+	if(handsonlyed){
+		handsuntil=handremainingof(currentitem)
+	}
 	for (let i=fromidx+1; i<state["schedule"].length; i=i+1) {
 		if (state["schedule"][i].type == "break") {
-			return { "idx": i, "item": state["schedule"][i], "secsUntil": secs }
+			let handsuntilvalue=null
+			if(handsonlyed){
+				handsuntilvalue=handsuntil
+			}
+			return { "idx": i, "item": state["schedule"][i], "secsUntil": secs, "handsUntil": handsuntilvalue }
 		}
 		// 手數級別不倒數時間, dur 不計入倒數估算
-		if (!ishanditem(state["schedule"][i])) {
-			secs=secs+state["schedule"][i].dur * 60
+		let item=state["schedule"][i]
+		if(ishanditem(item)&&0<handtargetof(item)){
+			if(handsonlyed){
+				handsuntil=handsuntil+handremainingof(item)
+			}
+		}else{
+			handsonlyed=false
+			if(!ishanditem(item)){
+				secs=secs+item.dur * 60
+			}
 		}
 	}
 	// If currently in a break, no "next break"
@@ -958,7 +984,7 @@ function buildschedulelist() {
 			let target=handtargetof(item)
 			durtext="✋"
 			if (0<target) {
-				durtext=durtext + handcountof(item) + "/" + target
+				durtext=durtext + handremainingof(item)
 			}
 		}
 
@@ -1218,7 +1244,7 @@ function render() {
 	} else {
 		overlay.style.display="none"
 		if (ishanditem(it)) {
-			domgetid("tagLabel").textContent="HANDS"
+			domgetid("tagLabel").textContent="HAND"
 		} else {
 			domgetid("tagLabel").textContent="LEVEL"
 		}
@@ -1230,17 +1256,17 @@ function render() {
 	let pct
 	let barcolor
 	if (handmode) {
-		// 手數級別: 顯示手數而非倒數時間, 進度條依 handCount/目標手數。
+		// 手數級別: 顯示剩餘手數, 進度條像時間模式一樣由滿遞減到空。
 		let target=handtargetof(it)
 		let count=handcountof(it)
 		if (target > 0) {
-			td.textContent=count + " / " + target
+			td.textContent=String(handremainingof(it))
 		} else {
 			td.textContent=String(count)
 		}
 		td.className="timer-main"
 		if (target > 0) {
-			pct=Math.min(100, count / target * 100)
+			pct=Math.min(100, handremainingof(it) / target * 100)
 		} else {
 			pct=0
 		}
@@ -1380,11 +1406,16 @@ function render() {
 	if (brk && it.type != "break") {
 		bc.style.display="block"
 		let bd=domgetid("breakCountdownDisplay")
-		bd.textContent=fmttime(brk["secsUntil"])
-		if (brk["secsUntil"] <= 300) {
-			bd.style.color="#ef4444"
-		} else {
+		if(brk["handsUntil"]!=null){
+			bd.textContent="IN "+brk["handsUntil"]+" HAND"
 			bd.style.color="#fbbf24"
+		} else {
+			bd.textContent=fmttime(brk["secsUntil"])
+			if (brk["secsUntil"] <= 300) {
+				bd.style.color="#ef4444"
+			} else {
+				bd.style.color="#fbbf24"
+			}
 		}
 		domgetid("breakAfterLabel").textContent="Break duration " + brk["item"]["dur"] + " min"
 	} else if (it.type == "break") {

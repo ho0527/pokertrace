@@ -75,7 +75,6 @@ urlpatterns=[
     re_path(r"^editsession/(?P<sessionid>[^/]+)$",session.editsession,name="editsession"),
     re_path(r"^editsessionsettings/(?P<sessionid>[^/]+)$",session.editsessionsettings,name="editsessionsettings"),
     re_path(r"^editsessionresult/(?P<sessionid>[^/]+)$",session.editsessionresult,name="editsessionresult"),
-    re_path(r"^getsessionrelations/(?P<sessionid>[^/]+)$",session.getsessionrelations,name="getsessionrelations"),
     re_path(r"^searchsessionrelations/(?P<sessionid>[^/]+)$",session.searchsessionrelations,name="searchsessionrelations"),
     re_path(r"^editsessionrelations/(?P<sessionid>[^/]+)$",session.editsessionrelations,name="editsessionrelations"),
     re_path(r"^deletesession/(?P<sessionid>[^/]+)$",session.deletesession,name="deletesession"),
@@ -91,7 +90,6 @@ urlpatterns=[
     re_path(r"^batchcreatesessions$",batch.batchcreatesessions,name="batchcreatesessions"),
 
     re_path(r"^getclublist$",club.getclublist,name="getclublist"),
-    re_path(r"^getclub/(?P<clubid>[^/]+)$",club.getclub,name="getclub"),
     re_path(r"^newclub$",club.newclub,name="newclub"),
     re_path(r"^editclub/(?P<clubid>[^/]+)$",club.editclub,name="editclub"),
     re_path(r"^deleteclub/(?P<clubid>[^/]+)$",club.deleteclub,name="deleteclub"),
@@ -120,10 +118,7 @@ urlpatterns=[
     re_path(r"^closetable/(?P<tableid>[^/]+)$",table.closetable,name="closetable"),
     re_path(r"^deletetable/(?P<tableid>[^/]+)$",table.deletetable,name="deletetable"),
 
-    re_path(r"^getseatinglist/(?P<tableid>[^/]+)$",seating.getseatinglist,name="getseatinglist"),
-    re_path(r"^getseating/(?P<seatingid>[^/]+)$",seating.getseating,name="getseating"),
     re_path(r"^newseating/(?P<tableid>[^/]+)/(?P<seatno>[^/]+)$",seating.newseating,name="newseating"),
-    re_path(r"^editseating/(?P<seatingid>[^/]+)$",seating.editseating,name="editseating"),
     re_path(r"^deleteseating/(?P<seatingid>[^/]+)$",seating.deleteseating,name="deleteseating"),
 
     re_path(r"^gethandcontext/(?P<tableid>[^/]+)$",hand.gethandcontext,name="gethandcontext"),
@@ -178,8 +173,6 @@ urlpatterns=[
 
     re_path(r"^registersession/(?P<sessionid>[^/]+)$",sessionplayer.registersession,name="registersession"),
     re_path(r"^unregistersession/(?P<sessionid>[^/]+)$",sessionplayer.unregistersession,name="unregistersession"),
-    re_path(r"^getmyregistrations$",sessionplayer.getmyregistrations,name="getmyregistrations"),
-    re_path(r"^getmyregistrationstatus/(?P<sessionid>[^/]+)$",sessionplayer.getmyregistrationstatus,name="getmyregistrationstatus"),
     re_path(r"^getsessionregistrationlist/(?P<sessionid>[^/]+)$",sessionplayer.getsessionregistrationlist,name="getsessionregistrationlist"),
     re_path(r"^getcheckininfo/(?P<sessionplayerid>[^/]+)$",sessionplayer.getcheckininfo,name="getcheckininfo"),
     re_path(r"^getcheckininfobyentry/(?P<sessionid>[^/]+)/(?P<entryno>[^/]+)$",sessionplayer.getcheckininfobyentry,name="getcheckininfobyentry"),

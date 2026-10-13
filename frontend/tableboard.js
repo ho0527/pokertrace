@@ -560,14 +560,19 @@ function boardmovetargetcount(sourceid){
 
 function boardemptyseatlist(table){
 	let used={}
+	let locked={}
 	let playerlist=table["players"]||[]
 	for(let i=0;i<playerlist.length;i=i+1){
 		used[int(playerlist[i]["seatno"])]=true
 	}
+	let lockedseatlist=table["lockedseatlist"]||[]
+	for(let i=0;i<lockedseatlist.length;i=i+1){
+		locked[int(lockedseatlist[i])]=true
+	}
 	let emptylist=[]
 	let maxseat=int(table["maxseat"]||9)
 	for(let i=1;i<=maxseat;i=i+1){
-		if(used[i]!=true){
+		if(used[i]!=true&&locked[i]!=true){
 			emptylist.push(i)
 		}
 	}
@@ -689,7 +694,19 @@ function sendplayereliminate(tableid,sessionplayerid,seatno,playername){
 function tablecardhtml(table,avg){
 	let occupied=int(table["occupied"]||0)
 	let maxseat=int(table["maxseat"]||9)
-	let empty=int(table["empty"]||(maxseat-occupied))
+	let lockedseatlist=table["lockedseatlist"]||[]
+	let available=maxseat-lockedseatlist.length
+	let empty=available-occupied
+	let lockedseatseparator="、"
+	let lockedseatlabelseparator=""
+	if(LANGUAGE=="en"||LANGUAGE=="e"){
+		lockedseatseparator=", "
+		lockedseatlabelseparator=" "
+	}
+	let lockedseatlabel=lockedseatlist.join(lockedseatseparator)+lockedseatlabelseparator+boardtext("seatlocked","已鎖定")
+	if(table["empty"]!=undefined){
+		empty=int(table["empty"])
+	}
 	let title=table["name"]||("#"+(table["no"]||table["id"]))
 	let flag=""
 	if(table["closed"]){
@@ -702,14 +719,24 @@ function tablecardhtml(table,avg){
 	// 每顆點對應「實際座位號」: 最左=1 號位, 有人才亮綠、空位灰。
 	// 不可用 i<occupied 只亮前 N 顆——那樣 3/5/9 號位有人會誤亮成 1/2/3。
 	let seatset={}
+	let lockedset={}
 	let players=table["players"]||[]
 	for(let i=0;i<players.length;i=i+1){
 		seatset[int(players[i]["seatno"])]=true
 	}
+	for(let i=0;i<lockedseatlist.length;i=i+1){
+		lockedset[int(lockedseatlist[i])]=true
+	}
 	let dots=""
 	for(let i=1;i<=maxseat;i=i+1){
 		let on=seatset[i]==true
-		dots=dots+"<span class=\"inline-block h-3 w-3 rounded-full "+(on?"bg-emerald-400":"bg-zinc-700")+"\" title=\""+i+"\"></span>"
+		let locked=lockedset[i]==true
+		let color=on?"bg-emerald-400":(locked?"bg-amber-400":"bg-zinc-700")
+		let title=String(i)
+		if(locked){
+			title=title+" "+boardtext("seatlocked","已鎖定")
+		}
+		dots=dots+"<span class=\"inline-block h-3 w-3 rounded-full "+color+"\" title=\""+boardescape(title)+"\"></span>"
 	}
 	let playerhtml=""
 	for(let i=0;i<players.length;i=i+1){
@@ -739,7 +766,8 @@ function tablecardhtml(table,avg){
 		tablestaffhtml(table)+
 		"<div class=\"mb-2 flex items-baseline gap-2\">"+
 			"<span class=\"text-2xl font-extrabold text-emerald-400\">"+occupied+"</span>"+
-			"<span class=\"text-sm text-zinc-500\">/ "+maxseat+"</span>"+
+			"<span class=\"text-sm text-zinc-500\">/ "+available+"</span>"+
+			(lockedseatlist.length?"<span class=\"rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-bold text-amber-300\">"+boardescape(lockedseatlabel)+"</span>":"")+
 			"<span class=\"ml-auto text-xs text-zinc-500\">"+empty+" "+boardtext("seatempty","空位")+"</span>"+
 		"</div>"+
 		"<div class=\"mb-3 flex flex-wrap gap-1\">"+dots+"</div>"+
@@ -900,7 +928,10 @@ function openboardmergemodal(sourceid){
 			continue
 		}
 		let tablemaxseat=int(table["maxseat"]||9)
-		let empty=int(table["empty"]||(tablemaxseat-int(table["occupied"]||0)))
+		let empty=tablemaxseat-int(table["occupied"]||0)-int((table["lockedseatlist"]||[]).length)
+		if(table["empty"]!=undefined){
+			empty=int(table["empty"])
+		}
 		totalempty=totalempty+empty
 		let enough=sourcecount<=empty
 		let optiontext=boardtablelabel(table)+"　"+boardmanagetext("emptycount","{n} 空位").replace("{n}",empty)

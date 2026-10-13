@@ -165,6 +165,7 @@ function registrationfields(){
 		SUB("startchip","int","起始計分牌。","Starting chips."),
 		SUB("place","string","名次。","Placement."),
 		SUB("registertime","string","報名時間。","Registration time."),
+		SUB("note","string","目前這次 buy-in 的備註；重新入場時更新為新備註。","Note for the current buy-in; replaced with the new note on re-entry."),
 		SUB("confirmtime","string","報到時間。","Check-in time.")
 	]
 }
@@ -656,18 +657,6 @@ const APICATEGORIES=[
 				errors: [ETOKEN,ERR("404","ERROR_user_not_found","找不到使用者。","User not found.")]
 			},
 			{
-				id: "getclub",method: "GET",path: "/getclub/{clubid}",title: { z: "取得協會",e: "Get association" },
-				desc: { z: "取得單一協會詳情。",e: "Get a single association." },
-				auth: AUTHTOKEN,params: [pathparam("clubid","協會 id。","Association id.",3)],
-				response: [R("data","object","協會物件。","The association object.",[
-					SUB("id","int","協會 id。","Association id."),
-					SUB("name","string","名稱。","Name."),
-					SUB("address","string","地址。","Address."),
-					SUB("ps","string","備註。","Notes.")
-				])],
-				errors: [ETOKEN,ERR("404","ERROR_club_not_found","找不到協會。","Association not found."),EPERM]
-			},
-			{
 				id: "newclub",method: "POST",path: "/newclub",title: { z: "新增協會",e: "Create association" },
 				desc: { z: "建立協會。",e: "Create an association." },
 				auth: AUTHTOKEN,
@@ -888,16 +877,6 @@ const APICATEGORIES=[
 				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EREQ,EPERM]
 			},
 			{
-				id: "getsessionrelations",method: "GET",path: "/getsessionrelations/{sessionid}",title: { z: "場次關聯",e: "Session relations" },
-				desc: { z: "取得場次的衛星賽／多日賽進出關聯。",e: "Get the satellite / multi-day in/out relations of a session." },
-				auth: AUTHOWNER,params: [pathparam("sessionid","場次 id。","Session id.",101)],
-				response: [R("data","object","關聯集合。","Relation collection.",[
-					R("outgoing","object[]","往外（晉級到的場次）。","Outgoing (sessions advanced to).",relationsessionfields()),
-					R("incoming","object[]","往內（從哪些場次晉級來）。","Incoming (sessions advanced from).",relationsessionfields())
-				])],
-				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
-			},
-			{
 				id: "searchsessionrelations",method: "GET",path: "/searchsessionrelations/{sessionid}",title: { z: "搜尋可關聯場次",e: "Search linkable sessions" },
 				desc: { z: "搜尋同一擁有者底下可建立關聯的場次。",e: "Search sessions under the same owner that can be linked." },
 				auth: AUTHOWNER,
@@ -1099,7 +1078,8 @@ const APICATEGORIES=[
 					SUB("name","string","桌名。","Table name."),
 					SUB("token","string","牌桌分享 token。","Table share token."),
 					SUB("firstdealerplace","int","首莊座位。","First-dealer seat."),
-					SUB("selfseating","int","自家座位。","Own seat.")
+					SUB("selfseating","int","自家座位。","Own seat."),
+					SUB("lockedseatlist","int[]","鎖定座位號。","Locked seat numbers.")
 				])],
 				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
 			},
@@ -1108,6 +1088,7 @@ const APICATEGORIES=[
 				desc: { z: "取得單一牌桌詳情，含座位、在桌選手、可用選手、最新手牌與盲注結構。",e: "Get a single table with seating, current players, available players, latest hand and blind structure." },
 				auth: AUTHTOKEN,params: [pathparam("tableid","牌桌 id。","Table id.",55)],
 				response: [R("data","object","牌桌物件。","The table object.",[
+					SUB("lockedseatlist","int[]","鎖定座位號。","Locked seat numbers."),
 					R("seating","object[]","座位圖。","Seat map.",[SUB("seatno","int","座位號。","Seat number."),SUB("sessionplayerid","int","報名選手 id。","Registered player id."),SUB("name","string","選手名稱。","Player name."),SUB("chip","int","計分牌量。","Chip amount."),SUB("status","string","狀態。","Status.")]),
 					R("currentplayers","object[]","在桌選手。","Seated players.",[SUB("sessionplayerid","int","報名選手 id。","Registered player id."),SUB("name","string","選手名稱。","Player name."),SUB("seatno","int","座位號。","Seat number."),SUB("chip","int","計分牌量。","Chip amount."),SUB("status","string","狀態。","Status.")]),
 					R("hand","object","最新手牌。","Latest hand.",handfields()),
@@ -1137,10 +1118,10 @@ const APICATEGORIES=[
 			},
 			{
 				id: "edittablesetting",method: "PUT",path: "/edittablesetting/{tableid}",title: { z: "牌桌設定",e: "Table setting" },
-				desc: { z: "設定牌桌座位數、首莊位置與自家座位。",e: "Set the table's seat count, first-dealer position and own seat." },
+				desc: { z: "設定牌桌座位數、首莊位置、自家座位與鎖定座位。新增鎖定時，座位必須為空位。",e: "Set the table's seat count, first-dealer position, own seat and locked seats. A newly locked seat must be empty." },
 				auth: AUTHOWNER,
-				params: [pathparam("tableid","牌桌 id。","Table id.",55),P("maxseat","string",true,"6 / 8 / 9 / 10。","6 / 8 / 9 / 10.",{ ex: "9" }),P("firstdealerplace","string",true,"首莊座位（1–10）。","First-dealer seat (1–10).",{ ex: "1" }),P("selfseating","string",true,"自家座位（1–10）。","Own seat (1–10).",{ ex: "5" })],
-				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),EREQ,EPERM]
+				params: [pathparam("tableid","牌桌 id。","Table id.",55),P("maxseat","string",true,"2–10。","2–10.",{ ex: "9" }),P("firstdealerplace","string",true,"首莊座位（1–10）。","First-dealer seat (1–10).",{ ex: "1" }),P("selfseating","string",true,"自家座位（1–10）。","Own seat (1–10).",{ ex: "5" }),P("lockedseatlist","int[]",false,"鎖定座位號陣列；未帶時保留既有設定。","Locked seat numbers; omitted keeps the current setting.",{ ex: [9] })],
+				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),ERR("409","ERROR_seat_occupied_lock","欲鎖定的座位已有選手。","A seat being locked is occupied."),EREQ,EPERM]
 			},
 			{
 				id: "savetableplayers",method: "PUT",path: "/savetableplayers/{tableid}",title: { z: "儲存在桌選手",e: "Save table players" },
@@ -1153,7 +1134,7 @@ const APICATEGORIES=[
 					SUB("chip","int","計分牌量（可選）。","Chip amount (optional)."),
 					SUB("unknownchip","bool","計分牌未知（可選）。","Chip unknown (optional).")
 				],ex: [{ seatno: 1,sessionplayerid: 88,chip: 30000 }] })],
-				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),ERR("404","ERROR_registration_not_found","找不到報名選手。","Registered player not found."),EPERM]
+				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),ERR("404","ERROR_registration_not_found","找不到報名選手。","Registered player not found."),ERR("409","ERROR_seat_locked","指定座位已鎖定。","The requested seat is locked."),EPERM]
 			},
 			{
 				id: "eliminatetableplayer",method: "POST",path: "/eliminatetableplayer/{tableid}",title: { z: "淘汰在桌選手",e: "Eliminate table player" },
@@ -1164,7 +1145,7 @@ const APICATEGORIES=[
 			},
 			{
 				id: "movetableplayer",method: "POST",path: "/movetableplayer/{tableid}",title: { z: "移動選手",e: "Move player" },
-				desc: { z: "將選手移動到另一張牌桌。",e: "Move a player to another table." },
+				desc: { z: "將選手移動到另一張牌桌；指定或自動選位都會排除鎖定座位。",e: "Move a player to another table; explicit and automatic placement both exclude locked seats." },
 				auth: AUTHOWNER,
 				params: [
 					pathparam("tableid","來源牌桌 id。","Source table id.",55),
@@ -1172,11 +1153,11 @@ const APICATEGORIES=[
 					P("sessionplayerid","int",false,"以報名選手 id 指定要移動的選手。","Identify the player to move by registration id.",{ ex: 88 }),
 					P("seatno","int",false,"以座位號指定要移動的選手。","Identify the player to move by seat number.",{ ex: 1 })
 				],
-				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),EPERM]
+				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),ERR("409","ERROR_seat_locked","目標座位已鎖定。","The target seat is locked."),EPERM]
 			},
 			{
 				id: "mergetableplayers",method: "POST",path: "/mergetableplayers/{tableid}",title: { z: "併桌",e: "Merge tables" },
-				desc: { z: "將整桌選手併入目標牌桌。",e: "Merge a whole table's players into a target table." },
+				desc: { z: "將整桌選手併入目標牌桌；鎖定座位不計入可用空位。",e: "Merge a whole table into a target table; locked seats do not count as available capacity." },
 				auth: AUTHOWNER,
 				params: [pathparam("tableid","來源牌桌 id。","Source table id.",55),P("targettableid","int",true,"目標牌桌 id。","Target table id.",{ ex: 56 })],
 				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_table_not_found","找不到牌桌。","Table not found."),EPERM]
@@ -1197,7 +1178,7 @@ const APICATEGORIES=[
 			},
 			{
 				id: "getsessiontableboard",method: "GET",path: "/getsessiontableboard/{sessionid}",title: { z: "多牌桌總覽看板",e: "Multi-table overview board" },
-				desc: { z: "一次回傳該場次所有牌桌的人數、空位與在桌選手，供多桌總覽看板使用。擁有者、管理員、工作人員或該場選手皆可讀取。",e: "Return the occupancy, empty seats and seated players for every table in a session in one call, for a multi-table overview board. Readable by the owner, admins, staff, or players registered in the session." },
+				desc: { z: "一次回傳該場次所有牌桌的人數、可用空位、鎖定座位與在桌選手，供多桌總覽看板使用。擁有者、管理員、工作人員或該場選手皆可讀取。",e: "Return occupancy, available empty seats, locked seats and seated players for every table. Readable by the owner, admins, staff, or registered players." },
 				auth: AUTHTOKEN,params: [pathparam("sessionid","場次 id。","Session id.",101)],
 				response: [
 					R("data.sessionid","int","場次 id。","Session id.",null),
@@ -1211,7 +1192,8 @@ const APICATEGORIES=[
 						SUB("token","string","牌桌 token。","Table token."),
 						SUB("maxseat","int","座位數。","Seat count."),
 						SUB("occupied","int","已入座人數。","Occupied seats."),
-						SUB("empty","int","空位數。","Empty seats."),
+						SUB("empty","int","可用空位數（不含鎖定座位）。","Available empty seats, excluding locked seats."),
+						SUB("lockedseatlist","int[]","鎖定座位號。","Locked seat numbers."),
 						R("players","object[]","在桌選手陣列。","Array of seated players.",[
 							SUB("seatno","int","座位號。","Seat number."),
 							SUB("sessionplayerid","int","報名 id。","Registration id."),
@@ -1231,22 +1213,8 @@ const APICATEGORIES=[
 		desc: { z: "現金桌的買入、重買、離桌等座位異動記錄。",e: "Cash-game seating changes: buy-in, rebuy, leave, etc." },
 		endpoints: [
 			{
-				id: "getseatinglist",method: "GET",path: "/getseatinglist/{tableid}",title: { z: "座位記錄列表",e: "Seating record list" },
-				desc: { z: "取得某張牌桌的所有座位異動記錄。僅場次擁有者或管理員可讀取。",e: "Get all seating-change records for a table. Readable only by the session owner or an admin." },
-				auth: AUTHOWNER,params: [pathparam("tableid","牌桌 id。","Table id.",55)],
-				response: [R("data","object[]","座位記錄陣列。","Array of seating records.",seatingfields())],
-				errors: [ETOKEN,ERR("404","ERROR_table_not_found / ERROR_session_not_found","找不到牌桌或場次。","Table or session not found."),EPERM]
-			},
-			{
-				id: "getseating",method: "GET",path: "/getseating/{seatingid}",title: { z: "取得座位記錄",e: "Get seating record" },
-				desc: { z: "取得單筆座位記錄詳情，並合併所屬場次欄位與 sessiontoken。僅場次擁有者或管理員可讀取。",e: "Get a single seating record, merged with the owning session's fields plus sessiontoken. Readable only by the session owner or an admin." },
-				auth: AUTHOWNER,params: [pathparam("seatingid","座位記錄 id。","Seating record id.",77)],
-				response: [R("data","object","座位記錄物件（合併場次欄位），含 sessiontoken。","The seating record object (merged with session fields), including sessiontoken.",seatingfields().concat([SUB("sessiontoken","string","所屬場次的分享 token。","Share token of the owning session.")]))],
-				errors: [ETOKEN,ERR("404","ERROR_seating_not_found / ERROR_table_not_found / ERROR_session_not_found","找不到座位記錄、牌桌或場次。","Seating record, table or session not found."),EPERM]
-			},
-			{
 				id: "newseating",method: "POST",path: "/newseating/{tableid}/{seatno}",title: { z: "新增座位記錄",e: "Create seating record" },
-				desc: { z: "新增一筆買入／重買／離桌記錄。seatno 必須為 1～maxseat（依牌桌／場次設定）之間的整數。僅場次擁有者或管理員可操作。",e: "Create a buy-in / rebuy / leave record. seatno must be an integer between 1 and maxseat (per the table / session setting). Only the session owner or an admin may call this." },
+				desc: { z: "新增一筆買入／重買／離桌記錄。買入與重買不可使用鎖定座位；離桌仍可寫入原座位。",e: "Create a buy-in / rebuy / leave record. Buy-ins and rebuys cannot use locked seats; leave records may still reference the original seat." },
 				auth: AUTHOWNER,
 				params: [
 					pathparam("tableid","牌桌 id。","Table id.",55),
@@ -1258,21 +1226,7 @@ const APICATEGORIES=[
 					P("chip","int",false,"計分牌量（整數）。","Chip amount (integer).",{ ex: 30000 })
 				],
 				response: [R("data","int","新建立的座位記錄 id。","The new seating record id.",null)],
-				errors: [ETOKEN,ERR("404","ERROR_seating_not_found / ERROR_session_not_found","找不到牌桌或場次。","Table or session not found."),ERR("400","ERROR_request_data_type_error","seatno 非整數或不在 1～maxseat 範圍。","seatno is not an integer or is outside 1–maxseat."),EREQ,EPERM]
-			},
-			{
-				id: "editseating",method: "PUT",path: "/editseating/{seatingid}",title: { z: "編輯座位記錄",e: "Edit seating record" },
-				desc: { z: "更新座位記錄內容；type / name / time 必填，buyin / chip 選填（未帶時保留原值）。僅場次擁有者或管理員可操作。",e: "Update a seating record; type / name / time are required, buyin / chip are optional (kept unchanged when omitted). Only the session owner or an admin may call this." },
-				auth: AUTHOWNER,
-				params: [
-					pathparam("seatingid","座位記錄 id。","Seating record id.",77),
-					P("type","string",true,"記錄類型：buyin / rebuy / leave。","Record type: buyin / rebuy / leave.",{ ex: "buyin" }),
-					P("name","string",true,"選手名稱。","Player name.",{ ex: "Alvin" }),
-					P("time","string",true,"時間。","Time.",{ ex: "2026-07-01 20:30" }),
-					P("buyin","int",false,"買入金額（整數，未帶時保留原值）。","Buy-in amount (integer, kept when omitted).",{ ex: 1000 }),
-					P("chip","int",false,"計分牌量（整數，未帶時保留原值）。","Chip amount (integer, kept when omitted).",{ ex: 30000 })
-				],
-				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_seating_not_found / ERROR_table_not_found / ERROR_session_not_found","找不到座位記錄、牌桌或場次。","Seating record, table or session not found."),EREQ,EPERM]
+				errors: [ETOKEN,ERR("404","ERROR_seating_not_found / ERROR_session_not_found","找不到牌桌或場次。","Table or session not found."),ERR("400","ERROR_request_data_type_error","seatno 非整數或不在 1～maxseat 範圍。","seatno is not an integer or is outside 1–maxseat."),ERR("409","ERROR_seat_locked","座位已鎖定。","The seat is locked."),EREQ,EPERM]
 			},
 			{
 				id: "deleteseating",method: "DELETE",path: "/deleteseating/{seatingid}",title: { z: "刪除座位記錄",e: "Delete seating record" },
@@ -1301,36 +1255,22 @@ const APICATEGORIES=[
 				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_registration_not_found","找不到報名。","Registration not found."),EPERM]
 			},
 			{
-				id: "getmyregistrations",method: "GET",path: "/getmyregistrations",title: { z: "我的報名",e: "My registrations" },
-				desc: { z: "取得登入者所有報名，附帶場次資訊。",e: "Get all of the signed-in user's registrations with session info." },
-				auth: AUTHTOKEN,params: [],
-				response: [R("data","object[]","報名陣列（每筆另含場次摘要）。","Array of registrations (each also includes a session summary).",registrationfields().concat([SUB("sessionname","string","場次名稱。","Session name."),SUB("starttime","string","場次開始時間。","Session start time."),SUB("gametype","string","遊戲類型。","Game type."),SUB("profit","int","損益。","Profit.")]))],
-				errors: [ETOKEN]
-			},
-			{
-				id: "getmyregistrationstatus",method: "GET",path: "/getmyregistrationstatus/{sessionid}",title: { z: "我的報名狀態",e: "My registration status" },
-				desc: { z: "查詢登入者在某場次的報名狀態。",e: "Query the signed-in user's registration status in a session." },
-				auth: AUTHTOKEN,params: [pathparam("sessionid","場次 id。","Session id.",101)],
-				response: [R("data.status","string","null / registered / confirmed / advanced。","null / registered / confirmed / advanced.",null)],
-				errors: [ETOKEN]
-			},
-			{
 				id: "getsessionregistrationlist",method: "GET",path: "/getsessionregistrationlist/{sessionid}",title: { z: "場次報名名單",e: "Session registration list" },
 				desc: { z: "主辦方查看場次所有報名，含選手資訊與財務。",e: "Organizer view of all registrations with player info and finances." },
 				auth: AUTHOWNER,params: [pathparam("sessionid","場次 id。","Session id.",101)],
 				response: [R("data","object","名單與統計。","List and stats.",[
 					R("stats","object","彙總統計。","Aggregated stats.",[SUB("registered","int","報名人數。","Registered count."),SUB("confirmed","int","報到人數。","Confirmed count."),SUB("advanced","int","晉級人數。","Advanced count."),SUB("total","int","總人數。","Total count."),SUB("totalbuyin","int","總買入。","Total buy-in."),SUB("totalprize","int","總獎金。","Total prize.")]),
-					R("tables","object[]","牌桌列表。","Tables.",[SUB("id","int","牌桌 id。","Table id."),SUB("no","int","桌號。","Table number."),SUB("name","string","桌名。","Table name.")]),
+					R("tables","object[]","牌桌列表。","Tables.",[SUB("id","int","牌桌 id。","Table id."),SUB("no","int","桌號。","Table number."),SUB("name","string","桌名。","Table name."),SUB("lockedseatlist","int[]","鎖定座位號。","Locked seat numbers.")]),
 					R("advancetargets","object[]","可晉級目標。","Advance targets.",[SUB("id","int","場次 id。","Session id."),SUB("name","string","場次名稱。","Session name."),SUB("token","string","場次 token。","Session token.")]),
 					R("registrations","object[]","報名陣列。","Registrations.",registrationfields().concat([SUB("playername","string","選手名稱。","Player name.")]))
 				])],
 				errors: [ETOKEN,ERR("404","ERROR_session_not_found","找不到場次。","Session not found."),EPERM]
 			},
 			{
-				id: "registersessionplayer",method: "POST",path: "/registersessionplayer/{sessionid}",title: { z: "代為報名",e: "Register a player" },
-				desc: { z: "主辦方手動將指定選手加入場次（略過待確認）。",e: "Organizer manually adds a player to the session (skips pending confirmation)." },
+				id: "registersessionplayer",method: "POST",path: "/registersessionplayer/{sessionid}",title: { z: "代為報名／重新入場",e: "Register or re-enter a player" },
+				desc: { z: "主辦方或場次工作人員手動將指定選手加入場次（略過待確認）。選手重新入場時，note 會更新為本次 buy-in 備註；未提供或空白時清除舊備註。",e: "The organizer or session staff manually adds a player to the session (skipping pending confirmation). On re-entry, note is replaced with the note for this buy-in; an omitted or blank value clears the previous note." },
 				auth: AUTHOWNERSTAFF,
-				params: [pathparam("sessionid","場次 id。","Session id.",101),P("playerid","string",true,"選手 playerid。","The player's playerid.",{ ex: "P-10293" })],
+				params: [pathparam("sessionid","場次 id。","Session id.",101),P("playerid","string",true,"選手 playerid。","The player's playerid.",{ ex: "P-10293" }),P("note","string",false,"本次 buy-in 備註。重新入場時覆蓋前次備註；留空會清除。","Note for this buy-in. Re-entry replaces the previous note; blank clears it.",{ ex: "現金已收" })],
 				response: [R("data.id","int","新建立的報名 id。","The new registration id.",null)],
 				errors: [ETOKEN,ERR("400","ERROR_already_registered / ERROR_staff_cannot_register","已報名或不可報名。","Already registered, or cannot register."),EPERM]
 			},
@@ -1430,7 +1370,7 @@ const APICATEGORIES=[
 			},
 			{
 				id: "editsessionplayerseat",method: "PUT",path: "/editsessionplayerseat/{sessionplayerid}",title: { z: "指定座位",e: "Assign seat" },
-				desc: { z: "指派或更新選手的牌桌與座位。",e: "Assign or update a player's table and seat." },
+				desc: { z: "指派或更新選手的牌桌與座位；不可指定鎖定座位。",e: "Assign or update a player's table and seat; locked seats cannot be assigned." },
 				auth: AUTHOWNERSTAFF,
 				params: [
 					pathparam("sessionplayerid","報名 id。","Registration id.",88),
@@ -1439,11 +1379,11 @@ const APICATEGORIES=[
 					P("startchip","int",false,"起始計分牌。","Starting chips.",{ ex: 30000 }),
 					P("paymenttype","string",false,"付款方式。","Payment type.",{ ex: "cash" })
 				],
-				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_registration_not_found / ERROR_table_not_found","找不到報名或牌桌。","Registration or table not found."),ERR("400","ERROR_player_eliminated / ERROR_already_registered","選手已淘汰或座位衝突。","Player eliminated, or seat conflict."),EPERM]
+				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_registration_not_found / ERROR_table_not_found","找不到報名或牌桌。","Registration or table not found."),ERR("400","ERROR_player_eliminated / ERROR_already_registered","選手已淘汰或座位衝突。","Player eliminated, or seat conflict."),ERR("409","ERROR_seat_locked","座位已鎖定。","The seat is locked."),EPERM]
 			},
 			{
 				id: "randomizesessionplayerseats",method: "PUT",path: "/randomizesessionplayerseats/{sessionid}",title: { z: "隨機排座",e: "Randomize seats" },
-				desc: { z: "為選手隨機分配座位（單桌、平衡或指定）。",e: "Randomly assign seats to players (single-table, balanced or selected)." },
+				desc: { z: "為選手隨機分配座位（單桌、平衡或指定）；所有模式都會排除鎖定座位。",e: "Randomly assign seats (single-table, balanced or selected); every mode excludes locked seats." },
 				auth: AUTHOWNERSTAFF,
 				params: [
 					pathparam("sessionid","場次 id。","Session id.",101),
@@ -1882,7 +1822,7 @@ const APICATEGORIES=[
 			},
 			{
 				id: "deletehand",method: "DELETE",path: "/deletehand/{handid}",title: { z: "刪除手牌",e: "Delete hand" },
-				desc: { z: "軟刪除手牌及其座位與下注資料。一般手牌只允許刪除同桌最新一筆（quickhand 例外，可任意刪除）；刪除時會還原該手造成的淘汰連動（sessiontimerplayer 還原為 active、sessionplayer 還原回原桌原座位，僅在該選手仍為淘汰且座位仍空著時）。",e: "Soft-delete a hand and its seating and betting data. Only the table's latest hand may be deleted (quickhand records are exempt); deleting also reverts eliminations caused by that hand (sessiontimerplayer back to active, sessionplayer back to its table/seat, only while the player is still eliminated and the seat is still empty)." },
+				desc: { z: "軟刪除手牌及其座位與下注資料。一般手牌只允許刪除同桌最新一筆（quickhand 例外）；還原淘汰選手時，原座位必須仍空著且未被鎖定。",e: "Soft-delete a hand and related seating/betting data. Only the latest table hand may be deleted (quickhand is exempt); restoring an eliminated player requires the original seat to remain empty and unlocked." },
 				auth: AUTHOWNER,params: [pathparam("handid","手牌 id。","Hand id.",9001)],
 				response: dataok(),errors: [ETOKEN,ERR("404","ERROR_hand_not_found / ERROR_session_not_found","找不到手牌或場次。","Hand or session not found."),ERR("400","ERROR_only_latest_hand_deletable","只能刪除同桌最新一筆手牌。","Only the table's latest hand may be deleted."),ERR("500","ERROR_database_error","資料庫交易失敗。","Database transaction failed."),EPERM]
 			},
@@ -2119,25 +2059,6 @@ const APICATEGORIES=[
 					])
 				],
 				errors: [ERR("400","ERROR_request_data_not_found","request body 非合法 JSON。","Request body is not valid JSON."),ERR("400","ERROR_request_data_type_error","公共牌／新牌不合法、路徑無法還原到達機率、範圍為空或超過 400 combo 等。","Invalid board/new card, the path fails to recover reach probabilities, an empty range, or over 400 combos, etc."),ERR("429","ERROR_too_many_requests","同一 IP 60 秒內超過 6 次求解（與 /solveflop 共用額度）。","More than 6 solves from the same IP within 60 seconds (quota shared with /solveflop).")]
-			}
-		]
-	},
-	{
-		key: "system",
-		title: { z: "系統文件（Swagger）",e: "System Docs (Swagger)" },
-		desc: { z: "自動產生的 OpenAPI 文件端點，僅在後端 DEBUG 模式提供，正式環境一律回 404。",e: "Auto-generated OpenAPI documentation endpoints, only served when the backend runs in DEBUG mode; production always returns 404." },
-		endpoints: [
-			{
-				id: "swaggerui",method: "GET",path: "/swagger/",title: { z: "Swagger UI",e: "Swagger UI" },
-				desc: { z: "以 Swagger UI 呈現由 Django URL 樣式自動產生的 API 文件頁（回傳 HTML，非 success/data JSON 包裝）。僅 DEBUG 模式提供，正式環境回 404。",e: "Renders the API docs auto-generated from Django URL patterns in Swagger UI (returns HTML, not the success/data JSON envelope). DEBUG mode only; production returns 404." },
-				auth: AUTHOPEN,params: [],
-				errors: [ERR("404","（HTML 404）","非 DEBUG 模式一律回 404。","Always 404 outside DEBUG mode.")]
-			},
-			{
-				id: "openapijson",method: "GET",path: "/swagger.json",title: { z: "OpenAPI JSON",e: "OpenAPI JSON" },
-				desc: { z: "回傳由全部路由自動產生的 OpenAPI 3.0 規格 JSON（非 success/data 包裝）。僅 DEBUG 模式提供，正式環境回 404。",e: "Returns the OpenAPI 3.0 spec JSON auto-generated from all routes (not wrapped in success/data). DEBUG mode only; production returns 404." },
-				auth: AUTHOPEN,params: [],
-				errors: [ERR("404","（HTML 404）","非 DEBUG 模式一律回 404。","Always 404 outside DEBUG mode.")]
 			}
 		]
 	}

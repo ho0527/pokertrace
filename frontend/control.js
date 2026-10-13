@@ -1,5 +1,12 @@
 'use strict';
 
+const QUICKTIMERDEFAULT=15
+let quicktimerduration=QUICKTIMERDEFAULT
+let quicktimerremaining=QUICKTIMERDEFAULT
+let quicktimerrunninged=false
+let quicktimerpauseded=false
+let quicktimerendtime=0
+
 function controltext(key){
 	let language=weblsget(WEBLSNAME+"language",false)
 	if(!language){
@@ -995,6 +1002,9 @@ function applycontrolstatictext(){
 	innertext(domgetid('autoStartLabel'), controltext("autostart"), false)
 	innertext(domgetid('timebankDefaultLabel'), controltext("timebankdefault"), false)
 	innertext(domgetid('timebankSoundLabel'), controltext("timebanksound"), false)
+	innertext(domgetid('quickTimerTitle'), controltext("quicktimertitle"), false)
+	innertext(domgetid('quickTimerHint'), controltext("quicktimerhint"), false)
+	renderquicktimer()
 	value(domgetid('btnReset'), controltext("resetall"))
 	value(domgetid('btnSaveSettings'), controltext("save"))
 }
@@ -1501,6 +1511,14 @@ function handTargetOf(item) {
 function handCountOf(item) {
 	return parseInt(item&&item.handCount,10)||0
 }
+function handRemainingOf(item) {
+	let target=handTargetOf(item)
+	let remaining=target-handCountOf(item)
+	if(remaining<0){
+		remaining=0
+	}
+	return remaining
+}
 function totalLevels() {
 	let total=0
 	for(let i=0;i<STATE.schedule.length;i=i+1){
@@ -1736,12 +1754,12 @@ function renderbase() {
 			innertext(ts, controltext("pausedstatus"), false)
 		}
 	} else if (handmode) {
-		// 手數級別: 顯示手數而非倒數時間, 進度條依 handCount/目標手數。
+		// 手數級別: 顯示剩餘手數, 進度條像時間模式一樣由滿遞減到空。
 		let ln=levelNumOf(STATE.currentIndex);
 		let target=handTargetOf(it);
 		let count=handCountOf(it);
 		innertext(tl, controltext("handlabel") + ' · LEVEL ' + ln + ' / ' + totalLevels(), false)
-		pct=(target > 0) ? Math.min(100, count / target * 100) : 0;
+		pct=(target > 0) ? Math.min(100, handRemainingOf(it) / target * 100) : 0;
 		if (target > 0 && count >= target) {
 			style(prog, [["background", '#22c55e']])
 			innertext(ts, '✋ ' + controltext("handtargetreached"), false)
@@ -1773,7 +1791,7 @@ function renderbase() {
 	if (handmode) {
 		let target=handTargetOf(it);
 		let count=handCountOf(it);
-		innertext(td, (target > 0) ? (count + ' / ' + target) : String(count), false)
+		innertext(td, (target > 0) ? String(handRemainingOf(it)) : String(count), false)
 	} else {
 		innertext(td, fmtTime(STATE.secondsLeft), false)
 	}
@@ -1792,13 +1810,12 @@ function renderbase() {
 		style(domgetid('timeAdjustSection'), [["display", handmode ? 'none' : 'block']])
 	}
 	if (handmode) {
-		innertext(domgetid('handNum'), handCountOf(it), false)
 		let target=handTargetOf(it);
-		let hint=controltext("handhint");
 		if (target > 0) {
-			hint=controltext("handlabel") + ' ' + handCountOf(it) + ' / ' + target + ' — ' + hint;
+			innertext(domgetid('handNum'), handRemainingOf(it), false)
+		}else{
+			innertext(domgetid('handNum'), handCountOf(it), false)
 		}
-		innertext(domgetid('handHint'), hint, false)
 	}
 
 	// Blinds row
@@ -1819,7 +1836,10 @@ function renderbase() {
 
 	// Main toggle
 	let mt=domgetid('btnMainToggle');
-	if (STATE.running) {
+	if(handmode){
+		value(mt, controltext("mainnexthand"))
+		mt.className='btn btn-big btn-primary';
+	}else if (STATE.running) {
 		value(mt, controltext("mainpause"))
 		mt.className='btn btn-big btn-primary';
 	}else{
@@ -1936,7 +1956,7 @@ function renderbase() {
 		let durtext=it2.dur+"m";
 		if(isHandItem(it2)){
 			let t=handTargetOf(it2);
-			durtext='✋'+(t>0?(handCountOf(it2)+"/"+t):controltext("handlabel"));
+			durtext='✋'+(t>0?handRemainingOf(it2):controltext("handlabel"));
 		}
 		lvlhtml=lvlhtml+`<div class="${cls}" data-jump="${i}">
 			<span class="ln">${ln}</span>
@@ -2183,15 +2203,18 @@ function endItemNow() {
 	})
 }
 
-// 手數級別: +1/-1 手, 不動時間。
+// 手數級別: 畫面按鈕調整剩餘手數, 底層仍以 handCount 記錄已完成手數。
 function adjustHand(delta) {
 	ensureAudio();
 	const IT=curItem();
 	if (!isHandItem(IT)) return;
 	let count=handCountOf(IT) + delta;
 	if (count < 0) count=0;
-	IT.handCount=count;
 	let target=handTargetOf(IT);
+	if(0<target&&target<count){
+		count=target
+	}
+	IT.handCount=count;
 	if (delta > 0 && target > 0 && count == target) {
 		sndLevelEnd();
 		showToast('✋ ' + controltext("handtargetreached"), 'warn');
@@ -2430,7 +2453,13 @@ function render(){
 }
 
 // Bindings
-domgetid('btnMainToggle').addEventListener('click', togglePause);
+domgetid('btnMainToggle').addEventListener('click',function(){
+	if(isHandNow()){
+		adjustHand(1)
+	}else{
+		togglePause()
+	}
+})
 let timebuttons=document.querySelectorAll('[data-time]');
 for(let i=0;i<timebuttons.length;i=i+1){
 	timebuttons[i].addEventListener('click',function(){
@@ -2466,10 +2495,10 @@ if(domgetid('btnEndLv')){
 	domgetid('btnEndLv').addEventListener('click', endItemNow)
 }
 if(domgetid('btnHandPlus')){
-	domgetid('btnHandPlus').addEventListener('click', function(){ adjustHand(1); });
+	domgetid('btnHandPlus').addEventListener('click', function(){ adjustHand(-1); });
 }
 if(domgetid('btnHandMinus')){
-	domgetid('btnHandMinus').addEventListener('click', function(){ adjustHand(-1); });
+	domgetid('btnHandMinus').addEventListener('click', function(){ adjustHand(1); });
 }
 if(domgetid('btnHandReset')){
 	domgetid('btnHandReset').addEventListener('click', resetHandCount);
@@ -2807,6 +2836,90 @@ domgetid('btnMarqueeReset').addEventListener('click', function(){
 	broadcast('marquee');
 	render();
 });
+
+function renderquicktimer(){
+	let display=domgetid("quickTimerDisplay")
+	let status=domgetid("quickTimerStatus")
+	let card=domgetid("quickTimerCard")
+	let toggle=domgetid("quickTimerToggle")
+	let pause=domgetid("quickTimerReset")
+	if(display&&status&&card&&toggle&&pause){
+		innertext(display,quicktimerremaining.toFixed(1),false)
+		card.classList.toggle("is-running",quicktimerrunninged)
+		card.classList.toggle("is-paused",quicktimerpauseded&&!quicktimerrunninged&&quicktimerremaining>0)
+		card.classList.toggle("is-expired",quicktimerremaining<=0)
+		value(toggle,controltext("quicktimerrestart")+" "+quicktimerduration+controltext("quicktimerseconds"))
+		if(quicktimerrunninged){
+			innertext(status,controltext("quicktimerrunning"),false)
+			value(pause,controltext("quicktimerpause"))
+			pause.disabled=false
+		}else if(quicktimerremaining<=0){
+			innertext(status,controltext("quicktimerfinished"),false)
+			value(pause,controltext("quicktimerpause"))
+			pause.disabled=true
+		}else if(quicktimerpauseded){
+			innertext(status,controltext("quicktimerpaused"),false)
+			value(pause,controltext("quicktimerresume"))
+			pause.disabled=false
+		}else{
+			innertext(status,controltext("quicktimerready")+" · "+quicktimerduration+controltext("quicktimerseconds"),false)
+			value(pause,controltext("quicktimerpause"))
+			pause.disabled=true
+		}
+		let presetlist=document.querySelectorAll("[data-quick-timer-seconds]")
+		for(let i=0;i<presetlist.length;i=i+1){
+			let seconds=parseInt(presetlist[i].dataset.quickTimerSeconds,10)
+			presetlist[i].classList.toggle("is-selected",seconds==quicktimerduration)
+		}
+	}
+}
+
+function tickquicktimer(){
+	if(quicktimerrunninged){
+		quicktimerremaining=Math.max(0,(quicktimerendtime-Date.now())/1000)
+		if(quicktimerremaining<=0){
+			quicktimerremaining=0
+			quicktimerrunninged=false
+			quicktimerpauseded=false
+		}
+		renderquicktimer()
+	}
+}
+
+let quicktimerpresetlist=document.querySelectorAll("[data-quick-timer-seconds]")
+for(let i=0;i<quicktimerpresetlist.length;i=i+1){
+	quicktimerpresetlist[i].addEventListener("click",function(){
+		quicktimerduration=parseInt(this.dataset.quickTimerSeconds,10)
+		quicktimerremaining=quicktimerduration
+		quicktimerendtime=Date.now()+(quicktimerduration*1000)
+		quicktimerrunninged=true
+		quicktimerpauseded=false
+		renderquicktimer()
+	})
+}
+
+domgetid("quickTimerToggle").addEventListener("click",function(){
+	quicktimerremaining=quicktimerduration
+	quicktimerendtime=Date.now()+(quicktimerduration*1000)
+	quicktimerrunninged=true
+	quicktimerpauseded=false
+	renderquicktimer()
+})
+
+domgetid("quickTimerReset").addEventListener("click",function(){
+	if(quicktimerrunninged){
+		quicktimerremaining=Math.max(0,(quicktimerendtime-Date.now())/1000)
+		quicktimerrunninged=false
+		quicktimerpauseded=quicktimerremaining>0
+	}else if(quicktimerpauseded&&quicktimerremaining>0){
+		quicktimerendtime=Date.now()+(quicktimerremaining*1000)
+		quicktimerrunninged=true
+		quicktimerpauseded=false
+	}
+	renderquicktimer()
+})
+
+setInterval(tickquicktimer,50)
 
 // Prize pool — 只抓 [data-mode] 的 seg，避免和 ITM 模式按鈕衝突
 let prizemodes=document.querySelectorAll('[data-mode]');

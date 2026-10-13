@@ -565,7 +565,7 @@ function sessiontypetext(typekey,idvalue,fallback){
         for(let i=0;i<rows.length;i=i+1){
                 if(String(rows[i]["id"])==String(idvalue)||String(rows[i]["code"])==String(idvalue)){
                         let code=rows[i]["code"]
-                        if(typekey!="game"&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][typekey]&&TRANSLATE[LANGUAGE]["type"][typekey][code]){
+                        if(TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][typekey]&&TRANSLATE[LANGUAGE]["type"][typekey][code]){
                                 return TRANSLATE[LANGUAGE]["type"][typekey][code]
                         }
                         return rows[i]["name"]||code||rows[i]["id"]
@@ -2647,7 +2647,7 @@ function optionhtml(rows,selected,labelkey){
         let html=""
         for(let i=0;i<rows.length;i=i+1){
                 let text=rows[i]["name"]||rows[i]["code"]||rows[i]["id"]
-                if(labelkey&&labelkey!="game"&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][labelkey]&&TRANSLATE[LANGUAGE]["type"][labelkey][rows[i]["code"]]){
+                if(labelkey&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][labelkey]&&TRANSLATE[LANGUAGE]["type"][labelkey][rows[i]["code"]]){
                         text=TRANSLATE[LANGUAGE]["type"][labelkey][rows[i]["code"]]
                 }
                 html=html+`<option value="${safehtml(rows[i]["id"])}" ${String(selected)==String(rows[i]["id"])?"selected":""}>${safehtml(text)}</option>`

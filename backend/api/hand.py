@@ -502,7 +502,10 @@ def serializehand(hand,withdetail=True,seatingrow=None,bittingrow=None,community
 	# 內容與 boardcard 相同，前端可以逐頁改過去而不必一次全改。
 	item["boardlist"]=boardlistread(hand,communityrow,potrow,allocationrow)
 	item["actionsjson"]=jsonval(item.get("actionsjson"),{})
-	item["adjustments"]=jsonval(item.get("adjustmentsjson"),{})
+	storedadjustments=jsonval(item.get("adjustmentsjson"),{})
+	if isinstance(storedadjustments,dict) and "quicknetchange" in storedadjustments:
+		item["quicknetchange"]=storedadjustments.pop("quicknetchange")
+	item["adjustments"]=storedadjustments
 	item["familydata"]=jsonval(item.get("familydatajson"),{})
 	# TASK-049：讀出來一律正規化。既有資料裡的 `tournament` 這種場次類型會被
 	# 轉成 HE，所以不必先改資料，前端的牌型分支就已經是對的。
@@ -687,7 +690,7 @@ def advancehandcount(sessionrow):
 		count=timerint(item.get("handCount"),0)+1
 		item["handCount"]=count
 		state["schedule"][index]=item
-		if item.get("timemode")=="handcount":
+		if item.get("timemode")=="hands":
 			target=timerint(item.get("handTargetCount"),0)
 			if 0<target and count>=target and index<len(schedule)-1:
 				state["currentIndex"]=index+1
@@ -2707,6 +2710,7 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 		"winner": "array",
 		"winnerprice": "array",
 		"adjustments": "dict",
+		"quicknetchange": "dict",
 		"ps": "string",
 		"note": "string",
 		# totalpot / positionpot 的規則已移除（2026-08-06，TASK-106）。
@@ -2738,6 +2742,8 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 	data=requestdata["data"]
 	recordtype=data.get("recordtype") or "hand"
 	if recordtype not in ("hand","quickhand","stackadjustment","brokenhand"):
+		return errorresponse("ERROR_request_data_type_error")
+	if "quicknetchange" in data and recordtype!="quickhand":
 		return errorresponse("ERROR_request_data_type_error")
 	# 快速手牌（quickhand）是獨立的正常手牌，計分牌 / 底池比照 hand 計算，不需要例外類型與備註
 	if recordtype in ("stackadjustment","brokenhand"):
@@ -2782,6 +2788,27 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 					"specialbutton": oldseat.get("specialbutton") or ""
 				}
 		seatinglist=linkedseating
+	quicknetchange={}
+	if "quicknetchange" in data:
+		for seatkey in data.get("quicknetchange"):
+			if not isinstance(seatkey,str) or not seatkey.isdigit():
+				return errorresponse("ERROR_request_data_type_error")
+			seatno=int(seatkey)
+			seatvalue=data["quicknetchange"][seatkey]
+			if str(seatno)!=seatkey or seatno<1 or seatno>maxseat or seatno>=len(seatinglist):
+				return errorresponse("ERROR_request_data_type_error")
+			if not isinstance(seatinglist[seatno],dict):
+				return errorresponse("ERROR_request_data_type_error")
+			if not isinstance(seatvalue,int) or isinstance(seatvalue,bool) or seatvalue<-2147483648 or seatvalue>2147483647:
+				return errorresponse("ERROR_request_data_type_error")
+			quicknetchange[seatkey]=seatvalue
+	storedadjustments=data.get("adjustments") or {}
+	if isinstance(storedadjustments,dict) and "quicknetchange" in storedadjustments:
+		storedadjustments=dict(storedadjustments)
+		del storedadjustments["quicknetchange"]
+	if "quicknetchange" in data:
+		storedadjustments=dict(storedadjustments)
+		storedadjustments["quicknetchange"]=quicknetchange
 	bittingdata=data.get("bittingdata") or {}
 	totalpot=0
 	positionpot=[None]
@@ -2813,7 +2840,7 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 			handtoken,userrow["id"],tableid,data.get("dealerseat"),selfseating,json.dumps(data.get("handcard")),oldboardcardvalue,oldtotalpotvalue,
 			normalizehandgametype(data.get("gametype")),data.get("blindlevel") or "",data.get("levelid"),data.get("smallblind") or 0,data.get("bigblind") or 0,
 			data.get("bigblindante") or 0,data.get("ante") or 0,boolval(data.get("emptybutton")),boolval(data.get("deadsmallblind")),json.dumps(data.get("actionsjson") or []),
-			json.dumps(data.get("adjustments") or {}),recordtype,data.get("exceptiontype") or "",data.get("ps") or data.get("note") or "",data.get("note") or data.get("ps") or "",json.dumps(data.get("familydata") or {}),nowtime()
+			json.dumps(storedadjustments),recordtype,data.get("exceptiontype") or "",data.get("ps") or data.get("note") or "",data.get("note") or data.get("ps") or "",json.dumps(data.get("familydata") or {}),nowtime()
 		],SETTING["dbsetting"])
 		if not handid:
 			return errorresponse("ERROR_database_error")
@@ -2827,7 +2854,7 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 			data.get("dealerseat"),selfseating,json.dumps(data.get("handcard")),oldboardcardvalue,oldtotalpotvalue,
 			normalizehandgametype(data.get("gametype")),data.get("blindlevel") or "",data.get("levelid"),data.get("smallblind") or 0,data.get("bigblind") or 0,
 			data.get("bigblindante") or 0,data.get("ante") or 0,boolval(data.get("emptybutton")),boolval(data.get("deadsmallblind")),json.dumps(data.get("actionsjson") or []),
-			json.dumps(data.get("adjustments") or {}),json.dumps(data.get("familydata") or {}),recordtype,data.get("exceptiontype") or "",data.get("ps") or data.get("note") or "",data.get("note") or data.get("ps") or "",nowtime(),handid
+			json.dumps(storedadjustments),json.dumps(data.get("familydata") or {}),recordtype,data.get("exceptiontype") or "",data.get("ps") or data.get("note") or "",data.get("note") or data.get("ps") or "",nowtime(),handid
 		]])
 		sqllist.append(["""DELETE FROM "handseating" WHERE "handid"=%s""",[handid]])
 		sqllist.append(["""DELETE FROM "handbittingdata" WHERE "handid"=%s""",[handid]])
@@ -2860,6 +2887,8 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 			if recordtype not in ("hand","quickhand"):
 				ppot=adjustment
 				endchip=chip+adjustment
+			elif recordtype=="quickhand" and str(seatno) in quicknetchange:
+				endchip=chip+quicknetchange[str(seatno)]
 			elif winnered:
 				endchip=chip+wpot-ppot
 			else:
@@ -2920,6 +2949,8 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 		if recordtype not in ("hand","quickhand"):
 			ppot=adjustment
 			endchip=chip+adjustment
+		elif recordtype=="quickhand" and str(bseat) in quicknetchange:
+			endchip=chip+quicknetchange[str(bseat)]
 		elif winnered:
 			endchip=chip+wpot-ppot
 		else:
@@ -3124,8 +3155,8 @@ def deletehand(request,handid):
 			])
 			# 自動回座屬於自動入座路徑: 該桌若已被關閉 (closedtime 有值, 例如已併桌拆掉) 就不回座, 讓玩家維持未入座由工作人員手動安排
 			restorelist.append([
-				"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s AND "tableid" IS NULL AND "seatno" IS NULL AND "deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessionplayer" sp2 WHERE sp2."sessionid"=%s AND sp2."tableid"=%s AND sp2."seatno"=%s AND sp2."status"='confirmed' AND sp2."deletetime" IS NULL) AND EXISTS(SELECT 1 FROM "table" t2 WHERE t2."id"=%s AND t2."deletetime" IS NULL AND t2."closedtime" IS NULL)""",
-				[hand["tableid"],busted["seatno"],busted["sessionplayerid"],hand["sessionid"],hand["tableid"],busted["seatno"],hand["tableid"]]
+				"""UPDATE "sessionplayer" SET "tableid"=%s,"seatno"=%s,"updatetime"=NOW() WHERE "id"=%s AND "tableid" IS NULL AND "seatno" IS NULL AND "deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessionplayer" sp2 WHERE sp2."sessionid"=%s AND sp2."tableid"=%s AND sp2."seatno"=%s AND sp2."status"='confirmed' AND sp2."deletetime" IS NULL) AND EXISTS(SELECT 1 FROM "table" t2 WHERE t2."id"=%s AND t2."deletetime" IS NULL AND t2."closedtime" IS NULL AND NOT(COALESCE(t2."lockedseatlist",'[]'::jsonb)@>to_jsonb(ARRAY[%s::integer])))""",
+				[hand["tableid"],busted["seatno"],busted["sessionplayerid"],hand["sessionid"],hand["tableid"],busted["seatno"],hand["tableid"],busted["seatno"]]
 			])
 	sqllist=[
 		["""UPDATE "hand" SET "deletetime"=NOW() WHERE "id"=%s""",[handid]],

@@ -360,6 +360,93 @@ textarea::placeholder {
 	color: #888;
 }
 
+.quick-timer-card {
+	background: #111;
+	padding: 16px;
+}
+
+.quick-timer-display {
+	color: #f8fafc;
+	font-family: "JetBrains Mono", "SF Mono", "Courier New", monospace;
+	font-size: clamp(64px, 20vw, 96px);
+	font-variant-numeric: tabular-nums;
+	font-weight: 900;
+	letter-spacing: -4px;
+	line-height: 1;
+	text-align: center;
+}
+
+.quick-timer-card.is-running .quick-timer-display {
+	color: #4ade80;
+}
+
+.quick-timer-card.is-paused .quick-timer-display {
+	color: var(--color-warning);
+}
+
+.quick-timer-card.is-expired .quick-timer-display {
+	color: var(--color-danger);
+}
+
+.quick-timer-status {
+	color: #737373;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.5;
+	margin-top: 8px;
+	text-align: center;
+}
+
+.quick-timer-preset-list {
+	display: grid;
+	gap: 8px;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	margin-top: 16px;
+}
+
+.quick-timer-preset {
+	background: #1a1a1a;
+	border: 1px solid #333;
+	border-radius: 10px;
+	color: #a3a3a3;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 16px;
+	font-weight: 700;
+	min-height: 48px;
+}
+
+.quick-timer-preset:hover {
+	background: #252525;
+	color: #f5f5f5;
+}
+
+.quick-timer-preset.is-selected {
+	background: #14391f;
+	border-color: #166534;
+	color: #4ade80;
+}
+
+.quick-timer-action-list {
+	display: grid;
+	gap: 8px;
+	grid-template-columns: 2fr 1fr;
+	margin-top: 12px;
+}
+
+.quick-timer-main {
+	font-size: 16px;
+}
+
+.quick-timer-hint {
+	color: #737373;
+	font-size: 11px;
+	font-weight: 400;
+	line-height: 1.5;
+	margin-top: 12px;
+	text-align: center;
+}
+
 .btn-big {
 	min-height: 64px;
 	font-size: 18px;
@@ -897,6 +984,10 @@ textarea::placeholder {
 	padding: 6px 8px;
 }
 
+.struct-tool-row .struct-wide-btn {
+	grid-column: 2 / 4;
+}
+
 .struct-head {
 	display: grid;
 	grid-template-columns: 46px 76px 1fr 1fr 1fr 70px 48px 168px;
@@ -1062,6 +1153,14 @@ textarea::placeholder {
 }
 
 @media (max-width: 620px) {
+	.quick-timer-action-list {
+		grid-template-columns: 1fr;
+	}
+
+	.quick-timer-action-list .btn {
+		min-width: 0;
+	}
+
 	.struct-tools {
 		grid-template-columns: 1fr;
 	}

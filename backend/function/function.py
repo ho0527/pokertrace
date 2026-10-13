@@ -30,6 +30,8 @@ ERRORLIST={
 	"ERROR_token_not_found": status.HTTP_401_UNAUTHORIZED,
 	"ERROR_no_permission": status.HTTP_403_FORBIDDEN,
 	"ERROR_table_not_found": status.HTTP_404_NOT_FOUND,
+	"ERROR_seat_locked": status.HTTP_409_CONFLICT,
+	"ERROR_seat_occupied_lock": status.HTTP_409_CONFLICT,
 	"ERROR_seating_not_found": status.HTTP_404_NOT_FOUND,
 	"ERROR_session_not_found": status.HTTP_404_NOT_FOUND,
 	"ERROR_series_not_found": status.HTTP_404_NOT_FOUND,

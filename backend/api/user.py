@@ -388,16 +388,8 @@ def signin(request):
 
 		signup=False
 
-		# 先用 uid 找 (新註冊或已遷移過的使用者)
+		# Google sub 是登入身分的唯一依據。email 是可編輯的聯絡資料，不可用來合併帳號。
 		row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "uid"=%s AND "deletetime" IS NULL""",[uid],SETTING["dbsetting"])
-
-		if not row:
-			# 遷移處理: 原本 Firebase 使用者的 uid 是 Firebase uid (不是 Google sub)
-			# 用 email 找看看, 找到就把 uid 更新為 Google sub
-			emailrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "email"=%s AND "deletetime" IS NULL""",[email],SETTING["dbsetting"])
-			if emailrow:
-				query(SETTING["dbname"],f"""UPDATE "user" SET "uid"=%s,"updatetime"=%s WHERE "id"=%s""",[uid,nowtime(),emailrow[0]["id"]],SETTING["dbsetting"])
-				row=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "id"=%s""",[emailrow[0]["id"]],SETTING["dbsetting"])
 
 		if not row:
 			signup=True

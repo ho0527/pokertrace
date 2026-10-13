@@ -1086,7 +1086,7 @@ function fillselect(id,row,group){
         let i=0
         for(i=0;i<row.length;i=i+1){
                 label=row[i]["name"]||row[i]["code"]
-                if(group!="game"&&TRANSLATE&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][group]&&TRANSLATE[LANGUAGE]["type"][group][row[i]["code"]]){
+                if(TRANSLATE&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["type"]&&TRANSLATE[LANGUAGE]["type"][group]&&TRANSLATE[LANGUAGE]["type"][group][row[i]["code"]]){
                         label=TRANSLATE[LANGUAGE]["type"][group][row[i]["code"]]
                 }
                 html=html+"<option value=\""+row[i]["id"]+"\">"+label+"</option>"

@@ -503,9 +503,23 @@ function buildseatoccupancy(){
 	}
 }
 
+function registrationlockedseatmap(tableid){
+	let locked={}
+	for(let i=0;i<tables.length;i=i+1){
+		if(String(tables[i]["id"])==String(tableid)){
+			let lockedseatlist=tables[i]["lockedseatlist"]||[]
+			for(let j=0;j<lockedseatlist.length;j=j+1){
+				locked[String(lockedseatlist[j])]=true
+			}
+		}
+	}
+	return locked
+}
+
 function seatoptions(selected,tableid,ownid){
 	let html=`<option value="">-</option>`
 	let taken={}
+	let locked=registrationlockedseatmap(tableid)
 	if(tableid&&seatoccupancy[String(tableid)]){
 		taken=seatoccupancy[String(tableid)]
 	}
@@ -514,11 +528,13 @@ function seatoptions(selected,tableid,ownid){
 		let occupant=taken[String(i)]||""
 		let takenbyother=occupant&&String(occupant)!=String(ownid)
 		let isselected=String(selected)==String(i)
+		let lockedseat=locked[String(i)]==true
 		if(isselected){
 			matched=true
 		}
-		if(!takenbyother||isselected){
-			html=html+`<option value="${i}" ${isselected?"selected":""}>${i}</option>`
+		if((!takenbyother&&!lockedseat)||isselected){
+			let suffix=lockedseat&&isselected?rt("seatlockedlegacy"):""
+			html=html+`<option value="${i}" ${isselected?"selected":""}>${i}${safehtml(suffix)}</option>`
 		}
 	}
 	// 座位號可能超出目前的 maxseat（例如場次把每桌座位從 9 改成 6，但已有人坐 8 號位）。
@@ -753,6 +769,7 @@ function searchusers(){
 				continue
 			}
 			let action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="${rt("register")}">`
+			let reentryed=false
 			if(r["isstaff"]){
 				action=`<span class="text-xs text-red-300">${rt("staffcannotregister")}</span>`
 			}
@@ -760,14 +777,20 @@ function searchusers(){
 				action=`<span class="text-xs text-zinc-400">${r["registrationstatus"]}</span>`
 				if(r["registrationstatus"]=="confirmed"&&r["timerstatus"]=="eliminated"&&0<maxreentry&&int(r["reentrycount"]||0)<maxreentry){
 					action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="${rt("reentry")}">`
+					reentryed=true
 				}
 			}
+			let noteinput=""
+			if(!r["isstaff"]&&(!r["registrationstatus"]||reentryed)){
+				noteinput=`<input type="text" class="searchregisternote min-h-10 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-sm text-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" placeholder="${rt("buyinnote")}" aria-label="${rt("buyinnote")}">`
+			}
 			html=html+`
-				<div class="flex items-center justify-between px-3 py-2 border-b border-zinc-700">
-					<div>
+				<div class="searchregisterrow grid gap-3 border-b border-zinc-700 px-3 py-3 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+					<div class="min-w-0">
 						<div class="text-sm text-white">${escapehtml(r["name"]||"-")}</div>
 						<div class="text-xs text-zinc-500">${escapehtml(r["playerid"]||"")} ${escapehtml(r["email"]||"")}</div>
 					</div>
+					${noteinput}
 					${action}
 				</div>
 			`
@@ -787,8 +810,13 @@ function searchusers(){
 		box.classList.remove("hidden")
 		onclick(".searchregisterbtn",function(element,event){
 			element.disabled=true
+			let row=element.closest(".searchregisterrow")
+			let noteinput=row?row.querySelector(".searchregisternote"):null
 			ajax("POST",AJAXURL+"registersessionplayer/"+sessionid,function(event,data){
 				if(data["success"]){
+					if(noteinput){
+						noteinput.value=""
+					}
 					loadregistrations()
 					pttoast(rt("paneladded1"),"success")
 				}else{
@@ -796,7 +824,8 @@ function searchusers(){
 					element.disabled=false
 				}
 			},str({
-				"playerid": dataset(element,"playerid")
+				"playerid": dataset(element,"playerid"),
+				"note": noteinput?noteinput.value:""
 			}),[
 				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 			],{
@@ -1177,7 +1206,8 @@ function renderregistrationlist(){
 				`
 				if(canreentryregistration(r)){
 					actions=`
-						<input type="button" class="reentrybtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerplayerid"])}" value="${rt("reentry")}">
+						<input type="text" class="registrationreentrynote min-h-10 w-40 rounded-xl border border-zinc-700 bg-zinc-800 px-2 text-xs text-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-id="${r["id"]}" placeholder="${rt("buyinnote")}" aria-label="${rt("buyinnote")}">
+						<input type="button" class="reentrybtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-playerid="${safehtml(r["playerplayerid"])}" value="${rt("reentry")}">
 						<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 					`
 				}else if(r["timerstatus"]=="eliminated"){
@@ -1221,6 +1251,7 @@ function renderregistrationlist(){
 					<td class="px-3 py-2">
 						<div>${escapehtml(r["playername"]||"-")}</div>
 						<div class="text-xs text-zinc-500">${escapehtml(r["playerplayerid"]||"")}</div>
+						${r["note"]?`<div class="mt-1 break-words text-xs text-zinc-400">${escapehtml(r["note"])}</div>`:""}
 					</td>
 					<td class="px-3 py-2 text-xs">${formattime(r["registertime"])}</td>
 					<td class="px-3 py-2">${statusbadge(r["status"])}</td>
@@ -1253,8 +1284,9 @@ function renderregistrationlist(){
 								<div class="pt-1">${mobilecheckbox}</div>
 								<div>
 									<div class="text-xs font-semibold text-emerald-300">${rt("printcolno")} ${serialno}</div>
-									<div class="font-semibold">${escapehtml(r["playername"]||"-")}</div>
-									<div class="text-xs text-zinc-500">${escapehtml(r["playerplayerid"]||"")}</div>
+					<div class="font-semibold">${escapehtml(r["playername"]||"-")}</div>
+					<div class="text-xs text-zinc-500">${escapehtml(r["playerplayerid"]||"")}</div>
+									${r["note"]?`<div class="mt-1 break-words text-xs text-zinc-400">${escapehtml(r["note"])}</div>`:""}
 									<div class="text-xs text-zinc-500 mt-1"> ${formattime(r["registertime"])}</div>
 								</div>
 							</div>
@@ -1331,6 +1363,8 @@ function bindactions(){
 
 	onclick(".reentrybtn",function(element,event){
 		element.disabled=true
+		let row=element.closest("tr, .registrationcard")
+		let noteinput=row?row.querySelector(".registrationreentrynote"):null
 		ajax("POST",AJAXURL+"registersessionplayer/"+sessionid,function(event,data){
 			if(data["success"]){
 				loadregistrations()
@@ -1339,7 +1373,8 @@ function bindactions(){
 				element.disabled=false
 			}
 		},str({
-			"playerid": dataset(element,"playerid")
+			"playerid": dataset(element,"playerid"),
+			"note": noteinput?noteinput.value:""
 		}),[
 			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 		],{

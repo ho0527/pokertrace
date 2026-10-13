@@ -113,6 +113,10 @@
 		page-break-inside: avoid;
 	}
 
+	.ptprinttable tbody > tr:nth-child(even) > td {
+		background-color: #f4f4f5;
+	}
+
 	.ptprinttable .ptprintnum {
 		text-align: right;
 	}

@@ -158,6 +158,10 @@ class TimerWebsocket(AsyncWebsocketConsumer):
 
 	# group 廣播事件 handler (REST savetimer 寫完後會 group_send "timer.update")
 	async def timer_update(self,event):
+		allowed=await self._checkreadallowed(self.token)
+		if not allowed:
+			await self.close()
+			return
 		await self.send(text_data=json.dumps({
 			"type": "update",
 			"state": event["state"]
@@ -189,7 +193,6 @@ class HandWebsocket(AsyncWebsocketConsumer):
 		if not self.readallowed:
 			await self.close()
 			return
-		self.writeallowed=await self._checkwriteallowed(self.token)
 		await self.channel_layer.group_add(self.groupname,self.channel_name)
 		await self.accept()
 		await self.send(text_data=json.dumps({
@@ -207,9 +210,8 @@ class HandWebsocket(AsyncWebsocketConsumer):
 			data={}
 		if data.get("type")=="hand.timer.local":
 			token=data.get("token") or self.token
-			allowed=self.writeallowed
-			if token!=self.token:
-				allowed=await self._checkwriteallowed(token)
+			# 每次寫入都重查 token、封禁與場次角色，不沿用連線時的舊權限。
+			allowed=await self._checkwriteallowed(token)
 			if not allowed:
 				await self.send(text_data=json.dumps({
 					"type": "error",
@@ -232,6 +234,10 @@ class HandWebsocket(AsyncWebsocketConsumer):
 		return handreadallowed(self.sessionid,token)
 
 	async def hand_update(self,event):
+		allowed=await self._checkreadallowed(self.token)
+		if not allowed:
+			await self.close()
+			return
 		await self.send(text_data=json.dumps({
 			"type": "update",
 			"event": event.get("event"),

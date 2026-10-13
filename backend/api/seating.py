@@ -21,6 +21,7 @@ from function.thing import *
 from function.function import *
 from .initialize import *
 from .authhelper import gettokenuser as commonauthuser
+from .seatlock import seatlocked
 
 # main START
 @api_view(["GET"])
@@ -120,6 +121,8 @@ def newseating(request,tableid,seatno):
 						return errorresponse("ERROR_request_data_type_error")
 
 					type=requestdata["data"].get("type")
+					if type!="leave" and seatlocked(row,seatno,maxseat):
+						return errorresponse("ERROR_seat_locked")
 					name=requestdata["data"].get("name")
 					time=requestdata["data"].get("time")
 					buyin=requestdata["data"].get("buyin")

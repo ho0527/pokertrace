@@ -23,6 +23,7 @@ from .initialize import *
 from .authhelper import gettokenuser as commonauthuser
 from .timer import synctimerplayers,linkedcounts,buildtimerstate,broadcasttimerupdate,latestsessionchips,intval,expectedchiptotal
 from .notification import notifyevent
+from .seatlock import seatlocked,seatlockread
 
 
 def _gettokenuser(request):
@@ -111,7 +112,7 @@ def _deleteregistration(sessionrow,sessionplayerid):
 	query(SETTING["dbname"],f"""UPDATE "sessionplayer" SET "canceltime"=%s,"deletetime"=NOW(),"updatetime"=NOW() WHERE "id"=%s AND "deletetime" IS NULL""",[nowtime(),sessionplayerid],SETTING["dbsetting"])
 	_broadcastsessiontimer(sessionrow)
 
-def _reviveregistration(sessionrow,sessionplayerrow,newstatus):
+def _reviveregistration(sessionrow,sessionplayerrow,newstatus,note=""):
 	# 復活先前取消 (軟刪) 的報名列: 重設為全新報名的狀態; 確認報名 (confirmed) 時直接配發新序號。
 	serialno=None
 	confirmtime=None
@@ -124,8 +125,8 @@ def _reviveregistration(sessionrow,sessionplayerrow,newstatus):
 	# 2026-08-06 實測測試庫：confirmtime 有 28 列本地 / 55 列真 UTC，
 	# 4 個場次裡兩種並存，本地那列一律被排到最後（真實時間其實最早）。
 	query(SETTING["dbname"],
-		f"""UPDATE "sessionplayer" SET "status"=%s,"buyin"=%s,"fee"=%s,"paymenttype"=%s,"ticketvalue"=%s,"startchip"=%s,"serialno"=%s,"tableid"=NULL,"seatno"=NULL,"rebuycount"=0,"reentrycount"=0,"addoncount"=0,"prize"=0,"prizeoverride"=NULL,"place"=NULL,"note"='',"advancechip"=NULL,"advancetargetid"=NULL,"advancesourceid"=NULL,"advancetime"=NULL,"registertime"=%s,"confirmtime"=%s,"canceltime"=NULL,"deletetime"=NULL,"updatetime"=NOW() WHERE "id"=%s""",
-		[newstatus,sessionrow.get("buyin") or 0,sessionrow.get("buyinfee") or 0,"ticket" if sessionrow.get("ticketenabled") else "cash",sessionrow.get("ticketvalue") or 0,_sessionplayerstartchip(sessionrow),serialno,nowtime(),confirmtime,sessionplayerrow["id"]],
+		f"""UPDATE "sessionplayer" SET "status"=%s,"buyin"=%s,"fee"=%s,"paymenttype"=%s,"ticketvalue"=%s,"startchip"=%s,"serialno"=%s,"tableid"=NULL,"seatno"=NULL,"rebuycount"=0,"reentrycount"=0,"addoncount"=0,"prize"=0,"prizeoverride"=NULL,"place"=NULL,"note"=%s,"advancechip"=NULL,"advancetargetid"=NULL,"advancesourceid"=NULL,"advancetime"=NULL,"registertime"=%s,"confirmtime"=%s,"canceltime"=NULL,"deletetime"=NULL,"updatetime"=NOW() WHERE "id"=%s""",
+		[newstatus,sessionrow.get("buyin") or 0,sessionrow.get("buyinfee") or 0,"ticket" if sessionrow.get("ticketenabled") else "cash",sessionrow.get("ticketvalue") or 0,_sessionplayerstartchip(sessionrow),serialno,note,nowtime(),confirmtime,sessionplayerrow["id"]],
 		SETTING["dbsetting"]
 	)
 	# 舊的 sessiontimerplayer 列是軟刪的, 但仍留著上次的 eliminated/place; synctimerplayers 復活該列時只清 deletetime, 不會重設狀態,
@@ -177,12 +178,12 @@ def _reentrychip(sessionrow,sessionplayerrow=None):
 		chip=_sessionplayerstartchip(sessionrow,sessionplayerrow)
 	return chip
 
-def _restorereentry(sessionrow,sessionplayerrow):
+def _restorereentry(sessionrow,sessionplayerrow,note=""):
 	# Reentry 是一次新的 entry：配發新的入場編號（累計 +1），不沿用原本的舊號。
 	query(SETTING["dbname"],
 		# confirmtime 用 nowtime()（本地），與排座排序的另一把尺 registertime 對齊。見 AGENTS.md「時間欄」。
-		f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=%s,"canceltime"=NULL,"updatetime"=NOW(),"deletetime"=NULL,"reentrycount"=COALESCE("reentrycount",0)+1,"startchip"=%s,"tableid"=NULL,"seatno"=NULL WHERE "id"=%s""",
-		[_nextserialno(sessionrow["id"]),nowtime(),_reentrychip(sessionrow,sessionplayerrow),sessionplayerrow["id"]],
+		f"""UPDATE "sessionplayer" SET "status"='confirmed',"serialno"=%s,"confirmtime"=%s,"canceltime"=NULL,"updatetime"=NOW(),"deletetime"=NULL,"reentrycount"=COALESCE("reentrycount",0)+1,"startchip"=%s,"tableid"=NULL,"seatno"=NULL,"note"=%s WHERE "id"=%s""",
+		[_nextserialno(sessionrow["id"]),nowtime(),_reentrychip(sessionrow,sessionplayerrow),note,sessionplayerrow["id"]],
 		SETTING["dbsetting"]
 	)
 	query(SETTING["dbname"],
@@ -810,7 +811,8 @@ try:
 			return errorresponse("ERROR_session_not_open_for_registration")
 
 		requestdata=validate(json.loads(request.body),{
-			"playerid": "required|string"
+			"playerid": "required|string",
+			"note": "string"
 		},{
 			"required": "ERROR_request_data_not_found",
 			"string": "ERROR_request_data_type_error"
@@ -819,6 +821,9 @@ try:
 			return errorresponse(requestdata["error"])
 
 		playerid=requestdata["data"].get("playerid")
+		note=requestdata["data"].get("note") or ""
+		if note.strip()=="":
+			note=""
 		playerrow=query(SETTING["dbname"],f"""SELECT*FROM "user" WHERE "playerid"=%s AND "deletetime" IS NULL""",[playerid],SETTING["dbsetting"])
 		if not playerrow:
 			return errorresponse("ERROR_user_not_found")
@@ -834,7 +839,7 @@ try:
 			if existing["status"]=="registered" or existing["status"]=="confirmed":
 				if existing["status"]=="confirmed" and _eliminatedtimerplayer(sessionrow["id"],existing["id"]):
 					if _canreentry(sessionrow,existing):
-						return _restorereentry(sessionrow,existing)
+						return _restorereentry(sessionrow,existing,note)
 					return errorresponse("WARNING_rebuycount_exceeded")
 				return errorresponse("ERROR_already_registered")
 			return errorresponse("ERROR_already_registered")
@@ -842,7 +847,7 @@ try:
 		# 之前取消過 (軟刪) 的報名: 復活同一列並重設為全新報名, 不新增第二列 ((sessionid,userid) 有唯一鍵)
 		deletedrow=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" WHERE "sessionid"=%s AND "userid"=%s AND "deletetime" IS NOT NULL""",[sessionid,playerrow["id"]],SETTING["dbsetting"])
 		if deletedrow:
-			newid=_reviveregistration(sessionrow,deletedrow[0],"confirmed")
+			newid=_reviveregistration(sessionrow,deletedrow[0],"confirmed",note)
 		else:
 			newid=queryinsert(SETTING["dbname"],"sessionplayer",{
 				"sessionid": sessionid,
@@ -853,6 +858,7 @@ try:
 				"paymenttype": "ticket" if sessionrow.get("ticketenabled") else "cash",
 				"ticketvalue": sessionrow.get("ticketvalue") or 0,
 				"startchip": _sessionplayerstartchip(sessionrow),
+				"note": note,
 				"serialno": _nextserialno(sessionid),
 				"registertime": nowtime(),
 				"confirmtime": nowtime()
@@ -976,7 +982,7 @@ try:
 		# 所以兩者本來就該相等; 不相等表示有多發/短發, 或是還沒把碼量記錄上來。
 		# 用共用的 expectedchiptotal, 與大螢幕平均碼量的分母同一套公式, 不會兩邊算出不同答案。
 		expectedchipcount=expectedchiptotal(sessionrow,rows)
-		tablerows=query(SETTING["dbname"],f"""SELECT "id","no","token","closedtime" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
+		tablerows=query(SETTING["dbname"],f"""SELECT "id","no","token","closedtime","lockedseatlist" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC""",[sessionid],SETTING["dbsetting"])
 		advancetargets=_multidaytargets(sessionid)
 
 		# 收據抬頭用：場地名稱、系列賽名稱（若此場次被系列賽包住）、開賽時間
@@ -1468,9 +1474,12 @@ try:
 			tablerow=query(SETTING["dbname"],f"""SELECT*FROM "table" WHERE "id"=%s AND "sessionid"=%s AND "deletetime" IS NULL""",[tableid,row["sessionid"]],SETTING["dbsetting"])
 			if not tablerow:
 				return errorresponse("ERROR_table_not_found")
+			tablerow=tablerow[0]
 		if tableid and seatno:
 			if _int(sessionrow.get("maxseat"),9)<_int(seatno,0):
 				return errorresponse("ERROR_request_data_type_error")
+			if seatlocked(tablerow,seatno,_int(sessionrow.get("maxseat"),9)):
+				return errorresponse("ERROR_seat_locked")
 			if _eliminatedtimerplayer(sessionrow["id"],sessionplayerid):
 				return errorresponse("ERROR_player_eliminated")
 			dupe=query(SETTING["dbname"],f"""SELECT*FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."seatno"=%s AND sp."id"<>%s AND sp."status"='confirmed' AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[row["sessionid"],tableid,seatno,sessionplayerid],SETTING["dbsetting"])
@@ -1622,13 +1631,14 @@ try:
 			tabledata=[]
 			for i in range(len(tablerows)):
 				table=tablerows[i]
+				lockedseatlist=seatlockread(table,maxseat)
 				usedrow=query(SETTING["dbname"],f"""SELECT sp."seatno" FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."seatno" IS NOT NULL AND sp."status"='confirmed' AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[sessionid,table["id"]],SETTING["dbsetting"])
 				used=[]
 				for j in range(len(usedrow or [])):
 					used.append(usedrow[j]["seatno"])
 				seats=[]
 				for seatno in range(1,maxseat+1):
-					if seatno not in used:
+					if seatno not in used and seatno not in lockedseatlist:
 						seats.append(seatno)
 				random.shuffle(seats)
 				tabledata.append({
@@ -1674,9 +1684,11 @@ try:
 		# 未入座補位/重排選取屬於整批自動排座: 已關閉的桌不可再塞新選手 (比照 mergetableplayers 對關閉目標桌回錯誤)
 		if tablerow.get("closedtime"):
 			return errorresponse("ERROR_table_closed")
+		lockedseatlist=seatlockread(tablerow,maxseat)
 		seats=[]
 		for i in range(1,maxseat+1):
-			seats.append(i)
+			if i not in lockedseatlist:
+				seats.append(i)
 		usedrow=query(SETTING["dbname"],f"""SELECT sp."seatno" FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."tableid"=%s AND sp."seatno" IS NOT NULL AND sp."status"='confirmed' AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[sessionid,tableid],SETTING["dbsetting"])
 		for i in range(len(usedrow or [])):
 			for j in range(len(rows or [])):

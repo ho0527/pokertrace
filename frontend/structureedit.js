@@ -51,7 +51,10 @@ function applystatictext(){
 	domgetid("btnAddBreak").value=structureedittext("addbreak")
 	domgetid("quickTitle").textContent=structureedittext("quicktitle")
 	domgetid("levelDurLabel").textContent=structureedittext("leveldur")
+	domgetid("levelHandsLabel").textContent=structureedittext("levelhandcount")
 	domgetid("breakDurLabel").textContent=structureedittext("breakdur")
+	domgetid("anteToggleLabel").textContent=structureedittext("antestatus")
+	domgetid("btnToggleAnte").value=structureedittext("enableante")
 	domgetid("editTitle").textContent=structureedittext("edittitle")
 	domgetid("headItem").textContent=structureedittext("item")
 	domgetid("headType").textContent=structureedittext("type")
@@ -189,6 +192,27 @@ function renderheader(){
 	}else{
 		domgetid("regBadge").className="reg-badge reg-open"
 		domgetid("regBadge").textContent=structureedittext("regopen")
+	}
+}
+
+function updateantetoggle(){
+	let button=domgetid("btnToggleAnte")
+	let rows=document.querySelectorAll("[data-struct-row]")
+	let founded=false
+	let allanteed=true
+	for(let i=0;i<rows.length;i=i+1){
+		let typeinput=rows[i].querySelector("[data-edit-k=\"type\"]")
+		let type=typeinput?typeinput.value:"level"
+		if(type!="break"){
+			founded=true
+			let anteinput=rows[i].querySelector("[data-edit-k=\"ante\"]")
+			if(!anteinput||(parseInt(anteinput.value,10)||0)<=0){
+				allanteed=false
+			}
+		}
+	}
+	if(button){
+		button.value=founded&&allanteed?structureedittext("disableante"):structureedittext("enableante")
 	}
 }
 
@@ -836,6 +860,7 @@ domgetid("btnApplyLevelDur").addEventListener("click",function(){
 	}
 	for(let i=0;i<state.schedule.length;i=i+1){
 		if(state.schedule[i].type=="level"){
+			state.schedule[i].timemode="time"
 			state.schedule[i].dur=dur
 		}
 	}
@@ -845,6 +870,28 @@ domgetid("btnApplyLevelDur").addEventListener("click",function(){
 
 onenterclick("#structLevelDur",function(){
 	click("#btnApplyLevelDur")
+})
+
+domgetid("btnApplyLevelHands").addEventListener("click",function(){
+	readstructeditor()
+	let handcount=parseInt(domgetid("structLevelHands").value,10)
+	if(isNaN(handcount)||handcount<=0){
+		showtoast(structureedittext("badlevelhands"),"err")
+		return
+	}
+	for(let i=0;i<state.schedule.length;i=i+1){
+		if(state.schedule[i].type=="level"){
+			state.schedule[i].timemode="hands"
+			state.schedule[i].handTargetCount=handcount
+			state.schedule[i].handCount=parseInt(state.schedule[i].handCount,10)||0
+		}
+	}
+	buildstructeditor()
+	showtoast(structureedittext("levelhandsapplied"))
+})
+
+onenterclick("#structLevelHands",function(){
+	click("#btnApplyLevelHands")
 })
 
 domgetid("btnApplyBreakDur").addEventListener("click",function(){
@@ -865,6 +912,35 @@ domgetid("btnApplyBreakDur").addEventListener("click",function(){
 
 onenterclick("#structBreakDur",function(){
 	click("#btnApplyBreakDur")
+})
+
+domgetid("btnToggleAnte").addEventListener("click",function(){
+	readstructeditor()
+	let founded=false
+	let allanteed=true
+	for(let i=0;i<state.schedule.length;i=i+1){
+		if(state.schedule[i].type=="level"){
+			founded=true
+			if((parseInt(state.schedule[i].ante,10)||0)<=0){
+				allanteed=false
+			}
+		}
+	}
+	for(let i=0;i<state.schedule.length;i=i+1){
+		if(state.schedule[i].type=="level"){
+			if(founded&&allanteed){
+				state.schedule[i].ante=0
+			}else{
+				state.schedule[i].ante=parseInt(state.schedule[i].bb,10)||0
+			}
+		}
+	}
+	buildstructeditor()
+	if(founded&&allanteed){
+		showtoast(structureedittext("antedisabled"))
+	}else{
+		showtoast(structureedittext("anteenabled"))
+	}
 })
 
 function updatestructsummary(){
@@ -917,6 +993,7 @@ function updatestructsummary(){
 		parts.push(structureedittext("sumhandsprefix")+handslevels+structureedittext("sumhandssuffix"))
 	}
 	box.textContent=rows.length?parts.join(" · "):""
+	updateantetoggle()
 	updatestructwarnings()
 }
 

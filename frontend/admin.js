@@ -78,20 +78,6 @@ function statuscodeclass(code){
 	return "bg-emerald-500/15 text-emerald-200"
 }
 
-function formatdatetime(value){
-	if(!value){
-		return ""
-	}
-	let date=new Date(value)
-	if(isNaN(date.getTime())){
-		return value
-	}
-	let pad=function(number){
-		return String(number).padStart(2,"0")
-	}
-	return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate())+" "+pad(date.getHours())+":"+pad(date.getMinutes())+":"+pad(date.getSeconds())
-}
-
 function userlabelof(item){
 	if(item["username"]){
 		return escapehtml(item["username"])+" / "+escapehtml(item["userplayerid"]||"")
@@ -111,7 +97,7 @@ function renderadminlog(row){
 		let item=row[i]
 		html=html+`
 			<tr class="adminlogrow border-t border-zinc-800 hover:bg-zinc-900/60 cursor-pointer" data-index="${i}">
-				<td class="px-4 py-3 whitespace-nowrap text-zinc-300">${escapehtml(formatdatetime(item["createtime"]))}</td>
+				<td class="px-4 py-3 whitespace-nowrap text-zinc-300">${escapehtml(ptformatdatetime(item["createtime"]))}</td>
 				<td class="px-4 py-3 text-zinc-200">${userlabelof(item)}<div class="text-xs text-zinc-500">${escapehtml(item["useremail"]||"")}</div></td>
 				<td class="px-4 py-3 text-zinc-300 font-mono text-xs">${escapehtml(item["path"])}</td>
 				<td class="px-4 py-3"><span class="text-xs px-2 py-1 rounded ${statuscodeclass(item["statuscode"])}">${escapehtml(item["statuscode"])}</span></td>
@@ -139,7 +125,7 @@ function openadminlogdetail(index){
 		userlabel=adminlogtext("unknownuser")+" #"+item["userid"]
 	}
 	let rows=[
-		[adminlogtext("coltime"),formatdatetime(item["createtime"])],
+		[adminlogtext("coltime"),ptformatdatetime(item["createtime"])],
 		[adminlogtext("coluser"),userlabel+(item["useremail"]?(" / "+item["useremail"]):"")],
 		[adminlogtext("colmethod"),item["method"]],
 		[adminlogtext("colpath"),item["path"]],

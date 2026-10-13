@@ -58,9 +58,9 @@ function tdaquizsetlanguage(lang){
 }
 
 function tdaquizbody(item){
-	let body=item["bodyzh"]||""
+	let body=tdacontenttext(item["bodyzh"])
 	if(tdaquizlang=="en"){
-		body=item["bodyen"]||""
+		body=tdacontenttext(item["bodyen"])
 	}else{
 		body=tdacleanzh(body)
 	}

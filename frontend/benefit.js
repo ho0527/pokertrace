@@ -12,6 +12,7 @@ let clubchart=null
 // 分岔(位置)、每條直接標註帶正負號的數值(文字)、以及下方的表格孿生。
 const CLUBPROFITCOLOR="#34d399"
 const CLUBLOSSCOLOR="#f87171"
+const BENEFITFILTERKEY=WEBLSNAME+"benefitfilter"
 
 function benefittext(key){
     if(!TRANSLATE[LANGUAGE]){
@@ -41,7 +42,6 @@ function applybenefitlanguage(){
     setbenefittext("#benefitpositiondesc",benefittext("positiondesc"))
     setbenefittext("#backtoprofile",benefittext("backtoprofile"))
     setbenefittext("#benefitfiltertitle",benefittext("filtertitle"))
-    setbenefittext("#benefitfilterdesc",benefittext("filterdesc"))
     setbenefittext("#startdatelabel",benefittext("startdate"))
     setbenefittext("#enddatelabel",benefittext("enddate"))
     setbenefittext("#search",benefittext("search"))
@@ -225,14 +225,14 @@ function renderclubtable(grouplist){
         let row=document.createElement("tr")
         row.className="border-b border-zinc-900"
         let namecell=document.createElement("td")
-        namecell.className="py-2 pr-4 text-zinc-100"
+        namecell.className="py-2 px-2 text-left text-zinc-100"
         // 協會名稱是使用者資料, 用 textContent 寫入不進 HTML 字串
         namecell.textContent=grouplist[i]["name"]
         let countcell=document.createElement("td")
-        countcell.className="py-2 pr-4 text-right font-mono text-zinc-300"
+        countcell.className="py-2 px-2 text-center font-mono text-zinc-300"
         countcell.textContent=String(grouplist[i]["count"])
         let profitcell=document.createElement("td")
-        profitcell.className="py-2 text-right font-mono font-bold"
+        profitcell.className="py-2 px-2 text-center font-mono font-bold"
         if(grouplist[i]["profit"]<0){
             profitcell.style.color=CLUBLOSSCOLOR
         }else{
@@ -287,6 +287,15 @@ function renderclubchart(){
 
     let namelist=[]
     let valuelist=[]
+    let mobileed=window.innerWidth<640
+    let gridleft="3%"
+    let gridright="12%"
+    let labelwidth=240
+    if(mobileed){
+        gridleft=8
+        gridright=52
+        labelwidth=112
+    }
     let i=0
     for(i=grouplist.length-1;i>=0;i=i-1){
         namelist.push(grouplist[i]["name"])
@@ -321,8 +330,8 @@ function renderclubchart(){
             }
         },
         "grid": {
-            "left": "3%",
-            "right": "12%",
+            "left": gridleft,
+            "right": gridright,
             "top": "6%",
             "bottom": "12%",
             "containLabel": true
@@ -353,7 +362,10 @@ function renderclubchart(){
                 }
             },
             "axisLabel": {
-                "color": "#d4d4d8"
+                "color": "#d4d4d8",
+                "width": labelwidth,
+                "overflow": "truncate",
+                "ellipsis": "…"
             },
             "axisTick": {
                 "show": false
@@ -550,8 +562,36 @@ function setdefaultdates(){
     value("#startdate",localdateymd(thirtydaysago))
 }
 
+function savebenefitfilter(){
+    let filter={
+        "startdate": getvalue("startdate"),
+        "enddate": getvalue("enddate")
+    }
+    weblsset(BENEFITFILTERKEY,JSON.stringify(filter))
+}
+
+function restorebenefitfilter(){
+    let savedfilter=weblsget(BENEFITFILTERKEY)||""
+    let restored=false
+    if(savedfilter!=""){
+        try{
+            let filter=JSON.parse(savedfilter)
+            const DATEPATTERN=/^\d{4}-\d{2}-\d{2}$/
+            if(DATEPATTERN.test(filter["startdate"]||"")&&DATEPATTERN.test(filter["enddate"]||"")){
+                value("#startdate",filter["startdate"])
+                value("#enddate",filter["enddate"])
+                restored=true
+            }
+        }catch(error){
+            restored=false
+        }
+    }
+    return restored
+}
+
 applybenefitlanguage()
 setdefaultdates()
+restorebenefitfilter()
 
 /* ── 場次資料載入（TASK-013 修正沉默截斷）─────────────────────────────────
    原本固定抓 getsessionlist?limit=1000 一次就算了。場次超過 1000 的使用者
@@ -625,17 +665,20 @@ function loadsessionpage(page,collected){
 loadsessionpage(1,[])
 
 onclick("#search",function(){
+    savebenefitfilter()
     renderchart()
     renderclubchart()
 })
 
 onclick("#reset",function(){
+    weblsset(BENEFITFILTERKEY,null)
     setdefaultdates()
     renderchart()
     renderclubchart()
 })
 
 onenterclick("#startdate,#enddate",function(){
+    savebenefitfilter()
     renderchart()
     renderclubchart()
 })

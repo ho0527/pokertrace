@@ -24,6 +24,7 @@ from function.function import *
 from .initialize import *
 from .authhelper import gettokenuser as commonauthuser
 from .hand import sessionaccess,boolval,intval,boardcardread,totalpotread
+from .seatlock import seatlocked,seatlocknormalize,seatlockread
 
 # main START
 def ensuretablesettingcolumns():
@@ -43,6 +44,7 @@ def ensuretablesettingcolumns():
 	""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."table" ADD COLUMN IF NOT EXISTS firstdealerplace bigint DEFAULT 1""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."table" ADD COLUMN IF NOT EXISTS selfseating bigint DEFAULT 1""",[],SETTING["dbsetting"])
+	query(SETTING["dbname"],"""ALTER TABLE public."table" ADD COLUMN IF NOT EXISTS lockedseatlist jsonb NOT NULL DEFAULT '[]'::jsonb""",[],SETTING["dbsetting"])
 	query(SETTING["dbname"],"""ALTER TABLE public."table" ADD COLUMN IF NOT EXISTS closedtime timestamp with time zone""",[],SETTING["dbsetting"])
 
 def tableauthuser(request):
@@ -117,11 +119,14 @@ def tableavailableplayers(sessionid):
 
 def tablecurrentplayers(sessionrow,tableid):
 	maxseat=int(sessionrow.get("maxseat") or 9)
+	tablerow=query(SETTING["dbname"],"""SELECT "lockedseatlist" FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[tableid],SETTING["dbsetting"])
+	lockedseatlist=seatlockread(tablerow[0] if tablerow else {},maxseat)
 	currentplayers=[]
 	for i in range(maxseat):
 		currentplayers.append({
 			"seatno": i+1,
-			"player": None
+			"player": None,
+			"locked": i+1 in lockedseatlist
 		})
 	if sessionrow.get("linkuser"):
 		seatingrow=tableactiveplayers(sessionrow["id"],tableid)
@@ -214,6 +219,7 @@ def getsessiontableboard(request,sessionid):
 	totalplayers=0
 	for t in tablerows:
 		seats=tablecurrentplayers(sessionrow,t["id"])
+		lockedseatlist=seatlockread(t,maxseat)
 		players=[]
 		for s in seats:
 			if s.get("player"):
@@ -226,6 +232,11 @@ def getsessiontableboard(request,sessionid):
 				})
 		occupied=len(players)
 		totalplayers=totalplayers+occupied
+		unavailable={}
+		for item in players:
+			unavailable[int(item["seatno"])]=True
+		for seatno in lockedseatlist:
+			unavailable[int(seatno)]=True
 		tables.append({
 			"id": t["id"],
 			"no": t.get("no"),
@@ -233,7 +244,8 @@ def getsessiontableboard(request,sessionid):
 			"token": t.get("token") or "",
 			"maxseat": maxseat,
 			"occupied": occupied,
-			"empty": maxseat-occupied,
+			"empty": maxseat-len(unavailable),
+			"lockedseatlist": lockedseatlist,
 			"closed": True if t.get("closedtime") else False,
 			"players": players
 		})
@@ -699,7 +711,7 @@ def gettable(request,tableid):
 				row["firstdealerplace"]=1
 			if not row.get("selfseating"):
 				row["selfseating"]=1
-			tablerows=query(SETTING["dbname"],"""SELECT "id","no","token","closedtime" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC,"id" ASC""",[sessionrow["id"]],SETTING["dbsetting"])
+			tablerows=query(SETTING["dbname"],"""SELECT "id","no","token","closedtime","lockedseatlist" FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "no" ASC,"id" ASC""",[sessionrow["id"]],SETTING["dbsetting"])
 			currentplayers=tablecurrentplayers(sessionrow,tableid)
 			chipmap=lasttablechips(tableid)
 			for current in currentplayers:
@@ -871,7 +883,9 @@ def edittablesetting(request,tableid):
 					# 否則場次設成 7 之類的值時牌桌設定會永遠存不起來。
 					"maxseat": "required|string|in:2,3,4,5,6,7,8,9,10",
 					"firstdealerplace": "required|string|in:1,2,3,4,5,6,7,8,9,10",
-					"selfseating": "required|string|in:1,2,3,4,5,6,7,8,9,10"
+					"selfseating": "required|string|in:1,2,3,4,5,6,7,8,9,10",
+					"lockedseatlist": "array",
+					"lockedseatlist.*": "integer"
 				},{
 					"required": "ERROR_request_data_not_found",
 					"string": "ERROR_request_data_type_error",
@@ -882,8 +896,33 @@ def edittablesetting(request,tableid):
 					maxseat=requestdata["data"].get("maxseat")
 					firstdealerplace=requestdata["data"].get("firstdealerplace")
 					selfseating=requestdata["data"].get("selfseating")
-					query(SETTING["dbname"],"""UPDATE "session" SET "maxseat"=%s,"updatetime"=%s WHERE "id"=%s""",[maxseat,nowtime(),sessionrow["id"]],SETTING["dbsetting"])
-					query(SETTING["dbname"],"""UPDATE "table" SET "firstdealerplace"=%s,"selfseating"=%s,"updatetime"=%s WHERE "id"=%s""",[firstdealerplace,selfseating,nowtime(),tableid],SETTING["dbsetting"])
+					lockedseatlist=seatlockread(row,int(maxseat))
+					if "lockedseatlist" in requestdata["data"]:
+						lockedseatlist=seatlocknormalize(requestdata["data"].get("lockedseatlist"),int(maxseat))
+						if lockedseatlist is None:
+							return errorresponse("ERROR_request_data_type_error")
+					tablelist=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s AND "deletetime" IS NULL""",[sessionrow["id"]],SETTING["dbsetting"]) or []
+					for item in tablelist:
+						itemlockedseatlist=lockedseatlist if str(item["id"])==str(tableid) else seatlockread(item)
+						for seatno in itemlockedseatlist:
+							if int(maxseat)<seatno:
+								return errorresponse("ERROR_request_data_type_error")
+					currentlockedseatlist=seatlockread(row,int(maxseat))
+					newlockedseatlist=[]
+					for seatno in lockedseatlist:
+						if seatno not in currentlockedseatlist:
+							newlockedseatlist.append(seatno)
+					currentplayers=tablecurrentplayers(sessionrow,tableid)
+					for item in currentplayers:
+						if item.get("player") and item["seatno"] in newlockedseatlist:
+							return errorresponse("ERROR_seat_occupied_lock")
+					now=nowtime()
+					result=querytransaction(SETTING["dbname"],[
+						["""UPDATE "session" SET "maxseat"=%s,"updatetime"=%s WHERE "id"=%s""",[maxseat,now,sessionrow["id"]]],
+						["""UPDATE "table" SET "firstdealerplace"=%s,"selfseating"=%s,"lockedseatlist"=%s::jsonb,"updatetime"=%s WHERE "id"=%s""",[firstdealerplace,selfseating,json.dumps(lockedseatlist),now,tableid]]
+					],SETTING["dbsetting"])
+					if result is None:
+						return errorresponse("ERROR_database_error")
 
 					return Response({
 						"success": True,
@@ -929,10 +968,13 @@ def savetableplayers(request,tableid):
 	maxseat=int(sessionrow.get("maxseat") or 9)
 	usedseats=[]
 	usedplayers=[]
+	lockedseatlist=seatlockread(tablerow,maxseat)
 	for i in range(len(players)):
 		seatno=int(players[i].get("seatno") or 0)
 		if seatno<=0 or maxseat<seatno or seatno in usedseats:
 			return errorresponse("ERROR_request_data_type_error")
+		if seatno in lockedseatlist:
+			return errorresponse("ERROR_seat_locked")
 		usedseats.append(seatno)
 		if sessionrow.get("linkuser"):
 			sessionplayerid=int(players[i].get("sessionplayerid") or 0)
@@ -1056,8 +1098,9 @@ def movetableplayer(request,tableid):
 		targettablelist=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "sessionid"=%s AND "id"<>%s AND "deletetime" IS NULL AND "closedtime" IS NULL ORDER BY "no" ASC,"id" ASC""",[tablerow["sessionid"],tableid],SETTING["dbsetting"]) or []
 		for targettable in targettablelist:
 			targetcurrent=tablecurrentplayers(sessionrow,targettable["id"])
+			targetlockedseatlist=seatlockread(targettable,maxseat)
 			for i in range(1,maxseat+1):
-				if i<=len(targetcurrent) and not targetcurrent[i-1].get("player"):
+				if i not in targetlockedseatlist and i<=len(targetcurrent) and not targetcurrent[i-1].get("player"):
 					candidatelist.append({
 						"table": targettable,
 						"seatno": i
@@ -1070,15 +1113,18 @@ def movetableplayer(request,tableid):
 		seatno=picked["seatno"]
 	else:
 		targetcurrent=tablecurrentplayers(sessionrow,targettableid)
+		targetlockedseatlist=seatlockread(targetrow,maxseat)
 		seatno=None
 		if 0<targetseatno and targetseatno<=maxseat:
+			if targetseatno in targetlockedseatlist:
+				return errorresponse("ERROR_seat_locked")
 			if targetseatno<=len(targetcurrent) and not targetcurrent[targetseatno-1].get("player"):
 				seatno=targetseatno
 			else:
 				return errorresponse("ERROR_request_data_type_error")
 		else:
 			for i in range(1,maxseat+1):
-				if i<=len(targetcurrent) and not targetcurrent[i-1].get("player"):
+				if i not in targetlockedseatlist and i<=len(targetcurrent) and not targetcurrent[i-1].get("player"):
 					seatno=i
 					break
 		if seatno is None:
@@ -1163,6 +1209,7 @@ def mergetableplayers(request,tableid):
 		emptymap={}
 		for opentable in opentablelist:
 			used=[]
+			lockedseatlist=seatlockread(opentable,maxseat)
 			if sessionrow.get("linkuser"):
 				targetplayers=tableactiveplayers(sessionrow["id"],opentable["id"])
 				for player in targetplayers:
@@ -1174,7 +1221,7 @@ def mergetableplayers(request,tableid):
 						used.append(seat["seatno"])
 			empty=[]
 			for seatno in range(1,maxseat+1):
-				if seatno not in used:
+				if seatno not in used and seatno not in lockedseatlist:
 					empty.append(seatno)
 			emptymap[opentable["id"]]=empty
 		if sessionrow.get("linkuser"):
@@ -1242,12 +1289,13 @@ def mergetableplayers(request,tableid):
 		"targettablename": targetrow.get("name") or ""
 	}
 	if sessionrow.get("linkuser"):
+		lockedseatlist=seatlockread(targetrow,maxseat)
 		targetplayers=tableactiveplayers(sessionrow["id"],targettableid)
 		for i in range(len(targetplayers)):
 			used.append(targetplayers[i]["seatno"])
 		empty=[]
 		for seatno in range(1,maxseat+1):
-			if seatno not in used:
+			if seatno not in used and seatno not in lockedseatlist:
 				empty.append(seatno)
 		sourceplayers=tableactiveplayers(sessionrow["id"],tableid)
 		if len(empty)<len(sourceplayers):
@@ -1270,12 +1318,13 @@ def mergetableplayers(request,tableid):
 		broadcasttablesession(sessionrow)
 		return Response({"success": True,"data": movedata},status.HTTP_200_OK)
 	targetcurrent=tablecurrentplayers(sessionrow,targettableid)
+	lockedseatlist=seatlockread(targetrow,maxseat)
 	for i in range(len(targetcurrent)):
 		if targetcurrent[i].get("player"):
 			used.append(targetcurrent[i]["seatno"])
 	empty=[]
 	for seatno in range(1,maxseat+1):
-		if seatno not in used:
+		if seatno not in used and seatno not in lockedseatlist:
 			empty.append(seatno)
 	sourcecurrent=tablecurrentplayers(sessionrow,tableid)
 	sourceplayers=[]
