@@ -28,7 +28,7 @@ function fsactioncolor(a){
 let FSTXT={
 	zhtw:{
 		title:"翻後 GTO 求解器", subtitle:"自製 CFR 即時求解翻牌局面（eval7，免費）",
-		boardlabel:"翻牌", potlabel:"底池", stacklabel:"有效後手計分牌",
+		boardlabel:"翻牌", potlabel:"底池", stacklabel:"有效後手籌碼",
 		ooplabel:"OOP 範圍（先行動）", iplabel:"IP 範圍（後行動）", betlabel:"下注尺寸",
 		random:"隨機翻牌", solve:"求解", solving:"求解中…", allowraise:"允許加注",
 		hint:"輸入翻牌、雙方範圍與下注尺寸後按「求解」。後端用 CFR 迭代到均衡（約 2 秒）。",
@@ -50,11 +50,11 @@ let FSTXT={
 		fslibempty:"這個環境沒有提供預先算好的策略庫。你可以改用下方「自己輸入範圍即時求解」直接算。",
 		fslibfail:"讀取失敗",
 		fslibnotready:"策略庫還沒有這組對位在這張翻牌的結果。你可以改用下方的即時求解。",
-		thirdlabel:"背景選手範圍（多人池，選填，最多 7 家）",
-		thirdplaceholder:"留空＝雙人求解；每填一格＝多一個背景選手（固定範圍、一般下注會跟、一被加注就當作蓋牌，非嚴謹多人均衡）",
+		thirdlabel:"背景玩家範圍（多人池，選填，最多 7 家）",
+		thirdplaceholder:"留空＝雙人求解；每填一格＝多一個背景玩家（固定範圍、一般下注會跟、一被加注就當作蓋牌，非嚴謹多人均衡）",
 		advancedtitle:"自己輸入範圍即時求解（多人池、overbet、再加注全下）",
-		bgadd:"＋ 加一家", bgcount:"共 {n} 家（OOP＋IP＋{k} 個背景選手）",
-		multiwaynote:"簡化多人模型：背景選手固定範圍、一般下注會跟、但一被加注就視為蓋牌；非嚴謹多人 Nash 均衡，僅供參考。",
+		bgadd:"＋ 加一家", bgcount:"共 {n} 家（OOP＋IP＋{k} 個背景玩家）",
+		multiwaynote:"簡化多人模型：背景玩家固定範圍、一般下注會跟、但一被加注就視為蓋牌；非嚴謹多人 Nash 均衡，僅供參考。",
 		street_flop:"翻牌", street_turn:"轉牌", street_river:"河牌",
 		deal_turn:"抽轉牌", deal_river:"抽河牌",
 		term_fold:"這步棄牌，對手直接贏得底池，行動結束。", term_call:"這步跟注，雙方直接攤牌比大小，行動結束。",
@@ -683,8 +683,8 @@ function fsrenderresult(){
 	domgetid("fsresult").style.display="block"
 }
 
-let FSBGMAX=7   // 背景選手上限（OOP+IP+7 ＝ 最多 9 人）
-// 目前所有背景選手範圍欄位（第一格 #fsthirdrange ＋ #fsbgextra 內動態新增的）
+let FSBGMAX=7   // 背景玩家上限（OOP+IP+7 ＝ 最多 9 人）
+// 目前所有背景玩家範圍欄位（第一格 #fsthirdrange ＋ #fsbgextra 內動態新增的）
 function fsbgranges(){
 	let out=[]
 	let els=document.querySelectorAll(".fsbgrange")
@@ -695,7 +695,7 @@ function fsbgranges(){
 	return out.slice(0,FSBGMAX)
 }
 function fsbgcount(){ return document.querySelectorAll(".fsbgrange").length }
-// 新增一個背景選手範圍欄位（含移除鈕）
+// 新增一個背景玩家範圍欄位（含移除鈕）
 function fsbgaddrow(){
 	if(fsbgcount()>=FSBGMAX){ return }
 	let wrap=domgetid("fsbgextra")
@@ -718,7 +718,7 @@ function fsbgaddrow(){
 }
 // 更新「共 N 家」提示與 ＋ 鈕的可用狀態
 function fsbgupdatecount(){
-	let filled=fsbgranges().length   // 只算「有填內容」的背景選手，空欄位不灌水
+	let filled=fsbgranges().length   // 只算「有填內容」的背景玩家，空欄位不灌水
 	let el=domgetid("fsbgcount")
 	if(el){ el.textContent=fstext("bgcount").replace("{k}",filled).replace("{n}",filled+2) }
 	let rows=fsbgcount()             // 欄位總數（含空的）用來擋上限
@@ -726,7 +726,7 @@ function fsbgupdatecount(){
 	if(add){ add.disabled=rows>=FSBGMAX; add.style.opacity=rows>=FSBGMAX?"0.4":"" }
 }
 
-// ── 翻後輸入記憶（localStorage）：翻牌、雙方範圍、底池/計分牌、下注尺寸、背景選手，重整後還原 ──
+// ── 翻後輸入記憶（localStorage）：翻牌、雙方範圍、底池/籌碼、下注尺寸、背景玩家，重整後還原 ──
 const FSINPUTKEY=(typeof WEBLSNAME!="undefined"?WEBLSNAME:"")+"fsinputs"
 function fssaveinputs(){
 	try{
@@ -747,7 +747,7 @@ function fssaveinputs(){
 	}catch(e){}
 }
 // 還原上次翻後輸入。回傳 { ranges:bool }：ranges=true 表示已還原範圍（fsinit 就不用再套預設）。
-// 範圍/牌面/背景選手跟遊戲類型綁定（短牌 vs 標準牌），只有同類型才還原；底池/計分牌/下注尺寸則一律還原。
+// 範圍/牌面/背景玩家跟遊戲類型綁定（短牌 vs 標準牌），只有同類型才還原；底池/籌碼/下注尺寸則一律還原。
 function fsloadinputs(){
 	try{
 		let raw=localStorage.getItem(FSINPUTKEY)
@@ -784,7 +784,7 @@ function fssolve(){
 	let iprange=(domgetid("fsiprange").value||"").trim()
 	if(!ooprange||!iprange){ pttoast(fstext("errrange"),"error"); return }
 	let sd=gtostate.gametype=="SD"
-	// 背景選手（多人池）：蒐集所有 .fsbgrange 欄位，最多 7 家（共 9 人）。標準/短牌都支援。
+	// 背景玩家（多人池）：蒐集所有 .fsbgrange 欄位，最多 7 家（共 9 人）。標準/短牌都支援。
 	let bgranges=fsbgranges()
 	let body={
 		board:board,
@@ -875,7 +875,7 @@ function fsinit(){
 	onclick("#fssolve",function(){ fssolve() })
 	onclick("#fsbgadd",function(){ fsbgaddrow() })
 	onenterclick("#fspot,#fsstack",function(){ fssolve() })
-	// 進階區任何輸入變動（範圍、底池、計分牌、背景選手）都即時存檔；背景選手欄位另外更新「共 N 家」
+	// 進階區任何輸入變動（範圍、底池、籌碼、背景玩家）都即時存檔；背景玩家欄位另外更新「共 N 家」
 	let adv=domgetid("fsadvanced")
 	if(adv){ adv.addEventListener("input",function(e){
 		if(e.target&&e.target.classList&&e.target.classList.contains("fsbgrange")){ fsbgupdatecount() }

@@ -637,10 +637,10 @@ function evaluatefive(cards){
 	if(groups[0]["count"]==2&&groups[1]&&groups[1]["count"]==2){
 		let highpair=Math.max(groups[0]["rank"],groups[1]["rank"])
 		let lowpair=Math.min(groups[0]["rank"],groups[1]["rank"])
-		return { category: 2,ranks: [highpair,lowpair],name: "two pair",main: ranklabel(highpair)+ranklabel(lowpair) }
+		return { "category": 2,"ranks": [highpair,lowpair,groups[2]["rank"]],"name": "two pair","main": ranklabel(highpair)+ranklabel(lowpair) }
 	}
 	if(groups[0]["count"]==2){
-		return { category: 1,ranks: [groups[0]["rank"]],name: "one pair",main: ranklabel(groups[0]["rank"]) }
+		return { "category": 1,"ranks": [groups[0]["rank"],groups[1]["rank"],groups[2]["rank"],groups[3]["rank"]],"name": "one pair","main": ranklabel(groups[0]["rank"]) }
 	}
 	let sortedranks=sortdesc(ranks)
 	return { category: 0,ranks: sortedranks,name: "high card",main: ranklabel(sortedranks[0]) }

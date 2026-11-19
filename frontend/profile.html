@@ -6,6 +6,7 @@
         <title>個人資料 - PokerTrace</title>
         <link rel="stylesheet" href="index.css">
         <link rel="stylesheet" href="pokertable.css">
+        <link rel="stylesheet" href="profileidentity.css">
         <link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
         <script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
         <link rel="stylesheet" href="tailwind.css">
@@ -26,7 +27,7 @@
                         <div>
                             <div class="text-lg font-extrabold text-white" id="basicprofiletitle">基本資料</div>
                         </div>
-                        <div class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-300" id="profiletypebadge">選手 / 主辦者</div>
+                        <div class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-300" id="profiletypebadge">玩家 / 主辦者</div>
                     </div>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
@@ -34,8 +35,12 @@
                             <div class="text-lg font-bold text-white break-all" id="profilenamevalue" data-textmarquee>-</div>
                         </div>
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
-                            <div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500" id="basicplayeridkey">選手 ID</div>
+                            <div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500" id="basicplayeridkey">玩家 ID</div>
                             <div class="text-lg font-bold text-white font-mono break-all" id="playerid">-</div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <input type="button" class="profileidentitybutton" data-i18n-value="profile.editid" id="editplayerid" value="修改 ID" hidden>
+                                <input type="button" class="profileidentitybutton" data-i18n-value="profile.myqr" id="showplayerqr" value="我的 QR Code" disabled>
+                            </div>
                         </div>
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
                             <div class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500" id="basicrolekey">角色</div>
@@ -196,6 +201,12 @@
                     </div>
 
                     <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5" id="usernotemanagementcard">
+                            <div class="mb-2 text-base font-bold text-white" data-i18n="usernote.manage">註記管理</div>
+                            <div class="mb-4 text-sm leading-7 text-zinc-400" data-i18n="usernote.managedesc">搜尋、編輯與清除你對其他帳號的私人註記。</div>
+                            <a href="usernotelist.html" class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n="usernote.manage" id="manageusernote">註記管理</a>
+                        </div>
+
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
                             <div class="mb-2 text-base font-bold text-white" id="languagecardtitle">語言</div>
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="languagecarddesc">切換介面語言。</div>
@@ -212,16 +223,16 @@
                         </div>
 
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
-                            <div class="mb-2 text-base font-bold text-white" id="chipcolorcardtitle">計分牌顏色種類</div>
+                            <div class="mb-2 text-base font-bold text-white" id="chipcolorcardtitle">籌碼顏色種類</div>
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="chipcolorcarddesc">整理場次設定可用的顏色名稱。</div>
-                            <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipcolorpreview">尚未設定計分牌顏色</div>
+                            <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipcolorpreview">尚未設定籌碼顏色</div>
                             <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="profile.manage" id="openchipcolormodal" value="管理">
                         </div>
 
                         <div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5">
-                            <div class="mb-2 text-base font-bold text-white" id="chipsetcardtitle">常用計分牌組合</div>
+                            <div class="mb-2 text-base font-bold text-white" id="chipsetcardtitle">常用籌碼組合</div>
                             <div class="mb-4 text-sm leading-7 text-zinc-400" id="chipsetcarddesc">儲存常用面額組合，供場次快速匯入。</div>
-                            <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipsetpreview">尚未設定常用計分牌組合</div>
+                            <div class="mb-4 break-all text-sm leading-7 text-zinc-300" id="chipsetpreview">尚未設定常用籌碼組合</div>
                             <input type="button" class="min-h-12 w-full rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="profile.manage" id="openchipsetmodal" value="管理">
                         </div>
 
@@ -295,8 +306,8 @@
         <div id="deleteaccountmodal2" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
             <div class="w-full max-w-sm rounded-[28px] border border-red-900/60 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
                 <div class="mb-3 text-xl font-extrabold text-red-400" id="deleteaccountmodal2-title">最後確認</div>
-                <div class="mb-4 text-sm leading-7 text-zinc-300" id="deleteaccountmodal2-message">此操作「無法復原」。請輸入你的選手 ID 以確認永久刪除帳號。</div>
-                <input type="text" class="mb-4 min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 font-mono text-[15px] text-white outline-none transition focus:border-red-400 focus:ring-4 focus:ring-red-500/15" id="deleteaccountconfirminput" placeholder="選手 ID">
+                <div class="mb-4 text-sm leading-7 text-zinc-300" id="deleteaccountmodal2-message">此操作「無法復原」。請輸入你的玩家 ID 以確認永久刪除帳號。</div>
+                <input type="text" class="mb-4 min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 font-mono text-[15px] text-white outline-none transition focus:border-red-400 focus:ring-4 focus:ring-red-500/15" id="deleteaccountconfirminput" placeholder="玩家 ID">
                 <div class="mb-4 hidden text-sm text-yellow-300" id="deleteaccountmodal2-status"></div>
                 <div class="flex justify-end gap-3">
                     <input type="button" class="rounded-2xl bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="canceldeleteaccount2" value="取消">
@@ -320,7 +331,7 @@
         <div id="staffmodal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
             <div class="flex max-h-[80vh] w-full max-w-md flex-col rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
                 <div class="mb-5 flex items-center justify-between">
-                    <h2 class="text-xl font-extrabold text-white" id="staffmodal-title">計分員名單</h2>
+                    <h2 class="text-xl font-extrabold text-white" id="staffmodal-title">發牌員名單</h2>
                     <input type="button" class="text-2xl leading-none text-zinc-400 transition hover:text-white" id="closestaffmodal" value="&times;">
                 </div>
                 <div class="mb-5 flex gap-2">
@@ -344,6 +355,8 @@
         <script src="initialize.js"></script>
         <script src="tooldata.js"></script>
         <script src="follow.js"></script>
+        <script src="qrcode.js"></script>
+        <script src="profileidentity.js"></script>
         <script src="profile.js"></script>
     </body>
 </html>

@@ -59,54 +59,54 @@ def gametypedefaultflow(code):
 	flowlist=[]
 	if code=="HE":
 		flowlist=[
-			gametypeflowitem("deal","發手牌","每位選手先拿 2 張暗牌。",2),
+			gametypeflowitem("deal","發手牌","每位玩家先拿 2 張暗牌。",2),
 			gametypeflowitem("blind","下盲注","小盲、大盲依按鈕位置投入。",0,"盲注位置"),
 			gametypeflowitem("ante","下前注","若結構有 ante 或 BB ante，於翻前收齊。"),
-			gametypeflowitem("bet","翻前下注","由槍口開始第一輪下注。",0,"槍口","所有未棄牌選手跟注或加注結束。"),
+			gametypeflowitem("bet","翻前下注","由槍口開始第一輪下注。",0,"槍口","所有未棄牌玩家跟注或加注結束。"),
 			gametypeflowitem("board","翻牌","開 3 張公共牌。",3),
-			gametypeflowitem("bet","翻牌圈下注","由小盲側第一位仍在牌局中的選手開始。",0,"小盲側"),
+			gametypeflowitem("bet","翻牌圈下注","由小盲側第一位仍在牌局中的玩家開始。",0,"小盲側"),
 			gametypeflowitem("board","轉牌","開第 4 張公共牌。",1),
-			gametypeflowitem("bet","轉牌圈下注","仍在牌局中的選手下注。",0,"小盲側"),
+			gametypeflowitem("bet","轉牌圈下注","仍在牌局中的玩家下注。",0,"小盲側"),
 			gametypeflowitem("board","河牌","開第 5 張公共牌。",1),
 			gametypeflowitem("bet","河牌圈下注","完成最後一輪下注。",0,"小盲側"),
-			gametypeflowitem("showdown","攤牌","剩餘選手用最佳 5 張高牌比牌。"),
-			gametypeflowitem("win","獲得底池","只剩一名選手未棄牌時直接獲得所有底池；多人攤牌則依牌型與底池資格分配。")
+			gametypeflowitem("showdown","攤牌","剩餘玩家用最佳 5 張高牌比牌。"),
+			gametypeflowitem("win","獲得底池","只剩一名玩家未棄牌時直接獲得所有底池；多人攤牌則依牌型與底池資格分配。")
 		]
 	elif code=="OM" or code=="O5" or code=="O8" or code=="BO":
 		cardcount=4
 		if code=="O5" or code=="BO":
 			cardcount=5
 		flowlist=gametypedefaultflow("HE")
-		flowlist[0]=gametypeflowitem("deal","發手牌","每位選手先拿 "+str(cardcount)+" 張暗牌。",cardcount)
+		flowlist[0]=gametypeflowitem("deal","發手牌","每位玩家先拿 "+str(cardcount)+" 張暗牌。",cardcount)
 		flowlist[10]=gametypeflowitem("showdown","攤牌","必須剛好用 2 張手牌與 3 張公共牌組牌。高低玩法分別判定高牌與合格低牌。")
 	elif code=="SD":
 		flowlist=gametypedefaultflow("HE")
 		flowlist.insert(0,gametypeflowitem("rule","短牌牌組","移除 2 到 5，只使用 A、K、Q、J、T、9、8、7、6。"))
 	elif code=="SH" or code=="CP":
 		flowlist=gametypedefaultflow("HE")
-		flowlist[0]=gametypeflowitem("deal","發手牌","每位選手先拿 3 張暗牌。",3)
+		flowlist[0]=gametypeflowitem("deal","發手牌","每位玩家先拿 3 張暗牌。",3)
 		if code=="CP":
-			flowlist.insert(5,gametypeflowitem("discard","棄一張手牌","翻牌圈下注後，每位仍在牌局中的選手棄掉 1 張手牌。",1))
+			flowlist.insert(5,gametypeflowitem("discard","棄一張手牌","翻牌圈下注後，每位仍在牌局中的玩家棄掉 1 張手牌。",1))
 	elif code=="ST" or code=="RA" or code=="S8":
 		flowlist=[
-			gametypeflowitem("ante","下前注","所有選手先投入 ante。"),
-			gametypeflowitem("deal","三街","每位選手發 2 張暗牌與 1 張明牌。",3),
+			gametypeflowitem("ante","下前注","所有玩家先投入 ante。"),
+			gametypeflowitem("deal","三街","每位玩家發 2 張暗牌與 1 張明牌。",3),
 			gametypeflowitem("bet","三街下注","依明牌規則決定 bring-in 與行動順序。",0,"明牌規則"),
-			gametypeflowitem("deal","四街","每位未棄牌選手再發 1 張明牌。",1),
+			gametypeflowitem("deal","四街","每位未棄牌玩家再發 1 張明牌。",1),
 			gametypeflowitem("bet","四街下注","依牌面強弱決定先行動者。",0,"牌面"),
-			gametypeflowitem("deal","五街","每位未棄牌選手再發 1 張明牌。",1),
+			gametypeflowitem("deal","五街","每位未棄牌玩家再發 1 張明牌。",1),
 			gametypeflowitem("bet","五街下注","完成五街下注。",0,"牌面"),
-			gametypeflowitem("deal","六街","每位未棄牌選手再發 1 張明牌。",1),
+			gametypeflowitem("deal","六街","每位未棄牌玩家再發 1 張明牌。",1),
 			gametypeflowitem("bet","六街下注","完成六街下注。",0,"牌面"),
-			gametypeflowitem("deal","七街","每位未棄牌選手發最後 1 張暗牌。",1),
+			gametypeflowitem("deal","七街","每位未棄牌玩家發最後 1 張暗牌。",1),
 			gametypeflowitem("bet","七街下注","完成最後一輪下注。",0,"牌面"),
 			gametypeflowitem("showdown","攤牌","從自己的 7 張牌選最佳 5 張；Razz 比 A-5 低牌，Hi-Lo 另分低牌半池。"),
-			gametypeflowitem("win","獲得底池","只剩一名選手未棄牌時直接獲得底池；攤牌依高牌、低牌或分池規則判定。")
+			gametypeflowitem("win","獲得底池","只剩一名玩家未棄牌時直接獲得底池；攤牌依高牌、低牌或分池規則判定。")
 		]
 	elif code=="BU":
 		flowlist=[
 			gametypeflowitem("blind","下盲注","依按鈕位置投入盲注。"),
-			gametypeflowitem("deal","發手牌","每位選手發 4 張暗牌。",4),
+			gametypeflowitem("deal","發手牌","每位玩家發 4 張暗牌。",4),
 			gametypeflowitem("bet","第一次下注","完成換牌前下注。",0,"大盲左側"),
 			gametypeflowitem("draw","第一次換牌","可棄掉 0 到 4 張並補牌；不換牌為 stand pat。"),
 			gametypeflowitem("bet","第二次下注","完成第二輪下注。"),
@@ -128,7 +128,7 @@ def gametypedefaultflow(code):
 			lowrule="2-7 低牌"
 		flowlist=[
 			gametypeflowitem("blind","下盲注","依按鈕位置投入盲注。"),
-			gametypeflowitem("deal","發手牌","每位選手發 5 張暗牌。",5),
+			gametypeflowitem("deal","發手牌","每位玩家發 5 張暗牌。",5),
 			gametypeflowitem("bet","換牌前下注","完成第一輪下注。",0,"大盲左側")
 		]
 		for i in range(drawcount):
@@ -139,7 +139,7 @@ def gametypedefaultflow(code):
 	elif code=="DM":
 		flowlist=[
 			gametypeflowitem("blind","下盲注","依按鈕位置投入盲注。"),
-			gametypeflowitem("deal","發手牌","每位選手發 5 張暗牌。",5),
+			gametypeflowitem("deal","發手牌","每位玩家發 5 張暗牌。",5),
 			gametypeflowitem("bet","換牌前下注","完成第一輪下注。"),
 			gametypeflowitem("draw","換牌","可棄掉部分手牌並補新牌。"),
 			gametypeflowitem("board","翻牌","開 3 張公共牌。",3),

@@ -1056,7 +1056,7 @@ def assignstafftable(request,tableid):
 		movedfromtableid=currentrow[0]["tableid"]
 		sqllist.append(["""UPDATE "tablestaff" SET "endtime"="""+SQLNOW+""","endoperatorid"=%s,"endsource"=%s,"updatetime"="""+SQLNOW+""" WHERE "id"=%s""",[nowtime(),tokenuserrow["id"],source,nowtime(),currentrow[0]["id"]]])
 
-	# 二、本桌同角色若已有人：**不擋**，交接時新舊計分員要能短暫並存。
+	# 二、本桌同角色若已有人：**不擋**，交接時新舊發牌員要能短暫並存。
 	# replaceed=true 才真的把舊的關掉；否則照樣寫入並回 warningcode，由前端跳確認。
 	warningcode=""
 	occupiedrow=query(SETTING["dbname"],"""

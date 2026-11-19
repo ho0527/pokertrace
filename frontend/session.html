@@ -5,6 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>場次詳情 - PokerTrace</title>
 		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="usernote.css">
+		<link rel="stylesheet" href="session.css">
 		<link rel="stylesheet" href="carddisplay.css">
 		<link rel="stylesheet" href="print.css">
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
@@ -38,11 +40,11 @@
 
 			<!-- Tabs -->
 			<div class="mb-6 border-b border-zinc-800 flex justify-around md:justify-start">
-				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="overview" data-data-i18n-value="series.overview" id="0" value="總覽">
-				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="table" data-data-i18n-value="sessionpage.tabtable" id="1" value="牌桌">
-				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="hands" data-data-i18n-value="sessionpage.tabhand" id="2" value="手牌">
-				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="payout" data-data-i18n-value="sessionpage.tplplace" id="6" value="名次">
-				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="other" data-data-i18n-value="sessionpage.tabother" id="7" value="其他">
+				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="overview" data-i18n-value="series.overview" id="0" value="總覽">
+				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="table" data-i18n-value="sessionpage.tabtable" id="1" value="牌桌">
+				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="hands" data-i18n-value="sessionpage.tabhand" id="2" value="手牌">
+				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="payout" data-i18n-value="sessionpage.tplplace" id="6" value="名次">
+				<input type="button" class="tab-btn px-4 py-2 text-zinc-300 border-b-2 border-transparent hover:text-emerald-400" data-tab="other" data-i18n-value="sessionpage.tabother" id="7" value="其他">
 			</div>
 			<!-- Tab Contents -->
 			<div id="tab-overview" class="tab-content">
@@ -133,7 +135,7 @@
 						</div>
 					</div>
 					<div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
-						<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 col-span-2 md:col-span-1 min-w-0" data-i18n-placeholder="sessionpage.handsearchplaceholder" data-i18n-aria-label="sessionpage.handsearchlabel" id="sessionhandsearch" placeholder="搜尋 table / 選手 / Seat" aria-label="搜尋牌桌、選手或座位">
+						<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 col-span-2 md:col-span-1 min-w-0" data-i18n-placeholder="sessionpage.handsearchplaceholder" data-i18n-aria-label="sessionpage.handsearchlabel" id="sessionhandsearch" placeholder="搜尋 table / 玩家 / Seat" aria-label="搜尋牌桌、玩家或座位">
 						<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 min-w-0 appearance-none" data-i18n-aria-label="sessionpage.handfromlabel" id="sessionhandfrom" aria-label="手牌起始日期">
 						<input type="date" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 min-w-0 appearance-none" data-i18n-aria-label="sessionpage.handtolabel" id="sessionhandto" aria-label="手牌結束日期">
 						<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 min-w-0" data-i18n-aria-label="sessionpage.handseatlabel" id="sessionhandseat" inputmode="numeric" placeholder="Seat" aria-label="座位篩選">
@@ -162,10 +164,10 @@
 				<div id="handtab-ev" class="handtab-content hidden">
 					<div class="rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-8">
 						<div class="flex flex-wrap items-center justify-between gap-3 mb-1">
-							<div class="text-lg font-semibold" data-i18n="sessionpage.chartstacktitle">累積計分牌量圖表</div>
+							<div class="text-lg font-semibold" data-i18n="sessionpage.chartstacktitle">累積籌碼量圖表</div>
 							<div id="sessionevplayer" class="hidden"></div>
 						</div>
-						<div class="text-sm text-zinc-400 mb-4" data-i18n="sessionpage.chartstacknote">統計本場次所有牌桌，左側為最舊手牌、右側為最新手牌，數值為每手結束後的累積計分牌量。</div>
+						<div class="text-sm text-zinc-400 mb-4" data-i18n="sessionpage.chartstacknote">統計本場次所有牌桌，左側為最舊手牌、右側為最新手牌，數值為每手結束後的累積籌碼量。</div>
 						<div id="sessionevsummary" class="grid grid-cols-3 gap-3 mb-4"></div>
 						<div id="evChart" class="sessionevchart"></div>
 					</div>
@@ -176,7 +178,7 @@
 							<div class="text-lg font-semibold" data-i18n="sessionpage.statstitle">統計數據</div>
 							<div id="sessionstatsplayer" class="hidden"></div>
 						</div>
-						<div class="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2" data-i18n="sessionpage.tplchip">計分牌</div>
+						<div class="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2" data-i18n="sessionpage.tplchip">籌碼</div>
 						<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-6" id="sessionstatschipcards"></div>
 						<div class="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2" data-i18n="sessionpage.chartprofit">損益</div>
 						<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm" id="sessionstatscards"></div>
@@ -239,6 +241,7 @@
 
 		<script src="translate.js"></script>
 		<script src="initialize.js"></script>
+		<script src="usernote.js"></script>
 		<script src="print.js"></script>
 		<script src="follow.js"></script>
 		<script src="session.js"></script>

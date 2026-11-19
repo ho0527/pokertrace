@@ -4,6 +4,91 @@
 	display: none;
 }
 
+.ptprintpreview {
+    width: min(960px, calc(100% - 24px));
+    max-height: calc(100dvh - 32px);
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #3f3f46;
+    border-radius: 20px;
+    color: #f4f4f5;
+    background: #18181b;
+}
+
+.ptprintpreview h2 {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.ptprintpreview::backdrop {
+    background: rgb(0 0 0 / 75%);
+}
+
+.ptprintpreviewaction {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.ptprintpreviewaction input, .ptprintpreviewaction a {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid #52525b;
+    border-radius: 12px;
+    color: #f4f4f5;
+    background: #27272a;
+    text-decoration: none;
+}
+
+.ptprintpreviewaction [hidden] {
+    display: none;
+}
+
+.ptprintpreviewpaper {
+    overflow-x: auto;
+    padding: 20px;
+    color: #111111;
+    background: #ffffff;
+    font-size: 12px;
+}
+
+.ptprintpreviewpaper .ptprintdoc {
+    min-width: 640px;
+}
+
+.ptprintpreviewpaper .ptprinthead {
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.ptprintpreviewpaper .ptprinttitle {
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.ptprintpreviewpaper .ptprinttable {
+    width: 100%;
+    margin: 16px 0;
+    border-collapse: collapse;
+}
+
+.ptprintpreviewpaper th, .ptprintpreviewpaper td {
+    padding: 6px;
+    border: 1px solid #555555;
+}
+
+.ptprintpreviewpaper th {
+    background: #eeeeee;
+}
+
+.ptprintpreviewpaper .ptprintinforow {
+    display: flex;
+    gap: 16px;
+}
+
 @media print {
 	html, body {
 		background: #ffffff;

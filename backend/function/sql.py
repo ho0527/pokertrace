@@ -76,7 +76,7 @@ def _pgputconn(dbname,setting,conn,ok):
 def createdb(dbname,host="localhost",username="root",password="",port="3306"):
     return MySQLdb.connect(host=host,db=dbname,user=username,passwd=password,port=port)
 
-def query(dbname,sql,data=None,setting={"host": "localhost","username": "root","password": "","port": 3306,"sqltype": "mysql"}):
+def query(dbname,sql,data=None,setting={"host": "localhost","username": "root","password": "","port": 3306,"sqltype": "mysql"},errorredacted=False):
     response=None
     if setting["sqltype"]=="pgsql":
         db=None
@@ -99,7 +99,10 @@ def query(dbname,sql,data=None,setting={"host": "localhost","username": "root","
                     response=cursor.rowcount
             ok=True
         except Exception as error:
-            printcolorhaveline("fail","[ERROR] use query function error " + str(error),"")
+            if errorredacted:
+                printcolorhaveline("fail","[ERROR] private database operation failed","")
+            else:
+                printcolorhaveline("fail","[ERROR] use query function error " + str(error),"")
         finally:
             if cursor:
                 cursor.close()
@@ -129,7 +132,10 @@ def query(dbname,sql,data=None,setting={"host": "localhost","username": "root","
                 else:
                     response=cursor.rowcount
         except Exception as error:
-            printcolorhaveline("fail","[ERROR] use query function error " + str(error),"")
+            if errorredacted:
+                printcolorhaveline("fail","[ERROR] private database operation failed","")
+            else:
+                printcolorhaveline("fail","[ERROR] use query function error " + str(error),"")
         finally:
             if cursor:
                 cursor.close()
@@ -137,7 +143,7 @@ def query(dbname,sql,data=None,setting={"host": "localhost","username": "root","
                 db.close()
         return response
 
-def querytransaction(dbname,sqllist,setting={"host": "localhost","username": "root","password": "","port": 3306,"sqltype": "mysql"}):
+def querytransaction(dbname,sqllist,setting={"host": "localhost","username": "root","password": "","port": 3306,"sqltype": "mysql"},errorredacted=False):
     """在單一連線、單一交易內依序執行多條語句，全部成功才 commit，任一失敗整批 rollback。
 
     Args:
@@ -176,7 +182,10 @@ def querytransaction(dbname,sqllist,setting={"host": "localhost","username": "ro
             response=resultlist
             ok=True
         except Exception as error:
-            printcolorhaveline("fail","[ERROR] use querytransaction function error " + str(error),"")
+            if errorredacted:
+                printcolorhaveline("fail","[ERROR] private database transaction failed ("+type(error).__name__+")","")
+            else:
+                printcolorhaveline("fail","[ERROR] use querytransaction function error " + str(error),"")
             if db:
                 try:
                     db.rollback()
@@ -215,7 +224,10 @@ def querytransaction(dbname,sqllist,setting={"host": "localhost","username": "ro
             db.commit()
             response=resultlist
         except Exception as error:
-            printcolorhaveline("fail","[ERROR] use querytransaction function error " + str(error),"")
+            if errorredacted:
+                printcolorhaveline("fail","[ERROR] private database transaction failed ("+type(error).__name__+")","")
+            else:
+                printcolorhaveline("fail","[ERROR] use querytransaction function error " + str(error),"")
             if db:
                 try:
                     db.rollback()

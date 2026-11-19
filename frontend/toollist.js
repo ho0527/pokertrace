@@ -1,20 +1,20 @@
-﻿let activecategory="all"
+let activecategory="all"
 let toolfavoritelist=[]
 
 const TOOLLISTTEXTMAP={
     "zhtw": {
         title: "工具總覽",
         eyebrow: "Tool Center",
-        desc: "依用途快速找到現場、練習、計分牌、獎金與營運工具。",
+        desc: "依用途快速找到現場、練習、籌碼、獎金與營運工具。",
         back: "回上一頁",
         searchlabel: "搜尋工具",
-        searchplaceholder: "輸入關鍵字，例如 ICM、座位、計分牌",
+        searchplaceholder: "輸入關鍵字，例如 ICM、座位、籌碼",
         countlabel: "顯示",
         empty: "找不到符合條件的工具",
         all: "全部",
         featured: "常用",
         live: "現場",
-        chip: "計分牌",
+        chip: "籌碼",
         payout: "獎金",
         strategy: "策略",
         operation: "營運",

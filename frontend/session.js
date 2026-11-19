@@ -4,6 +4,9 @@ let currentsession=null
 let sessiontimerstate=null
 let sessiontimerloadinged=false
 let sessiontimercallbacks=[]
+let sessiontimerstaleed=false
+let sessionrefreshloadinged=false
+let sessionbackgrounded=false
 let sessionselectedtable=""
 let sessionresizetimer=null
 let settingclubs=[]
@@ -155,6 +158,17 @@ function updatesessiontabs(){
 	if(!settingsed&&settingsbtn&&settingsbtn.classList.contains("border-emerald-400")){
 		selectsessionothertab("orderinfo")
 	}
+    const STAFFBUTTON=document.querySelector('.othertab-btn[data-othertab="staff"]')
+    const STAFFCONTENT=document.getElementById("othertab-staff")
+    if(STAFFBUTTON){
+        STAFFBUTTON.classList.toggle("hidden",!settingsed)
+        if(!settingsed&&STAFFBUTTON.classList.contains("border-emerald-400")){
+            selectsessionothertab("orderinfo")
+        }
+    }
+    if(STAFFCONTENT&&!settingsed){
+        STAFFCONTENT.classList.add("hidden")
+    }
 }
 
 function canviewsessionsettings(row){
@@ -169,7 +183,7 @@ function canviewsessionsettings(row){
 
 function sessionroledata(row){
 	let result={
-		"role": sessionpagetext("roleplayer","選手"),
+		"role": sessionpagetext("roleplayer","玩家"),
 		"status": sessionpagetext("roleplayerstatus","可查看場次資訊"),
 		"nextstep": sessionpagetext("roleplayernext","先確認時間、地點與目前是否開放報名。"),
 		"ctatext": sessionpagetext("roleplayercta","查看總覽"),
@@ -199,11 +213,11 @@ function sessionroledata(row){
 	}
 	if(row["isstaff"]==true){
 		result["role"]=sessionpagetext("rolehired","已聘用員工")
-		result["status"]=sessionpagetext("rolehiredstatus","可查看相關場次並協助執行，但不會以選手身份報名")
+		result["status"]=sessionpagetext("rolehiredstatus","可查看相關場次並協助執行，但不會以玩家身份報名")
 		result["nextstep"]=sessionpagetext("rolehirednext","先確認你的協助範圍與目前場次狀態。")
 		result["ctatext"]=sessionpagetext("rolehiredcta","查看場次狀態")
 		result["ctahref"]="#overview-general"
-		result["focus"]=sessionpagetext("rolehiredfocus","員工版首屏會先給你必要資訊，不會把選手報名動作放在前面。")
+		result["focus"]=sessionpagetext("rolehiredfocus","員工版首屏會先給你必要資訊，不會把玩家報名動作放在前面。")
 		result["helper"]=sessionpagetext("rolehiredhelper","若你是裁判或助理，會另外顯示計時器相關入口。")
 		return result
 	}
@@ -231,11 +245,11 @@ function sessionroledata(row){
 		result["nextstep"]=sessionpagetext("roleopennext","先看規則與時間，確認沒問題後直接報名。")
 		result["ctatext"]=sessionpagetext("roleopencta","立即報名")
 		result["ctahref"]="#overview-general"
-		result["focus"]=sessionpagetext("roleopenfocus","選手首屏會先把是否能報名和你接下來該做什麼講清楚。")
+		result["focus"]=sessionpagetext("roleopenfocus","玩家首屏會先把是否能報名和你接下來該做什麼講清楚。")
 		result["helper"]=sessionpagetext("roleopenhelper","不需要先翻到手牌、設定或其他管理資訊。")
 		return result
 	}
-	result["status"]=sessionpagetext("roleclosedstatus","目前未開放報名或尚未與選手報名連結")
+	result["status"]=sessionpagetext("roleclosedstatus","目前未開放報名或尚未與玩家報名連結")
 	result["nextstep"]=sessionpagetext("roleclosednext","先確認開賽時間、報名條件與主辦公告。")
 	return result
 }
@@ -323,7 +337,7 @@ function rendersessionnextsteps(row){
 		]
 	}else if(row["isstaff"]==true){
 		list=[
-			sessionpagetext("guidehired1","先確認自己是以員工身份協助，不需要執行選手報名動作。"),
+			sessionpagetext("guidehired1","先確認自己是以員工身份協助，不需要執行玩家報名動作。"),
 			sessionpagetext("guidehired2","查看目前場次狀態與座位 / 進度資訊。"),
 			sessionpagetext("guidehired3","有需要再配合主辦進入對應工具頁。")
 		]
@@ -505,7 +519,7 @@ function sessionrebuycard(label,enabled,count,buyin,fee,chip){
 			<div class="grid grid-cols-3 gap-2 text-center">
 				<div><div class="text-[11px] text-zinc-500">${sessionpagetext("tplcount","次數")}</div><div class="text-sm font-semibold text-zinc-200">${safehtml(sessionrebuynumber(count))}</div></div>
 				<div><div class="text-[11px] text-zinc-500">${sessionpagetext("tplbuyin","買入")}</div><div class="text-sm font-semibold text-zinc-200">${safehtml(sessionfeetext(buyin,fee))}</div></div>
-				<div><div class="text-[11px] text-zinc-500">${sessionpagetext("tplchip","計分牌")}</div><div class="text-sm font-semibold text-zinc-200">${safehtml(sessionrebuynumber(chip))}</div></div>
+				<div><div class="text-[11px] text-zinc-500">${sessionpagetext("tplchip","籌碼")}</div><div class="text-sm font-semibold text-zinc-200">${safehtml(sessionrebuynumber(chip))}</div></div>
 			</div>
 		</div>
 	`
@@ -707,7 +721,7 @@ function rendersessiondetailinfo(row){
 	html=html+sessioninfocard(sessionpagetext("cardmaxseat","每桌座位"),sessiondisplayvalue(row["maxseat"]),"text-center")
 	html=html+sessioninfocard(sessionpagetext("cardantemode","前注模式"),sessionantetext(row["antemode"]),"text-center")
 	html=html+sessioninfocard(sessionpagetext("cardbuyinfee","買入(服務費)"),sessionfeetext(row["buyin"],row["buyinfee"]),"text-center")
-	html=html+sessioninfocard(sessionpagetext("cardbuyinchip","買入計分牌"),sessionmoneytext(row["chip"]),"text-center")
+	html=html+sessioninfocard(sessionpagetext("cardbuyinchip","買入籌碼"),sessionmoneytext(row["chip"]),"text-center")
 	html=html+sessioninfocard(sessionpagetext("cardticketvalue","票券價值"),sessionmoneytext(row["ticketvalue"]),"text-center")
 	html=html+sessioninfocard(sessionpagetext("cardguaranteed","保底獎金"),sessionmoneytext(row["guaranteedprize"]),"text-center")
 
@@ -864,6 +878,9 @@ function initsessiontabletools(){
 		return
 	}
 	let controls=list.querySelector(".bg-zinc-800.rounded-lg.p-4")
+    if(controls){
+        controls.classList.add("sessiontabletoolbar")
+    }
 	if(controls&&!domgetid("tablesearch")){
 		// 整段重建前先保存 #tableboardentry(多牌桌總覽入口), 重建後插回, 避免被 innerHTML 抹除
 		let tableboardentry=domgetid("tableboardentry")
@@ -954,6 +971,10 @@ function rendersessiontablepager(total){
 }
 
 function rendersessiontablelist(){
+    const TABLEBODY=document.getElementById("tablemain")
+    if(TABLEBODY){
+        TABLEBODY.classList.remove("text-red-500","font-bold","my-1","text-lg")
+    }
 	let rows=filtersessiontables()
 	rows=ptsortlist(rows,sessiontablesortstate["key"],sessiontablesortstate["ascended"],sessiontablesortvalue)
 	ptsortarrow("#sessiontablehead",sessiontablesortstate["key"],sessiontablesortstate["ascended"])
@@ -982,7 +1003,8 @@ function rendersessiontablelist(){
 		html=html+`
 			<tr class="hover:bg-zinc-700 transition cursor-pointer sessiontablerow" data-url="${tableurl}">
 				<td class="relative py-2 px-2">${safehtml(sessiontableno(rows[i]))}${closedbadge}<a href="${tableurl}" class="rowlink absolute inset-0 z-10"></a></td>
-				<td class="relative py-2 px-2">
+				<td class="sessiontableactions relative py-2 px-2">
+					<div class="sessiontableactionlist">
 					${
 						tablelinked||!canviewsessionsettings(currentsession)?`
 							${managehtml||"-"}${managehtml?"":`<a href="${tableurl}" class="rowlink absolute inset-0 z-10"></a>`}
@@ -992,6 +1014,7 @@ function rendersessiontablelist(){
 							${managehtml}
 						`
 					}
+					</div>
 				</td>
 			</tr>
 		`
@@ -1049,7 +1072,7 @@ function rendersessiontablelist(){
 		let table=findsessiontable(tableid)
 		let label=table?String(sessiontableno(table)):""
 		if(closed){
-			ptconfirm(smt("closeconfirm","確定要關閉「{table}」嗎？關閉後不會再有新選手進入此桌。").replace("{table}",safehtml(label)),function(okayed){
+			ptconfirm(smt("closeconfirm","確定要關閉「{table}」嗎？關閉後不會再有新玩家進入此桌。").replace("{table}",safehtml(label)),function(okayed){
 				if(!okayed){
 					return
 				}
@@ -1171,7 +1194,7 @@ function opensessiontablemerge(sourceid){
 					<div class="text-lg font-semibold text-white">${smt("mergetitle","併桌：選擇目標牌桌")}</div>
 					<input type="button" class="closetablemerge text-zinc-400 hover:text-white" value="×">
 				</div>
-				<div class="text-sm text-zinc-400 mb-4">${smt("mergedesc","把「{table}」的所有選手併到選定的目標桌，併桌後本桌會自動關閉。").replace("{table}",safehtml(sourcelabel))}</div>
+				<div class="text-sm text-zinc-400 mb-4">${smt("mergedesc","把「{table}」的所有玩家併到選定的目標桌，併桌後本桌會自動關閉。").replace("{table}",safehtml(sourcelabel))}</div>
 				<div class="grid grid-cols-1 gap-2 max-h-[50vh] overflow-y-auto">${optionhtml}</div>
 				<div class="flex justify-end gap-2 mt-5">
 					<input type="button" class="closetablemerge bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="${smt("cancel","取消")}">
@@ -1192,7 +1215,7 @@ function opensessiontablemerge(sourceid){
 				}
 			}
 			let targetlabel=target?String(target["name"]||target["no"]||target["id"]):""
-			ptconfirm(smt("mergeconfirm","確定要把「{source}」的所有選手併到「{target}」嗎？併桌後「{source}」會自動關閉。").replace(/\{source\}/g,safehtml(sourcelabel)).replace("{target}",safehtml(targetlabel)),function(okayed){
+			ptconfirm(smt("mergeconfirm","確定要把「{source}」的所有玩家併到「{target}」嗎？併桌後「{source}」會自動關閉。").replace(/\{source\}/g,safehtml(sourcelabel)).replace("{target}",safehtml(targetlabel)),function(okayed){
 				if(!okayed){
 					return
 				}
@@ -1261,11 +1284,11 @@ function opensessionmergeresult(movedata,closeded){
 		`
 	}
 	if(!rowhtml){
-		rowhtml=`<div class="py-3 text-sm text-zinc-400">${smt("resultempty","此次併桌沒有需要移動的選手。")}</div>`
+		rowhtml=`<div class="py-3 text-sm text-zinc-400">${smt("resultempty","此次併桌沒有需要移動的玩家。")}</div>`
 	}
 	let closedhtml=""
 	if(closeded){
-		closedhtml=`<div class="mt-3 text-xs text-amber-300">${smt("resultclosed","「{source}」已自動關閉，不會再有新選手進入。").replace("{source}",safehtml(sourcelabel))}</div>`
+		closedhtml=`<div class="mt-3 text-xs text-amber-300">${smt("resultclosed","「{source}」已自動關閉，不會再有新玩家進入。").replace("{source}",safehtml(sourcelabel))}</div>`
 	}
 	let cover=doccreate("div")
 	cover.id="tablemergeresultmodal"
@@ -1603,7 +1626,7 @@ function sessiontimerauthheaders(){
 }
 
 function loadsessiontimerdata(done){
-	if(sessiontimerstate){
+	if(sessiontimerstate&&!sessiontimerstaleed){
 		done()
 		return
 	}
@@ -1612,8 +1635,12 @@ function loadsessiontimerdata(done){
 		return
 	}
 	sessiontimerloadinged=true
+	sessiontimerstaleed=false
+    const SILENT=sessionbackgrounded
 	let watchdog=setTimeout(function(){
-		pttoast(sessionpagetext("loadslow","載入時間較久, 請檢查連線後重試"),"warning")
+        if(!SILENT){
+		    pttoast(sessionpagetext("loadslow","載入時間較久, 請檢查連線後重試"),"warning")
+        }
 	},15000)
 	ajax("GET",AJAXURL+"gettimer/"+sessionid,function(event,data){
 		clearTimeout(watchdog)
@@ -1626,7 +1653,7 @@ function loadsessiontimerdata(done){
 		for(let i=0;i<callbacks.length;i=i+1){
 			callbacks[i]()
 		}
-	},null,sessiontimerauthheaders())
+	},null,sessiontimerauthheaders(),{"silent": SILENT,"authfailurehandled": SILENT})
 }
 
 function mysessionplayerid(){
@@ -1784,7 +1811,7 @@ function sessiontablecirclehtml(table,myid){
 	let cardpadding=mobileed?"px-1 py-1":"px-1.5 py-1.5"
 	let nametext=mobileed?"text-[10px]":"text-xs"
 	let html=`
-		<div class="relative mx-auto my-2 w-full max-w-[960px] ${aspectclass} overflow-visible">
+		<div class="sessionseattable relative mx-auto my-2 w-full max-w-[960px] ${aspectclass} overflow-visible" data-seatcount="${maxseat}">
 			<div class="absolute rounded-[50%] bg-emerald-950/70 border-4 border-emerald-800 shadow-inner flex items-center justify-center" style="left:${tableleft}%;right:${tableright}%;top:${tabletop}%;bottom:${tablebottom}%">
 				<div class="text-center">
 					<div class="${mobileed?"text-sm":"text-lg"} font-semibold text-emerald-100">${safehtml(table["name"])}</div>
@@ -1801,6 +1828,24 @@ function sessiontablecirclehtml(table,myid){
 		let angle=(138+(264*(i-1)/seatgap))*Math.PI/180
 		let left=50+rx*Math.cos(angle)
 		let top=cy+ry*Math.sin(angle)
+		if(mobileed){
+			const TOPSEAT=Math.ceil(maxseat/2)
+			left=50
+			top=7
+			if(i<TOPSEAT){
+				left=12
+				top=51
+				if(TOPSEAT>2){
+					top=83-63*(i-1)/(TOPSEAT-2)
+				}
+			}else if(i>TOPSEAT){
+				left=88
+				top=51
+				if(maxseat-TOPSEAT>1){
+					top=20+63*(i-TOPSEAT-1)/(maxseat-TOPSEAT-1)
+				}
+			}
+		}
 		if(!mobileed&&maxseat==9){
 			let desktoppositions=[
 				null,
@@ -1822,8 +1867,8 @@ function sessiontablecirclehtml(table,myid){
 		if(item){
 			html=html+`
 				<div class="absolute -translate-x-1/2 -translate-y-1/2 text-center" style="left:${left}%;top:${top}%;width:${cardwidth}px">
-					<div class="${ownered?"bg-emerald-900/90 border-emerald-400":"bg-zinc-900/95 border-zinc-700"} border rounded-lg ${cardpadding} shadow-lg">
-						<div class="mx-auto ${avatarwrap}">${playeravatarhtml(item,avatarclass)}</div>
+                    <div class="ptusernoteseat ${ownered?"bg-emerald-900/90 border-emerald-400":"bg-zinc-900/95 border-zinc-700"} border rounded-lg ${cardpadding} shadow-lg">
+						<div class="mx-auto ${avatarwrap}">${ptusernoteavatarhtml(item["userid"],item["playername"],playeravatarhtml(item,avatarclass))}</div>
 						<div class="mt-1 text-[11px] text-zinc-400">Seat ${i}</div>
 						<div class="${nametext} font-semibold truncate">${safehtml(item["playername"]||"-")}</div>
 					</div>
@@ -1855,7 +1900,7 @@ function sessionunseatedhtml(table,myid){
 		let ownered=myid&&String(item["sessionplayerid"])==String(myid)
 		html=html+`
 			<div class="${ownered?"bg-emerald-900/30 border-emerald-700":"bg-zinc-700/40 border-zinc-700"} border rounded px-3 py-2 flex items-center gap-2">
-				${playeravatarhtml(item,"w-9 h-9")}
+				${ptusernoteavatarhtml(item["userid"],item["playername"],playeravatarhtml(item,"w-9 h-9"))}
 				<div class="min-w-0">
 					<div class="text-sm font-semibold truncate">${safehtml(item["playername"]||"-")}</div>
 					<div class="text-xs text-zinc-500">${safehtml(item["playerplayerid"]||"")}</div>
@@ -1892,7 +1937,7 @@ function rendersessionplayers(){
 	if(!currentsession["linkuser"]){
 		innerhtml("#sessionplayerscontent",`
 			<div class="text-lg font-semibold mb-2">${sessionpagetext("tplseat","座位")}</div>
-			<div class="text-zinc-400 text-sm">${sessionpagetext("tplnolinkedplayer","此場次沒有開啟關聯選手。")}</div>
+			<div class="text-zinc-400 text-sm">${sessionpagetext("tplnolinkedplayer","此場次沒有開啟關聯玩家。")}</div>
 		`,false)
 		return
 	}
@@ -1939,16 +1984,16 @@ function rendersessionplayers(){
 			<div class="flex flex-wrap justify-between gap-3 mb-4">
 				<div>
 					<div class="text-lg font-semibold">${sessionpagetext("tplseat","座位")}</div>
-					<div class="text-sm text-zinc-400">${sessionpagetext("tplcurrent","目前")} ${tablekeys.length} ${sessionpagetext("tpltableslash","桌 /")} ${activecount} ${sessionpagetext("tplplayercount","位選手")}</div>
+					<div class="text-sm text-zinc-400">${sessionpagetext("tplcurrent","目前")} ${tablekeys.length} ${sessionpagetext("tpltableslash","桌 /")} ${activecount} ${sessionpagetext("tplplayercount","位玩家")}</div>
 				</div>
 				${myhtml}
 			</div>
 			<div class="flex flex-wrap gap-2 items-center mb-4">
-				<input id="sessionplayersearch" class="bg-zinc-700 text-white rounded px-3 py-2 text-sm min-w-[240px]" value="${keyword}" placeholder="${sessionpagetext("tplsearchplayertable","查詢選手名稱 / ID / 牌桌")}">
+				<input id="sessionplayersearch" class="bg-zinc-700 text-white rounded px-3 py-2 text-sm min-w-[240px]" value="${keyword}" placeholder="${sessionpagetext("tplsearchplayertable","查詢玩家名稱 / ID / 牌桌")}">
 			</div>
 		`
 		if(tablekeys.length==0){
-			html=html+`<div class="text-zinc-500 text-sm">${sessionpagetext("tplnomatchlinked","目前沒有符合條件的關聯選手。")}</div>`
+			html=html+`<div class="text-zinc-500 text-sm">${sessionpagetext("tplnomatchlinked","目前沒有符合條件的關聯玩家。")}</div>`
 			innerhtml("#sessionplayerscontent",html,false)
 			bindsessionplayeractions()
 			if(searched&&domgetid("sessionplayersearch")){
@@ -2065,14 +2110,14 @@ function rendersessionpayout(){
 		html=html+`
 			<div class="mt-6">
 				<div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-					<div class="font-semibold text-zinc-100">${sessionpagetext("tplplayerstatusprize","選手狀態與獎金")}</div>
-					<input id="sessionpayoutsearch" class="bg-zinc-700 text-white rounded px-3 py-2 text-sm w-full sm:w-72" value="${keyword}" placeholder="${sessionpagetext("tplsearchplayerfull","查詢選手 / ID / 桌位 / 名次")}">
+					<div class="font-semibold text-zinc-100">${sessionpagetext("tplplayerstatusprize","玩家狀態與獎金")}</div>
+					<input id="sessionpayoutsearch" class="bg-zinc-700 text-white rounded px-3 py-2 text-sm w-full sm:w-72" value="${keyword}" placeholder="${sessionpagetext("tplsearchplayerfull","查詢玩家 / ID / 桌位 / 名次")}">
 				</div>
 				<div class="overflow-x-auto">
 					<table class="w-full text-sm">
 						<thead>
 							<tr class="bg-zinc-700 text-zinc-300">
-								<th class="py-2 px-2">${sessionpagetext("tplplayer","選手")}</th>
+								<th class="py-2 px-2">${sessionpagetext("tplplayer","玩家")}</th>
 								<th class="py-2 px-2">${sessionpagetext("tplseatpos","桌位")}</th>
 								<th class="py-2 px-2">${sessionpagetext("tplplace","名次")}</th>
 								<th class="py-2 px-2">${sessionpagetext("tplprize","獎項")}</th>
@@ -2087,7 +2132,7 @@ function rendersessionpayout(){
 		if(players.length==0){
 			html=html+`
 				<tr>
-					<td class="py-3 px-2 text-zinc-500" colspan="4">${sessionpagetext("tplnolinkedplayernow","目前沒有關聯選手。")}</td>
+					<td class="py-3 px-2 text-zinc-500" colspan="4">${sessionpagetext("tplnolinkedplayernow","目前沒有關聯玩家。")}</td>
 				</tr>
 			`
 		}
@@ -2149,9 +2194,12 @@ function rendersessionpayout(){
 					<td class="py-2 px-2">
 						<div class="flex items-center gap-2">
 							${playeravatarhtml(item,"w-9 h-9")}
-							<div class="min-w-0">
-								<div class="font-semibold truncate">${safehtml(item["playername"]||"-")}</div>
-								<div class="text-xs text-zinc-500">${safehtml(item["playerplayerid"]||"")}</div>
+                            <div class="ptusernoteidentity">
+                                <div class="ptusernotename">
+                                    <div class="font-semibold truncate">${safehtml(item["playername"]||"-")}</div>
+                                    <div class="text-xs text-zinc-500">${safehtml(item["playerplayerid"]||"")}</div>
+                                </div>
+                                ${ptusernotehtml(item["userid"],item["playername"])}
 							</div>
 							${reentryhtml}
 						</div>
@@ -2165,7 +2213,7 @@ function rendersessionpayout(){
 		if(players.length!=0&&showncount==0){
 			html=html+`
 				<tr>
-					<td class="py-3 px-2 text-zinc-500" colspan="4">${sessionpagetext("tplnomatchplayer","目前沒有符合條件的選手。")}</td>
+					<td class="py-3 px-2 text-zinc-500" colspan="4">${sessionpagetext("tplnomatchplayer","目前沒有符合條件的玩家。")}</td>
 				</tr>
 			`
 		}
@@ -2234,18 +2282,21 @@ window.addEventListener("resize",function(){
 })
 
 function loadsessiondata(silent){
+    if(sessionrefreshloadinged){
+        return
+    }
+    sessionrefreshloadinged=true
+    sessionbackgrounded=silent==true
 	// 重爬時清空快取, 讓計時器 / 手牌等資料重新抓取
 	// silent=true 為背景自動更新, 不顯示整頁 loading 遮罩, 避免每 15 秒閃一次
-	sessiontimerstate=null
-	sessiontimerloadinged=false
 	sessionhandsloadeded=false
-	sessionhands=[]
-	let sessionmainoptions={}
+	let sessionmainoptions={"silent": silent==true,"authfailurehandled": silent==true}
 	if(!silent){
 		sessionmainoptions["loadingtarget"]="#sessionmain"
 	}
 	ajax("GET",AJAXURL+"getsession/"+sessionid,function(event,data){
 	if(data["success"]){
+		sessiontimerstaleed=true
 		let row=data["data"]
 		currentsession=row
 		updatesessiontabs()
@@ -2265,7 +2316,7 @@ function loadsessiondata(silent){
 			profittext="-"
 			profitclass="text-zinc-400"
 		}else if(row["owned"]==true&&row["linkuser"]==true&&(row["myregistrationstatus"]=="confirmed"||row["myregistrationstatus"]=="advanced")&&row["myregistration"]){
-			// 主辦場次(自己以選手身分關聯): session 表 reentrycount/rebuycount/addoncount 是上限設定值, 比照 sessionlist.js getprofitdata 改用 myregistration.profit; 新公式只留給個人記錄場次
+			// 主辦場次(自己以玩家身分關聯): session 表 reentrycount/rebuycount/addoncount 是上限設定值, 比照 sessionlist.js getprofitdata 改用 myregistration.profit; 新公式只留給個人記錄場次
 			let profit=row["myregistration"]["profit"]||0
 			profittext=(0<=profit?"+":"")+profit
 			profitclass=0<=profit?"text-green-400":"text-red-400"
@@ -2316,7 +2367,9 @@ function loadsessiondata(silent){
 		// 報名 / 主辦操作區
 		renderactionarea(row)
 		applydefaultsessionview(row)
-		loadsettingdata()
+        if(!silent){
+		    loadsettingdata()
+        }
 		if(domgetid("othertab-relations")&&!domgetid("othertab-relations").classList.contains("hidden")){
 			renderrelationpage(relationtype)
 		}
@@ -2327,16 +2380,20 @@ function loadsessiondata(silent){
 			rendersessionpayout()
 		}
 		if(domgetid("tab-hands")&&!domgetid("tab-hands").classList.contains("hidden")){
-			loadsessionhands()
+			loadsessionhands(silent)
 		}
-		loaduserchipcolors()
+        if(!silent){
+		    loaduserchipcolors()
+        }
 
 		initsessiontabletools()
-		let tablemainoptions={}
+		let tablemainoptions={"silent": silent==true,"authfailurehandled": silent==true}
 		if(!silent){
 			tablemainoptions["loadingtarget"]="#tablemain"
 		}
 		ajax("GET",AJAXURL+"gettablelist/"+sessionid,function(event,data){
+            sessionrefreshloadinged=false
+            sessionbackgrounded=false
 			if(data["success"]){
 				let row=data["data"]
 				sessiontables=row||[]
@@ -2373,17 +2430,20 @@ function loadsessiondata(silent){
 						})
 					})
 				}
-			}else{
-				innerhtml("#tablemain",`${sessionpagetext("tpltablesearcherror","查詢牌桌時遭遇錯誤")}`,false)
-				addclass("#tablemain",["text-red-500","text-center","font-bold","my-1","text-lg"])
+			}else if(!silent){
+				innerhtml("#tablemain",`<tr><td class="py-3 text-red-500 text-center" colspan="2">${sessionpagetext("tpltablesearcherror","查詢牌桌時遭遇錯誤")}</td></tr>`,false)
 			}
 		},null,[
 			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 		],tablemainoptions)
-	}else if(!silent){
+	}else{
+        sessionrefreshloadinged=false
+        sessionbackgrounded=false
+        if(!silent){
 		// silent=true 為背景自動更新, 查詢失敗時本輪靜默略過, 不 toast 也不強制跳轉離開頁面
 		pttoast(sessionpagetext("sessionnotfound","查無指定場次"),"error")
 		href("sessionlist.html")
+        }
 	}
 },null,[
 	["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
@@ -2411,6 +2471,9 @@ function sessioninsettingsview(){
 }
 
 function sessionautorefresh(){
+    if(sessionrefreshloadinged||document.querySelector("dialog[open]")||document.activeElement&&document.activeElement.matches("input,textarea,select,[contenteditable='true']")){
+        return
+    }
 	if(document.hidden){
 		return
 	}
@@ -2477,8 +2540,8 @@ function renderactionarea(row,timerloaded){
 		// 主辦人視角
 		title.textContent=sessionpagetext("titlehostaction","主辦操作")
 		let buttonshtml=`
-			<a href="control.html?sessionid=${sessionid}" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tpltimerconsole","🎛️ 計時器控制台")}</a>
-			<a href="display.html?sessionid=${sessionid}" target="_blank" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tpldisplaypage","📺 顯示頁 (新分頁)")}</a>
+			<a href="control.html?sessionid=${sessionid}" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tpltimerconsole","計時器控制台")}</a>
+			<a href="display.html?sessionid=${sessionid}" target="_blank" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tpldisplaypage","顯示頁 (新分頁)")}</a>
 			${getstructurebuttonhtml(row)}
 		`
 		if(row["linkuser"]){
@@ -2487,8 +2550,8 @@ function renderactionarea(row,timerloaded){
 			// scan.html 才是場次層級的入口 —— 相機掃描或手動輸入入場編號，
 			// 兩條路都會轉到 checkin.html，而且帶 sessionid 進去可以預選這一場。
 			buttonshtml=buttonshtml+`
-				<a href="register.html?sessionid=${sessionid}" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplregisterlist","👥 報名清單")}</a>
-				<a href="scan.html?sessionid=${sessionid}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplcheckin","✅ 報到核對")}</a>
+				<a href="register.html?sessionid=${sessionid}" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplregisterlist","報名清單")}</a>
+				<a href="scan.html?sessionid=${sessionid}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplcheckin","報到核對")}</a>
 			`
 			hint.textContent=sessionpagetext("linkopened","本場次已開放關聯使用者報名")
 		}else{
@@ -2505,7 +2568,7 @@ function renderactionarea(row,timerloaded){
 		// 只有開放報名的場次才有東西可以核對。
 		let staffcheckinhtml=""
 		if(row["linkuser"]){
-			staffcheckinhtml=`<a href="scan.html?sessionid=${sessionid}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplcheckin","✅ 報到核對")}</a>`
+			staffcheckinhtml=`<a href="scan.html?sessionid=${sessionid}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplcheckin","報到核對")}</a>`
 		}
 		btns.innerHTML=`
 			${sessionstatushtml(row)}
@@ -2541,12 +2604,12 @@ function renderactionarea(row,timerloaded){
 	title.textContent=sessionpagetext("titleregister","報名")
 	let mystatus=row["myregistrationstatus"]
 	let status=sessionstatusdata(row)
-	// 報名成功後，選手自己也要能開報到核對頁 —— 原本只有主辦與現場人員有入口。
-	// 選手連的是**自己那一筆**（checkin.html?sessionid=&r=），與收據 QR 掃出來的是同一頁；
-	// 不是 scan.html（那是工作人員掃別人的，選手用不到也不該用）。
+	// 報名成功後，玩家自己也要能開報到核對頁 —— 原本只有主辦與現場人員有入口。
+	// 玩家連的是**自己那一筆**（checkin.html?sessionid=&r=），與收據 QR 掃出來的是同一頁；
+	// 不是 scan.html（那是工作人員掃別人的，玩家用不到也不該用）。
 	let mycheckinhtml=""
 	if(row["myregistration"]&&row["myregistration"]["id"]){
-		mycheckinhtml=`<a href="checkin.html?sessionid=${safehtml(sessionid)}&r=${safehtml(row["myregistration"]["id"])}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplmycheckin","✅ 我的報到核對")}</a>`
+		mycheckinhtml=`<a href="checkin.html?sessionid=${safehtml(sessionid)}&r=${safehtml(row["myregistration"]["id"])}" class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm font-semibold">${sessionpagetext("tplmycheckin","我的報到核對")}</a>`
 	}
 	let reentryed=false
 	if(mystatus=="confirmed"&&row["myregistration"]&&row["myregistration"]["timerstatus"]=="eliminated"&&(int(row["reentrycount"]||0)<=0||int(row["myregistration"]["reentrycount"]||0)<int(row["reentrycount"]||0))){
@@ -2736,7 +2799,7 @@ function settingtime(value){
 	return value.split("T")[1].split("Z")[0].split("+")[0]
 }
 
-// 下拉只列出使用者自己的調色盤。若這個計分牌已存的顏色不在調色盤裡（例如預設牌組用的
+// 下拉只列出使用者自己的調色盤。若這個籌碼已存的顏色不在調色盤裡（例如預設牌組用的
 // #ef4444 #f59e0b #22c55e #3b82f6，早期使用者的調色盤沒有這幾色），沒有任何 option 會被
 // selected，瀏覽器就會落在第一個選項 —— 使用者只是打開場次設定再按儲存，顏色就被靜默改掉了。
 // 所以這裡把「目前這個值」補成一個選項，確保它一定選得到、也一定存得回去。
@@ -2780,7 +2843,7 @@ function chiprowhtml(chip){
 
 function chipsetsbuttonhtml(){
 	if(!userchipsets||userchipsets.length==0){
-		return `<span class="text-xs text-zinc-500">${sessionpagetext("tplchipsethint","可到個人資料設定常用計分牌組合")}</span>`
+		return `<span class="text-xs text-zinc-500">${sessionpagetext("tplchipsethint","可到個人資料設定常用籌碼組合")}</span>`
 	}
 	let html=""
 	for(let i=0;i<userchipsets.length;i=i+1){
@@ -2837,9 +2900,9 @@ function rendersettinggeneral(){
 			</div>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplgametype","遊戲類型")}<select id="setgametypeid" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2">${gametypehtml}</select></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tpllimittype","限注類型")}<select id="setlimittypeid" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2">${limithtml}</select></label>
-			<label class="block text-sm text-zinc-300">${sessionpagetext("tplchiptype","計分牌類型")}<select id="setstacktypeid" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2">${stackhtml}</select></label>
+			<label class="block text-sm text-zinc-300">${sessionpagetext("tplchiptype","籌碼類型")}<select id="setstacktypeid" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2">${stackhtml}</select></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tpleventdetail","賽事細項")}<select id="seteventtypeid" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2">${eventhtml}</select></label>
-			<label class="block text-sm text-zinc-300">${sessionpagetext("tplstartchip","起始計分牌")}<input type="number" id="setchip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["chip"]||0}"></label>
+			<label class="block text-sm text-zinc-300">${sessionpagetext("tplstartchip","起始籌碼")}<input type="number" id="setchip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["chip"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplmaxseatcount","每桌座位數")}<input type="number" min="2" max="10" inputmode="numeric" id="setmaxseat" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" value="${currentsession["maxseat"]||9}"></label>
 			<div class="grid grid-cols-2 gap-2 items-end">
 				<label class="flex items-center gap-2 bg-zinc-700/40 rounded px-3 py-2"><input type="checkbox" id="setowned" ${currentsession["owned"]?"checked":""}>${sessionpagetext("tplhostgame","主辦牌局")}</label>
@@ -2855,11 +2918,19 @@ function rendersettinggeneral(){
 		<div class="text-right mt-4"><input type="button" id="savesettinggeneral" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded" value="${sessionpagetext("tplsavegeneralsetting","儲存一般設定")}"></div>
 	`,false)
 	onclick("#savesettinggeneral",function(element,event){
+        const STARTDATE=new Date(getvalue("setdate")+"T"+getvalue("setstarttime")+"Z")
+        const ENDDATE=new Date(getvalue("setdate")+"T"+getvalue("setendtime")+"Z")
+        if(Number.isNaN(STARTDATE.getTime())||Number.isNaN(ENDDATE.getTime())){
+            pttoast(pterror("ERROR_request_data_type_error"),"error")
+        }else{
+            if(ENDDATE<STARTDATE){
+                ENDDATE.setUTCDate(ENDDATE.getUTCDate()+1)
+            }
 		savesettings(element,{
 			"name": getvalue("setname"),
 			"clubid": getvalue("setclubid"),
 			"starttime": getvalue("setdate")+" "+getvalue("setstarttime")+"+00:00",
-			"endtime": getvalue("setdate")+" "+getvalue("setendtime")+"+00:00",
+			"endtime": ENDDATE.toISOString().slice(0,10)+" "+getvalue("setendtime")+"+00:00",
 			"gametypeid": getvalue("setgametypeid"),
 			"limittypeid": getvalue("setlimittypeid"),
 			"stacktypeid": getvalue("setstacktypeid"),
@@ -2873,6 +2944,7 @@ function rendersettinggeneral(){
 			"autostartbytime": domgetid("setautostartbytime").checked,
 			"description": getvalue("setdescription")
 		})
+        }
 	})
 }
 
@@ -2890,16 +2962,16 @@ function rendersettinggame(){
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplbuyincost","買入費")}<input type="number" id="setbuyin" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["buyin"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplbuyinfee","買入服務費")}<input type="number" id="setbuyinfee" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["buyinfee"]||0}"></label>
-			<label class="block text-sm text-zinc-300">${sessionpagetext("tplbuyinchip","買入計分牌")}<input type="number" id="setchip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["chip"]||0}"></label>
+			<label class="block text-sm text-zinc-300">${sessionpagetext("tplbuyinchip","買入籌碼")}<input type="number" id="setchip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["chip"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplrebuycost","重買費")}<input type="number" id="setrebuybuyin" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["rebuybuyin"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplrebuyfee","重買服務費")}<input type="number" id="setrebuyfee" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["rebuyfee"]||0}"></label>
-			<label class="block text-sm text-zinc-300">${sessionpagetext("tplrebuychip","重買計分牌")}<input type="number" id="setrebuychip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["rebuychip"]||0}"></label>
+			<label class="block text-sm text-zinc-300">${sessionpagetext("tplrebuychip","重買籌碼")}<input type="number" id="setrebuychip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["rebuychip"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplreentrycost","再入費")}<input type="number" id="setreentrybuyin" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["reentrybuyin"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tplreentryfee","再入服務費")}<input type="number" id="setreentryfee" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["reentryfee"]||0}"></label>
-			<label class="block text-sm text-zinc-300">${sessionpagetext("tplreentrychip","再入計分牌")}<input type="number" id="setreentrychip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["reentrychip"]||0}"></label>
+			<label class="block text-sm text-zinc-300">${sessionpagetext("tplreentrychip","再入籌碼")}<input type="number" id="setreentrychip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["reentrychip"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tpladdoncost","增購費")}<input type="number" id="setaddonbuyin" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["addonbuyin"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${sessionpagetext("tpladdonfee","增購服務費")}<input type="number" id="setaddonfee" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["addonfee"]||0}"></label>
-			<label class="block text-sm text-zinc-300">${sessionpagetext("tpladdonchip","增購計分牌")}<input type="number" id="setaddonchip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["addonchip"]||0}"></label>
+			<label class="block text-sm text-zinc-300">${sessionpagetext("tpladdonchip","增購籌碼")}<input type="number" id="setaddonchip" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["addonchip"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${rebuycountlabel}<input type="number" id="setrebuycount" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["rebuycount"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${reentrycountlabel}<input type="number" id="setreentrycount" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["reentrycount"]||0}"></label>
 			<label class="block text-sm text-zinc-300">${addoncountlabel}<input type="number" id="setaddoncount" class="mt-1 w-full bg-zinc-700 text-white rounded px-3 py-2" inputmode="numeric" value="${currentsession["addoncount"]||0}"></label>
@@ -2914,10 +2986,10 @@ function rendersettinggame(){
 		</div>
 		<div class="mt-6">
 			<div class="flex flex-wrap justify-between items-center gap-2 mb-2">
-				<div class="font-semibold text-zinc-200">${sessionpagetext("tplusechipdenom","使用計分牌面額")}</div>
+				<div class="font-semibold text-zinc-200">${sessionpagetext("tplusechipdenom","使用籌碼面額")}</div>
 				<div class="flex flex-wrap gap-2 items-center">
 					${chipsetsbuttonhtml()}
-					<input type="button" id="addchiprow" class="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm" value="${sessionpagetext("tpladdchiprow","新增計分牌")}">
+					<input type="button" id="addchiprow" class="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded text-sm" value="${sessionpagetext("tpladdchiprow","新增籌碼")}">
 				</div>
 			</div>
 			<div id="chiprows" class="space-y-2">${chiphtml}</div>
@@ -2941,7 +3013,7 @@ function rendersettinggame(){
 		}
 		innerhtml("#chiprows",html,false)
 		bindchipremove()
-		pttoast(sessionpagetext("importedprefix","已匯入 ")+(set["name"]||sessionpagetext("chipsetdefault","計分牌組合")),"success")
+		pttoast(sessionpagetext("importedprefix","已匯入 ")+(set["name"]||sessionpagetext("chipsetdefault","籌碼組合")),"success")
 	})
 	bindchipremove()
 	onclick("#savesettinggame",function(element,event){
@@ -3157,7 +3229,7 @@ function rendersettingrelation(){
 // 大螢幕可關閉的四組區塊。代號要與後端 timer.py 的 DISPLAYBLOCKLIST 一致。
 const DISPLAYBLOCKOPTION=[
 	{"key":"payout","label":sessionpagetext("blockpayout","獎金欄（整列，含獎金池與其他獎勵）")},
-	{"key":"stack","label":sessionpagetext("blockstack","平均計分牌與報名數")},
+	{"key":"stack","label":sessionpagetext("blockstack","平均籌碼與報名數")},
 	{"key":"nextblind","label":sessionpagetext("blocknextblind","下一級盲注與進度條")},
 	{"key":"marquee","label":sessionpagetext("blockmarquee","跑馬燈與其他獎勵")}
 ]
@@ -3390,7 +3462,7 @@ function renderrelationpage(type){
 		"incoming": []
 	}
 	innerhtml("#relationscontent",`
-		<div class="flex flex-wrap gap-2 mb-4">
+		<div class="flex flex-wrap justify-center gap-2 mb-4">
 			<input type="button" class="relationtypebtn ${relationtype=="satellite"?"bg-emerald-600":"bg-zinc-700"} px-4 py-2 rounded" data-type="satellite" value="${sessionpagetext("tplsatellite","衛星賽")}">
 			<input type="button" class="relationtypebtn ${relationtype=="multiday"?"bg-emerald-600":"bg-zinc-700"} px-4 py-2 rounded" data-type="multiday" value="${sessionpagetext("tplmultiday","多日賽")}">
 		</div>
@@ -3447,7 +3519,7 @@ function relationpanel(direction,data,type,editabled){
 		<div class="border border-zinc-700 rounded p-4">
 			<div class="font-semibold text-zinc-100">${title}</div>
 			<div class="text-xs text-zinc-500 mb-3">${desc}</div>
-			<div class="flex flex-wrap gap-2 mb-3 min-h-8" id="selected-${direction}">${selected.join("")||"<span class='text-zinc-500 text-sm'>尚未建立關聯</span>"}</div>
+			<div class="flex flex-wrap gap-2 mb-3 min-h-8" id="selected-${direction}">${selected.join("")||`<span class="text-zinc-500 text-sm">${sessionpagetext("relationempty","尚未建立關聯")}</span>`}</div>
 			${searchhtml}
 		</div>
 	`
@@ -3494,7 +3566,7 @@ function loadrelationsearch(direction,type){
 	}
 	ajax("GET",AJAXURL+"searchsessionrelations/"+sessionid+"?page="+page+"&limit=6&keyword="+encodeURIComponent(keyword),function(event,data){
 		if(!data["success"]){
-			pttoast(data["data"]||"搜尋失敗","error")
+			pttoast(pterror(data["data"]||sessionpagetext("relationsearcherror","搜尋失敗")),"error")
 			return
 		}
 		let rows=data["data"]["sessions"]||[]
@@ -3507,7 +3579,7 @@ function loadrelationsearch(direction,type){
 				</div>
 			`
 		}
-		innerhtml("#relationresult-"+direction,html||"<div class='text-zinc-500 text-sm'>沒有符合的賽事</div>",false)
+		innerhtml("#relationresult-"+direction,html||`<div class="text-zinc-500 text-sm">${sessionpagetext("relationsearchempty","沒有符合的賽事")}</div>`,false)
 		let pg=data["data"]["pagination"]
 		innerhtml("#relationpager-"+direction,`
 			<input type="button" class="relationpagebtn bg-zinc-700 px-3 py-1 rounded" data-type="${type}" data-direction="${direction}" data-page="${page-1}" ${pg["hasprev"]?"":"disabled"} value="${sessionpagetext("tplprevpage","上一頁")}">
@@ -3715,7 +3787,7 @@ function sessionactionstackmap(hand){
 	return data
 }
 
-// ante 不算進 running（街上下注額），但判斷 all-in 時要計入總投入，否則盲注＋ante＋下注剛好跟光計分牌會被漏判
+// ante 不算進 running（街上下注額），但判斷 all-in 時要計入總投入，否則盲注＋ante＋下注剛好跟光籌碼會被漏判
 function sessionanteinvestmap(hand){
 	let data={}
 	let rows=hand["bittingdata"]||[]
@@ -3777,7 +3849,7 @@ function sessionhasallin(hand){
 	return false
 }
 
-// 統一紀錄可有多名選手, 以 userid > sessionplayerid > 姓名 當作選手識別 key
+// 統一紀錄可有多名玩家, 以 userid > sessionplayerid > 姓名 當作玩家識別 key
 function sessionplayerkey(seat){
 	if(int(seat["userid"]||0)>0){
 		return "u:"+seat["userid"]
@@ -3788,7 +3860,7 @@ function sessionplayerkey(seat){
 	return "n:"+String(seat["name"]||"").trim()
 }
 
-// 掃描本場次所有手牌座位, 列出出現過的選手(去重, 由最舊到最新)
+// 掃描本場次所有手牌座位, 列出出現過的玩家(去重, 由最舊到最新)
 function sessionplayerlist(){
 	let map={}
 	let order=[]
@@ -3809,7 +3881,7 @@ function sessionplayerlist(){
 	return order
 }
 
-// 確保已選選手有效, 預設選自己(以 myregistration 對應的 sessionplayerid 比對), 否則選第一位
+// 確保已選玩家有效, 預設選自己(以 myregistration 對應的 sessionplayerid 比對), 否則選第一位
 function sessionensureselectedplayer(players){
 	let valid={}
 	for(let i=0;i<players.length;i=i+1){
@@ -3873,7 +3945,7 @@ function sessionseatallin(hand,seatno){
 	return false
 }
 
-// 依選手座位取得序列: 每手結束後計分牌(endchip)為累積計分牌量, 每手 endchip-chip 為當手損益
+// 依玩家座位取得序列: 每手結束後籌碼(endchip)為累積籌碼量, 每手 endchip-chip 為當手損益
 function sessionchipseries(getseat){
 	let labels=[]
 	let stacks=[]
@@ -3947,7 +4019,7 @@ function sessionseriesstats(series){
 	}
 }
 
-// 取得目前要呈現的座位取得器與選手清單(統一紀錄需選人, 個人紀錄用英雄座位)
+// 取得目前要呈現的座位取得器與玩家清單(統一紀錄需選人, 個人紀錄用英雄座位)
 function sessionstatscontext(playerboxid,selectid,rerender){
 	let unified=!!(currentsession&&currentsession["unifiedhandrecord"])
 	let playerbox=domgetid(playerboxid)
@@ -3989,10 +4061,10 @@ function rendersessionstats(){
 	let getseat=sessionstatscontext("sessionstatsplayer","sessionstatsplayerselect",rendersessionstatsandev)
 	let stat=sessionseriesstats(sessionchipseries(getseat))
 	innerhtml("#sessionstatschipcards",`
-		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplcumulativechip","累積計分牌量")}</div><div class="text-xl font-bold text-emerald-400">${stat["cur"]}</div></div>
-		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplmaxchip","最大計分牌量")}</div><div class="text-xl font-bold">${stat["max"]}</div></div>
-		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplminchip","最小計分牌量")}</div><div class="text-xl font-bold">${stat["min"]}</div></div>
-		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplavgchip","平均計分牌量")}</div><div class="text-xl font-bold">${stat["avgstack"]}</div></div>
+		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplcumulativechip","累積籌碼量")}</div><div class="text-xl font-bold text-emerald-400">${stat["cur"]}</div></div>
+		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplmaxchip","最大籌碼量")}</div><div class="text-xl font-bold">${stat["max"]}</div></div>
+		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplminchip","最小籌碼量")}</div><div class="text-xl font-bold">${stat["min"]}</div></div>
+		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplavgchip","平均籌碼量")}</div><div class="text-xl font-bold">${stat["avgstack"]}</div></div>
 	`,false)
 	innerhtml("#sessionstatscards",`
 		<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tpltotalhands","總手數")}</div><div class="text-xl font-bold">${stat["total"]}</div></div>
@@ -4016,9 +4088,9 @@ function rendersessionev(){
 	let summary=domgetid("sessionevsummary")
 	if(summary){
 		summary.innerHTML=`
-			<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplcumulativechip","累積計分牌量")}</div><div class="text-xl font-bold text-emerald-400">${stat["cur"]}</div></div>
-			<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplmaxchip","最大計分牌量")}</div><div class="text-xl font-bold">${stat["max"]}</div></div>
-			<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplavgchip","平均計分牌量")}</div><div class="text-xl font-bold">${stat["avgstack"]}</div></div>
+			<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplcumulativechip","累積籌碼量")}</div><div class="text-xl font-bold text-emerald-400">${stat["cur"]}</div></div>
+			<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplmaxchip","最大籌碼量")}</div><div class="text-xl font-bold">${stat["max"]}</div></div>
+			<div class="bg-zinc-900/70 border border-zinc-700 rounded-lg p-4"><div class="text-zinc-400 text-xs">${sessionpagetext("tplavgchip","平均籌碼量")}</div><div class="text-xl font-bold">${stat["avgstack"]}</div></div>
 		`
 	}
 	if(!sessionevchart||sessionevchart.isDisposed()){
@@ -4031,7 +4103,7 @@ function rendersessionev(){
 		xAxis: { type: "category",data: series["labels"] },
 		yAxis: { type: "value" },
 		series: [{
-			name: sessionpagetext("cumulativechip","累積計分牌"),
+			name: sessionpagetext("cumulativechip","累積籌碼"),
 			type: "line",
 			smooth: true,
 			data: series["stacks"],
@@ -4262,7 +4334,7 @@ function bindsessionhandfilters(){
 	})
 }
 
-function loadsessionhands(){
+function loadsessionhands(silent){
 	if(sessionhandsloadeded){
 		rendersessionhandtable()
 		rendersessionstats()
@@ -4270,7 +4342,9 @@ function loadsessionhands(){
 		return
 	}
 	let handlistwatchdog=setTimeout(function(){
-		pttoast(sessionpagetext("loadslow","載入時間較久, 請檢查連線後重試"),"warning")
+        if(!silent){
+		    pttoast(sessionpagetext("loadslow","載入時間較久, 請檢查連線後重試"),"warning")
+        }
 	},15000)
 	ajax("GET",AJAXURL+"getsessionhandlist/"+sessionid,function(event,data){
 		clearTimeout(handlistwatchdog)
@@ -4287,9 +4361,11 @@ function loadsessionhands(){
 				innerhtml("#sessionhandtable",`<tr><td colspan="6" class="py-6 text-zinc-500 text-center">${sessionpagetext("tplnohandpermission","目前沒有手牌檢視權限")}</td></tr>`,false)
 				return
 			}
-			pttoast(data["data"]||"讀取手牌失敗","error")
+            if(!silent){
+			    pttoast(data["data"]||"讀取手牌失敗","error")
+            }
 		}
-	},null,settingauthheaders())
+	},null,settingauthheaders(),{"silent": silent==true,"authfailurehandled": silent==true})
 }
 
 function selectsessionhandtab(tab){
@@ -4383,7 +4459,7 @@ function staffworktext(key,fallback){
 
 function staffrolelabel(role){
 	if(role=="dealer"){
-		return staffworktext("roledealer","計分員")
+		return staffworktext("roledealer","發牌員")
 	}
 	if(role=="floor"){
 		return staffworktext("rolefloor","裁判")
@@ -4523,7 +4599,7 @@ function renderstaffwork(){
 		innerhtml("#staffworkcontent",`
 			<div class="py-8 text-center">
 				<div class="text-zinc-400">${staffworktext("emptystaff","這場沒有可排班的員工")}</div>
-				<div class="mt-2 text-sm text-zinc-500">${staffworktext("emptystaffnext","請先到個人檔案聘用計分員、裁判或助理，或為本場次單獨指派。")}</div>
+				<div class="mt-2 text-sm text-zinc-500">${staffworktext("emptystaffnext","請先到個人檔案聘用發牌員、裁判或助理，或為本場次單獨指派。")}</div>
 				<a href="profile.html#employmentpanel" class="mt-4 inline-block rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:border-emerald-500 hover:text-emerald-400">${staffworktext("emptystaffgoprofile","前往個人檔案聘用")}</a>
 			</div>
 			${staffassignformhtml()}
@@ -4652,9 +4728,9 @@ function staffassignformhtml(){
 			<div class="mb-2 text-sm font-bold">${staffworktext("assigntitle","指派本場員工")}</div>
 			<div class="mb-2 text-xs text-zinc-500">${staffworktext("assignhint","只在這一場生效，不影響其他場次。長期聘用請到個人檔案設定。")}</div>
 			<div class="flex flex-wrap items-center gap-2">
-				<input type="text" class="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm" data-i18n-placeholder="staffwork.assignplayerid" id="staffassignplayerid" placeholder="選手編號">
+				<input type="text" class="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm" data-i18n-placeholder="staffwork.assignplayerid" id="staffassignplayerid" placeholder="玩家編號">
 				<select class="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm" id="staffassignrole">
-					<option value="dealer">${staffworktext("roledealer","計分員")}</option>
+					<option value="dealer">${staffworktext("roledealer","發牌員")}</option>
 					<option value="floor">${staffworktext("rolefloor","裁判")}</option>
 					<option value="assistant">${staffworktext("roleassistant","助理")}</option>
 				</select>
@@ -4668,7 +4744,7 @@ function bindstaffassign(){
 	onclick("#staffassignbutton",function(){
 		let playerid=(getvalue("staffassignplayerid")||"").trim()
 		if(!playerid){
-			pttoast(staffworktext("assignneedplayerid","請輸入選手編號"),"error")
+			pttoast(staffworktext("assignneedplayerid","請輸入玩家編號"),"error")
 			return
 		}
 		ajax("POST",AJAXURL+"newstaff/"+sessionid,function(event,data){
@@ -4726,7 +4802,7 @@ function staffclock(action,staffuserid){
 }
 
 function selectsessionothertab(tab){
-	if(tab=="settings"&&currentsession&&!canviewsessionsettings(currentsession)){
+	if((tab=="settings"||tab=="staff")&&currentsession&&!canviewsessionsettings(currentsession)){
 		tab="orderinfo"
 	}
 	let btns=document.querySelectorAll(".othertab-btn")
@@ -5136,7 +5212,7 @@ function sessionprintsummaryhtml(row){
 		[sessionpagetext("cardmaxseat","每桌座位"),sessiondisplayvalue(row["maxseat"])],
 		[sessionpagetext("cardantemode","前注模式"),sessionantetext(row["antemode"])],
 		[sessionpagetext("cardbuyinfee","買入(服務費)"),sessionfeetext(row["buyin"],row["buyinfee"])],
-		[sessionpagetext("cardbuyinchip","買入計分牌"),sessionmoneytext(row["chip"])],
+		[sessionpagetext("cardbuyinchip","買入籌碼"),sessionmoneytext(row["chip"])],
 		[sessionpagetext("cardticketvalue","票券價值"),sessionmoneytext(row["ticketvalue"])],
 		[sessionpagetext("cardguaranteed","保底獎金"),float(row["guaranteedprize"])||0],
 		[sessionpagetext("printreentryfee","再入次數/再入費"),sessionprintfeevalue(row["reentrycount"],row["reentrybuyin"],row["reentrychip"],reentrybuyin,reentryfee)],
@@ -5156,7 +5232,7 @@ function sessionprintrankhtml(registrations){
 	ranked.sort(sessionprintplaceorder)
 	let columns=[
 		{"title": sessionpagetext("printplace","名次"),"align": "center"},
-		{"title": sessionpagetext("printplayer","選手")},
+		{"title": sessionpagetext("printplayer","玩家")},
 		{"title": "ID"},
 		{"title": sessionpagetext("printbuyin","買入"),"align": "right"},
 		{"title": sessionpagetext("printprize","獎金"),"align": "right"},
@@ -5180,7 +5256,7 @@ function sessionprintrankhtml(registrations){
 function sessionprintregisterhtml(registrations,tablelist){
 	let columns=[
 		{"title": sessionpagetext("printcolno","序號"),"align": "right"},
-		{"title": sessionpagetext("printplayer","選手")},
+		{"title": sessionpagetext("printplayer","玩家")},
 		{"title": "ID"},
 		{"title": sessionpagetext("printcolstatus","狀態"),"align": "center"},
 		{"title": sessionpagetext("printcoltable","桌次"),"align": "center"},

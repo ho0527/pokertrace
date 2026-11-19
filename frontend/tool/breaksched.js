@@ -7,7 +7,11 @@ function bktext(key){
 	if(!TRANSLATE[LANGUAGE]||!TRANSLATE[LANGUAGE]["breakschedpage"]){
 		return key
 	}
-	return TRANSLATE[LANGUAGE]["breakschedpage"][key]||key
+	const TEXT=TRANSLATE[LANGUAGE]["breakschedpage"][key]
+	if(TEXT!=undefined){
+		return TEXT
+	}
+	return key
 }
 
 function parsetime(text){

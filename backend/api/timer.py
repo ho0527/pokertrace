@@ -604,7 +604,7 @@ def linkedcounts(sessionid):
 	return (active,total,row)
 
 def sessionknockoutcounts(sessionid):
-	# 從牌局推算淘汰數（殺人數）：同一手牌中計分牌歸 0 被淘汰的玩家（victim），
+	# 從牌局推算淘汰數（殺人數）：同一手牌中籌碼歸 0 被淘汰的玩家（victim），
 	# 由該手贏家（killer）記一次淘汰。雙殺會正確計兩次；分池同時爆掉的罕見情形可能重複計，屬可接受誤差。
 	row=query(SETTING["dbname"],"""
 		SELECT killer."sessionplayerid" AS killerid, COUNT(*) AS knockouts
@@ -687,7 +687,7 @@ def linkedchiptotal(sessionrow,row):
 	return total
 
 def linkedchipgrandtotal(sessionrow,row,latestchips=None):
-	# 全場總計分牌: 在場玩家(active 非 advanced)用最新計分牌, 已晉級玩家用晉級計分牌(advancechip)
+	# 全場總籌碼: 在場玩家(active 非 advanced)用最新籌碼, 已晉級玩家用晉級籌碼(advancechip)
 	if latestchips is None:
 		latestchips=latestsessionchips(sessionrow["id"])
 	total=0
@@ -699,7 +699,7 @@ def linkedchipgrandtotal(sessionrow,row,latestchips=None):
 	return total
 
 def advanceinchipmap(sessionid):
-	"""每位選手「從前一日帶入這場」的計分牌，key 是 userid。
+	"""每位玩家「從前一日帶入這場」的籌碼，key 是 userid。
 
 	取自**來源場次**那一列的 advancechip。不可以用目標場次的 startchip ——
 	理由見 expectedchiptotal。
@@ -718,8 +718,8 @@ def advanceinchipmap(sessionid):
 	return carrychips
 
 def expectedchiptotal(sessionrow,row,carrychips=None):
-	"""應有總計分牌（守恆總量）: 這場實際「發出去」多少計分牌，不隨淘汰變動 ——
-	被淘汰選手的計分牌已經轉到存活者身上，仍在檯面上。
+	"""應有總籌碼（守恆總量）: 這場實際「發出去」多少籌碼，不隨淘汰變動 ——
+	被淘汰玩家的籌碼已經轉到存活者身上，仍在檯面上。
 
 	**刻意不看 sessionplayer.startchip。** 那一欄的語意被覆寫過:
 	排座與改碼的每一條路徑（sessionplayer.py 的排座 / 編輯、table.py 的入座）

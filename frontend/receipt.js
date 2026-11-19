@@ -1,6 +1,6 @@
 // 報名收據四聯單 — 參照 POKER DREAM 實體收據格式
-// 四聯：店家聯 HOUSE / 選手聯 PLAYER / 發牌聯 DEALER / 桌面聯 TABLE
-// 可被其他頁（如 register）載入：呼叫 receiptprint(data) 列印指定選手的四聯單。
+// 四聯：店家聯 HOUSE / 玩家聯 PLAYER / 發牌聯 DEALER / 桌面聯 TABLE
+// 可被其他頁（如 register）載入：呼叫 receiptprint(data) 列印指定玩家的四聯單。
 // 單獨開 receipt.html 時，用下方 RECEIPTSAMPLE 範例資料預覽版面。
 
 const RECEIPTSAMPLE={
@@ -19,7 +19,7 @@ const RECEIPTSAMPLE={
 	"qrdata": "https://pokertrace.example/frontend/checkin.html?sessionid=123&r=456"
 }
 
-// 每一聯要顯示哪些區塊。共通抬頭（logo / 標題 / 賽事 / 選手 / 號碼 / QR）四聯都有。
+// 每一聯要顯示哪些區塊。共通抬頭（logo / 標題 / 賽事 / 玩家 / 號碼 / QR）四聯都有。
 const COPYLIST=[
 	{"key": "house","label": "HOUSE COPY","sections": ["buyin","issue","stamp"]},
 	{"key": "player","label": "PLAYER COPY","sections": ["buyin","issue"]},
@@ -140,7 +140,7 @@ function receipttablenoticesection(){
 	`
 }
 
-// 置中抬頭：logo、系列賽/場館、賽事、開賽時間、分隔線（不含選手名）。
+// 置中抬頭：logo、系列賽/場館、賽事、開賽時間、分隔線（不含玩家名）。
 function receiptheader(data){
 	// 第二行標題：有系列賽就顯示系列賽 title，否則顯示場館名。
 	let titleline=data["seriestitle"]
@@ -156,7 +156,7 @@ function receiptheader(data){
 	`
 }
 
-// 給獎金收據用：抬頭 + 置中選手名。
+// 給獎金收據用：抬頭 + 置中玩家名。
 function receiptcommon(data){
 	return receiptheader(data)+`<div class="receiptname">${receiptfield(data["playername"])}</div>`
 }
@@ -166,7 +166,7 @@ function receiptslip(data,copy){
 	if(data["entryno"]!=null&&data["entryno"]!=""&&isNaN(data["entryno"])){
 		bigclass="receiptbig receiptbigtext"
 	}
-	// 下半部靠左：選手名 →（入場編號 + QR 同一列）→ 買入/付款 → 座位 → 開立資訊。
+	// 下半部靠左：玩家名 →（入場編號 + QR 同一列）→ 買入/付款 → 座位 → 開立資訊。
 	let body=`<div class="receiptname">${receiptfield(data["playername"])}</div>`
 	body=body+`
 		<div class="receiptidrow">
@@ -227,7 +227,7 @@ function receiptsetpagestyle(){
 	el.textContent="@page{size:80mm auto;margin:0}"
 }
 
-// 供其他頁呼叫：列印指定選手的四聯收據。
+// 供其他頁呼叫：列印指定玩家的四聯收據。
 // 有 print.js 時用共用列印容器 #ptprintroot（列印時只顯示它）；否則退回頁面既有的 #receiptsheet。
 function receiptprint(data){
 	let root=null
@@ -245,7 +245,7 @@ function receiptprint(data){
 	window.print()
 }
 
-// ===== 獎金發放收據（2 聯：店家聯 + 選手聯），供員工在報到頁列印 =====
+// ===== 獎金發放收據（2 聯：店家聯 + 玩家聯），供員工在報到頁列印 =====
 const PRIZECOPYLIST=[
 	{"key": "house","label": "HOUSE COPY","sections": ["sign","stamp"]},
 	{"key": "player","label": "PLAYER COPY","sections": ["sign"]}
@@ -301,7 +301,7 @@ function receiptprizesheethtml(data){
 	return html
 }
 
-// 供報到頁呼叫：列印指定選手的獎金發放收據（兩聯）。
+// 供報到頁呼叫：列印指定玩家的獎金發放收據（兩聯）。
 function receiptprizeprint(data){
 	let root=null
 	if(typeof ptprintcontainer=="function"){

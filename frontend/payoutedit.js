@@ -75,7 +75,7 @@ function applystatictext(){
 	domgetid("headOtherReward").textContent=payoutedittext("headreward","獎項")
 	domgetid("headOtherAction").textContent=payoutedittext("headaction","操作")
 	domgetid("btnAddOtherReward").value=payoutedittext("otherrewardadd","新增一列")
-	domgetid("otherRewardHint").textContent=payoutedittext("otherrewardhint","用來記錄與名次無關的獎勵，例如賞金（bounty）、首殺獎、幸運獎。「名次」那格請自行填寫標籤文字。這裡填的獎金會計入場次頁的總獎金，但不會與名次比對，也不會自動分配給特定選手。")
+	domgetid("otherRewardHint").textContent=payoutedittext("otherrewardhint","用來記錄與名次無關的獎勵，例如賞金（bounty）、首殺獎、幸運獎。「名次」那格請自行填寫標籤文字。這裡填的獎金會計入場次頁的總獎金，但不會與名次比對，也不會自動分配給特定玩家。")
 	domgetid("ioTitle").textContent=payoutedittext("ioutitle","匯入匯出")
 	domgetid("btnExportPayout").value=payoutedittext("exportjson","匯出 JSON")
 	domgetid("btnImportPayout").value=payoutedittext("importjson","匯入 JSON")

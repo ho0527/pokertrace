@@ -1034,11 +1034,11 @@ function currentbigblind(item) {
 }
 
 function averagestacktotal() {
-	// 首選後端的 conservedChipTotal(守恆總量): Σ 每列實際注入的計分牌(多日晉級列=帶入碼),
-	// 不隨淘汰變動——淘汰者的計分牌已轉給存活者仍在場上, 這是唯一同時滿足
+	// 首選後端的 conservedChipTotal(守恆總量): Σ 每列實際注入的籌碼(多日晉級列=帶入碼),
+	// 不隨淘汰變動——淘汰者的籌碼已轉給存活者仍在場上, 這是唯一同時滿足
 	// 「多日賽帶入碼各不相同」與「淘汰不漏算」的總量。
 	// 後端尚未提供(舊版/手動模式)時退回舊守恆公式「起始碼 × 總入場人次」(單日賽正確)。
-	// 不可用 averageStackTotal(只加總存活者當前碼): 沒有牌局資料時淘汰者的計分牌會直接消失,
+	// 不可用 averageStackTotal(只加總存活者當前碼): 沒有牌局資料時淘汰者的籌碼會直接消失,
 	// 單日與多日都會低估——這正是它從來不被這裡採用的原因。
 	let conserved=numericstate(state["conservedChipTotal"])
 	if (conserved <= 0) {

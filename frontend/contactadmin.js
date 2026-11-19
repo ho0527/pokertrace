@@ -11,7 +11,11 @@ function contactadmintext(key){
 	if(!TRANSLATE[LANGUAGE]||!TRANSLATE[LANGUAGE]["contactadminpage"]){
 		return key
 	}
-	return TRANSLATE[LANGUAGE]["contactadminpage"][key]||key
+	const TEXT=TRANSLATE[LANGUAGE]["contactadminpage"][key]
+	if(TEXT!=undefined){
+		return TEXT
+	}
+	return key
 }
 
 function applycontactadminlanguage(){

@@ -35,12 +35,12 @@ function controltext(key){
 			playersleftsuffix: " 人",
 			confirmjoinafterclose: "報名已關閉，仍要加入？",
 			operationfailed: "操作失敗",
-			defaultmarquee: "⚠ 下一個級別將進行計分牌顏色汰換，請注意自身計分牌數量 | 歡迎參加本場賽事，祝各位選手順利晉級！ | 請留意主辦單位現場公告 | 請遵守賽場規則，保持良好競賽風格",
+			defaultmarquee: "⚠ 下一個級別將進行籌碼顏色汰換，請注意自身籌碼數量 | 歡迎參加本場賽事，祝各位玩家順利晉級！ | 請留意主辦單位現場公告 | 請遵守賽場規則，保持良好競賽風格",
 			reconnected: "已恢復連線",
 			connectionlost: "連線中斷，控制已暫停，重試中…",
 			syncnotready: "同步尚未完成，請稍候重試",
-			playerlinkedhint: "已關聯報名選手：總入場與剩餘人數由已確認報名和淘汰狀態計算。",
-			playermanualhint: "未關聯選手：人數可由控制台自由調整。",
+			playerlinkedhint: "已關聯報名玩家：總入場與剩餘人數由已確認報名和淘汰狀態計算。",
+			playermanualhint: "未關聯玩家：人數可由控制台自由調整。",
 			breaktime: "休息時間",
 			oneminuteleft: "剩餘 1 分鐘",
 			resumeaction: "繼續",
@@ -117,19 +117,19 @@ function controltext(key){
 			h4htoast: "🃏 Hand-for-Hand 開啟",
 			h4hendaction: "結束同步",
 			h4hendtoast: "H4H 結束",
-			finaltabletoast: "⭐ Final Table — 提示選手",
-			coloruptoast: "🪙 計分牌汰換中",
-			colorupaction: "計分牌汰換",
+			finaltabletoast: "⭐ Final Table — 提示玩家",
+			coloruptoast: "🪙 籌碼汰換中",
+			colorupaction: "籌碼汰換",
 			settingssaved: "設定已儲存",
 			confirmresetall: "完全重置所有狀態？此操作無法復原",
 			timerreset: "已重置計時器",
-			linkedeliminateconfirm: "確認淘汰這位關聯選手？",
-			linkedrestoreconfirm: "確認回復這位關聯選手？",
+			linkedeliminateconfirm: "確認淘汰這位關聯玩家？",
+			linkedrestoreconfirm: "確認回復這位關聯玩家？",
 			seatlabel: "座位：",
 			namelabel: "姓名：",
 			signinagain: "請重新登入",
 			linkedeliminated: "已標記淘汰",
-			linkedrestored: "已復原選手",
+			linkedrestored: "已復原玩家",
 			operationfail: "操作失敗",
 			networkfail: "網路不佳，請重新嘗試",
 			prizeautoprefix: "名次現金加總 · 原獎池 ",
@@ -144,7 +144,7 @@ function controltext(key){
 			itmhintwarnprefix: "\n⚠ 目前獎金分配為 ",
 			itmhintwarnmiddle: " 名 — 建議按「智能分配」對齊到 ",
 			itmhintok: "\n✓ 獎金分配與 ITM 人數一致",
-			"nocontrolpermission": "此帳號沒有計時器控制權限（計分員僅供檢視），控制按鈕已停用",
+			"nocontrolpermission": "此帳號沒有計時器控制權限（發牌員僅供檢視），控制按鈕已停用",
 			"otherreward": "其他獎勵"
 		},
 		en: {
@@ -394,7 +394,7 @@ let serverstateinited=false
 let savebusy=false
 let edittimerplayerpending={}
 let wsdownnotified=false  // 斷線提示去重, 避免重試時重複跳 toast
-let controlblocked=false  // 角色無控制權限 (例如計分員) 時鎖住控制按鈕
+let controlblocked=false  // 角色無控制權限 (例如發牌員) 時鎖住控制按鈕
 
 function islinkedplayer(){
 	return STATE.playerMode=="linked"
@@ -458,7 +458,7 @@ function applyserverstate(serverstate){
 	if(oldindex!=STATE.currentIndex||!STATE.running){
 		stoplevelendpoll()
 	}
-	// 報名 / 淘汰等更新是後端主動推播回來的; 若此刻關聯選手燈箱正開著, 就地重畫清單,
+	// 報名 / 淘汰等更新是後端主動推播回來的; 若此刻關聯玩家燈箱正開著, 就地重畫清單,
 	// 不必關掉再重開才看得到新報名 (buildlinkedplayerlist 會沿用目前的搜尋條件)。
 	if(domgetid("modalLinkedPlayers")&&domgetid("modalLinkedPlayers").classList.contains("show")){
 		buildlinkedplayerlist()
@@ -581,7 +581,7 @@ function save(action, partialState=null) {
 			render()
 			setcontrolenabled(iscontrolready())
 		}else if(data&&data["success"]==false&&data["data"]=="ERROR_no_permission"){
-			// 後端判定無控制權限 (例如計分員): 停用控制並提示, 與 loadcontrolaccess 一致
+			// 後端判定無控制權限 (例如發牌員): 停用控制並提示, 與 loadcontrolaccess 一致
 			blockcontrol()
 		}
 	}).catch(function(e){
@@ -823,7 +823,7 @@ function sndBreak(){
 function fmt(n){
 	return Math.round(n).toLocaleString()
 }
-// 與 structure.js 的 safetext 相同: 選手姓名 / 桌名等資料要先跳脫再塞 innerHTML, 防儲存型 XSS
+// 與 structure.js 的 safetext 相同: 玩家姓名 / 桌名等資料要先跳脫再塞 innerHTML, 防儲存型 XSS
 function safetext(value){
 	let text=value
 	if(value==undefined||value==null){
@@ -1174,7 +1174,7 @@ function closecontrolmodal(modal){
 }
 
 // ==== 牌桌管理: 並桌 (掉桌) 提醒與快速連結 ====
-// 以 getsessiontableboard 的各桌實際入座數計算: 剩餘選手可併到最少幾桌,
+// 以 getsessiontableboard 的各桌實際入座數計算: 剩餘玩家可併到最少幾桌,
 // 差額即為可掉桌數; 可掉桌數增加時跳一次提醒, 點橫幅直接跳多牌桌總覽操作並桌。
 let tablemergenotified=0
 function tableneededcount(tables,totalplayers){
@@ -1274,7 +1274,7 @@ function loadtableboard(){
 
 // ==== 前端角色 gate: 後端 savetimer 已用 hastimercontrolpermission 強制把關,
 // 這裡用 getsession 回傳的 isown / isadmin / accessrole 先行判斷 (裁判 floor 與
-// 助理 assistant 可操作, 計分員 dealer 不可), 沒有控制權就直接停用控制按鈕並提示,
+// 助理 assistant 可操作, 發牌員 dealer 不可), 沒有控制權就直接停用控制按鈕並提示,
 // 不必等按下去吃後端 403 才知道。判斷條件與 backend/api/timer.py 一致。
 function blockcontrol(){
 	controlblocked=true
@@ -1299,7 +1299,7 @@ function loadcontrolaccess(){
 		// 不再用 accessrole 主動鎖 staff: getsession 的 accessrole 來自 getsessionstaffaccess,
 		// 以 sessionstaff 優先, 會把同一人在 userstaff 的 floor/assistant 身分被 sessionstaff 的 dealer 遮蔽,
 		// 而後端 hastimercontrolpermission 兩表各查會放行 floor/assistant, 前端據 accessrole 鎖會誤鎖後端允許的人。
-		// 計分員等真正無控制權者交由 savetimer 回 ERROR_no_permission 時 (見 sendstate) blockcontrol 把關。
+		// 發牌員等真正無控制權者交由 savetimer 回 ERROR_no_permission 時 (見 sendstate) blockcontrol 把關。
 		if(data&&data["success"]==false&&data["data"]=="ERROR_no_permission"){
 			blockcontrol()
 		}
@@ -1862,7 +1862,7 @@ function renderbase() {
 	// Players
 	innertext(domgetid('playerNum'), STATE.players, false)
 	innertext(domgetid('metaEntries'), STATE.totalEntries, false)
-	// Avg Stack：場上總計分牌 ÷ 剩餘人數。總計分牌＝起始碼 × 總入場人次（計分牌守恆），
+	// Avg Stack：場上總籌碼 ÷ 剩餘人數。總籌碼＝起始碼 × 總入場人次（籌碼守恆），
 	// 與 display 端 averagestacktotal() 一致。
 	let avg=0;
 	if(STATE.players>0){
@@ -1885,9 +1885,9 @@ function renderbase() {
 	}
 	if(modehint){
 		if(islinkedplayer()){
-			innertext(modehint, "已關聯報名選手：總入場與剩餘人數由已確認報名和淘汰狀態計算。", false)
+			innertext(modehint, "已關聯報名玩家：總入場與剩餘人數由已確認報名和淘汰狀態計算。", false)
 		}else{
-			innertext(modehint, "未關聯選手：人數可由控制台自由調整。", false)
+			innertext(modehint, "未關聯玩家：人數可由控制台自由調整。", false)
 		}
 	}
 	if(pminus){
@@ -2349,7 +2349,7 @@ function toggleBreak() {
 }
 
 // 原本這裡是先讓 base 產生中文 HTML，再對整段 HTML 做 replaceAll 反查。
-// 那個做法很脆弱：選手名字只要含有「仍在場」「已淘汰」這些字就會被一起換掉，
+// 那個做法很脆弱：玩家名字只要含有「仍在場」「已淘汰」這些字就會被一起換掉，
 // 而且 value="淘汰" 那兩條是直接在 HTML 字串上動屬性。改成 base 產生時就用
 // controltext()，這層包裝已無存在必要。
 function buildlinkedplayerlist(){
@@ -2372,7 +2372,7 @@ function linkedplayerconfirmmessage(item,action){
 		if(item&&item["seatno"]){
 			seatno=item["seatno"]
 		}
-		// controlconfirm 會把訊息塞 innerHTML, 選手姓名 / 桌名 / 座位要先跳脫
+		// controlconfirm 會把訊息塞 innerHTML, 玩家姓名 / 桌名 / 座位要先跳脫
 		return controltext("linkedeliminateconfirm")+"\n\n"+controltext("seatlabel")+safetext(tablename)+" / Seat "+safetext(seatno)+"\n"+controltext("namelabel")+safetext(playername)
 	}
 	return controltext("linkedrestoreconfirm")+"\n\n"+controltext("namelabel")+safetext(playername)

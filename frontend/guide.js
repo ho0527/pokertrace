@@ -64,6 +64,7 @@ function guideallitemids(){
 
 function guiderenderbuttons(){
 	let html=""
+	let optionhtml=""
 	let chapters=guidechapters()
 	for(let i=0;i<chapters.length;i=i+1){
 		let activeclass="bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
@@ -71,8 +72,10 @@ function guiderenderbuttons(){
 			activeclass="bg-emerald-500 text-zinc-950"
 		}
 		html=html+`<a href="#${chapters[i]["id"]}" class="guidebtn mb-2 block w-full whitespace-nowrap rounded-2xl px-4 py-3 text-left text-sm font-bold transition ${activeclass}" data-guide="${chapters[i]["id"]}">${chapters[i]["title"]}</a>`
+        optionhtml=optionhtml+`<option value="${chapters[i]["id"]}">${chapters[i]["title"]}</option>`
 	}
 	innerhtml("#guidebuttons",html,false)
+    document.getElementById("guidemobilechapter").innerHTML=optionhtml
 }
 
 function guidecopybutton(itemid){
@@ -186,7 +189,7 @@ function guidechapterhtml(chapter){
 				</div>
 				<div class="flex flex-wrap gap-2">
 					<a href="#${chapter["id"]}" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700">${guidetext("chapterlink")}</a>
-					<a href="pokertraceintro.pdf" download class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700">${guidetext("downloadpdf")}</a>
+					<a href="pokertraceintro.pdf?v=20261117" download class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700">${guidetext("downloadpdf")}</a>
 				</div>
 			</div>
 			<div class="guidechapterbody mt-5">
@@ -298,6 +301,7 @@ function expandguidetarget(target){
 }
 
 function setactiveguidebutton(sectionid){
+    document.getElementById("guidemobilechapter").value=sectionid
 	let buttons=document.querySelectorAll(".guidebtn")
 	for(let i=0;i<buttons.length;i=i+1){
 		let activeed=buttons[i].getAttribute("data-guide")==sectionid
@@ -460,4 +464,8 @@ function initguide(){
 	},60)
 }
 
+document.getElementById("guidemobilechapter").addEventListener("change",function(event){
+    history.replaceState(null,"","#"+event.target.value)
+    guidescrolltohash(event.target.value,"smooth")
+})
 initguide()

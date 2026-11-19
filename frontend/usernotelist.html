@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>註記管理 - PokerTrace</title>
+        <link rel="stylesheet" href="index.css">
+        <link rel="stylesheet" href="usernote.css">
+        <link rel="stylesheet" href="usernotelist.css">
+        <link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
+        <script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
+        <link rel="stylesheet" href="tailwind.css">
+    </head>
+    <body class="min-h-screen bg-zinc-950 text-white" data-backfallback="profile.html">
+        <div id="navigationbar"></div>
+        <main class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+            <h1 class="mb-3 text-4xl font-extrabold" data-i18n="usernote.manage">註記管理</h1>
+            <p class="mb-6 text-sm text-zinc-400" data-i18n="usernote.managedesc">查詢、編輯或清除自己建立的私人註記。</p>
+            <section class="rounded-2xl bg-zinc-900 p-6">
+                <label for="usernotesearch" class="mb-2 block text-sm font-bold" data-i18n="usernote.searchlabel">搜尋註記</label>
+                <input type="search" class="mb-4 min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm" data-i18n-placeholder="usernote.searchplaceholder" id="usernotesearch" placeholder="搜尋名稱、玩家 ID 或註記文字">
+                <div class="mb-4 text-sm text-zinc-400" id="usernotestatus" role="status" aria-live="polite"></div>
+                <input type="button" class="mb-4 min-h-12 rounded-2xl bg-zinc-700 px-4 text-sm font-bold" data-i18n-value="usernote.retry" id="usernoteretry" value="重新載入" hidden>
+                <div class="usernotemanagementlist" id="usernotemanagementlist"></div>
+                <div class="mt-6 flex items-center justify-center gap-3">
+                    <input type="button" class="min-h-12 rounded-2xl bg-zinc-800 px-4 text-sm font-bold disabled:opacity-40" data-i18n-value="usernote.previous" id="usernoteprevious" value="上一頁" disabled>
+                    <span class="text-sm text-zinc-400" id="usernotepage"></span>
+                    <input type="button" class="min-h-12 rounded-2xl bg-zinc-800 px-4 text-sm font-bold disabled:opacity-40" data-i18n-value="usernote.next" id="usernotenext" value="下一頁" disabled>
+                </div>
+            </section>
+        </main>
+        <div id="footer"></div>
+        <script src="translate.js"></script>
+        <script src="initialize.js"></script>
+        <script src="usernote.js"></script>
+        <script src="usernotelist.js"></script>
+    </body>
+</html>

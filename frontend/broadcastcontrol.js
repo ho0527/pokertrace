@@ -16,7 +16,7 @@ let bccwsdowned=false
 let bccbusy=false
 
 function bcctext(key,fallback){
-	if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["broadcastcontrolpage"]&&TRANSLATE[LANGUAGE]["broadcastcontrolpage"][key]){
+	if(typeof TRANSLATE!="undefined"&&typeof LANGUAGE!="undefined"&&TRANSLATE[LANGUAGE]&&TRANSLATE[LANGUAGE]["broadcastcontrolpage"]&&TRANSLATE[LANGUAGE]["broadcastcontrolpage"][key]!=undefined){
 		return TRANSLATE[LANGUAGE]["broadcastcontrolpage"][key]
 	}
 	if(fallback!=null){

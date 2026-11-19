@@ -144,13 +144,23 @@ function buildsessionprintrows(sessions){
 
 // 依目前篩選條件列印「所有頁」的場次列表（不限於目前這一頁），供協會紙本存底
 function printsessionlist(){
+	const TOKEN=weblsget(WEBLSNAME+"token")
+	const BUTTON=domgetid("printsessionlist")
+	if(BUTTON.disabled){
+		return
+	}
+	BUTTON.disabled=true
 	let query=buildsessionfilterquery()
 	query.push("page=1")
 	query.push("limit=1000000")
 	let url=AJAXURL+"getsessionlist?"+query.join("&")
 	ajax("GET",url,function(event,data){
-		if(!data["success"]){
-			pttoast(data["data"]||sessiontext("networkerror"),"error")
+		BUTTON.disabled=false
+		if(TOKEN!=weblsget(WEBLSNAME+"token")){
+			return
+		}
+		if(!data||!data["success"]){
+			pttoast(data&&data["data"]||sessiontext("networkerror"),"error")
 			return
 		}
 		let sessions=(data["data"]||{})["sessions"]||[]
@@ -168,13 +178,15 @@ function printsessionlist(){
 			{"title": sessiontext("printcolprofit"),"align": "right"}
 		]
 		let rows=buildsessionprintrows(sessions)
-		let gamecount=domgetid("gamecount")?domgetid("gamecount").textContent:String(sessions.length)
-		let profit=domgetid("profit")?domgetid("profit").textContent:"-"
-		let avg=domgetid("avgplaylength")?domgetid("avgplaylength").textContent:"-"
+		const STATS=data["data"]["stats"]||{"gamecount": 0,"totalprofit": 0,"avgduration": 0}
+		const GAMECOUNT=STATS["gamecount"]
+		let profit=String(STATS["totalprofit"])
+		if(STATS["totalprofit"]>=0){profit="+"+profit}
+		const AVERAGE=formatduration(STATS["avgduration"])
 		let infohtml=ptprintinfogrid([
-			[sessiontext("printtotalsession"),gamecount],
+			[sessiontext("printtotalsession"),GAMECOUNT],
 			[sessiontext("printtotalprofit"),profit],
-			[sessiontext("printavglength"),avg],
+			[sessiontext("printavglength"),AVERAGE],
 			[sessiontext("printcount"),sessions.length]
 		])
 		let bodyhtml=infohtml+ptprintsectiontitle(sessiontext("printsectiontitle"))+ptprinttable(columns,rows,sessiontext("printempty"))+ptprintsignblock([sessiontext("printsignstaff"),sessiontext("printsignmanager")])
@@ -183,8 +195,8 @@ function printsessionlist(){
 			"title": sessiontext("printtitle"),
 			"subtitle": sessiontext("printsubtitle"),
 			"meta": sessiontext("printmeta")+" "+ptprinttimestamp()
-		},bodyhtml))
-	},null,[["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]],{
+		},bodyhtml),true)
+	},null,[["Authorization","Bearer "+TOKEN]],{
 		loadingtarget: "#main"
 	})
 }
@@ -287,6 +299,7 @@ function totypeobject(row){
 
 function formatduration(minutes){
 	minutes=int(minutes)||0
+	minutes=Math.max(0,minutes)
 	if(minutes<60){
 		return minutes+" "+sessiontext("minute")
 	}
@@ -381,7 +394,7 @@ function isplacenotregistered(row){
 }
 
 function getplacetext(row){
-	// 主辦關聯使用者報名的場次, 依選手報名狀態顯示名次
+	// 主辦關聯使用者報名的場次, 依玩家報名狀態顯示名次
 	if(row["owned"]==true&&row["linkuser"]==true){
 		let total=row["displaytotalbuyin"]||row["totalbuyin"]||"-"
 		// 沒有報名: 只顯示總報名人次

@@ -1,0 +1,199 @@
+/* 協會排序沿用站台 zinc／emerald、radius.control 與 min-h-12 token。 */
+#clubviewbar[hidden], #cluborderfooter[hidden], #clubcustomorderbutton[hidden], #cluborderreload[hidden] {
+    display: none;
+}
+
+.clubviewbar, .cluborderfooter, .cluborderaction {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.clubviewbar, .cluborderfooter {
+    justify-content: space-between;
+    margin: 16px 0;
+}
+
+.cluborderfooter {
+    position: fixed;
+    z-index: 40;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 16px;
+    max-width: 1120px;
+    gap: 16px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface);
+}
+
+.cluborderpending {
+    padding-bottom: 160px;
+}
+
+.clubtablewrap {
+    overflow-x: auto;
+}
+
+.cluborderhandle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.clubordercell {
+    width: 96px;
+    white-space: nowrap;
+}
+
+#clubmain [data-clubrow] {
+    scroll-margin-top: 80px;
+    scroll-margin-bottom: 180px;
+    transition: transform 0.18s ease;
+}
+
+#clubfilter input:disabled, #clubmain .editbutton:disabled, #clubmain .deletebutton:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.cluborderbutton {
+    min-height: 48px;
+    padding: 8px 20px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.cluborderbutton:hover:enabled {
+    background: #3f3f46;
+}
+
+.cluborderbutton:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: 4px;
+}
+
+.cluborderbutton:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.cluborderprimary {
+    background: #34d399;
+    color: var(--color-bg);
+}
+
+.cluborderprimary:hover:enabled {
+    background: #6ee7b7;
+}
+
+.clubordergrip {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 6px solid transparent;
+    border-radius: 16px;
+    background-clip: padding-box;
+    font-size: 18px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.clubordergrip:active {
+    cursor: grabbing;
+}
+
+.clubdragged {
+    user-select: none;
+}
+
+.clubdragactive {
+    opacity: 0;
+}
+
+.clubdraglabel {
+    position: fixed;
+    z-index: 60;
+    overflow: hidden;
+    border-radius: 16px;
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    font-size: 14px;
+    transform: scale(1.01);
+    pointer-events: none;
+}
+
+.clubdragtable {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: center;
+}
+
+.clubdraglabel > div {
+    margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #clubmain [data-clubrow] {
+        transition: none;
+    }
+}
+
+.cluborderfailure {
+    color: #f87171;
+}
+
+.clubsummary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: #a1a1aa;
+    font-size: 14px;
+}
+
+.clubsummary strong {
+    color: var(--color-text);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+    .cluborderfooter {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+        padding: 16px;
+    }
+
+    #cluborderstatus {
+        flex-basis: 100%;
+        text-align: center;
+    }
+
+    .cluborderfooter .cluborderaction {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    #cluborderreload {
+        grid-column: 1 / -1;
+    }
+}

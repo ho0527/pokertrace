@@ -63,7 +63,7 @@ function applyboardstatic(){
 	document.title=boardtext("title","多牌桌總覽")+" - PokerTrace"
 	innertext("#boardtitle",boardtext("title","多牌桌總覽"),false)
 	innertext("#statlabeltables",boardtext("tables","牌桌"),false)
-	innertext("#statlabelplayers",boardtext("players","在場選手"),false)
+	innertext("#statlabelplayers",boardtext("players","在場玩家"),false)
 	innertext("#statlabelavg",boardtext("avg","平均每桌"),false)
 	innertext("#boardempty",boardtext("empty","此場次尚無牌桌"),false)
 	let back=domgetid("backtosession")
@@ -86,7 +86,7 @@ function applyboardstatic(){
 }
 
 // 指派值班：列出本場所有有效員工，標出各自狀態（在別桌／未打卡／空閒）。
-// 同桌同角色重疊不擋，只在送出前用 ptconfirm 問一次 —— 交接時新舊計分員要能並存。
+// 同桌同角色重疊不擋，只在送出前用 ptconfirm 問一次 —— 交接時新舊發牌員要能並存。
 function openstaffassignmodal(tableid){
 	if(!boardstaffdata){
 		return
@@ -215,7 +215,7 @@ function boardstafftext(key,fallback){
 
 function boardrolelabel(role){
 	if(role=="dealer"){
-		return boardstafftext("roledealer","計分員")
+		return boardstafftext("roledealer","發牌員")
 	}
 	if(role=="floor"){
 		return boardstafftext("rolefloor","裁判")
@@ -503,7 +503,7 @@ function renderboardstaffpanel(){
 	})
 }
 
-// 這張桌現在誰在顧。一桌同角色刻意允許並存（交接時新舊計分員短暫重疊），
+// 這張桌現在誰在顧。一桌同角色刻意允許並存（交接時新舊發牌員短暫重疊），
 // 所以這裡是逐列顯示、不是只顯示一個人。
 function tablestaffhtml(table){
 	if(!boardstaffdata){
@@ -621,7 +621,7 @@ function openplayermovemodal(tableid,sessionplayerid,seatno,playername){
 	cover.innerHTML=`
 		<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-md w-full p-5 shadow-xl">
 			<div class="flex items-center justify-between mb-4">
-				<div class="text-lg font-semibold text-white">${boardtext("movetitle","移動選手")}</div>
+				<div class="text-lg font-semibold text-white">${boardtext("movetitle","移動玩家")}</div>
 				<input type="button" class="closeboardplayermove text-zinc-400 hover:text-white" value="×">
 			</div>
 			<div class="text-sm text-zinc-400 mb-4">${boardtext("movedesc","選擇要把「{player}」移到哪張牌桌與座位，或交給系統隨機安排。").replace("{player}",boardescape(playername||"-"))}</div>
@@ -653,7 +653,7 @@ function sendplayermove(tableid,sessionplayerid,seatno,targettableid,targetseatn
 	ajax("POST",AJAXURL+"movetableplayer/"+tableid,function(event,data){
 		if(data["success"]){
 			ptremovescrollcover(domgetid("boardplayermovemodal"))
-			pttoast(boardtext("movesuccess","已移動選手"),"success")
+			pttoast(boardtext("movesuccess","已移動玩家"),"success")
 			loadboard()
 		}else{
 			pttoast(pterror(data["data"]||boardtext("movefail","移桌失敗")),"error")
@@ -677,7 +677,7 @@ function sendplayereliminate(tableid,sessionplayerid,seatno,playername){
 		}
 		ajax("POST",AJAXURL+"eliminatetableplayer/"+tableid,function(event,data){
 			if(data["success"]){
-				pttoast(boardtext("eliminatesuccess","已淘汰選手"),"success")
+				pttoast(boardtext("eliminatesuccess","已淘汰玩家"),"success")
 				loadboard()
 			}else{
 				pttoast(pterror(data["data"]||boardtext("eliminatefail","淘汰失敗")),"error")
@@ -749,7 +749,7 @@ function tablecardhtml(table,avg){
 					"<input type=\"button\" class=\"boardplayereliminate rounded-md bg-rose-600 px-2 py-0.5 text-[11px] font-bold leading-5 hover:bg-rose-700\" data-tableid=\""+boardescape(table["id"])+"\" data-sessionplayerid=\""+boardescape(p["sessionplayerid"]||"")+"\" data-seatno=\""+boardescape(p["seatno"])+"\" data-playername=\""+boardescape(p["name"]||"-")+"\" value=\""+boardtext("eliminatebutton","淘汰")+"\">"+
 				"</div>"+
 				"<div class=\"flex min-w-0 flex-1 items-center justify-between gap-2\">"+
-					"<span class=\"min-w-0 truncate text-zinc-200\">S"+boardescape(p["seatno"])+" "+boardescape(p["name"]||"-")+"</span>"+
+                    "<div class=\"ptusernotewrap\"><span class=\"min-w-0 truncate text-zinc-200\">S"+boardescape(p["seatno"])+" "+boardescape(p["name"]||"-")+"</span>"+ptusernotehtml(p["userid"],p["name"])+"</div>"+
 					"<span class=\"shrink-0 font-mono text-xs text-zinc-400\">"+boardescape(p["chip"]||0)+"</span>"+
 				"</div>"+
 			"</div>"
@@ -841,7 +841,7 @@ function renderboard(data){
 	onclick(".boardclosebtn",function(element,event){
 		let tableid=dataset(element,"id")
 		let closed=dataset(element,"closed")=="1"
-		ptconfirm(closed?boardtext("openconfirm","確定要重新開啟這張牌桌嗎？"):boardtext("closeconfirm","確定要關閉這張牌桌嗎？關閉後不會再有新選手進入。"),function(okayed){
+		ptconfirm(closed?boardtext("openconfirm","確定要重新開啟這張牌桌嗎？"):boardtext("closeconfirm","確定要關閉這張牌桌嗎？關閉後不會再有新玩家進入。"),function(okayed){
 			if(!okayed){
 				return
 			}
@@ -960,7 +960,7 @@ function openboardmergemodal(sourceid){
 				<div class="text-lg font-semibold text-white">${boardmanagetext("mergetitle","併桌：選擇目標牌桌")}</div>
 				<input type="button" class="closeboardmerge text-zinc-400 hover:text-white" value="×">
 			</div>
-			<div class="text-sm text-zinc-400 mb-4">${boardmanagetext("mergedesc","把「{table}」的所有選手併到選定的目標桌，併桌後本桌會自動關閉。").replace("{table}",boardescape(sourcelabel))}</div>
+			<div class="text-sm text-zinc-400 mb-4">${boardmanagetext("mergedesc","把「{table}」的所有玩家併到選定的目標桌，併桌後本桌會自動關閉。").replace("{table}",boardescape(sourcelabel))}</div>
 			<div class="grid grid-cols-1 gap-2 max-h-[50vh] overflow-y-auto">${optionhtml}</div>
 			<div class="flex justify-end gap-2 mt-5">
 				<input type="button" class="closeboardmerge bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded" value="${boardmanagetext("cancel","取消")}">
@@ -979,7 +979,7 @@ function openboardmergemodal(sourceid){
 		if(target){
 			targetlabel=boardtablelabel(target)
 		}
-		ptconfirm(boardmanagetext("mergeconfirm","確定要把「{source}」的所有選手併到「{target}」嗎？併桌後「{source}」會自動關閉。").replace(/\{source\}/g,boardescape(sourcelabel)).replace("{target}",boardescape(targetlabel)),function(okayed){
+		ptconfirm(boardmanagetext("mergeconfirm","確定要把「{source}」的所有玩家併到「{target}」嗎？併桌後「{source}」會自動關閉。").replace(/\{source\}/g,boardescape(sourcelabel)).replace("{target}",boardescape(targetlabel)),function(okayed){
 			if(!okayed){
 				return
 			}
@@ -987,7 +987,7 @@ function openboardmergemodal(sourceid){
 		})
 	})
 	onclick(".boardmergeautobtn",function(element,event){
-		ptconfirm(boardmanagetext("mergeautoconfirm","確定要把「{source}」的所有選手隨機分配到所有開放牌桌嗎？併桌後「{source}」會自動關閉。").replace(/\{source\}/g,boardescape(sourcelabel)),function(okayed){
+		ptconfirm(boardmanagetext("mergeautoconfirm","確定要把「{source}」的所有玩家隨機分配到所有開放牌桌嗎？併桌後「{source}」會自動關閉。").replace(/\{source\}/g,boardescape(sourcelabel)),function(okayed){
 			if(!okayed){
 				return
 			}
@@ -1065,11 +1065,11 @@ function openboardmergeresult(movedata,closeded){
 		`
 	}
 	if(!rowhtml){
-		rowhtml=`<div class="py-3 text-sm text-zinc-400">${boardmanagetext("resultempty","此次併桌沒有需要移動的選手。")}</div>`
+		rowhtml=`<div class="py-3 text-sm text-zinc-400">${boardmanagetext("resultempty","此次併桌沒有需要移動的玩家。")}</div>`
 	}
 	let closedhtml=""
 	if(closeded){
-		closedhtml=`<div class="mt-3 text-xs text-amber-300">${boardmanagetext("resultclosed","「{source}」已自動關閉，不會再有新選手進入。").replace("{source}",boardescape(sourcelabel))}</div>`
+		closedhtml=`<div class="mt-3 text-xs text-amber-300">${boardmanagetext("resultclosed","「{source}」已自動關閉，不會再有新玩家進入。").replace("{source}",boardescape(sourcelabel))}</div>`
 	}
 	let cover=doccreate("div")
 	cover.id="boardmergeresultmodal"
@@ -1153,7 +1153,7 @@ function autobalance(){
 	if(tableids.length<1){
 		return
 	}
-	ptconfirm(boardtext("confirmbalance","確定要自動把未入座／可調整的選手平衡到各桌嗎？"),function(okayed){
+	ptconfirm(boardtext("confirmbalance","確定要自動把未入座／可調整的玩家平衡到各桌嗎？"),function(okayed){
 		if(!okayed){
 			return
 		}
@@ -1177,14 +1177,14 @@ function unseatallplayers(){
 	if(!boardsessionid){
 		return
 	}
-	ptconfirm(boardtext("unseatallconfirm","確定要打散重抽嗎？將把所有在場選手變為未排桌，之後可用隨機排座重新抽桌。"),function(okayed){
+	ptconfirm(boardtext("unseatallconfirm","確定要打散重抽嗎？將把所有在場玩家變為未排桌，之後可用隨機排座重新抽桌。"),function(okayed){
 		if(!okayed){
 			return
 		}
 		ajax("PUT",AJAXURL+"randomizesessionplayerseats/"+boardsessionid,function(event,data){
 			if(data["success"]){
 				let unseatedcount=(data["data"]||{})["unseatedcount"]||0
-				pttoast(boardtext("unseatalldone","已退座 {n} 位選手").replace("{n}",String(unseatedcount)),"success")
+				pttoast(boardtext("unseatalldone","已退座 {n} 位玩家").replace("{n}",String(unseatedcount)),"success")
 				loadboard()
 				return
 			}

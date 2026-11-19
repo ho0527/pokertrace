@@ -1,0 +1,409 @@
+.ptusernote {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+    min-width: 0;
+    min-height: 44px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 16px;
+    background: #27272a;
+    color: #d4d4d8;
+    text-align: left;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    z-index: 11;
+}
+
+.ptusernote:hover {
+    background: #3f3f46;
+}
+
+.ptusernote[hidden] {
+    display: none;
+}
+
+.ptusernote[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: wait;
+}
+
+.ptusernote:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: 2px;
+}
+
+.ptusernotecopy {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ptusernotedot {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+    border-radius: 50%;
+    border: 1px solid #d4d4d8;
+}
+
+.ptusernoteicon {
+    flex: 0 0 auto;
+}
+
+.ptusernoteseat .ptusernote {
+    gap: 4px;
+    padding: 8px 4px;
+}
+
+.ptusernoteseat .ptusernotedot {
+    width: 8px;
+    height: 8px;
+    flex-basis: 8px;
+}
+
+.ptusernote.ptusernoteavatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 2px;
+    border: 2px solid var(--usernote-color, #52525b);
+    border-radius: 50%;
+    background: transparent;
+    vertical-align: middle;
+}
+
+.ptusernoteavatar > img, .ptusernoteavatar > div {
+    flex: 0 0 auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.ptusernoteseat > div:first-child {
+    width: 44px;
+}
+
+.ptusernote.ptusernoteavatar[data-usernoteenabled="0"] {
+    border-color: transparent;
+    opacity: 1;
+    cursor: default;
+}
+
+@media (max-width: 639px) {
+    .sessionseattable {
+        min-height: 352px;
+    }
+
+    .sessionseattable[data-seatcount="8"], .sessionseattable[data-seatcount="9"] {
+        min-height: 440px;
+    }
+
+    .sessionseattable[data-seatcount="10"] {
+        min-height: 576px;
+    }
+}
+
+.ptusernotetablecell .ptusernote {
+    max-width: 220px;
+}
+
+.ptusernotewrap {
+    min-width: 0;
+    flex: 1 1 0%;
+}
+
+.ptusernoteidentity, .ptusernotename {
+    min-width: 0;
+}
+
+@media (min-width: 1024px) {
+    .ptusernoteidentity {
+        display: flex;
+        align-items: center;
+        flex: 1 1 0%;
+        gap: 12px;
+    }
+
+    .ptusernotename {
+        flex: 1 1 0%;
+    }
+
+    .ptusernoteidentity > .ptusernote {
+        flex: 0 1 160px;
+        width: 160px;
+        max-width: 40%;
+        margin-top: 0;
+        padding: 8px;
+    }
+}
+
+.ptusernoteeditor {
+    --notepage: #18181b;
+    --notecontrol: #27272a;
+    --noteborder: #3f3f46;
+    --notetext: #f4f4f5;
+    --notemuted: #a1a1aa;
+    --noteprimary: #34d399;
+    box-sizing: border-box;
+    inset: 0;
+    width: min(512px, calc(100vw - 48px));
+    max-width: calc(100vw - 48px);
+    min-width: 0;
+    height: fit-content;
+    max-height: calc(100dvh - 48px);
+    margin: auto;
+    padding: 32px;
+    border: 0;
+    border-radius: 16px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: var(--notepage);
+    color: var(--notetext);
+    font: 400 14px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    text-align: left;
+}
+
+.ptusernoteeditor *, .ptusernoteeditor *::before, .ptusernoteeditor *::after {
+    box-sizing: border-box;
+}
+
+.ptusernoteeditor::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.ptusernoteheading {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.ptusernoteheading h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    line-height: 1.25;
+    font-weight: 700;
+}
+
+.ptusernoteheading p, .ptusernoteselection {
+    margin: 0;
+    color: var(--notemuted);
+    font-size: 12px;
+}
+
+.ptusernotetarget {
+    padding: 16px;
+    margin-bottom: 24px;
+    border-radius: 16px;
+    background: var(--notecontrol);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.ptusernoteeditor fieldset {
+    min-width: 0;
+    padding: 0;
+    margin: 0 0 16px;
+    border: 0;
+}
+
+.ptusernoteeditor legend, .ptusernotelabel > span {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.ptusernotecolorlist {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.ptusernotecoloroption {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    color: var(--notemuted);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.ptusernotecoloroption:hover {
+    color: var(--notetext);
+}
+
+.ptusernotecolorchoice {
+    appearance: none;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    padding: 0;
+    border: 4px solid var(--notepage);
+    border-radius: 50%;
+    background: var(--usernotecolor, var(--notecontrol));
+    cursor: pointer;
+}
+
+.ptusernotecolorchoice:checked {
+    outline: 2px solid var(--notetext);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='none' stroke='%2309090b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='m12 20 5 5 11-12'/%3E%3C/svg%3E");
+}
+
+.ptusernotecustom {
+    width: 48px;
+    max-width: 100%;
+    height: 48px;
+    padding: 4px;
+    border: 1px solid var(--noteborder);
+    border-radius: 50%;
+    background: var(--notecontrol);
+    cursor: pointer;
+}
+
+.ptusernotecustomselected {
+    outline: 2px solid var(--notetext);
+}
+
+.ptusernoteselection {
+    margin: 8px 0 24px;
+}
+
+.ptusernotetextarea {
+    display: block;
+    width: 100%;
+    min-height: 144px;
+    resize: none;
+    border: 1px solid var(--noteborder);
+    border-radius: 16px;
+    padding: 16px;
+    background: var(--notecontrol);
+    color: var(--notetext);
+    font: inherit;
+}
+
+.ptusernoteeditor input {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+.ptusernotecounter {
+    margin-top: 8px;
+    text-align: right;
+    color: var(--notemuted);
+    font-size: 12px;
+}
+
+.ptusernoteerror {
+    margin-top: 16px;
+    color: #f87171;
+}
+
+.ptusernoteaction, .ptusernoteaction > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ptusernoteaction {
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.ptusernotequiet, .ptusernotesecondary, .ptusernoteprimary {
+    min-height: 48px;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ptusernotequiet {
+    background: transparent;
+    color: var(--notemuted);
+}
+
+.ptusernotesecondary {
+    background: var(--notecontrol);
+    color: var(--notetext);
+}
+
+.ptusernotequiet:hover, .ptusernotesecondary:hover {
+    background: var(--noteborder);
+    color: var(--notetext);
+}
+
+.ptusernoteprimary {
+    background: #059669;
+    color: #ffffff;
+}
+
+.ptusernoteprimary:hover {
+    background: #047857;
+}
+
+.ptusernoteeditor :focus-visible {
+    outline: 2px solid var(--noteprimary);
+    outline-offset: 4px;
+}
+
+.ptusernotetextarea:focus {
+    border-color: var(--noteprimary);
+    outline: 4px solid rgba(16, 185, 129, 0.15);
+}
+
+.ptusernoteeditor :disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@media (max-width: 639px) {
+    .ptusernoteeditor {
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+        max-height: calc(100dvh - 32px);
+        padding: 24px;
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+
+    .ptusernotecolorchoice, .ptusernotecustom {
+        width: 100%;
+        max-width: 44px;
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    .ptusernoteaction {
+        display: block;
+    }
+
+    .ptusernoteaction > input, .ptusernoteaction > div {
+        width: 100%;
+    }
+
+    .ptusernoteaction > div input {
+        min-width: 0;
+        flex: 1 1 0%;
+    }
+}
+
+@media print {
+    .ptusernote, .ptusernoteeditor {
+        display: none !important;
+    }
+}

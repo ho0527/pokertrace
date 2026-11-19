@@ -1,0 +1,54 @@
+.usernotemanagementlist {
+    display: grid;
+    gap: 12px;
+}
+
+.usernotemanagementrow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #27272a;
+}
+
+.usernotemanagementidentity {
+    min-width: 0;
+}
+
+.usernotemanagementidentity h2 {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.usernotemanagementidentity p {
+    margin-top: 4px;
+    color: #a1a1aa;
+    font-size: 12px;
+}
+
+.usernotemanagementrow .ptusernote {
+    max-width: 100%;
+    background: #18181b;
+}
+
+.usernotedelete {
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    color: #f87171;
+    background: #18181b;
+    cursor: pointer;
+}
+
+.usernotedelete:hover {
+    background: #3f3f46;
+}
+
+.usernotedelete:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: 2px;
+}

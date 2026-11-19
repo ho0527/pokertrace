@@ -22,7 +22,7 @@ let gtostate={
 	anteratio:1   // ante 輸入值（依 antemode 解讀）；預設 1＝1bb 大盲 ante。0=無 ante。只影響 HE 的 push/fold 情境。
 }
 
-// ── 設定記憶（localStorage）：把控制項與每座位計分牌存起來，重整後還原 ──
+// ── 設定記憶（localStorage）：把控制項與每座位籌碼存起來，重整後還原 ──
 const GTOSTATEKEY=(typeof WEBLSNAME!="undefined"?WEBLSNAME:"")+"gtostate"
 function gtosavestate(){
 	try{
@@ -305,7 +305,7 @@ function gtocurrentspot(){
 	if(typeof GTOMATCHUPSPOTS!="undefined"&&GTOMATCHUPSPOTS[gtostate.spot]){
 		return GTOMATCHUPSPOTS[gtostate.spot].data[gtostate.position]||null
 	}
-	// RFI 深碼：gtodeeprfi.py 生成 25-300bb 每檔各自的範圍，直接用當前計分牌查
+	// RFI 深碼：gtodeeprfi.py 生成 25-300bb 每檔各自的範圍，直接用當前籌碼查
 	if(gtostate.spot=="RFI"){
 		return (typeof GTORFI!="undefined"&&GTORFI["HE_"+gtodeeptt()+"_RFI_"+gtostate.stackbb+"BB_"+gtostate.position])||null
 	}
@@ -328,7 +328,7 @@ function gtopositionsforspot(){
 	return gtotablecfg().positions
 }
 
-// 套用新的計分牌（貼齊最近有資料的檔）並重繪
+// 套用新的籌碼（貼齊最近有資料的檔）並重繪
 function gtoapplystack(v,stacks){
 	if(!v){ return }
 	gtostate.stackbb=gtosnapstack(v,stacks)
@@ -733,7 +733,7 @@ function gtohandleoption(el){
 		fslibloadmanifest()   // 切遊戲類型要重讀批次結果（HE→gtoresults、SD→shortdeckresults）
 	}
 	if(statekey=="structure"){
-		// 換結構：FL 用限注情境集、NL/PL 用原情境；spot/計分牌/位置落回合法值
+		// 換結構：FL 用限注情境集、NL/PL 用原情境；spot/籌碼/位置落回合法值
 		let spots=gtoavailablespots()
 		if(spots.indexOf(gtostate.spot)<0){ gtostate.spot=spots[0] }
 		gtorenderoption("#gtospot",spots,"spot",function(v){ return gtospotlabel(v) })
@@ -757,10 +757,10 @@ function gtohandleoption(el){
 		gtorenderpositions()
 	}
 	if(statekey=="spot"){
-		// 換情境：計分牌檔位與位置選單可能都不同（push/fold 短碼位置 vs RFI 深碼 vs 3bet 對位）
+		// 換情境：籌碼檔位與位置選單可能都不同（push/fold 短碼位置 vs RFI 深碼 vs 3bet 對位）
 		let stacks=gtostacksforspot()
 		if(stacks.indexOf(gtostate.stackbb)<0){
-			// 跨類別時給合理預設（深碼 100bb、push/fold 20bb），同類別內則保留原計分牌
+			// 跨類別時給合理預設（深碼 100bb、push/fold 20bb），同類別內則保留原籌碼
 			let def=(gtostate.spot=="RFI"||gtostate.spot=="DEEPTREE")?100:20
 			gtostate.stackbb=stacks.indexOf(def)>=0?def:stacks[0]
 		}
@@ -774,7 +774,7 @@ function gtohandleoption(el){
 		gtorenderpositions()
 		gtorendermeta()
 	}
-	// 換桌型/計分牌/情境/位置都重置對戰樹，避免狀態錯亂
+	// 換桌型/籌碼/情境/位置都重置對戰樹，避免狀態錯亂
 	gtotreereset()
 	gtodeepreset()
 	gtosyncoptionactive()
@@ -924,13 +924,13 @@ function gtotreecallcount(){
 	return n
 }
 
-// MTT 每座位計分牌（chip-EV 參考，非 ICM）：每座位可有自己的計分牌。
+// MTT 每座位籌碼（chip-EV 參考，非 ICM）：每座位可有自己的籌碼。
 // gtoperseat 關閉時＝所有座位用統一 gtostate.stackbb（原本行為）。
 let gtoseatstacks={}
 let gtoperseat=false
 
 function gtoavailstacks(){
-	// 依情境給每座位計分牌可貼齊的檔位：深碼樹用 10–300 深碼檔，push/fold 用 1–30。
+	// 依情境給每座位籌碼可貼齊的檔位：深碼樹用 10–300 深碼檔，push/fold 用 1–30。
 	if(gtostate.spot=="DEEPTREE"){
 		return (typeof GTOSTACKS!="undefined"&&GTOSTACKS["DEEPTREE"])||[10,25,50,100,200]
 	}
@@ -944,7 +944,7 @@ function gtostackround(bb){
 	}
 	return best
 }
-// 某座位實際使用的計分牌（每座位模式用自己的、四捨五入到最近檔；否則用統一計分牌）
+// 某座位實際使用的籌碼（每座位模式用自己的、四捨五入到最近檔；否則用統一籌碼）
 function gtoseatstack(pos){
 	if(gtoperseat&&gtoseatstacks[pos]!=null){ return gtostackround(gtoseatstacks[pos]) }
 	return gtostate.stackbb
@@ -1010,7 +1010,7 @@ function gtomultiwaytighten(spotdata,priorcallers){
 	return out
 }
 
-// 目前 overcaller 的有效計分牌（min(自己, 全下者)，貼齊 push/fold 檔位）
+// 目前 overcaller 的有效籌碼（min(自己, 全下者)，貼齊 push/fold 檔位）
 function gtomultiwayeff(){
 	let caller=gtoseats[gtotree.pointer]
 	return gtostackround(Math.min(gtoseatstack(caller),gtoseatstack(gtotree.jammerpos)))
@@ -1024,7 +1024,7 @@ function gtomultiwaycallspot(){
 }
 
 function gtotreecallspot(){
-	// 跟注方＝目前行動者；有效計分牌＝min(跟注者, 全下者)，因為單挑攤牌頂多輸贏較小那疊
+	// 跟注方＝目前行動者；有效籌碼＝min(跟注者, 全下者)，因為單挑攤牌頂多輸贏較小那疊
 	let caller=gtoseats[gtotree.pointer]
 	let eff=gtostackround(Math.min(gtoseatstack(caller),gtoseatstack(gtotree.jammerpos)))
 	let base=null
@@ -1307,7 +1307,7 @@ function gtotreerenderactions(){
 	}
 }
 
-// 每座位計分牌輸入列（MTT）：每個座位一個數字框，改動就重繪對戰樹
+// 每座位籌碼輸入列（MTT）：每個座位一個數字框，改動就重繪對戰樹
 function gtoperseatrender(){
 	let row=domgetid("gtoperseatrow")
 	if(!row){ return }
@@ -1350,7 +1350,7 @@ function gtotreerender(){
 	gtotreerenderactions()
 }
 
-/* ============== 深計分牌對戰樹（RFI → 3bet → 面對3bet → 面對4bet，一路串起來） ============== */
+/* ============== 深籌碼對戰樹（RFI → 3bet → 面對3bet → 面對4bet，一路串起來） ============== */
 // 不用像 3BET/VS3BET/VS4BET 那樣先選情境、再從一整排「誰 vs 誰」的清單挑對位——
 // 直接跟 PFTREE 一樣：一路點動作，系統自己接上對應的位置對位資料。
 // level: 0=還沒人開池 / 1=面對開池 / 2=開池者面對3bet / 3=3bet者面對4bet
@@ -1396,8 +1396,8 @@ function gtodeepflopcount(){
 // 3bet/vs3bet/vs4bet 資料只有兩檔 profile：淺深碼(~50bb，3bet/4bet 更寬) 與 深碼(~100bb)，
 // 各檔對應到最近的 profile（3bet/4bet 範圍在 75-200bb 幾乎不變）。
 // 開池 RFI 則是 25-300bb 每檔各自的範圍（gtodeeprfi.py 生成），不走 profile。
-// 目前決策的有效計分牌(bb)：每座位不同計分牌(gtoperseat)時用相關座位；否則統一 gtostate.stackbb。
-//   開池＝開池者自己的計分牌；面對加注／再加注＝雙方取 min（攤牌頂多輸贏較小那疊）。
+// 目前決策的有效籌碼(bb)：每座位不同籌碼(gtoperseat)時用相關座位；否則統一 gtostate.stackbb。
+//   開池＝開池者自己的籌碼；面對加注／再加注＝雙方取 min（攤牌頂多輸贏較小那疊）。
 function gtodeepeffstack(){
 	if(!gtoperseat){ return gtostate.stackbb }
 	let actor=gtodeepactor()
@@ -1434,7 +1434,7 @@ function gtodeepopenspot(actor){
 	}
 	let open
 	if(gtodeephu()){ open=GTOHU.SB_OPEN }   // 單挑：SB 按鈕寬開牌
-	// 開池層用每檔計分牌各自的 RFI（gtodeeprfi.py 生成）；位置以 k 對應 9-max、每座位模式用開池者自己的計分牌
+	// 開池層用每檔籌碼各自的 RFI（gtodeeprfi.py 生成）；位置以 k 對應 9-max、每座位模式用開池者自己的籌碼
 	else{ open=(typeof GTORFI!="undefined"&&GTORFI["HE_"+gtodeeptt()+"_RFI_"+gtodeepeffstack()+"BB_"+gtodeeprfipos(actor)])||null }
 	// 蓋到小盲＝SB vs BB：SB 除了加注，還有補牌(跟注)範圍（真 GTO；加注重疊的歸加注）
 	if(actor=="SB"&&open&&typeof GTOSB_LIMP!="undefined"){
@@ -1737,7 +1737,7 @@ function gtodeeprender(){
 	gtodeeprenderactions()
 }
 
-// 重繪目前作用中的對戰樹（每座位計分牌列的輸入／開關改動時用，依情境走 PFTREE 或 DEEPTREE）
+// 重繪目前作用中的對戰樹（每座位籌碼列的輸入／開關改動時用，依情境走 PFTREE 或 DEEPTREE）
 function gtoactivetreerender(){
 	if(gtostate.spot=="DEEPTREE"){ gtodeeprender() }
 	else{ gtotreerender() }
@@ -1756,7 +1756,7 @@ function gtoapplymode(){
 	if(summary){
 		summary.style.display=(tree||deep)?"none":"block"
 	}
-	// 每座位計分牌：push/fold 對戰樹與深碼對戰樹都支援
+	// 每座位籌碼：push/fold 對戰樹與深碼對戰樹都支援
 	let perseattoggle=domgetid("gtoperseattoggle")
 	if(perseattoggle){ perseattoggle.style.display=(tree||deep)?"flex":"none" }
 	let perseatrow=domgetid("gtoperseatrow")
@@ -1793,7 +1793,7 @@ function gtoinit(){
 	gtobindoptions()
 	gtobindtreecontrols()
 	let perseatchk=domgetid("gtoperseat")
-	if(perseatchk){ perseatchk.checked=gtoperseat }   // 還原每座位計分牌開關的勾選狀態
+	if(perseatchk){ perseatchk.checked=gtoperseat }   // 還原每座位籌碼開關的勾選狀態
 	gtoapplylanguage()
 	gtorendermeta()
 	gtosyncoptionactive()
@@ -1835,7 +1835,7 @@ function gtobindtreecontrols(){
 		perseat.addEventListener("change",function(){
 			gtoperseat=this.checked
 			if(gtoperseat){
-				// 開啟時：每座位預設帶入目前統一計分牌
+				// 開啟時：每座位預設帶入目前統一籌碼
 				for(let i=0;i<gtoseats.length;i=i+1){ gtoseatstacks[gtoseats[i]]=gtostate.stackbb }
 			}
 			gtoactivetreerender()
@@ -1862,7 +1862,7 @@ function fsactioncolor(a){
 let FSTXT={
 	zhtw:{
 		title:"翻後 GTO 求解器", subtitle:"自製 CFR 即時求解翻牌局面（eval7，免費）",
-		boardlabel:"翻牌", potlabel:"底池", stacklabel:"有效後手計分牌",
+		boardlabel:"翻牌", potlabel:"底池", stacklabel:"有效後手籌碼",
 		ooplabel:"OOP 範圍（先行動）", iplabel:"IP 範圍（後行動）", betlabel:"下注尺寸",
 		random:"隨機翻牌", solve:"求解", solving:"求解中…", allowraise:"允許加注",
 		hint:"輸入翻牌、雙方範圍與下注尺寸後按「求解」。後端用 CFR 迭代到均衡（約 2 秒）。",
@@ -1884,11 +1884,11 @@ let FSTXT={
 		fslibempty:"這個環境沒有提供預先算好的策略庫。你可以改用下方「自己輸入範圍即時求解」直接算。",
 		fslibfail:"讀取失敗",
 		fslibnotready:"策略庫還沒有這組對位在這張翻牌的結果。你可以改用下方的即時求解。",
-		thirdlabel:"背景選手範圍（多人池，選填，最多 7 家）",
-		thirdplaceholder:"留空＝雙人求解；每填一格＝多一個背景選手（固定範圍、一般下注會跟、一被加注就當作蓋牌，非嚴謹多人均衡）",
+		thirdlabel:"背景玩家範圍（多人池，選填，最多 7 家）",
+		thirdplaceholder:"留空＝雙人求解；每填一格＝多一個背景玩家（固定範圍、一般下注會跟、一被加注就當作蓋牌，非嚴謹多人均衡）",
 		advancedtitle:"自己輸入範圍即時求解（多人池、overbet、再加注全下）",
-		bgadd:"＋ 加一家", bgcount:"共 {n} 家（OOP＋IP＋{k} 個背景選手）",
-		multiwaynote:"簡化多人模型：背景選手固定範圍、一般下注會跟、但一被加注就視為蓋牌；非嚴謹多人 Nash 均衡，僅供參考。",
+		bgadd:"＋ 加一家", bgcount:"共 {n} 家（OOP＋IP＋{k} 個背景玩家）",
+		multiwaynote:"簡化多人模型：背景玩家固定範圍、一般下注會跟、但一被加注就視為蓋牌；非嚴謹多人 Nash 均衡，僅供參考。",
 		street_flop:"翻牌", street_turn:"轉牌", street_river:"河牌",
 		deal_turn:"抽轉牌", deal_river:"抽河牌",
 		term_fold:"這步棄牌，對手直接贏得底池，行動結束。", term_call:"這步跟注，雙方直接攤牌比大小，行動結束。",
@@ -2517,8 +2517,8 @@ function fsrenderresult(){
 	domgetid("fsresult").style.display="block"
 }
 
-let FSBGMAX=7   // 背景選手上限（OOP+IP+7 ＝ 最多 9 人）
-// 目前所有背景選手範圍欄位（第一格 #fsthirdrange ＋ #fsbgextra 內動態新增的）
+let FSBGMAX=7   // 背景玩家上限（OOP+IP+7 ＝ 最多 9 人）
+// 目前所有背景玩家範圍欄位（第一格 #fsthirdrange ＋ #fsbgextra 內動態新增的）
 function fsbgranges(){
 	let out=[]
 	let els=document.querySelectorAll(".fsbgrange")
@@ -2529,7 +2529,7 @@ function fsbgranges(){
 	return out.slice(0,FSBGMAX)
 }
 function fsbgcount(){ return document.querySelectorAll(".fsbgrange").length }
-// 新增一個背景選手範圍欄位（含移除鈕）
+// 新增一個背景玩家範圍欄位（含移除鈕）
 function fsbgaddrow(){
 	if(fsbgcount()>=FSBGMAX){ return }
 	let wrap=domgetid("fsbgextra")
@@ -2552,7 +2552,7 @@ function fsbgaddrow(){
 }
 // 更新「共 N 家」提示與 ＋ 鈕的可用狀態
 function fsbgupdatecount(){
-	let filled=fsbgranges().length   // 只算「有填內容」的背景選手，空欄位不灌水
+	let filled=fsbgranges().length   // 只算「有填內容」的背景玩家，空欄位不灌水
 	let el=domgetid("fsbgcount")
 	if(el){ el.textContent=fstext("bgcount").replace("{k}",filled).replace("{n}",filled+2) }
 	let rows=fsbgcount()             // 欄位總數（含空的）用來擋上限
@@ -2560,7 +2560,7 @@ function fsbgupdatecount(){
 	if(add){ add.disabled=rows>=FSBGMAX; add.style.opacity=rows>=FSBGMAX?"0.4":"" }
 }
 
-// ── 翻後輸入記憶（localStorage）：翻牌、雙方範圍、底池/計分牌、下注尺寸、背景選手，重整後還原 ──
+// ── 翻後輸入記憶（localStorage）：翻牌、雙方範圍、底池/籌碼、下注尺寸、背景玩家，重整後還原 ──
 const FSINPUTKEY=(typeof WEBLSNAME!="undefined"?WEBLSNAME:"")+"fsinputs"
 function fssaveinputs(){
 	try{
@@ -2581,7 +2581,7 @@ function fssaveinputs(){
 	}catch(e){}
 }
 // 還原上次翻後輸入。回傳 { ranges:bool }：ranges=true 表示已還原範圍（fsinit 就不用再套預設）。
-// 範圍/牌面/背景選手跟遊戲類型綁定（短牌 vs 標準牌），只有同類型才還原；底池/計分牌/下注尺寸則一律還原。
+// 範圍/牌面/背景玩家跟遊戲類型綁定（短牌 vs 標準牌），只有同類型才還原；底池/籌碼/下注尺寸則一律還原。
 function fsloadinputs(){
 	try{
 		let raw=localStorage.getItem(FSINPUTKEY)
@@ -2618,7 +2618,7 @@ function fssolve(){
 	let iprange=(domgetid("fsiprange").value||"").trim()
 	if(!ooprange||!iprange){ pttoast(fstext("errrange"),"error"); return }
 	let sd=gtostate.gametype=="SD"
-	// 背景選手（多人池）：蒐集所有 .fsbgrange 欄位，最多 7 家（共 9 人）。標準/短牌都支援。
+	// 背景玩家（多人池）：蒐集所有 .fsbgrange 欄位，最多 7 家（共 9 人）。標準/短牌都支援。
 	let bgranges=fsbgranges()
 	let body={
 		board:board,
@@ -2709,7 +2709,7 @@ function fsinit(){
 	onclick("#fssolve",function(){ fssolve() })
 	onclick("#fsbgadd",function(){ fsbgaddrow() })
 	onenterclick("#fspot,#fsstack",function(){ fssolve() })
-	// 進階區任何輸入變動（範圍、底池、計分牌、背景選手）都即時存檔；背景選手欄位另外更新「共 N 家」
+	// 進階區任何輸入變動（範圍、底池、籌碼、背景玩家）都即時存檔；背景玩家欄位另外更新「共 N 家」
 	let adv=domgetid("fsadvanced")
 	if(adv){ adv.addEventListener("input",function(e){
 		if(e.target&&e.target.classList&&e.target.classList.contains("fsbgrange")){ fsbgupdatecount() }
@@ -3079,7 +3079,7 @@ function gtostreetapplyforgame(){
 	}
 	let adv=domgetid("fsadvanced")
 	if(adv){ adv.style.display="block" }
-	// 多人池（背景選手 range）標準與短牌都支援，欄位一律顯示
+	// 多人池（背景玩家 range）標準與短牌都支援，欄位一律顯示
 	let third=domgetid("fsthirdwrap")||(domgetid("fsthirdrange")?domgetid("fsthirdrange").closest("div"):null)
 	if(third){ third.style.display="block" }
 	gtostreetapply()

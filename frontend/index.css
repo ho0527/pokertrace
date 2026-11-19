@@ -521,8 +521,8 @@ select:not([multiple]) {
 	}
 }
 
-/* 計分牌色塊 (chip swatch) — 變體 A 圓點前綴
-   決策: ai/artifacts/現場體驗客製化/mockup-decision-計分牌色塊.md
+/* 籌碼色塊 (chip swatch) — 變體 A 圓點前綴
+   決策: ai/artifacts/現場體驗客製化/mockup-decision-籌碼色塊.md
    色值來自使用者資料, 一律由 ptchipswatchapply() 以 element.style 指派;
    不可寫成 Tailwind class, Tailwind 掃不到會靜默無樣式 */
 .chipswatch {
@@ -663,4 +663,46 @@ select:not([multiple]) {
 .followclubdisabled {
 	opacity: 0.45;
 	pointer-events: none;
+}
+
+/* Mobile tabs stay centered; safe keeps overflowing tabs reachable. Page numbers stay centered. */
+body [role="tablist"],
+body [id$="pager"],
+body [id$="pagination"],
+body .pagination,
+body .pager,
+body .ptpager,
+body .relationpager,
+body .felt-tabs,
+body #settingsscroll,
+body div:has(> .tab-btn),
+body div:has(> .overviewtab-btn),
+body div:has(> .tabletab-btn),
+body div:has(> .handtab-btn),
+body div:has(> .othertab-btn),
+body div:has(> .workwtab-btn),
+body div:has(> .relationtypebtn),
+body div:has(> input[id^="tab-"]),
+body div:has(> input[id^="admintabbutton"]) {
+    justify-content: safe center;
+    align-items: center;
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    body [role="tablist"],
+    body .felt-tabs,
+    body #settingsscroll,
+    body div:has(> .tab-btn),
+    body div:has(> .overviewtab-btn),
+    body div:has(> .tabletab-btn),
+    body div:has(> .handtab-btn),
+    body div:has(> .othertab-btn),
+    body div:has(> .workwtab-btn),
+    body div:has(> .relationtypebtn),
+    body div:has(> input[id^="tab-"]),
+    body div:has(> input[id^="admintabbutton"]) {
+        justify-content: flex-start;
+        text-align: left;
+    }
 }

@@ -39,7 +39,7 @@ function gtostreetapplyforgame(){
 	}
 	let adv=domgetid("fsadvanced")
 	if(adv){ adv.style.display="block" }
-	// 多人池（背景選手 range）標準與短牌都支援，欄位一律顯示
+	// 多人池（背景玩家 range）標準與短牌都支援，欄位一律顯示
 	let third=domgetid("fsthirdwrap")||(domgetid("fsthirdrange")?domgetid("fsthirdrange").closest("div"):null)
 	if(third){ third.style.display="block" }
 	gtostreetapply()

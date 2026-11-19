@@ -21,7 +21,11 @@ function benefittext(key){
     if(!TRANSLATE[LANGUAGE]["benefit"]){
         return key
     }
-    return TRANSLATE[LANGUAGE]["benefit"][key]||key
+    const TEXT=TRANSLATE[LANGUAGE]["benefit"][key]
+    if(TEXT!=undefined){
+        return TEXT
+    }
+    return key
 }
 
 function setbenefittext(selector,text){

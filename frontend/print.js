@@ -41,7 +41,7 @@ function ptprintinfogrid(pairs){
 	return html
 }
 
-// 表格：columns 為 [{"title":"選手","align":"left"},...]；rows 為二維字串陣列。
+// 表格：columns 為 [{"title":"玩家","align":"left"},...]；rows 為二維字串陣列。
 function ptprinttable(columns,rows,emptytext){
 	if(!rows||rows.length<1){
 		return `<div class="ptprintempty">${ptprintescape(emptytext||"無資料")}</div>`
@@ -132,9 +132,13 @@ function ptsetpagestyle(css){
 }
 
 // 把組好的 HTML 塞進列印容器並開啟列印對話框（名單類固定 A4）。
-function ptprintrun(html){
+function ptprintrun(html,mobilepreviewed){
 	let root=ptprintcontainer()
 	root.innerHTML=html
 	ptsetpagestyle("@page{size:A4;margin:12mm}")
-	window.print()
+    if(mobilepreviewed&&typeof ptprintmobile=="function"&&(window.matchMedia("(display-mode: standalone)").matches||navigator.standalone||window.matchMedia("(max-width: 767px)").matches)){
+        ptprintmobile(root)
+    }else{
+	    window.print()
+    }
 }

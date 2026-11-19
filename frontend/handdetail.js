@@ -1395,8 +1395,8 @@ function stackmap(hand){
 	return data
 }
 
-// 每位選手投入的 ante 總額。ante 不算進 running（街上下注額），但判斷 all-in 時必須計入總投入，
-// 否則「盲注＋ante＋下注」剛好跟光計分牌的選手會被漏判（running 少了 ante 而小於起始計分牌）。
+// 每位玩家投入的 ante 總額。ante 不算進 running（街上下注額），但判斷 all-in 時必須計入總投入，
+// 否則「盲注＋ante＋下注」剛好跟光籌碼的玩家會被漏判（running 少了 ante 而小於起始籌碼）。
 function anteinvestmap(hand){
 	let data={}
 	let bitting=hand["bittingdata"]||[]
@@ -1548,8 +1548,8 @@ function allinstreetindex(hand){
 					notallin=notallin+1
 				}
 			}
-			// 只有當「還能下注的選手」剩下至多 1 位時，牌面才必然發完、勝率才有意義；
-			// 若仍有 2 位以上非全押選手在打邊池，這條街還有動作，先不顯示勝率。
+			// 只有當「還能下注的玩家」剩下至多 1 位時，牌面才必然發完、勝率才有意義；
+			// 若仍有 2 位以上非全押玩家在打邊池，這條街還有動作，先不顯示勝率。
 			if(anyallin&&notallin<=1){
 				return s
 			}
@@ -1579,7 +1579,7 @@ function buildallinequityplan(hand){
 			continue
 		}
 		let cards=knownhandcards(seating[i])
-		// 只要有任一位未蓋牌的選手沒亮牌，勝率就無法誠實計算，直接不顯示
+		// 只要有任一位未蓋牌的玩家沒亮牌，勝率就無法誠實計算，直接不顯示
 		if(!cards){
 			return null
 		}
@@ -1593,7 +1593,7 @@ function buildallinequityplan(hand){
 	if(seats.length<2||seats.length>6){
 		return null
 	}
-	// 全押勝率只送出未蓋牌選手的底牌，蓋掉選手亮出的牌後端不知道，會被當成活牌算進補牌；
+	// 全押勝率只送出未蓋牌玩家的底牌，蓋掉玩家亮出的牌後端不知道，會被當成活牌算進補牌；
 	// 這裡記下這些「實際拿不到」的牌，前端用灰叉標出（同兔牌樣式），但不改補牌數與勝率。
 	let inplay={}
 	for(let i=0;i<seats.length;i=i+1){
@@ -1998,7 +1998,7 @@ function renderhand(hand){
 			herohighlight=combinelayerhighlight(herohighlight,previewdata["hand"],previewoffset)
 		}
 	}
-	// 計分牌校正紀錄要用 stackadjust.html 編輯，普通手牌才用 newedithand
+	// 籌碼校正紀錄要用 stackadjust.html 編輯，普通手牌才用 newedithand
 	domgetid("editlink").href=((hand["recordtype"]||"hand")=="stackadjustment"?"stackadjust.html":"newedithand.html")+"?tableid="+tableid+"&handid="+handid
 	if(hand["canedit"]){
 		domgetid("editlink").classList.remove("hidden")

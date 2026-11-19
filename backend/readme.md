@@ -206,3 +206,33 @@ python defulttoken.py
 - `localenv.cmd.example` 是給之後維護者複製成 `localenv.cmd` 的起點；真實機密請只放在 `localenv.cmd`。
 - `install-service.cmd` 需用系統管理員身分執行，並在執行前確認 `NSSM`、`BACKEND`、`PYDIR`、`USERSITE` 四個路徑符合部署機器。
 - 若本目錄用途或重要檔案改變，請同步更新本 README 與 `AGENTS.md`。
+
+## 帳號私人註記（2026-11-16）
+
+- `POST getusernotelist`：必填 `targetuseridlist`，最多100個正整數ID；只回 token 本人寫的註記，未註記對象略過。頂層 `userid` 是目前登入者ID，供前端隱藏本人入口。
+- `PUT editusernote/{targetuserid}`：必填 `color`（空或完整HEX）與 `note`（最多1,000 Unicode code point）；兩者均空即清除。註記者由token決定，不接收外來userid，管理員也不能代讀寫。
+- `usernote` 以作者／對象唯一鍵跨場次保存，保存時鎖定兩個有效帳號；管理員軟刪清理與硬刪cascade避免留下筆記。
+- 回應no-store，筆記值不放進場次／計時器／共用WebSocket；日誌僅保留不含筆記內容的診斷。SQL helper 的 `errorredacted` 預設False維持既有呼叫相容性，私人筆記查詢／交易傳True。
+- API文件：`../frontend/tool/apidoc.js`；2026-11-16 已同步正式機，僅套用 usernote 新增表結構，保留正式庫設定。
+
+2026-11-17：新增`GET getmyusernotelist?page=1&limit=20&keyword=`，作者固定取token本人；只列有效對象，支援名稱／玩家ID／本人筆記搜尋，頁碼1至1000000、每頁1至100、搜尋最多200字元，拒絕未知參數。回傳data.notelist／total／page／limit，筆記值的SQL診斷去識別，所有回應no-store。管理員與被註記者不能代讀，編輯／清除沿用editusernote。API文件與真實隔離／搜尋／分頁測試已同步；本次產品用語改為玩家／發牌員／籌碼，DB欄位與協定不改，邀請信亦依使用者新要求同步用語。
+
+
+## 2026-11-17 參與者協會與一次性玩家 ID
+
+- 新增 `user.playeridchangedtime` 及有效 8 位非零起首 ID 的唯一索引 `userplayeridunique`。`PUT editmyplayerid` 只作用於本人；playerid/confirmplayerid/confirmagain 必須一致，透過列鎖與 NULL 時間戳條件限制一次，成功同值重送可冪等。既有 user.id 與資料關聯不變。
+- 新增 `userclub(userid,clubid,ps,sortorder,createtime,updatetime)`，每人每協會唯一。`clubhelper.getuserclublist` 自動納入自己的協會及已確認／已晉級參與場次的協會，後者持續保留且不重複；主辦者刪除的協會不再顯示。名稱與地址即時從 club 讀取，私人 ps 只從登入者的 userclub 讀取。
+- `PUT editclubnote/<clubid>` 僅接收 ps（最多 1,000 Unicode 字元），只可改本人清單內由他人擁有的協會；不得指定他人 userid 或更動主辦資料。自己的協會繼續用 editclub。管理員不具讀取他人 userclub 私人註解的介面。
+- editcluborder 核對本人完整原順序，寫入 userclub；僅同步自己的 club.sortorder，保留既有公開協會順序契約。
+- searchusers 的既有 keyword 支援完整 `PTUSER:<userid>` 精確查詢，沿用認證、遮罩 email 與場次狀態；不完整或非法格式回空清單。
+- 部署先備份正式庫，檢查正規 ID 重複群數為零，再套用此次 marker 內純新增 DDL。不可整包覆蓋 backend 或機器設定。通知觸發僅文件校正，沒有新增通知或寄信行為。
+
+
+## 2026-11-18 玩家 ID 先檢查再確認
+
+POST checkmyplayerid 僅接收 playerid，檢查格式、本人修改機會、與目前是否相同及唯一性。透過 playeridchangeerror 與最終 PUT 共用規則；預先檢查不保留 ID、不寫入、不消耗機會，全部回應 no-store。PUT 仍重新驗證與用列鎖／唯一索引防止檢查後的競爭。
+
+
+## 2026-11-18 跨午夜時長與頭像註記
+
+getsessionlist 的有效 SQL 統計把同日 endtime<starttime 視為跨午夜，endtime+interval '1 day' 後計算；不修改歷史日期。其他真正倒置或缺失區間以 NULL 排除平均分母，場次數及盈虧保持不變。正式唯讀診斷發現 15 筆倒置起訖，範例為 20:00 至同日 01:30。

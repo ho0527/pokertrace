@@ -8,6 +8,7 @@
 		<link rel="stylesheet" href="https://chrisplugin.pages.dev/css/chrisplugin.css">
 		<script src="https://chrisplugin.pages.dev/js/chrisplugin.js"></script>
 		<link rel="stylesheet" href="tailwind.css">
+		<link rel="stylesheet" href="clublist.css">
 	</head>
 	<body class="min-h-screen bg-zinc-950 text-white">
 		<div id="navigationbar"></div>
@@ -15,10 +16,10 @@
 		<div class="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
 			<div class="mb-6">
 				<p class="mb-2 text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-400">Clubs</p>
-				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl">協會管理</h1>
+				<h1 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl" data-mobilepagetitle>協會管理</h1>
 			</div>
 
-			<section class="mb-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-6">
+			<section class="mb-6 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-6" id="clubfilter">
 				<div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
 					<input type="text" class="min-h-12 w-full flex-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-aria-label="clublist.searchlabel" id="searchname" placeholder="搜尋協會名稱 / 地址 / 註解" aria-label="搜尋協會">
 					<div class="grid grid-cols-3 gap-2 md:flex md:gap-3">
@@ -29,22 +30,25 @@
 				</div>
 			</section>
 
-			<div id="clubmain"></div>
-			<div class="mt-4 flex flex-wrap items-center justify-center gap-2" id="clubpagination"></div>
-
-			<section class="bg-zinc-800 rounded-lg p-6 my-8 rounded-[28px] border border-zinc-800 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8">
-				<div class="text-lg font-extrabold mb-4 text-center text-white" data-i18n="clublist.stats">協會統計</div>
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 flex flex-col items-center">
-						<div class="text-zinc-400 text-sm" data-i18n="clublist.totalclubs">總協會數</div>
-						<div class="mt-1 text-2xl font-extrabold text-white" id="totalclubs">0</div>
-					</div>
-					<div class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 flex flex-col items-center">
-						<div class="text-zinc-400 text-sm" data-i18n="clublist.displaycount">顯示數量</div>
-						<div class="mt-1 text-2xl font-extrabold text-white" id="displaycount">0</div>
-					</div>
+			<div class="clubviewbar" id="clubviewbar">
+				<span class="text-sm text-zinc-400" id="clubviewstatus"></span>
+				<section class="clubsummary" data-i18n-aria-label="clublist.stats" aria-label="協會統計">
+					<span><span data-i18n="clublist.stats">協會統計</span>：</span>
+					<span data-i18n="clublist.totalclubs">總協會數</span>
+					<strong id="totalclubs">0</strong>
+				</section>
+				<input type="button" class="cluborderbutton" data-i18n-value="clublist.orderresetview" id="clubcustomorderbutton" value="顯示全部／自訂順序" hidden>
+			</div>
+			<div id="clubmain" aria-busy="true"></div>
+			<div class="cluborderfooter" id="cluborderfooter" hidden>
+				<p class="text-sm text-zinc-400" id="cluborderstatus" role="status" aria-live="polite"></p>
+				<div class="cluborderaction">
+					<input type="button" class="cluborderbutton" data-i18n-value="clublist.orderreload" id="cluborderreload" value="重新載入" hidden>
+					<input type="button" class="cluborderbutton" data-i18n-value="clublist.cancel" id="clubordercancel" value="取消">
+					<input type="button" class="cluborderbutton cluborderprimary" data-i18n-value="clublist.ordersave" id="clubordersave" value="儲存排序" disabled>
 				</div>
-			</section>
+			</div>
+
 		</div>
 
 		<div id="clubmodal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4">
@@ -55,6 +59,7 @@
 				</div>
 
 				<form id="clubform">
+					<p class="mb-4 text-sm text-zinc-400" data-i18n="clublist.sharedhint" id="clubsharedhint" hidden>名稱與地址跟隨主辦者更新；你只能編輯自己的私人註解。</p>
 					<input type="hidden" id="clubid">
 
 					<div class="mb-4">
@@ -69,7 +74,7 @@
 
 					<div class="mb-6">
 						<label class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="clublist.note" for="clubps">註解</label>
-						<textarea class="w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubps" rows="3"></textarea>
+						<textarea class="w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="clubps" maxlength="1000" rows="3"></textarea>
 					</div>
 
 					<div class="flex gap-3">

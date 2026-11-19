@@ -183,7 +183,7 @@ function renderactionhint(){
 		}
 		if(flowstate["step"]==3){
 			if(flowstate["mode"]=="hosted"){
-				hint=newsessiontext("hintstep3hosted","把費用與計分牌補齊，並確認下方進階設定與備註，即可建立場次。")
+				hint=newsessiontext("hintstep3hosted","把費用與籌碼補齊，並確認下方進階設定與備註，即可建立場次。")
 			}else{
 				hint=newsessiontext("hintstep3personal","把你的實際支出與結果補齊，並確認進階設定，之後統計會更準。")
 			}
@@ -272,7 +272,7 @@ function updatefeeblocks(){
 	}
 }
 
-// 把核心「買入 / 起始計分牌」那組升級成醒目卡片, 並移到費用區最上方(一次性)
+// 把核心「買入 / 起始籌碼」那組升級成醒目卡片, 並移到費用區最上方(一次性)
 function setupcorebox(){
 	let chipfield=field("chip")
 	if(!chipfield){
@@ -400,15 +400,6 @@ function composeisotime(datevalue,timevalue){
 	return datevalue+" "+timevalue+"+00:00"
 }
 
-function datetimems(datevalue,timevalue){
-	let raw=datevalue+"T"+timevalue
-	let time=Date.parse(raw)
-	if(Number.isNaN(time)){
-		return 0
-	}
-	return time
-}
-
 function validatenonnegative(id,label){
 	if(numbervalue(id)<0){
 		if(field(id)){
@@ -425,19 +416,19 @@ function instantnumberlabel(id){
 	let map={
 		"buyin": newsessiontext("labelbuyin","買入費"),
 		"buyinfee": newsessiontext("labelbuyinfee","買入服務費"),
-		"chip": newsessiontext("labelchip","起始計分牌"),
+		"chip": newsessiontext("labelchip","起始籌碼"),
 		"rebuycount": newsessiontext("labelrebuycount","Rebuy 次數"),
 		"rebuybuyin": newsessiontext("labelrebuybuyin","Rebuy 費用"),
 		"rebuyfee": newsessiontext("labelrebuyfee","Rebuy 服務費"),
-		"rebuychip": newsessiontext("labelrebuychip","Rebuy 計分牌"),
+		"rebuychip": newsessiontext("labelrebuychip","Rebuy 籌碼"),
 		"reentrycount": newsessiontext("labelreentrycount","Reentry 次數"),
 		"reentrybuyin": newsessiontext("labelreentrybuyin","Reentry 費用"),
 		"reentryfee": newsessiontext("labelreentryfee","Reentry 服務費"),
-		"reentrychip": newsessiontext("labelreentrychip","Reentry 計分牌"),
+		"reentrychip": newsessiontext("labelreentrychip","Reentry 籌碼"),
 		"addoncount": newsessiontext("labeladdoncount","Addon 次數"),
 		"addonbuyin": newsessiontext("labeladdonbuyin","Addon 費用"),
 		"addonfee": newsessiontext("labeladdonfee","Addon 服務費"),
-		"addonchip": newsessiontext("labeladdonchip","Addon 計分牌"),
+		"addonchip": newsessiontext("labeladdonchip","Addon 籌碼"),
 		"guaranteedprize": newsessiontext("labelguaranteedprize","保底獎金"),
 		"personalbuyin": newsessiontext("labelbuyin","買入費"),
 		"personalbuyinfee": newsessiontext("labelbuyinfee","買入服務費"),
@@ -514,10 +505,6 @@ function validatestep(step){
 			showformerror(newsessiontext("needendtime","請選擇結束時間"),"endtime")
 			return false
 		}
-		if(datetimems(textvalue("date"),textvalue("endtime"))<=datetimems(textvalue("date"),textvalue("starttime"))){
-			showformerror(newsessiontext("endtimebeforestart","結束時間必須晚於開始時間"),"endtime")
-			return false
-		}
 		return true
 	}
 	if(step==2){
@@ -570,7 +557,7 @@ function validatestep(step){
 				return false
 			}
 			if(numbervalue("reentrycount")>0&&numbervalue("reentrychip")<=0){
-				showformerror(newsessiontext("needreentrychip","已設定 Reentry 次數，請補齊 Reentry 計分牌"),"reentrychip")
+				showformerror(newsessiontext("needreentrychip","已設定 Reentry 次數，請補齊 Reentry 籌碼"),"reentrychip")
 				return false
 			}
 			if(numbervalue("addoncount")>0&&numbervalue("addonbuyin")<=0){
@@ -578,7 +565,7 @@ function validatestep(step){
 				return false
 			}
 			if(numbervalue("addoncount")>0&&numbervalue("addonchip")<=0){
-				showformerror(newsessiontext("needaddonchip","已設定 Addon 次數，請補齊 Addon 計分牌"),"addonchip")
+				showformerror(newsessiontext("needaddonchip","已設定 Addon 次數，請補齊 Addon 籌碼"),"addonchip")
 				return false
 			}
 		}else{
@@ -803,8 +790,8 @@ function synchosteddefaults(){
 	if(flowstate["mode"]!="hosted"){
 		return
 	}
-	// 次數 > 0 時把買入/手續費/計分牌預設帶入 (該欄還是 0 才帶, 買入/手續費照原邏輯直接同步)
-	// 次數 = 0 時把該組買入/手續費/計分牌歸零
+	// 次數 > 0 時把買入/手續費/籌碼預設帶入 (該欄還是 0 才帶, 買入/手續費照原邏輯直接同步)
+	// 次數 = 0 時把該組買入/手續費/籌碼歸零
 	if(numbervalue("rebuycount")>0){
 		if(numbervalue("buyin")>=0){
 			setfieldvalue("rebuybuyin",numbervalue("buyin"))
@@ -853,6 +840,12 @@ function synchosteddefaults(){
 }
 
 function buildpayload(){
+	// 以 UTC 日期運算保留本地牆上時間；結束鐘點較早時視為隔日。
+	const STARTDATE=new Date(textvalue("date")+"T"+textvalue("starttime")+"Z")
+	const ENDDATE=new Date(textvalue("date")+"T"+textvalue("endtime")+"Z")
+	if(ENDDATE<STARTDATE){
+		ENDDATE.setUTCDate(ENDDATE.getUTCDate()+1)
+	}
 	let payload={
 		"name": textvalue("name").trim(),
 		"gametype": textvalue("gameeventtype"),
@@ -884,7 +877,7 @@ function buildpayload(){
 		"totalbuyin": "0",
 		"owned": flowstate["mode"]=="hosted",
 		"starttime": composeisotime(textvalue("date"),textvalue("starttime")),
-		"endtime": composeisotime(textvalue("date"),textvalue("endtime")),
+		"endtime": composeisotime(ENDDATE.toISOString().slice(0,10),textvalue("endtime")),
 		"description": textvalue("description").trim(),
 		"gametypeid": textvalue("gametype")||1,
 		"limittypeid": textvalue("limittype")||1,
@@ -949,7 +942,7 @@ function aiimportpreview(data){
 		lines.push(newsessiontext("previewname","名稱：")+data["name"])
 	}
 	if(data["startingStack"]!=null&&data["startingStack"]!=undefined){
-		lines.push(newsessiontext("previewchip","起始計分牌：")+Number(data["startingStack"]).toLocaleString())
+		lines.push(newsessiontext("previewchip","起始籌碼：")+Number(data["startingStack"]).toLocaleString())
 	}
 	if(data["buyin"]!=null&&data["buyin"]!=undefined){
 		lines.push(newsessiontext("previewbuyin","買入：")+(Number(data["buyin"])==0?"Freeroll (0)":Number(data["buyin"]).toLocaleString()))
@@ -1247,7 +1240,7 @@ function bindevents(){
 		})
 	}
 
-	// 多步驟表單: 在輸入框(如起始計分牌)按 Enter 不要送出整個表單, 避免提前/連續建立; 請改用「下一步/建立」按鈕
+	// 多步驟表單: 在輸入框(如起始籌碼)按 Enter 不要送出整個表單, 避免提前/連續建立; 請改用「下一步/建立」按鈕
 	field("form").addEventListener("keydown",function(event){
 		if(event.key=="Enter"&&event.target&&event.target.tagName=="INPUT"&&event.target.type!="submit"&&event.target.type!="button"){
 			event.preventDefault()

@@ -21,8 +21,8 @@ let bccurbb=0
 
 try{ bcbbmode=(localStorage.getItem("bc-bbmode")=="1") }catch(error){ bcbbmode=false }
 
-// 金額格式: BB 模式時以 大盲 為單位顯示(x.x BB), 否則顯示原始計分牌數
-// 防呆: bccurbb 為 0(尚未渲染牌桌或該手無大盲金額)時不做除法, 退回計分牌數顯示
+// 金額格式: BB 模式時以 大盲 為單位顯示(x.x BB), 否則顯示原始籌碼數
+// 防呆: bccurbb 為 0(尚未渲染牌桌或該手無大盲金額)時不做除法, 退回籌碼數顯示
 function bcfmtamt(amount){
 	let n=bcint(amount)
 	if(bcbbmode){
@@ -205,7 +205,7 @@ function bcinitial(name){
 	return text.substring(0,1).toUpperCase()
 }
 
-// 底池 = 本手所有下注計分牌加總(顯示用)
+// 底池 = 本手所有下注籌碼加總(顯示用)
 function bcpot(hand){
 	let rows=hand["bittingdata"]||[]
 	let total=0
@@ -268,7 +268,7 @@ function bcactionmeta(lastact,hand){
 	return { "label": a,"cls": "neutral" }
 }
 
-// 從 bittingdata 彙整每座位: 是否蓋牌 / 已投入計分牌 / 最後動作
+// 從 bittingdata 彙整每座位: 是否蓋牌 / 已投入籌碼 / 最後動作
 function bchandactions(hand){
 	let rows=hand["bittingdata"]||[]
 	let folded={}
@@ -289,7 +289,7 @@ function bchandactions(hand){
 	return { folded: folded,invested: invested,last: last }
 }
 
-// 把下注金額拆成場次面額, 回傳一疊有色計分牌(最多 5 枚)
+// 把下注金額拆成場次面額, 回傳一疊有色籌碼(最多 5 枚)
 function bcchipstack(amount){
 	let denoms=(bcchips||[]).slice().sort(function(a,b){ return bcint(b["value"])-bcint(a["value"]) })
 	let discs=[]
@@ -369,7 +369,7 @@ function bcseatposhtml(seat,seatno,x,y,isdealer,folded,actionmeta,invested){
 		</div>`
 }
 
-// 橢圓牌桌: 座位環繞四周, 中央公共牌 + 底池, 座位前方顯示下注計分牌
+// 橢圓牌桌: 座位環繞四周, 中央公共牌 + 底池, 座位前方顯示下注籌碼
 function bctablehtml(hand){
 	let seats=hand["seatingdata"]||[]
 	let byseat={}

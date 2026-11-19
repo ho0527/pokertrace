@@ -81,7 +81,7 @@
 .bc-action.aggressive{background:rgba(52,211,153,.18);color:#6ee7b7}
 .bc-action.danger{background:rgba(244,63,94,.18);color:#fca5b0}
 
-/* 下注計分牌(桌上, 座位前方) */
+/* 下注籌碼(桌上, 座位前方) */
 .bc-bet{position:absolute;transform:translate(-50%,-50%);z-index:7;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
 .bc-betchips{display:flex}
 .bc-chipdisc{width:15px;height:15px;border-radius:50%;border:1px solid rgba(0,0,0,.5);box-shadow:0 1px 2px rgba(0,0,0,.4);margin-left:-6px;background-clip:padding-box}
@@ -117,7 +117,7 @@
 .bc-outs .mo{opacity:.7;font-weight:700}
 .bc-eqstatus{margin-left:4px;padding-left:4px;border-left:1px solid rgba(0,0,0,.28);font-weight:700}
 
-/* 底池計分牌 / 邊池 / 燒牌 */
+/* 底池籌碼 / 邊池 / 燒牌 */
 .bc-potchips{display:flex;justify-content:center;margin-top:5px}
 .bc-sidepots{position:absolute;left:14%;top:48%;transform:translate(-50%,-50%);z-index:1;display:flex;flex-direction:column;gap:3px;text-align:center}
 .bc-potrow{background:rgba(0,0,0,.4);border-radius:8px;padding:2px 8px;font-size:10px;line-height:1.3}
@@ -272,7 +272,7 @@
 	clip-path: inset(50% -100% -100% -100%);
 }
 
-/* 梭哈的明牌攤在**牌桌上**、選手面前（現場就是這樣擺，不是拿在手上）。
+/* 梭哈的明牌攤在**牌桌上**、玩家面前（現場就是這樣擺，不是拿在手上）。
    貼著座位框朝中心的那一側：座位在下半圈就放框的上方（.above），
    上半圈就放框的下方（.below）。**不要改回用半徑另算座標** ——
    座位框在 760x475 的桌面上佔 15.5% x / 24% y，中心又在半徑 45/41，

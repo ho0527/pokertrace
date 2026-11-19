@@ -45,7 +45,7 @@ def buildverifyemail(ownername,staffname,role,token,sessioninfo=None):
 	# Assistant 是母音開頭，冠詞要 an —— 一起帶著走，不要在句子裡硬寫 a
 	rolearticle="a"
 	if role=="dealer":
-		rolelabel="計分員(Dealer)"
+		rolelabel="發牌員(Dealer)"
 		rolelabelen="Dealer"
 	if role=="floor":
 		rolelabel="裁判(Floor)"

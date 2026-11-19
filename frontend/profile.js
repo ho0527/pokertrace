@@ -82,7 +82,11 @@ function profiletext(key){
     if(!TRANSLATE[LANGUAGE]["profile"]){
         return key
     }
-    return TRANSLATE[LANGUAGE]["profile"][key]||key
+    const TEXT=TRANSLATE[LANGUAGE]["profile"][key]
+    if(TEXT!=undefined){
+        return TEXT
+    }
+    return key
 }
 
 function settext(selector,text){
@@ -408,8 +412,13 @@ function getincludefee(){
 
 function loadgetuser(){
     let includefee=getincludefee()
-    ajax("GET",AJAXURL+"getuser?includefee="+includefee,gotuserdata,null,[
-        ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+    const TOKEN=weblsget(WEBLSNAME+"token")
+    ajax("GET",AJAXURL+"getuser?includefee="+includefee,function(event,data){
+        if(TOKEN==weblsget(WEBLSNAME+"token")){
+            gotuserdata(event,data)
+        }
+    },null,[
+        ["Authorization","Bearer "+TOKEN]
     ],{
         "loadingtarget": "#basicprofilepanel"
     })
@@ -429,6 +438,7 @@ function gotuserdata(event,data){
     let row=data["data"]
     currentusertype=row["type"]||"player"
     currentplayerid=row["playerid"]||""
+    updateprofileidentity(row)
     currentuserpermission=Number(row["permission"]||0)
     chipcolors=row["chipcolors"]||chipcolors
     chipsets=row["chipset"]||chipsets
@@ -660,12 +670,17 @@ function renderstaffcards(){
     for(i=0;i<roles.length;i=i+1){
         let role=roles[i]
         let list=staffdata[role]||[]
+        let countkey="staffcountmany"
+        if(list.length==1){
+            countkey="staffcountone"
+        }
+        const COUNTTEXT=profiletext(countkey).replace("{count}",String(list.length))
         html=html+
         "<div class=\"rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5\">"+
             "<div class=\"flex items-center justify-between gap-3\">"+
                 "<div>"+
                     "<div class=\"text-base font-bold text-white\">"+staffcardtitle(role)+"</div>"+
-                    "<div class=\"mt-1 text-xs text-zinc-400\">"+profiletext("staffcountprefix")+list.length+profiletext("staffcountsuffix")+"</div>"+
+                    "<div class=\"mt-1 text-xs text-zinc-400\">"+COUNTTEXT+"</div>"+
                 "</div>"+
                 "<input type=\"button\" class=\"openstaffmodal rounded-2xl bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700\" data-role=\""+role+"\" value=\""+profiletext("manage")+"\">"+
             "</div>"+
@@ -1017,7 +1032,7 @@ function chipcolorrowhtml(item){
     "</div>"
 }
 
-// 下拉只列出使用者自己的調色盤。若這個計分牌已存的顏色不在調色盤裡（例如預設牌組用的
+// 下拉只列出使用者自己的調色盤。若這個籌碼已存的顏色不在調色盤裡（例如預設牌組用的
 // #ef4444 #f59e0b #22c55e #3b82f6，早期使用者的調色盤沒有這幾色），沒有任何 option 會被
 // selected，瀏覽器就會落在第一個選項 —— 使用者只是打開編輯再按儲存，顏色就被靜默改掉了。
 // 所以這裡把「目前這個值」補成一個選項，確保它一定選得到、也一定存得回去。
@@ -1882,7 +1897,7 @@ function dosignout(){
     ])
 }
 
-// ===== 刪除帳號（兩層 lightbox 確認 + 輸入選手 ID，真刪除、無法復原）=====
+// ===== 刪除帳號（兩層 lightbox 確認 + 輸入玩家 ID，真刪除、無法復原）=====
 function opendeleteaccountmodal1(){
     let modal=domgetid("deleteaccountmodal1")
     if(!modal||modal.classList.contains("hidden")){

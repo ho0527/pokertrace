@@ -48,7 +48,7 @@ const AJAXURL=location.pathname.indexOf("/project00061/")>=0?"/project00061/":"/
 // 直接連 /ws/ 會落到靜態 location / 變 404（API 通、計時器/手牌同步全掛）。
 const WSPREFIX=location.pathname.indexOf("/project00061/")>=0?"/project00061/ws/":"/ws/"
 
-// 把任意值轉成安全的 HTML 文字，避免使用者可控資料(選手名稱/備註/賽事名稱等)經 innerHTML 造成 XSS。
+// 把任意值轉成安全的 HTML 文字，避免使用者可控資料(玩家名稱/備註/賽事名稱等)經 innerHTML 造成 XSS。
 // 全頁面共用：initialize.js 在各頁的頁面腳本之前載入。
 function escapehtml(value){
 	let div=doccreate("div")
@@ -175,6 +175,9 @@ function bindleaveguard(root){
 	}
 	window.addEventListener("beforeunload",onbeforeunload)
 	let guard={
+		"markdirty":function(){
+			dirty=true
+		},
 		isdirty:function(){
 			return dirty
 		},
@@ -1235,11 +1238,11 @@ if(typeof window.ajax=="function"&&!window.ptajaxwrapped){
 			ptloadingend(loadingid)
 		}
 		function wrappedcallback(event,data){
-			if(timedout){
+			if(timedout||doneed){
 				return
 			}
 			finish()
-			if(pthandleapiauthfailure(data)){
+			if(!(options&&options["authfailurehandled"]==true)&&pthandleapiauthfailure(data)){
 				return
 			}
 			if(callback){
@@ -1258,7 +1261,9 @@ if(typeof window.ajax=="function"&&!window.ptajaxwrapped){
 			if(requesthandle&&typeof requesthandle.abort=="function"){
 				requesthandle.abort()
 			}
-			pttoasterror(ptrequesttimeoutmessage())
+			if(!(options&&options["silent"]==true)){
+				pttoasterror(ptrequesttimeoutmessage())
+			}
 			if(callback){
 				callback(null,data)
 			}
@@ -2044,7 +2049,10 @@ let mobilepagetitleheading=null
 
 function getpagetitletext(){
 	let text=""
-	if(mobilepagetitleheading){
+	let explicitheading=document.querySelector("[data-mobilepagetitle]")
+	if(explicitheading){
+		text=explicitheading.textContent.trim()
+	}else if(mobilepagetitleheading){
 		text=mobilepagetitleheading.textContent.trim()
 	}
 	if(text){
@@ -2062,6 +2070,9 @@ function getpagetitletext(){
 }
 
 function findmobilepagetitleheading(){
+	if(document.querySelector("[data-mobilepagetitle]")){
+		return null
+	}
 	let headings=document.querySelectorAll("h1,h2")
 	for(let i=0;i<headings.length;i=i+1){
 		let item=headings[i]
@@ -2501,11 +2512,11 @@ function pttoolchiptext(key){
 			"en": "Load Profile Denoms"
 		},
 		"needsignin": {
-			"zhtw": "請先登入才能讀取個人資料計分牌",
+			"zhtw": "請先登入才能讀取個人資料籌碼",
 			"en": "Sign in to load profile chip settings"
 		},
 		"empty": {
-			"zhtw": "個人資料沒有設定計分牌面額",
+			"zhtw": "個人資料沒有設定籌碼面額",
 			"en": "No chip denominations in profile"
 		},
 		"loaded": {
@@ -2576,7 +2587,7 @@ function ptloadprofilechipdenoms(done,silented){
 	])
 }
 
-// 把個人資料的計分牌整理成帶樣式的清單 [{value,color,shape,label}]，面額去重、由小到大。
+// 把個人資料的籌碼整理成帶樣式的清單 [{value,color,shape,label}]，面額去重、由小到大。
 // label 取自 chipcolors 調色盤的顏色名稱；該顏色不在調色盤裡時退回 hex 本身，不留空白。
 // 與 ptprofilechipdenoms() 併存：那支只回傳數字陣列，已有 7 個呼叫點依賴，不可改其形狀。
 function ptprofilechiplist(userdata){
@@ -2622,7 +2633,7 @@ function ptprofilechiplist(userdata){
 	return output
 }
 
-// 載入個人資料的計分牌帶樣式清單，done 收到 [{value,color,shape,label}]。
+// 載入個人資料的籌碼帶樣式清單，done 收到 [{value,color,shape,label}]。
 // 未登入 / 請求失敗 / 沒有設定時一律 done([])，讓呼叫端沿用自己的預設面額，不得因此崩頁。
 function ptloadprofilechiplist(done,silented){
 	if(!weblsget(WEBLSNAME+"signin")||!weblsget(WEBLSNAME+"token")){
@@ -2659,7 +2670,7 @@ function ptloadprofilechiplist(done,silented){
 	])
 }
 
-// 計分牌色塊（chip swatch）的佔位標記；變體 A 圓點前綴，樣式在 index.css。
+// 籌碼色塊（chip swatch）的佔位標記；變體 A 圓點前綴，樣式在 index.css。
 // 這裡只寫入面額（整數，我們自己控制的值），使用者的顏色與名稱一律不進 HTML 字串，
 // 改由 ptchipswatchapply() 以 element.style 與 textContent 指派，從根本避免自我 XSS。
 function ptchipswatchhtml(value){
@@ -2733,7 +2744,7 @@ function ptchipstripselect(root,value){
 	}
 }
 
-// 把個人資料的每個計分牌組合（類別）各自整理成 {name,denoms}，不合併
+// 把個人資料的每個籌碼組合（類別）各自整理成 {name,denoms}，不合併
 function ptprofilechipsetlist(userdata){
 	let chipsets=[]
 	if(userdata&&Array.isArray(userdata["chipset"])){
@@ -2759,7 +2770,7 @@ function ptprofilechipsetlist(userdata){
 	return out
 }
 
-// 載入個人資料的計分牌組合清單（每個類別分開），done 收到 [{name,denoms}]
+// 載入個人資料的籌碼組合清單（每個類別分開），done 收到 [{name,denoms}]
 function ptloadprofilechipsets(done,silented){
 	if(!weblsget(WEBLSNAME+"signin")||!weblsget(WEBLSNAME+"token")){
 		if(!silented){
@@ -2804,7 +2815,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} a5.0.0 | Made with ♠ ♥ ♦ ♣ in Taipei
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} v0.0.0
 			</div>
 		</div>
 	</footer>
@@ -2949,8 +2960,8 @@ function pterror(key){
 		"ERROR_request_data_not_found": "請確認必填欄位",
 		"ERROR_request_data_type_error": "欄位格式不正確",
 		"ERROR_request_timeout": "連線逾時，請檢查網路後重試",
-		"ERROR_only_latest_hand_deletable": "只能刪除最新一筆紀錄，以免後面手牌的計分牌錯亂",
-		"ERROR_already_registered": "此選手已報名",
+		"ERROR_only_latest_hand_deletable": "只能刪除最新一筆紀錄，以免後面手牌的籌碼錯亂",
+		"ERROR_already_registered": "此玩家已報名",
 		"ERROR_registration_not_found": "找不到報名資料",
 		"ERROR_session_relation_not_found": "此賽事尚未設定下一場多日賽",
 		"ERROR_session_not_open_for_registration": "此賽事未開放報名",
@@ -3950,7 +3961,7 @@ window.ptshowshakepermissionask=ptshowshakepermissionask
 ptinitafterbody(ptshakecontactstart)
 
 // ===== 首次使用導覽 onboarding（檢查表 4.4.2）=====
-// 登入後第一次造訪時顯示一次性導覽；先讓使用者選「主辦者／選手」再帶對應流程。
+// 登入後第一次造訪時顯示一次性導覽；先讓使用者選「主辦者／玩家」再帶對應流程。
 function ptonboarding(){
 	if(!weblsget(WEBLSNAME+"signin")){
 		return
@@ -4182,7 +4193,7 @@ function ptboardcardlist(value){
 //   session-setting-tab-<sessionid>   場次設定頁記住的分頁
 //   registrationquery<sessionid>       報名查詢頁的查詢條件
 //   newedithand_<tableid>_<欄位>       手牌草稿（quickhand_ 同理，每桌十幾個 key）
-//   stackadjust_<id>                   計分牌校正草稿
+//   stackadjust_<id>                   籌碼校正草稿
 //
 // 這些在登出時會被 ptclearlocalstorage() 一次清掉，但**不登出的人永遠不會清**。
 // localStorage 有容量上限，滿了之後 setItem 會丟例外——而全站的 setItem 幾乎都

@@ -560,7 +560,7 @@ function applylanguage(){
 	for(let i=0;i<bopts.length;i=i+1){ bopts[i].textContent=batchtext(dataset(bopts[i],"bopt")) }
 }
 
-// 計分牌清單 (state.chips): 會直接寫進每個新建場次的 sessionchip, 跟 colorups/起始碼分開
+// 籌碼清單 (state.chips): 會直接寫進每個新建場次的 sessionchip, 跟 colorups/起始碼分開
 function renderchiprows(){
 	let html=""
 	for(let i=0;i<state.chips.length;i=i+1){
@@ -610,7 +610,7 @@ function applychipstobatch(chips){
 	renderchiprows()
 }
 
-// 直接讀個人資料的原始計分牌組合 (含 shape/color), 跟 ptloadprofilechipsets 不同 (那個只留面額數字)
+// 直接讀個人資料的原始籌碼組合 (含 shape/color), 跟 ptloadprofilechipsets 不同 (那個只留面額數字)
 function loadrawprofilechipsets(done){
 	if(!weblsget(WEBLSNAME+"signin")||!weblsget(WEBLSNAME+"token")){
 		pttoast(pttoolchiptext("needsignin"),"warning")
@@ -989,8 +989,8 @@ onclick("#b-colorupsfromprofile",function(element,event){ loadcolorupsfromprofil
 onclick("#b-refresh",function(element,event){ renderpreview() })
 onclick("#b-create",function(element,event){ create() })
 
-// 重買/重入/加買「次數」改成非 0 時, 把該列的買入/手續費/計分牌預設帶入上面的買入/手續費/起始碼
-// (只在該欄還是 0 時帶, 使用者已自訂就不蓋); 次數改成 0 時把該列買入/手續費/計分牌歸零
+// 重買/重入/加買「次數」改成非 0 時, 把該列的買入/手續費/籌碼預設帶入上面的買入/手續費/起始碼
+// (只在該欄還是 0 時帶, 使用者已自訂就不蓋); 次數改成 0 時把該列買入/手續費/籌碼歸零
 function autofillstruct(countid,buyinid,feeid,chipid){
 	if((int(getvalue(countid))||0)<=0){
 		value("#"+buyinid,"0")

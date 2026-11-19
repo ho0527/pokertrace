@@ -1,0 +1,27 @@
+#guidesections, .guidesection, .guideitembody {
+    min-width: 0;
+}
+
+.guidesection {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+    .guidesection {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .guideitemhead {
+        padding: 16px;
+        gap: 8px;
+    }
+
+    .guideitemhead h3 {
+        font-size: 16px;
+    }
+
+    .guideitembody {
+        padding: 0 16px 16px;
+    }
+}

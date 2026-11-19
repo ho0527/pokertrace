@@ -240,7 +240,7 @@ function tableactivetab(btn,hashupdated){
 		content.classList.remove("hidden")
 	}
 	if(hashupdated){
-		let hash="#"+dataset(btn,"id")
+        let hash="#"+tab
 		if(location.hash!=hash){
 			href(hash)
 		}
@@ -614,7 +614,7 @@ function actionstackmap(hand){
 	return data
 }
 
-// ante 不算進 running（街上下注額），但判斷 all-in 時要計入總投入，否則盲注＋ante＋下注剛好跟光計分牌會被漏判
+// ante 不算進 running（街上下注額），但判斷 all-in 時要計入總投入，否則盲注＋ante＋下注剛好跟光籌碼會被漏判
 function actionanteinvestmap(hand){
 	let data={}
 	let rows=hand["bittingdata"]||[]
@@ -797,8 +797,8 @@ function rendertablehandlist(){
 		let result=float(hand["result"]||0)
 		let actions=""
 		if(hand["canedit"]){
-			// 計分牌校正紀錄要用 stackadjust.html 編輯（newedithand 會把它存成普通手牌）；最新一筆可改計分牌，非最新一筆只能改備註，由該頁判斷
-			// 快速手牌為獨立紀錄，用 quickhand.html 編輯（可自由改計分牌、不與其他手牌連動）
+			// 籌碼校正紀錄要用 stackadjust.html 編輯（newedithand 會把它存成普通手牌）；最新一筆可改籌碼，非最新一筆只能改備註，由該頁判斷
+			// 快速手牌為獨立紀錄，用 quickhand.html 編輯（可自由改籌碼、不與其他手牌連動）
 			let editurl=`newedithand.html?tableid=${hand["tableid"]}&handid=${hand["id"]}`
 			if(hand["recordtype"]=="stackadjustment"){
 				editurl=`stackadjust.html?tableid=${hand["tableid"]}&handid=${hand["id"]}`
@@ -973,7 +973,7 @@ bindhandfilters()
 loadhandlist()
 setTimeout(connecthandws,300)
 
-// 選手頁籤動態座位與莊家設定
+// 玩家頁籤動態座位與莊家設定
 function tableauthheaders(){
 	return [
 		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
@@ -1167,7 +1167,7 @@ function renderCurrentPlayerTable(maxSeat){
 		html=html+`
 			<tr class="border-t border-zinc-700">
 				<td class="py-2 px-2 text-center font-bold">${tabletext("seat")} ${seatno}</td>
-				<td class="py-2 px-2">${playercell}</td>
+                <td class="ptusernotetablecell py-2 px-2">${playercell}${ptusernotehtml(player&&player["userid"],player&&player["name"])}</td>
 				<td class="py-2 px-2">
 					<div class="flex flex-wrap items-center gap-2">
 						<input type="number" class="tablechipinput bg-zinc-700 text-white rounded px-2 py-2 text-sm w-28" data-seat="${seatno}" inputmode="numeric" value="${chipvalue}" ${unknowned?"disabled":""}>

@@ -9,7 +9,7 @@
 		- 加情境：在 GTORANGELIST 增加新 key，例如 HE_9MAX_RFI_40BB_UTG
 		- 加動作：每個 spot 可同時放 jam / raise / call / mix 多個 token 清單
 		- 加桌型：tabletype 改 6MAX、key 用 HE_6MAX_...
-		- 加計分牌/位置：照 buildspotkey 的命名再補 key 即可
+		- 加籌碼/位置：照 buildspotkey 的命名再補 key 即可
 	token 格式沿用 preflop 慣例：22+ / A9s+ / ATo+ / KQo / 98s（gto.js 的 gtoexpand 會展開）
 */
 
@@ -80,7 +80,7 @@ let GTOFL={
 	}
 }
 
-// 各情境的計分牌檔位。push/fold 有 1–30bb 每檔；深碼 RFI/對戰樹用深碼檔。
+// 各情境的籌碼檔位。push/fold 有 1–30bb 每檔；深碼 RFI/對戰樹用深碼檔。
 // 檔位多時前端會改用數字輸入框（打任意值、貼齊最近有資料的檔）。
 let GTOSTACKS={
 	"PUSHFOLD": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
@@ -145,7 +145,7 @@ let GTOTABLES={
 }
 
 // ── 任意人數（2–10）動態桌型 ──
-// 開蓋全下範圍只取決於「後面還有幾人（k）」與有效計分牌，跟桌子叫幾 max 無關（見 gtoopen.py 的
+// 開蓋全下範圍只取決於「後面還有幾人（k）」與有效籌碼，跟桌子叫幾 max 無關（見 gtoopen.py 的
 // multiway_open(E,S,k)）。座位的 k＝在座位序中「後面還有幾人」（gtopushfoldopen 由 index 算），
 // 所以位置「名稱」純粹是顯示用，可自由命名而不影響範圍正確性。
 // 命名採自然慣例：最早行動一律叫 UTG、按鈕一律 BTN，中間依標準名（MP/LJ/HJ/CO）補；人多才往前加 UTG+1/UTG+2。
@@ -173,7 +173,7 @@ function gtogentable(n){
 	深碼 RFI 開牌範圍（25~300bb 各檔）— ★教學參考，非 eval7 自算★
 	深碼開牌由翻後可玩性決定，需完整翻前 solver 才能精算（本環境做不到）。
 	100bb 是 PokerTrace 自製的「標準參考開牌範圍」（手寫錨點，維護在
-	gtodeeprfi.py 的 BASE100）；其餘計分牌檔由 gtodeeprfi.py 以 100bb 為錨
+	gtodeeprfi.py 的 BASE100）；其餘籌碼檔由 gtodeeprfi.py 以 100bb 為錨
 	平滑外插生成：變淺砍投機牌、補高張雜色；變深補同花踢腳與小對子、砍弱雜色 Ax。
 	可自由散布、可商用，但不宣稱等同 solver 精解。動作＝raise（開牌）vs fold。
 	★整塊由 gtodeeprfi.py 生成，改範圍請改該檔再重跑，不要手改這裡★
@@ -2763,7 +2763,7 @@ let GTORANGELIST={
 let gtoseats=["UTG","UTG1","MP","LJ","HJ","CO","BTN","SB","BB"]
 
 // 全下者位置分桶：跟注範圍主要取決於對手全下範圍寬窄，而非自己位置。
-// EARLY（緊）→ MID → LATE（寬）。跟注範圍依此 + 計分牌查 GTOCALLVSJAM。
+// EARLY（緊）→ MID → LATE（寬）。跟注範圍依此 + 籌碼查 GTOCALLVSJAM。
 let GTOJAMBUCKET={
 	"9MAX": {
 		UTG:"EARLY", UTG1:"EARLY", MP:"EARLY",
@@ -2778,7 +2778,7 @@ let GTOJAMBUCKET={
 // 面對單一全下的跟注範圍（call/fold）。key = stackbb + "_" + 全下者分桶。
 // 【eval7 自算】每手 all-in equity vs 全下者範圍 >= 底池賠率門檻 (S-1)/(2S+0.5) 才跟。
 // 跟注方已貼的 1bb 是沉沒成本，只需再投 S-1（2026-07-18 修正；舊式 S/(2S+1.5) 系統性偏緊）。
-// 給定全下者範圍下為精確解（蒙地卡羅）。對手越寬(LATE) → 跟越寬；計分牌越深 → 門檻越高 → 跟越緊。
+// 給定全下者範圍下為精確解（蒙地卡羅）。對手越寬(LATE) → 跟越寬；籌碼越深 → 門檻越高 → 跟越緊。
 // 重算方式：python gtocall.py（全下者三桶範圍見該檔 JAMMER）。
 let GTOCALLVSJAM={
 	"1_EARLY": { call:["AA","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","AKo","KK","KQs","KJs","KTs","K9s","K8s","K7s","K6s","K5s","K4s","K3s","K2s","AQo","KQo","QQ","QJs","QTs","Q9s","Q8s","Q7s","Q6s","Q5s","Q4s","Q3s","Q2s","AJo","KJo","QJo","JJ","JTs","J9s","J8s","J7s","J6s","J5s","J4s","J3s","J2s","ATo","KTo","QTo","JTo","TT","T9s","T8s","T7s","T6s","T5s","T4s","T3s","T2s","A9o","K9o","Q9o","J9o","T9o","99","98s","97s","96s","95s","94s","93s","92s","A8o","K8o","Q8o","J8o","T8o","98o","88","87s","86s","85s","84s","83s","82s","A7o","K7o","Q7o","J7o","T7o","97o","87o","77","76s","75s","74s","73s","72s","A6o","K6o","Q6o","J6o","T6o","96o","86o","76o","66","65s","64s","63s","62s","A5o","K5o","Q5o","J5o","T5o","95o","85o","75o","65o","55","54s","53s","52s","A4o","K4o","Q4o","J4o","T4o","94o","84o","74o","64o","54o","44","43s","42s","A3o","K3o","Q3o","J3o","T3o","93o","83o","73o","63o","53o","43o","33","32s","A2o","K2o","Q2o","J2o","T2o","92o","82o","72o","62o","52o","42o","32o","22"] },

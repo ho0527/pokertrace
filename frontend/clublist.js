@@ -4,15 +4,34 @@ if(!weblsget(WEBLSNAME+"signin")){
 }
 
 let clubdata=[]
-let clubpage=1
-let clubpagelimit=10
-let clubpagination={
-	"page": 1,
-	"total": 0,
-	"totalpages": 1,
-	"hasprev": false,
-	"hasnext": false
-}
+let clubsortstate={ "key": "","ascended": true }
+let clubloadeded=false
+let clubloadinged=false
+let clubmutatinged=false
+let clubsearchname=""
+let clubordersavinged=false
+let cluborderchangeded=false
+let cluborderconflicted=false
+let cluborderfailed=false
+let cluborderlist=[]
+let clubpreviousidlist=[]
+let clubordermessage=""
+let clubdragid=0
+let clubdragpointer=0
+let clubdragstarted=false
+let clubdragstartx=0
+let clubdragstarty=0
+let clubdragx=0
+let clubdragy=0
+let clubdragtarget=-1
+let clubdraganimation=0
+let clubdraghandle=null
+let clubdraglabel=null
+let clubdraggeometry=[]
+let clubdragorigintop=0
+let clubdragoriginleft=0
+let clubdragheight=0
+let clubdragpitch=0
 
 function safehtml(value){
 	if(value==null||value==undefined){
@@ -39,17 +58,6 @@ function applyclublanguage(){
 	domgetid("searchbutton").value=clubtext("search")
 	domgetid("clearsearchbutton").value=clubtext("clear")
 	domgetid("addclubbutton").value=clubtext("addclub")
-	let stattitle=document.querySelector(".bg-zinc-800.rounded-lg.p-6.my-8 .text-lg")
-	if(stattitle){
-		stattitle.textContent=clubtext("stats")
-	}
-	let statlabels=document.querySelectorAll(".bg-zinc-800.rounded-lg.p-6.my-8 .text-zinc-400")
-	if(0<statlabels.length){
-		statlabels[0].textContent=clubtext("totalclubs")
-	}
-	if(1<statlabels.length){
-		statlabels[1].textContent=clubtext("displaycount")
-	}
 	let labels=document.querySelectorAll("#clubform label")
 	if(0<labels.length){
 		labels[0].innerHTML=clubtext("name")+' <span class="text-red-500">*</span>'
@@ -70,52 +78,122 @@ function applyclublanguage(){
 
 applyclublanguage()
 
-ajax("GET",AJAXURL+"getclublist",function(event,data){
-	if(data["success"]){
-		clubdata=data["data"]
-		main()
-	}else{
-		pthandleauthfailure(data["data"]||"ERROR_token_error",{
-			"toasted": false
-		})
-	}
-},null,[
-	["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
-])
-
-function main(){
-	let searchname=getvalue("searchname").toLowerCase().trim()
-	let totalcount=clubdata.length
-	let filtered=[]
-
-	for(let i=0;i<totalcount;i=i+1){
-		let club=clubdata[i]
-		let shouldshow=true
-
-		if(searchname){
-			let searchtext=[
-				club["name"]||"",
-				club["address"]||"",
-				club["ps"]||""
-			].join(" ").toLowerCase()
-			if(searchtext.indexOf(searchname)==-1){
-				shouldshow=false
-			}
-		}
-
-		if(shouldshow){
-			filtered.push(club)
-		}
-	}
-
-	renderclublist(filtered)
-	innertext("#totalclubs",totalcount,false)
-	innertext("#displaycount",filtered.length,false)
-	bindclubbuttons()
+function loadclubdata(){
+    clubloadinged=true
+    main()
+    ajax("GET",AJAXURL+"getclublist",function(event,data){
+        clubloadinged=false
+        if(data["success"]&&Array.isArray(data["data"])){
+            clubdata=data["data"]
+            clubloadeded=true
+            cluborderlist=clubdata.slice()
+            clubpreviousidlist=[]
+            for(let i=0;i<clubdata.length;i=i+1){
+                clubpreviousidlist.push(clubdata[i]["id"])
+            }
+            cluborderchangeded=false
+            cluborderconflicted=false
+            cluborderfailed=false
+            clubordermessage=clubtext("orderunchanged")
+            leaveguard.clear()
+        }else{
+            cluborderfailed=true
+            clubordermessage=clubtext("orderloadfail")
+            if(data["data"]=="ERROR_user_not_found"){
+                pthandleauthfailure(data["data"],{"toasted": false})
+            }else if(clubloadeded&&!cluborderchangeded){
+                pttoasterror(clubordermessage)
+            }
+        }
+        main()
+    },null,[
+        ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+    ],{"loadingtarget": "#clubmain"})
 }
 
-// 協會清單的排序狀態。key 為空字串時維持後端回傳的順序。
-let clubsortstate={ "key": "","ascended": true }
+function main(){
+    if(clubdragid){
+        endclubdrag()
+    }
+    if(!clubloadeded){
+        let html=`<div class="p-6 text-center text-zinc-400" role="status">${clubtext("orderloading")}</div>`
+        if(!clubloadinged){
+            html=`<div class="p-6 text-center"><p class="mb-4 text-red-400">${clubtext("orderloadfail")}</p><input type="button" class="cluborderbutton" id="clubretrybutton" value="${clubtext("orderreload")}"></div>`
+        }
+        innerhtml("#clubmain",html,false)
+    }else{
+        const SEARCHNAME=clubsearchname
+        const TOTALCOUNT=cluborderlist.length
+        const FILTERED=[]
+
+        for(let i=0;i<TOTALCOUNT;i=i+1){
+            const CLUB=cluborderlist[i]
+            let showed=true
+
+            if(SEARCHNAME){
+                const SEARCHTEXT=[
+                    CLUB["name"]||"",
+                    CLUB["address"]||"",
+                    CLUB["ps"]||""
+                ].join(" ").toLowerCase()
+                if(SEARCHTEXT.indexOf(SEARCHNAME)==-1){
+                    showed=false
+                }
+            }
+
+            if(showed){
+                FILTERED.push(CLUB)
+            }
+        }
+
+        renderclublist(FILTERED)
+        innertext("#totalclubs",TOTALCOUNT,false)
+        bindclubbuttons()
+    }
+    const LOCKED=cluborderchangeded||clubordersavinged||clubloadinged||clubmutatinged
+    const BARSHOWN=cluborderchangeded||clubordersavinged||cluborderconflicted
+    const FILTEREDED=clubsearchname!=""||clubsortstate["key"]!=""
+    domgetid("clubviewbar").hidden=!clubloadeded
+    domgetid("cluborderfooter").hidden=!BARSHOWN
+    document.body.classList.toggle("cluborderpending",BARSHOWN)
+    domgetid("searchname").disabled=LOCKED
+    domgetid("searchbutton").disabled=LOCKED
+    domgetid("clearsearchbutton").disabled=LOCKED
+    domgetid("addclubbutton").disabled=LOCKED
+    domgetid("clubcustomorderbutton").hidden=!FILTEREDED
+    domgetid("clubcustomorderbutton").disabled=LOCKED
+    domgetid("clubviewstatus").textContent=clubtext("orderhelp")
+    if(FILTEREDED){
+        domgetid("clubviewstatus").textContent=clubtext("orderviewsorted")
+    }else if(clubloadeded&&cluborderlist.length<2){
+        domgetid("clubviewstatus").textContent=clubtext("orderminimum")
+    }
+    domgetid("clubmain").setAttribute("aria-busy",String(clubloadinged||clubordersavinged||clubmutatinged))
+    domgetid("clubordersave").disabled=!cluborderchangeded||clubordersavinged||clubloadinged||cluborderconflicted
+    domgetid("clubordercancel").disabled=clubordersavinged||clubloadinged
+    domgetid("cluborderreload").hidden=!cluborderfailed
+    domgetid("cluborderreload").disabled=clubordersavinged||clubloadinged
+    domgetid("clubordersave").value=clubtext("ordersave")
+    if(cluborderfailed&&!cluborderconflicted){
+        domgetid("clubordersave").value=clubtext("orderretry")
+    }
+    let message=clubordermessage
+    if(clubordersavinged){
+        message=clubtext("ordersaving")
+    }else if(clubloadinged){
+        message=clubtext("orderloading")
+    }
+    domgetid("cluborderstatus").textContent=message
+    domgetid("cluborderstatus").classList.toggle("cluborderfailure",cluborderfailed)
+}
+
+function clubcanreorder(){
+    return clubloadeded&&!clubloadinged&&!clubmutatinged&&!clubordersavinged&&!cluborderconflicted&&clubdata.length>1&&clubsortstate["key"]==""&&clubsearchname==""&&domgetid("clubmodal").style.display!="flex"
+}
+
+function clubgrip(club){
+    return `<input type="button" class="cluborderbutton clubordergrip" data-id="${safehtml(club["id"])}" value="⠿" title="${safehtml(clubtext("orderdrag").replace("%s",club["name"]))}" aria-label="${safehtml(clubtext("orderdrag").replace("%s",club["name"]))}" aria-keyshortcuts="ArrowUp ArrowDown" ${clubcanreorder()?"":"disabled"}>`
+}
 
 // 排序取值。三個可排序欄位都是字串；取不到就回 null，由 ptsortcompare 排到最後。
 function clubsortvalue(item,key){
@@ -131,51 +209,25 @@ function clubsortvalue(item,key){
 }
 
 function renderclublist(filtered){
-    // **排序要在分頁之前**：先切片再排只會排到當前頁，那是假的排序
-    filtered=ptsortlist(filtered,clubsortstate["key"],clubsortstate["ascended"],clubsortvalue)
-	let showcount=filtered.length
-	let totalpages=Math.ceil(showcount/clubpagelimit)
-	if(totalpages<1){
-		totalpages=1
-	}
-	if(clubpage>totalpages){
-		clubpage=totalpages
-	}
-	if(clubpage<1){
-		clubpage=1
-	}
-	let start=(clubpage-1)*clubpagelimit
-	let end=start+clubpagelimit
-	let pageclubs=[]
-	for(let i=start;i<end&&i<showcount;i=i+1){
-		pageclubs.push(filtered[i])
-	}
-	clubpagination={
-		"page": clubpage,
-		"total": showcount,
-		"totalpages": totalpages,
-		"hasprev": 1<clubpage,
-		"hasnext": clubpage<totalpages
-	}
-	if(window.innerWidth<768){
-		renderclubcards(pageclubs,start)
-	}else{
-		renderclubtable(pageclubs,start)
-	}
-	renderclubpagination()
+    const SORTED=ptsortlist(filtered,clubsortstate["key"],clubsortstate["ascended"],clubsortvalue)
+    if(window.innerWidth<768){
+        renderclubcards(SORTED)
+    }else{
+        renderclubtable(SORTED)
+    }
 }
 
-function renderclubcards(pageclubs,start){
+function renderclubcards(rowlist){
 	let html=""
-	for(let i=0;i<pageclubs.length;i=i+1){
-		let club=pageclubs[i]
+	for(let i=0;i<rowlist.length;i=i+1){
+		let club=rowlist[i]
 		html=html+`
-			<div class="bg-zinc-900/70 rounded-2xl p-4 mb-3 border border-zinc-800 transition hover:border-zinc-700">
+			<div class="bg-zinc-900/70 rounded-2xl p-4 mb-3 border border-zinc-800 transition hover:border-zinc-700" data-clubrow data-id="${safehtml(club["id"])}">
 				<div class="flex justify-between gap-3 mb-2">
-					<div class="text-xs text-zinc-400">#${start+i+1}</div>
+					<div class="cluborderhandle">${clubgrip(club)}<span class="text-xs text-zinc-400">#${i+1}</span></div>
 					<div class="flex gap-3 text-sm">
-						<input type="button" class="text-blue-400 hover:underline editbutton" data-id="${club["id"]}" value="${clubtext("edit")}">
-						<input type="button" class="text-red-400 hover:underline deletebutton" data-id="${club["id"]}" value="${clubtext("delete")}">
+						<input type="button" class="text-blue-400 hover:underline editbutton" data-id="${club["id"]}" value="${clubtext("edit")}" ${cluborderchangeded||clubordersavinged||clubloadinged||clubmutatinged?"disabled":""}>
+                        ${club["owned"]!=false?`<input type="button" class="text-red-400 hover:underline deletebutton" data-id="${club["id"]}" value="${clubtext("delete")}" ${cluborderchangeded||clubordersavinged||clubloadinged||clubmutatinged?"disabled":""}>`:""}
 					</div>
 				</div>
 				<div class="font-semibold text-lg">${safehtml(club["name"])}</div>
@@ -187,7 +239,7 @@ function renderclubcards(pageclubs,start){
 	if(html==""){
 		let message=clubtext("emptyall")
 		let note=clubtext("nextadd")
-		if(getvalue("searchname")){
+		if(clubsearchname!=""){
 			message=clubtext("emptysearch")
 			note=clubtext("nextadd")
 		}
@@ -201,20 +253,20 @@ function renderclubcards(pageclubs,start){
 	innerhtml("#clubmain",html,false)
 }
 
-function renderclubtable(pageclubs,start){
+function renderclubtable(rowlist){
 	let rows=""
-	for(let i=0;i<pageclubs.length;i=i+1){
-		let club=pageclubs[i]
-		let rowdivider=i<pageclubs.length-1?"[&>td]:border-b [&>td]:border-zinc-800":""
+	for(let i=0;i<rowlist.length;i=i+1){
+		let club=rowlist[i]
+		let rowdivider=i<rowlist.length-1?"[&>td]:border-b [&>td]:border-zinc-800":""
 		rows=rows+`
-			<tr class="hover:bg-zinc-800/60 transition ${rowdivider}">
-				<td class="py-3 px-4">${start+i+1}</td>
+			<tr class="hover:bg-zinc-800/60 transition ${rowdivider}" data-clubrow data-id="${safehtml(club["id"])}">
+				<td class="clubordercell py-3 px-4"><div class="cluborderhandle">${clubgrip(club)}<span>${i+1}</span></div></td>
 				<td class="py-3 px-4">${safehtml(club["name"])}</td>
 				<td class="py-3 px-4"><a href="https://www.google.com/maps?q=${encodeURIComponent(club["address"]||"")}" target="_blank" class="underline text-blue-500" rel="noopener noreferrer">${safehtml(club["address"])}</a></td>
 				<td class="py-3 px-4">${safehtml(club["ps"]||"-")}</td>
 				<td class="py-3 px-4">
-					<input type="button" class="text-blue-400 hover:underline mr-3 editbutton" data-id="${club["id"]}" value="${clubtext("edit")}">
-					<input type="button" class="text-red-400 hover:underline deletebutton" data-id="${club["id"]}" value="${clubtext("delete")}">
+					<input type="button" class="text-blue-400 hover:underline mr-3 editbutton" data-id="${club["id"]}" value="${clubtext("edit")}" ${cluborderchangeded||clubordersavinged||clubloadinged||clubmutatinged?"disabled":""}>
+                    ${club["owned"]!=false?`<input type="button" class="text-red-400 hover:underline deletebutton" data-id="${club["id"]}" value="${clubtext("delete")}" ${cluborderchangeded||clubordersavinged||clubloadinged||clubmutatinged?"disabled":""}>`:""}
 				</td>
 			</tr>
 		`
@@ -222,13 +274,13 @@ function renderclubtable(pageclubs,start){
 	if(rows==""){
 		let message=clubtext("emptyall")
 		let note=clubtext("nextadd")
-		if(getvalue("searchname")){
+		if(clubsearchname!=""){
 			message=clubtext("emptysearch")
 		}
 		rows=`<tr><td colspan="5" class="py-6 text-center"><div class="text-white font-semibold mb-2">${message}</div><div class="text-zinc-400 text-sm">${note}</div></td></tr>`
 	}
 	innerhtml("#clubmain",`
-		<div class="max-h-[50vh] overflow-auto md:rounded-2xl md:border md:border-zinc-800 md:bg-zinc-900/40">
+		<div class="clubtablewrap md:rounded-2xl md:border md:border-zinc-800 md:bg-zinc-900/40">
 			<table class="w-full text-sm border-separate border-spacing-0">
 				<thead>
 					<tr class="text-zinc-300" id="clublisthead">
@@ -245,47 +297,11 @@ function renderclubtable(pageclubs,start){
 	`,false)
     // 這一頁每次 render 會把整個 thead 重畫，所以箭頭與點擊都要在這裡重來一次
     ptsortarrow("#clublisthead",clubsortstate["key"],clubsortstate["ascended"])
-    ptbindsort("#clublisthead",clubsortstate,function(){
-        clubpage=1
-        main()
-    })
-}
-
-function renderclubpagination(){
-	let html=`
-		<input type="button" class="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 px-3 py-2 rounded-xl cursor-pointer transition" id="clubprevpage" value="${clubtext("prevpage")}" ${clubpagination["hasprev"]?"":"disabled"}>
-	`
-	for(let i=1;i<=clubpagination["totalpages"];i=i+1){
-		if(i==1||i==clubpagination["totalpages"]||Math.abs(i-clubpagination["page"])<=2){
-			html=html+`
-				<input type="button" class="${i==clubpagination["page"]?"bg-emerald-600":"bg-zinc-800 hover:bg-zinc-700"} px-3 py-2 rounded-xl cursor-pointer clubpagebutton transition" data-page="${i}" value="${i}">
-			`
-		}
-	}
-	html=html+`
-		<input type="button" class="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 px-3 py-2 rounded-xl cursor-pointer transition" id="clubnextpage" value="${clubtext("nextpage")}" ${clubpagination["hasnext"]?"":"disabled"}>
-		<span class="text-zinc-400 text-sm px-2">${clubtext("totalcount").replace("%s",clubpagination["total"]||0)}</span>
-	`
-	innerhtml("#clubpagination",html,false)
-	onclick("#clubprevpage",function(element,event){
-		if(clubpagination["hasprev"]){
-			clubpage=clubpage-1
-			main()
-		}
-	})
-	onclick("#clubnextpage",function(element,event){
-		if(clubpagination["hasnext"]){
-			clubpage=clubpage+1
-			main()
-		}
-	})
-	onclick(".clubpagebutton",function(element,event){
-		let pagevalue=int(dataset(element,"page"))
-		if(0<pagevalue&&pagevalue!=clubpage){
-			clubpage=pagevalue
-			main()
-		}
-	})
+    if(!cluborderchangeded&&!clubordersavinged&&!clubloadinged&&!clubmutatinged){
+        ptbindsort("#clublisthead",clubsortstate,function(){
+            main()
+        })
+    }
 }
 
 function openclubmodal(){
@@ -309,11 +325,16 @@ function closeclubmodal(){
 	])
 	if(opened){
 		ptunlockpagescroll()
+		leaveguard.clear()
+		main()
 	}
 }
 
 function bindclubbuttons(){
 	onclick(".editbutton",function(element,event){
+		if(cluborderchangeded||clubmutatinged||clubloadinged||clubordersavinged){
+			return
+		}
 		let clubid=dataset(element,"id")
 		let club=null
 		for(let i=0;i<clubdata.length;i=i+1){
@@ -328,39 +349,35 @@ function bindclubbuttons(){
 			value("#clubname",club["name"])
 			value("#clubaddress",club["address"])
 			value("#clubps",club["ps"]||"")
+            domgetid("clubname").readOnly=club["owned"]==false
+            domgetid("clubaddress").readOnly=club["owned"]==false
+            domgetid("clubsharedhint").hidden=club["owned"]!=false
 			leaveguard.clear()
 			openclubmodal()
 		}
 	})
 
 	onclick(".deletebutton",function(element,event){
+		if(cluborderchangeded||clubmutatinged||clubloadinged||clubordersavinged){
+			return
+		}
 		let clubid=dataset(element,"id")
 		ptconfirm(clubtext("deleteconfirm"),function(ok){
-			if(!ok){
+			if(!ok||cluborderchangeded||clubmutatinged||clubloadinged||clubordersavinged){
 				return
 			}
-			element.disabled=true
+			clubmutatinged=true
+			main()
 
 			ajax("DELETE",AJAXURL+"deleteclub/"+clubid,function(event,data){
+				clubmutatinged=false
 				if(data["success"]){
 					pttoastsuccess(clubtext("deletesuccess"))
 					pttoastwarning(clubtext("deletenext"))
-
-					ajax("GET",AJAXURL+"getclublist",function(event,data){
-						if(data["success"]){
-							clubdata=data["data"]
-							main()
-						}else{
-							pttoasterror(data["data"]||clubtext("unknownerror"))
-						}
-					},null,[
-						["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
-					],{
-						loadingtarget: "#clubmain"
-					})
+					loadclubdata()
 				}else{
 					pttoasterror(clubtext("deletefail"))
-					element.disabled=false
+					main()
 				}
 			},null,[
 				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
@@ -372,11 +389,17 @@ function bindclubbuttons(){
 }
 
 onclick("#addclubbutton",function(){
+	if(cluborderchangeded||clubmutatinged||clubloadinged||clubordersavinged){
+		return
+	}
 	innertext("#modaltitle",clubtext("addclub"),false)
 	value("#clubid","")
 	value("#clubname","")
 	value("#clubaddress","")
 	value("#clubps","")
+    domgetid("clubname").readOnly=false
+    domgetid("clubaddress").readOnly=false
+    domgetid("clubsharedhint").hidden=true
 	leaveguard.clear()
 	openclubmodal()
 })
@@ -397,6 +420,9 @@ onclick("#cancelbutton",function(element,event){
 
 onsubmit("#clubform",function(element,event){
 	event.preventDefault()
+	if(clubmutatinged||clubloadinged||clubordersavinged||cluborderchangeded){
+		return
+	}
 
 	let clubid=getvalue("clubid")
 	let method="POST"
@@ -406,8 +432,18 @@ onsubmit("#clubform",function(element,event){
 		method="PUT"
 		url=AJAXURL+"editclub/"+clubid
 	}
+    let payload={"name": getvalue("clubname"),"address": getvalue("clubaddress"),"ps": getvalue("clubps")}
+    for(let i=0;i<clubdata.length;i=i+1){
+        if(String(clubdata[i]["id"])==String(clubid)&&clubdata[i]["owned"]==false){
+            url=AJAXURL+"editclubnote/"+clubid
+            payload={"ps": getvalue("clubps")}
+        }
+    }
 
+	clubmutatinged=true
+	main()
 	ajax(method,url,function(event,data){
+		clubmutatinged=false
 		if(data["success"]){
 			if(clubid){
 				pttoastsuccess(clubtext("editsuccess"))
@@ -418,30 +454,16 @@ onsubmit("#clubform",function(element,event){
 			leaveguard.clear()
 			closeclubmodal()
 
-			ajax("GET",AJAXURL+"getclublist",function(event,data){
-				if(data["success"]){
-					clubdata=data["data"]
-					main()
-				}else{
-					pttoasterror(data["data"]||clubtext("unknownerror"))
-				}
-			},null,[
-				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
-			],{
-				loadingtarget: "#clubmain"
-			})
+			loadclubdata()
 		}else{
+			main()
 			if(data["data"]){
 				pttoasterror(clubtext("operationfail")+": "+data["data"])
 			}else{
 				pttoasterror(clubtext("operationfail")+": "+clubtext("unknownerror"))
 			}
 		}
-	},str({
-		"name": getvalue("clubname"),
-		"address": getvalue("clubaddress"),
-		"ps": getvalue("clubps")
-	}),[
+	},str(payload),[
 		["Authorization","Bearer "+weblsget(WEBLSNAME+"token")],
 		["Content-Type","application/json"]
 	],{
@@ -450,19 +472,23 @@ onsubmit("#clubform",function(element,event){
 })
 
 onclick("#searchbutton",function(element,event){
-	clubpage=1
-	main()
+	if(!cluborderchangeded&&!clubmutatinged&&!clubloadinged&&!clubordersavinged){
+		clubsearchname=String(getvalue("searchname")||"").toLowerCase().trim()
+		main()
+	}
 })
 
 onclick("#clearsearchbutton",function(element,event){
-	value("#searchname","")
-	clubpage=1
-	main()
+	if(!cluborderchangeded&&!clubmutatinged&&!clubloadinged&&!clubordersavinged){
+		value("#searchname","")
+		clubsearchname=""
+		main()
+	}
 })
 
 on("#searchname","keypress",function(event){
-	if(event.key=="Enter"){
-		clubpage=1
+	if(event.key=="Enter"&&!cluborderchangeded&&!clubmutatinged&&!clubloadinged&&!clubordersavinged){
+		clubsearchname=String(getvalue("searchname")||"").toLowerCase().trim()
 		main()
 	}
 })
@@ -470,3 +496,341 @@ on("#searchname","keypress",function(event){
 window.addEventListener("resize",function(){
 	main()
 })
+
+onclick("#clubcustomorderbutton",function(){
+    clubsortstate["key"]=""
+    clubsearchname=""
+    value("#searchname","")
+    main()
+})
+
+function moveclub(source,target,keyboarded){
+    if(clubcanreorder()&&0<=source&&source<cluborderlist.length&&0<=target&&target<cluborderlist.length&&source!=target){
+        const MOVED=cluborderlist.splice(source,1)[0]
+        cluborderlist.splice(target,0,MOVED)
+        cluborderchangeded=false
+        for(let i=0;i<cluborderlist.length;i=i+1){
+            if(cluborderlist[i]["id"]!=clubpreviousidlist[i]){
+                cluborderchangeded=true
+            }
+        }
+        if(cluborderchangeded){
+            leaveguard.markdirty()
+            clubordermessage=clubtext("ordermoved")
+        }else{
+            leaveguard.clear()
+            clubordermessage=clubtext("orderunchanged")
+        }
+        cluborderfailed=false
+        main()
+        const NEXT=document.querySelector(".clubordergrip[data-id='"+MOVED["id"]+"']")
+        if(NEXT){
+            NEXT.focus({"preventScroll": true})
+            if(keyboarded){
+                NEXT.scrollIntoView({"block": "nearest"})
+            }
+        }
+    }
+}
+
+function endclubdrag(){
+    const HANDLE=clubdraghandle
+    const POINTER=clubdragpointer
+    clubdragid=0
+    clubdraghandle=null
+    clubdragstarted=false
+    clubdragtarget=-1
+    if(clubdraganimation){
+        cancelAnimationFrame(clubdraganimation)
+        clubdraganimation=0
+    }
+    if(HANDLE&&HANDLE.hasPointerCapture(POINTER)){
+        HANDLE.releasePointerCapture(POINTER)
+    }
+    if(clubdraglabel){
+        clubdraglabel.remove()
+        clubdraglabel=null
+    }
+    const ROWLIST=document.querySelectorAll("[data-clubrow]")
+    for(let i=0;i<ROWLIST.length;i=i+1){
+        ROWLIST[i].classList.remove("clubdragactive")
+        ROWLIST[i].style.removeProperty("transform")
+    }
+    clubdraggeometry=[]
+    document.body.classList.remove("clubdragged")
+}
+
+function updateclubdrag(autoscrolled){
+    if(clubdragid){
+        if(clubdragstarted){
+            const MAINRECT=domgetid("clubmain").getBoundingClientRect()
+            const FOOTER=domgetid("cluborderfooter")
+            const FOOTERRECT=FOOTER.getBoundingClientRect()
+            const OVERFOOTER=!FOOTER.hidden&&clubdragx>=FOOTERRECT.left&&clubdragx<=FOOTERRECT.right&&clubdragy>=FOOTERRECT.top&&clubdragy<=FOOTERRECT.bottom
+            let visiblebottom=window.innerHeight
+            if(!FOOTER.hidden){
+                visiblebottom=Math.min(visiblebottom,FOOTERRECT.top)
+            }
+            const ROWLIST=domgetid("clubmain").querySelectorAll("[data-clubrow]")
+            let source=-1
+            let slot=ROWLIST.length
+            for(let i=0;i<ROWLIST.length;i=i+1){
+                const GEOMETRY=clubdraggeometry[i]
+                if(Number(ROWLIST[i].dataset["id"])==clubdragid){
+                    source=i
+                }
+                const CENTER=clubdragorigintop+clubdragy-clubdragstarty+clubdragheight/2
+                if(slot==ROWLIST.length&&CENTER<GEOMETRY["top"]-window.scrollY+GEOMETRY["height"]/2){
+                    slot=i
+                }
+            }
+            clubdragtarget=-1
+            if(source>=0&&!OVERFOOTER&&clubdragx>=MAINRECT.left&&clubdragx<=MAINRECT.right&&clubdragy>=MAINRECT.top&&clubdragy<=MAINRECT.bottom&&clubdragy>=0&&clubdragy<=window.innerHeight){
+                clubdragtarget=slot
+                if(source<slot){
+                    clubdragtarget=slot-1
+                }
+            }
+            for(let i=0;i<ROWLIST.length;i=i+1){
+                let offset=0
+                if(clubdragtarget>source&&i>source&&i<=clubdragtarget){
+                    offset=-clubdragpitch
+                }else if(clubdragtarget>=0&&clubdragtarget<source&&i>=clubdragtarget&&i<source){
+                    offset=clubdragpitch
+                }
+                ROWLIST[i].style.transform="translateY("+offset+"px)"
+            }
+            if(clubdraglabel){
+                clubdraglabel.style.left=clubdragoriginleft+"px"
+                clubdraglabel.style.top=clubdragorigintop+clubdragy-clubdragstarty+"px"
+            }
+            if(autoscrolled&&clubdragx>=MAINRECT.left&&clubdragx<=MAINRECT.right){
+                if(clubdragy<96&&MAINRECT.top<80){
+                    window.scrollBy(0,-Math.min(20,Math.max(2,(96-clubdragy)/4),80-MAINRECT.top))
+                }else if(clubdragy>visiblebottom-64&&MAINRECT.bottom>visiblebottom){
+                    window.scrollBy(0,Math.min(20,Math.max(2,(clubdragy-visiblebottom+64)/4),MAINRECT.bottom-visiblebottom))
+                }
+            }
+        }
+    }
+}
+
+function animateclubdrag(){
+    updateclubdrag(true)
+    if(clubdragid){
+        clubdraganimation=requestAnimationFrame(animateclubdrag)
+    }
+}
+
+domgetid("clubmain").addEventListener("pointerdown",function(event){
+    const HANDLE=event.target.closest(".clubordergrip")
+    if(HANDLE&&!HANDLE.disabled&&event.button==0&&event.isPrimary&&clubcanreorder()){
+        event.preventDefault()
+        clubdragid=Number(HANDLE.dataset["id"])
+        clubdragpointer=event.pointerId
+        clubdragstartx=event.clientX
+        clubdragstarty=event.clientY
+        clubdragx=event.clientX
+        clubdragy=event.clientY
+        clubdraghandle=HANDLE
+        HANDLE.focus({"preventScroll": true})
+        HANDLE.setPointerCapture(event.pointerId)
+        clubdraganimation=requestAnimationFrame(animateclubdrag)
+    }
+})
+
+domgetid("clubmain").addEventListener("pointermove",function(event){
+    if(clubdragid&&event.pointerId==clubdragpointer){
+        clubdragx=event.clientX
+        clubdragy=event.clientY
+        if(!clubdragstarted&&Math.hypot(clubdragx-clubdragstartx,clubdragy-clubdragstarty)>=8){
+            clubdragstarted=true
+            document.body.classList.add("clubdragged")
+            const ROW=clubdraghandle.closest("[data-clubrow]")
+            const RECT=ROW.getBoundingClientRect()
+            clubdragorigintop=RECT.top
+            clubdragoriginleft=RECT.left
+            clubdragheight=RECT.height
+            clubdragpitch=RECT.height
+            clubdraggeometry=[]
+            const ROWLIST=domgetid("clubmain").querySelectorAll("[data-clubrow]")
+            for(let i=0;i<ROWLIST.length;i=i+1){
+                const ROWRECT=ROWLIST[i].getBoundingClientRect()
+                clubdraggeometry.push({"top": ROWRECT.top+window.scrollY,"height": ROWRECT.height})
+                if(ROWLIST[i]==ROW){
+                    if(i+1<ROWLIST.length){
+                        clubdragpitch=ROWLIST[i+1].getBoundingClientRect().top-ROWRECT.top
+                    }else if(i>0){
+                        clubdragpitch=ROWRECT.top-ROWLIST[i-1].getBoundingClientRect().bottom+ROWRECT.height
+                    }
+                }
+            }
+            clubdraglabel=document.createElement("div")
+            clubdraglabel.className="clubdraglabel"
+            clubdraglabel.setAttribute("aria-hidden","true")
+            clubdraglabel.setAttribute("inert","")
+            clubdraglabel.style.width=RECT.width+"px"
+            clubdraglabel.style.left=RECT.left+"px"
+            clubdraglabel.style.top=RECT.top+"px"
+            const CLONE=ROW.cloneNode(true)
+            CLONE.removeAttribute("data-clubrow")
+            CLONE.removeAttribute("data-id")
+            const IDENTIFIED=CLONE.querySelectorAll("[id]")
+            for(let i=0;i<IDENTIFIED.length;i=i+1){
+                IDENTIFIED[i].removeAttribute("id")
+            }
+            if(ROW.tagName=="TR"){
+                const TABLE=document.createElement("table")
+                TABLE.className="clubdragtable"
+                const BODY=document.createElement("tbody")
+                const ORIGINALCELL=ROW.querySelectorAll("td")
+                const CLONECELL=CLONE.querySelectorAll("td")
+                for(let i=0;i<ORIGINALCELL.length;i=i+1){
+                    CLONECELL[i].style.width=ORIGINALCELL[i].getBoundingClientRect().width+"px"
+                }
+                BODY.appendChild(CLONE)
+                TABLE.appendChild(BODY)
+                clubdraglabel.appendChild(TABLE)
+            }else{
+                clubdraglabel.appendChild(CLONE)
+            }
+            document.body.appendChild(clubdraglabel)
+            ROW.classList.add("clubdragactive")
+        }
+    }
+})
+
+domgetid("clubmain").addEventListener("pointerup",function(event){
+    if(clubdragid&&event.pointerId==clubdragpointer){
+        clubdragx=event.clientX
+        clubdragy=event.clientY
+        updateclubdrag(false)
+        const SOURCEID=clubdragid
+        const TARGET=clubdragtarget
+        const STARTEDED=clubdragstarted
+        endclubdrag()
+        if(STARTEDED&&TARGET>=0){
+            let source=-1
+            for(let i=0;i<cluborderlist.length;i=i+1){
+                if(cluborderlist[i]["id"]==SOURCEID){
+                    source=i
+                }
+            }
+            moveclub(source,TARGET)
+        }
+    }
+})
+
+domgetid("clubmain").addEventListener("pointercancel",function(){
+    endclubdrag()
+})
+
+domgetid("clubmain").addEventListener("lostpointercapture",function(){
+    if(clubdragid){
+        endclubdrag()
+    }
+})
+
+domgetid("clubmain").addEventListener("keydown",function(event){
+    const HANDLE=event.target.closest(".clubordergrip")
+    if(HANDLE&&!HANDLE.disabled&&clubcanreorder()&&(event.key=="ArrowUp"||event.key=="ArrowDown")){
+        event.preventDefault()
+        let direction=1
+        if(event.key=="ArrowUp"){
+            direction=-1
+        }
+        for(let i=0;i<cluborderlist.length;i=i+1){
+            if(cluborderlist[i]["id"]==Number(HANDLE.dataset["id"])){
+                moveclub(i,i+direction,true)
+                break
+            }
+        }
+    }
+})
+
+document.addEventListener("keydown",function(event){
+    if(event.key=="Escape"&&clubdragid){
+        event.preventDefault()
+        endclubdrag()
+    }
+})
+
+domgetid("clubmain").addEventListener("click",function(event){
+    if(event.target.id=="clubretrybutton"&&!clubloadinged){
+        loadclubdata()
+    }
+})
+
+onclick("#clubordercancel",function(){
+    if(!clubordersavinged&&!clubloadinged){
+        cluborderchangeded=false
+        cluborderfailed=false
+        cluborderconflicted=false
+        cluborderlist=clubdata.slice()
+        leaveguard.clear()
+        main()
+        const HANDLE=document.querySelector(".clubordergrip")
+        if(HANDLE){
+            HANDLE.focus({"preventScroll": true})
+        }
+    }
+})
+
+onclick("#cluborderreload",function(){
+    if(!clubordersavinged&&!clubloadinged){
+        if(cluborderchangeded){
+            ptconfirm(clubtext("orderreloadconfirm"),function(confirmed){
+                if(confirmed){
+                    loadclubdata()
+                }
+            })
+        }else{
+            loadclubdata()
+        }
+    }
+})
+
+onclick("#clubordersave",function(){
+    if(cluborderchangeded&&!clubordersavinged&&!clubloadinged&&!cluborderconflicted){
+        const CLUBIDLIST=[]
+        for(let i=0;i<cluborderlist.length;i=i+1){
+            CLUBIDLIST.push(cluborderlist[i]["id"])
+        }
+        clubordersavinged=true
+        cluborderfailed=false
+        main()
+        ajax("PUT",AJAXURL+"editcluborder",function(event,data){
+            clubordersavinged=false
+            if(data["success"]&&Array.isArray(data["data"])){
+                clubdata=data["data"]
+                cluborderchangeded=false
+                cluborderfailed=false
+                cluborderlist=clubdata.slice()
+                clubpreviousidlist=[]
+                for(let i=0;i<clubdata.length;i=i+1){
+                    clubpreviousidlist.push(clubdata[i]["id"])
+                }
+                leaveguard.clear()
+                main()
+                pttoastsuccess(clubtext("ordersaved"))
+                const HANDLE=document.querySelector(".clubordergrip")
+                if(HANDLE){
+                    HANDLE.focus({"preventScroll": true})
+                }
+            }else{
+                cluborderfailed=true
+                cluborderconflicted=data["data"]=="ERROR_club_order_conflict"
+                clubordermessage=clubtext("orderfail")
+                if(typeof data["data"]=="string"&&TRANSLATE[LANGUAGE]["errorlist"][data["data"]]){
+                    clubordermessage=pterror(data["data"])
+                }
+                main()
+            }
+        },str({"clubidlist": CLUBIDLIST,"previousidlist": clubpreviousidlist}),[
+            ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")],
+            ["Content-Type","application/json"]
+        ])
+    }
+})
+
+loadclubdata()

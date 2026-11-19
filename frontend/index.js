@@ -1,6 +1,6 @@
 let signedin=weblsget(WEBLSNAME+"signin")
 let githuburl="https://github.com/ho0527/pokertrace"
-let introdownloadurl="pokertraceintro.pdf"
+let introdownloadurl="pokertraceintro.pdf?v=20261117"
 let guideurl="guide.html"
 
 function indextext(key){

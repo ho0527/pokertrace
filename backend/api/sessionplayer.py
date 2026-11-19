@@ -146,7 +146,7 @@ def _eliminatedtimerplayer(sessionid,sessionplayerid):
 	return None
 
 def _featureallowed(sessionrow,prefix):
-	# 場次是否有開放某項加購功能 (rebuy / addon)：次數、買入或計分牌任一大於 0 即視為開放
+	# 場次是否有開放某項加購功能 (rebuy / addon)：次數、買入或籌碼任一大於 0 即視為開放
 	count=_num(sessionrow.get(prefix+"count"),0)
 	buyin=_num(sessionrow.get(prefix+"buyin"),0)
 	chip=_num(sessionrow.get(prefix+"chip"),0)
@@ -966,7 +966,7 @@ try:
 			SETTING["dbsetting"]
 		)
 		rows=_attachfinance(sessionrow,rows or [])
-		# 每位玩家最新一手的紀錄計分牌(endchip), 供「總計分牌數」與統一紀錄手牌的晉級預設計分牌帶入
+		# 每位玩家最新一手的紀錄籌碼(endchip), 供「總籌碼數」與統一紀錄手牌的晉級預設籌碼帶入
 		latestchips=latestsessionchips(sessionid)
 		unifiedhandrecord=bool(sessionrow.get("unifiedhandrecord"))
 		totalchipcount=0
@@ -977,8 +977,8 @@ try:
 				totalchipcount=totalchipcount+intval(r.get("advancechip"),0)
 			elif r["status"]=="confirmed" and r.get("timerstatus")!="eliminated":
 				totalchipcount=totalchipcount+(latestchip if latestchip>0 else intval(r.get("startchip"),0))
-		# 應有總計分牌: 這場實際發出去多少碼。與 totalchipcount(存活者身上目前有多少碼)
-		# 相減就是誤差 —— 錦標賽的計分牌是守恆的, 淘汰者的碼會轉到存活者身上,
+		# 應有總籌碼: 這場實際發出去多少碼。與 totalchipcount(存活者身上目前有多少碼)
+		# 相減就是誤差 —— 錦標賽的籌碼是守恆的, 淘汰者的碼會轉到存活者身上,
 		# 所以兩者本來就該相等; 不相等表示有多發/短發, 或是還沒把碼量記錄上來。
 		# 用共用的 expectedchiptotal, 與大螢幕平均碼量的分母同一套公式, 不會兩邊算出不同答案。
 		expectedchipcount=expectedchiptotal(sessionrow,rows)
@@ -1269,6 +1269,43 @@ try:
 
 		_deleteregistration(sessionrow,sessionplayerid)
 
+		return Response({
+			"success": True,
+			"data": ""
+		},status.HTTP_200_OK)
+
+	@api_view(["PUT"])
+	def editsessionplayernote(request,sessionplayerid):
+		user,autherror=commonauthuser(request)
+		if autherror:
+			return autherror
+
+		row=query(SETTING["dbname"],"""SELECT * FROM "sessionplayer" WHERE "id"=%s AND "deletetime" IS NULL""",[sessionplayerid],SETTING["dbsetting"])
+		if not row:
+			return errorresponse("ERROR_registration_not_found")
+		row=row[0]
+		sessionrow=query(SETTING["dbname"],"""SELECT * FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[row["sessionid"]],SETTING["dbsetting"])
+		if not sessionrow:
+			return errorresponse("ERROR_session_not_found")
+		if not _caneditsession(sessionrow[0],user):
+			return errorresponse("ERROR_no_permission")
+
+		try:
+			data=json.loads(request.body)
+		except (ValueError,UnicodeDecodeError):
+			return errorresponse("ERROR_request_data_type_error")
+		if not isinstance(data,dict) or not isinstance(data.get("note"),str):
+			return errorresponse("ERROR_request_data_type_error")
+		note=data["note"]
+		if note.strip()=="":
+			note=""
+		updated=query(SETTING["dbname"],
+			"""UPDATE "sessionplayer" SET "note"=%s,"updatetime"=%s WHERE "id"=%s AND "deletetime" IS NULL""",
+			[note,nowtime(),sessionplayerid],SETTING["dbsetting"])
+		if updated is None:
+			return errorresponse("ERROR_database_error")
+		if not updated:
+			return errorresponse("ERROR_registration_not_found")
 		return Response({
 			"success": True,
 			"data": ""
@@ -1579,8 +1616,8 @@ try:
 				}
 			},status.HTTP_200_OK)
 		if mode=="unseatall":
-			# 打散 (重新抽桌): 把該場次所有在場選手 (confirmed、未淘汰) 全部退座, 之後再用既有隨機入座重抽
-			# 已關閉桌上的選手一樣要清 (他們正是要被打散的), 所以不看 table.closedtime
+			# 打散 (重新抽桌): 把該場次所有在場玩家 (confirmed、未淘汰) 全部退座, 之後再用既有隨機入座重抽
+			# 已關閉桌上的玩家一樣要清 (他們正是要被打散的), 所以不看 table.closedtime
 			unseatrows=query(SETTING["dbname"],f"""SELECT sp."id" FROM "sessionplayer" sp WHERE sp."sessionid"=%s AND sp."status"='confirmed' AND (sp."tableid" IS NOT NULL OR sp."seatno" IS NOT NULL) AND sp."deletetime" IS NULL AND NOT EXISTS(SELECT 1 FROM "sessiontimerplayer" tp WHERE tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."status"='eliminated' AND tp."deletetime" IS NULL)""",[sessionid],SETTING["dbsetting"])
 			unseatidlist=[]
 			for i in range(len(unseatrows or [])):
@@ -1646,7 +1683,7 @@ try:
 					"count": len(used),
 					"seats": seats
 				})
-			# **選手順序刻意不洗牌**：上面那句 SQL 已經依
+			# **玩家順序刻意不洗牌**：上面那句 SQL 已經依
 			# confirmtime -> registertime -> id 排好，也就是「先報名的先上桌」。
 			# 這裡原本有一句 random.shuffle(rows) 會把那個順序整個打散，
 			# 結果變成「隨機一個人隨機位置」。2026-08-06 依使用者要求移除：
@@ -1681,7 +1718,7 @@ try:
 		if not tablerow:
 			return errorresponse("ERROR_table_not_found")
 		tablerow=tablerow[0]
-		# 未入座補位/重排選取屬於整批自動排座: 已關閉的桌不可再塞新選手 (比照 mergetableplayers 對關閉目標桌回錯誤)
+		# 未入座補位/重排選取屬於整批自動排座: 已關閉的桌不可再塞新玩家 (比照 mergetableplayers 對關閉目標桌回錯誤)
 		if tablerow.get("closedtime"):
 			return errorresponse("ERROR_table_closed")
 		lockedseatlist=seatlockread(tablerow,maxseat)

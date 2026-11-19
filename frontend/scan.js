@@ -14,6 +14,7 @@ let scanstarting=false
 // 從場次頁 / 報名清單頁點進來時會帶 ?s=<場次id>，用來預選場次。
 // 參數名以 sessionid 為準，仍相容舊的 s（已印出的收據 QR 內含 ?s=）
 const SCANURLSESSIONID=getget("sessionid")||getget("s")||""
+const SCANPLAYERMODE=getget("mode")=="player"
 // 手動輸入只列「還在進行中」的場次：結束超過一天的就不列，避免下拉塞滿舊場次。
 const SCANSESSIONMAXAGEMS=24*60*60*1000
 
@@ -153,6 +154,22 @@ function scangoto(value){
 		return
 	}
 	let target=""
+    if(SCANPLAYERMODE){
+        const MATCH=/^(PTUSER:[1-9][0-9]{0,18}|[1-9][0-9]{7})$/.exec(String(value||"").trim())
+        const SESSION=document.getElementById("scanmanualsession").value||SCANURLSESSIONID
+        if(MATCH&&SESSION){
+            scanhandled=true
+            scanstop()
+            let parameter="playerid"
+            if(MATCH[1].startsWith("PTUSER:")){
+                parameter="playerkey"
+            }
+	        href("register.html?sessionid="+encodeURIComponent(SESSION)+"&"+parameter+"="+encodeURIComponent(MATCH[1]))
+        }else{
+            scanstatus(scantext("playerinvalid"),"warning")
+        }
+        return
+    }
 	try{
 		let parsed=new URL(value)
 		let s=parsed.searchParams.get("sessionid")||parsed.searchParams.get("s")
@@ -316,6 +333,10 @@ onclick("#scanrestart",function(element,event){
 
 // 手動輸入送出的是「場次 + 入場編號」，checkin.html 會改打 getcheckininfobyentry。
 onclick("#scanmanualgo",function(element,event){
+    if(SCANPLAYERMODE){
+        scangoto(getvalue("scanmanualinput"))
+        return
+    }
 	let select=domgetid("scanmanualsession")
 	let manualsessionid=""
 	if(select){
@@ -343,4 +364,24 @@ if(SCANURLSESSIONID&&domgetid("scanback")){
 	domgetid("scanback").href="register.html?sessionid="+encodeURIComponent(SCANURLSESSIONID)
 }
 scanloadsessionlist()
+if(SCANPLAYERMODE){
+    const HEADING=document.querySelector("h1")
+    HEADING.removeAttribute("data-i18n")
+    HEADING.textContent=scantext("playerheading")
+    const DESCRIPTION=HEADING.nextElementSibling
+    DESCRIPTION.removeAttribute("data-i18n")
+    DESCRIPTION.textContent=scantext("playerdescription")
+    document.getElementById("scanmanualhint").textContent=scantext("playermanualhint")
+    document.getElementById("scanmanualentrylabel").textContent=scantext("playeridlabel")
+    const INPUT=document.getElementById("scanmanualinput")
+    INPUT.type="text"
+    INPUT.inputMode="text"
+    INPUT.placeholder=scantext("playeridlabel")
+    INPUT.addEventListener("keydown",function(event){
+        if(event.key=="Enter"){
+            event.preventDefault()
+            scangoto(INPUT.value)
+        }
+    })
+}
 scanstart()

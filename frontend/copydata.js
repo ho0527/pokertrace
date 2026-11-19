@@ -115,7 +115,7 @@ document.addEventListener("touchstart",function(event){
 		clearTimeout(copydatatimer)
 		copydatatimer=null
 	}
-	if(event.touches.length==1){
+	if(event.touches.length==1&&(!window.getSelection()||window.getSelection().isCollapsed)){
 		target=copydatatarget(event.target)
 	}
 	if(target){
@@ -149,7 +149,7 @@ document.addEventListener("touchend",function(){
 		clearTimeout(copydatatimer)
 		copydatatimer=null
 	}
-	if(copydataarmed&&copydatapendingtarget){
+	if(copydataarmed&&copydatapendingtarget&&(!window.getSelection()||window.getSelection().isCollapsed)){
 		copydatacopy(copydatapendingtarget)
 	}
 	copydataarmed=false
@@ -165,8 +165,15 @@ document.addEventListener("touchcancel",function(){
 	copydatapendingtarget=null
 })
 
-document.addEventListener("contextmenu",function(event){
-	if(copydatatarget(event.target)){
-		event.preventDefault()
-	}
+// Selecting text belongs to the native selection menu, not whole-block copying.
+document.addEventListener("selectionchange",function(){
+    const SELECTION=window.getSelection()
+    if(SELECTION&&!SELECTION.isCollapsed){
+        if(copydatatimer){
+            clearTimeout(copydatatimer)
+            copydatatimer=null
+        }
+        copydataarmed=false
+        copydatapendingtarget=null
+    }
 })

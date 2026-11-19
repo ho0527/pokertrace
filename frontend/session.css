@@ -1,0 +1,160 @@
+.sessiontableactionlist {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.relationpager {
+    flex-wrap: wrap;
+}
+
+.relationkeyword {
+    min-width: 0;
+}
+
+.relationpager > .relationpagebtn {
+    min-height: 44px;
+    min-width: 72px;
+}
+
+@media (max-width: 767px) {
+    body #sessionmain > div:has(> .tab-btn) {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    body #sessionmain > div > .tab-btn {
+        flex: 1 0 auto;
+        min-height: 44px;
+        padding: 8px 12px;
+    }
+
+    body #tab-overview > div:has(> .overviewtab-btn) {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid #27272a;
+        border-radius: 16px;
+        background: #18181b;
+    }
+
+    body #tab-overview .overviewtab-btn {
+        min-width: 0;
+        min-height: 44px;
+        padding: 8px;
+        border: 0;
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    body #tab-overview .overviewtab-btn.border-emerald-400 {
+        background: rgb(16 185 129 / 15%);
+    }
+
+    body #tab-overview .overviewtab-btn:focus:not(:focus-visible) {
+        outline: none;
+    }
+
+    body #tab-overview .overviewtab-btn:focus-visible {
+        outline: 2px solid #34d399;
+        outline-offset: -2px;
+    }
+
+    body #overviewtab-general > div:has(> #info), body #actionarea {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    body #info {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    body #info > div {
+        min-width: 0;
+        min-height: 80px;
+        padding: 12px;
+        justify-content: flex-start;
+    }
+
+    body #info [data-textmarquee] {
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left;
+        line-height: 1.5;
+    }
+
+    body #actionbuttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        align-items: stretch;
+    }
+
+    body #actionbuttons > a, body #actionbuttons > input[type="button"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        min-height: 48px;
+        padding: 10px 8px;
+        border-radius: 12px;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    body #actionbuttons > span, body #actionbuttons > a:last-child:nth-child(odd), body #actionbuttons > input[type="button"]:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 639px) {
+    .sessiontabletoolbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .sessiontabletoolbar > input[type="number"] {
+        grid-column: 1 / -1;
+        min-width: 0;
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .sessiontabletoolbar > input[type="button"]:not(.hidden), .sessiontabletoolbar > a:not(.hidden) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .sessiontableactionlist {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sessiontableactionlist > input, .sessiontableactionlist > a:not(.rowlink) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 8px;
+        border-radius: 8px;
+        background: #27272a;
+        text-align: center;
+        white-space: normal;
+    }
+}

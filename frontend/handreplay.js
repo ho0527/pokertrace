@@ -6,7 +6,7 @@
 //   * 底牌預設牌背; hero(selfseating)預設亮; 攤牌亮未蓋牌者; 可切「顯示所有底牌」
 // ===========================================================================
 
-// 回放用預設計分牌面額(handdetail 沒有場次面額, 用通用色階上色)
+// 回放用預設籌碼面額(handdetail 沒有場次面額, 用通用色階上色)
 let HRCHIPS=[
 	{ value: 25000,color: "#0f172a",shape: "circle" },
 	{ value: 10000,color: "#3b82f6",shape: "circle" },
@@ -35,7 +35,7 @@ try{ hrbbmode=(localStorage.getItem("hr-bbmode")=="1") }catch(error){ hrbbmode=f
 // 主池位置偏好(帳號設定同步到 localStorage): right=主池靠右、邊池靠左; left 相反
 try{ hrpotside=(localStorage.getItem("bc-potside")=="left")?"left":"right" }catch(error){ hrpotside="right" }
 
-// 金額格式: BB 模式時以該手大盲為單位顯示(x.x BB), 否則原始計分牌數
+// 金額格式: BB 模式時以該手大盲為單位顯示(x.x BB), 否則原始籌碼數
 function hrfmtamt(amount){
 	let n=hrint(amount)
 	let bb=hrint(hrhand&&hrhand["bigblind"])
@@ -502,7 +502,7 @@ function hrsnapshot(state,phase,actingseat){
 		exposed: (state.exposed||[]).slice()
 	}
 	frame.sidepots=hrsidepots(frame)
-	// all-in 攤牌鎖定: 未蓋牌者≥2、當街下注都已跟平(或全押), 且還能下注(有計分牌)的人≤1
+	// all-in 攤牌鎖定: 未蓋牌者≥2、當街下注都已跟平(或全押), 且還能下注(有籌碼)的人≤1
 	// → 動作真的結束才翻牌跑馬, 避免「還沒 call 就開牌」
 	let active=0
 	let withchips=0
@@ -694,7 +694,7 @@ function hrbuildframes(hand){
 			if(action=="fold"){
 				s.folded=true
 			}else if(action=="ante"){
-				// 前注是死錢, 直接進底池, 不放在座位前(不算當前下注); invested 仍計入以正確算剩餘計分牌與邊池
+				// 前注是死錢, 直接進底池, 不放在座位前(不算當前下注); invested 仍計入以正確算剩餘籌碼與邊池
 				state.pot=state.pot+hrint(row["chip"])
 				s.invested=s.invested+hrint(row["chip"])
 			}else{
@@ -874,7 +874,7 @@ function hrseatposhtml(seat,seatno,x,y,isdealer,frame,upward){
 	let exposed=frame.exposed||[]
 	let cardshtml=""
 	for(let i=0;i<holecount;i=i+1){
-		// 梭哈的明牌不畫在座位框裡 —— 現場是攤在選手面前的桌面上，
+		// 梭哈的明牌不畫在座位框裡 —— 現場是攤在玩家面前的桌面上，
 		// 由 hrupcardshtml() 另外畫在座位與底池之間。這裡只留暗牌（手上拿著的那幾張）。
 		if(exposed[i]=="up"){
 			continue
@@ -910,7 +910,7 @@ function hrseatposhtml(seat,seatno,x,y,isdealer,frame,upward){
 		</div>`
 }
 
-// 梭哈的明牌攤在**牌桌上**、選手面前，一排橫放。
+// 梭哈的明牌攤在**牌桌上**、玩家面前，一排橫放。
 //
 // 位置是**貼著座位框朝中心的那一側**，不是用半徑另外算一個座標。
 // 用半徑算過一版，結果壓在頭像上：座位框寬 118px、高約 115px，在 760x475 的桌面上
@@ -1057,7 +1057,7 @@ function hrtablehtml(hand,frame){
 		if(byseat[seatno]&&ss&&!ss.folded&&ss.bet>0){
 			bethtml=bethtml+hrbethtml(ss.bet,bx,by)
 		}
-		// 派彩: 底池計分牌移到贏家面前
+		// 派彩: 底池籌碼移到贏家面前
 		if(byseat[seatno]&&frame.award&&frame.award[seatno]>0){
 			bethtml=bethtml+hrbethtml(frame.award[seatno],bx,by,true)
 		}
@@ -1373,7 +1373,7 @@ function hrclose(){
 	document.body.style.overflow=""
 }
 
-// 抓場次實際計分牌面額(含顏色)套到下注計分牌上色; 失敗則沿用通用色階
+// 抓場次實際籌碼面額(含顏色)套到下注籌碼上色; 失敗則沿用通用色階
 function hrloadchips(hand){
 	let sid=hand["sessionid"]
 	if(!sid||typeof ajax!="function"||typeof AJAXURL=="undefined"){

@@ -70,7 +70,7 @@ def tableowneraccess(sessionrow,userrow):
 	return False
 
 # 牌桌管理權限: 擁有者/管理員之外, 該場次聘用的「裁判(floor)」也可關閉與併桌
-# (裁判是 tableboard 的主要使用者; 計分員/助理不開放)。
+# (裁判是 tableboard 的主要使用者; 發牌員/助理不開放)。
 def tablemanageaccess(sessionrow,userrow):
 	if tableowneraccess(sessionrow,userrow):
 		return True
@@ -226,6 +226,7 @@ def getsessiontableboard(request,sessionid):
 				players.append({
 					"seatno": s["seatno"],
 					"sessionplayerid": s["player"].get("sessionplayerid"),
+					"userid": s["player"].get("userid"),
 					"name": s["player"].get("name") or "",
 					"playerid": s["player"].get("playerid") or "",
 					"chip": s["player"].get("chip") or 0
@@ -481,6 +482,8 @@ def gettable(request,tableid):
 						"type":seating["type"],
 						"player":seating["name"],
 						"time":seating["time"],
+						"userid":seating.get("userid"),
+						"sessionplayerid":seating.get("sessionplayerid"),
 						"buyin":seating["buyin"],
 						"chip":seating["chip"]
 					})
@@ -1168,7 +1171,7 @@ def mergetableplayers(request,tableid):
 	targettableid=data.get("targettableid")
 	if not targettableid or str(targettableid)==str(tableid):
 		return errorresponse("ERROR_request_data_type_error")
-	# targettableid="auto" 為特殊值: 不指定單一目標桌, 改把來源選手隨機分配到同場次所有開放中的桌
+	# targettableid="auto" 為特殊值: 不指定單一目標桌, 改把來源玩家隨機分配到同場次所有開放中的桌
 	automode=str(targettableid)=="auto"
 	tablerow=query(SETTING["dbname"],"""SELECT*FROM "table" WHERE "id"=%s AND "deletetime" IS NULL""",[tableid],SETTING["dbsetting"])
 	if not tablerow:
@@ -1182,7 +1185,7 @@ def mergetableplayers(request,tableid):
 		targetrow=targetrow[0]
 		if tablerow["sessionid"]!=targetrow["sessionid"]:
 			return errorresponse("ERROR_table_not_found")
-		# 已關閉的桌不可作為併桌目標 (關閉=不再有新選手進桌)
+		# 已關閉的桌不可作為併桌目標 (關閉=不再有新玩家進桌)
 		if targetrow.get("closedtime"):
 			return errorresponse("ERROR_table_closed")
 	sessionrow=query(SETTING["dbname"],"""SELECT*FROM "session" WHERE "id"=%s AND "deletetime" IS NULL""",[tablerow["sessionid"]],SETTING["dbsetting"])
@@ -1280,7 +1283,7 @@ def mergetableplayers(request,tableid):
 			broadcasttablesession(sessionrow)
 		return Response({"success": True,"data": movedata},status.HTTP_200_OK)
 	used=[]
-	# 併桌去向明細: 在交易寫入前就用已知的來源選手與空位對應組好, 不能事後再查(可能已被其他操作改動)
+	# 併桌去向明細: 在交易寫入前就用已知的來源玩家與空位對應組好, 不能事後再查(可能已被其他操作改動)
 	movedata={
 		"moves": [],
 		"sourcetableno": tablerow.get("no"),
@@ -1353,7 +1356,7 @@ def mergetableplayers(request,tableid):
 
 @api_view(["POST"])
 def closetable(request,tableid):
-	# 關閉/重新開啟牌桌: closedtime 有值=已關閉(不再讓新選手進桌), NULL=開放中
+	# 關閉/重新開啟牌桌: closedtime 有值=已關閉(不再讓新玩家進桌), NULL=開放中
 	ensuretablesettingcolumns()
 	userrow,errresp=tableauthuser(request)
 	if errresp:

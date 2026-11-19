@@ -54,11 +54,11 @@
 				<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 					<div>
 						<div class="text-sm font-bold text-emerald-200" data-i18n="newsessionpage.guidekicker">對應操作說明</div>
-						<div class="mt-1 text-sm leading-7 text-emerald-100/80" data-i18n="newsessionpage.guidenote">主辦建場請看主辦版快速上手；若只是補登自己的成績，可直接看選手版補登段落。</div>
+						<div class="mt-1 text-sm leading-7 text-emerald-100/80" data-i18n="newsessionpage.guidenote">主辦建場請看主辦版快速上手；若只是補登自己的成績，可直接看玩家版補登段落。</div>
 					</div>
 					<div class="flex flex-wrap gap-2">
 						<a href="guide.html#host-create-session" class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-emerald-500 px-4 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400" data-i18n="newsessionpage.guidehostlink">主辦建場說明</a>
-						<a href="guide.html#player-record-result" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-emerald-400/30 bg-zinc-950/40 px-4 text-sm font-bold text-emerald-100 transition hover:bg-zinc-900" data-i18n="newsessionpage.guideplayerlink">選手補登說明</a>
+						<a href="guide.html#player-record-result" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-emerald-400/30 bg-zinc-950/40 px-4 text-sm font-bold text-emerald-100 transition hover:bg-zinc-900" data-i18n="newsessionpage.guideplayerlink">玩家補登說明</a>
 					</div>
 				</div>
 			</div>
@@ -68,12 +68,12 @@
 					<div role="button" tabindex="0" class="rounded-[24px] border border-zinc-700 bg-gradient-to-b from-zinc-900 to-zinc-800 p-6 text-left transition duration-150 hover:-translate-y-0.5 hover:border-zinc-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500" data-entersubmit data-mode-card="hosted" id="modehosted">
 						<span class="mb-4 inline-flex rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300" data-i18n="newsessionpage.modehosted">主辦牌局</span>
 						<span class="mb-3 block text-[28px] font-extrabold leading-tight text-white" data-i18n="newsessionpage.modehostedtitle">我要建立一場可管理的牌局</span>
-						<span class="block text-sm leading-7 text-zinc-400" data-i18n="newsessionpage.modehosteddesc">適合主辦者，要設定買入、再購、報名與選手規則。</span>
+						<span class="block text-sm leading-7 text-zinc-400" data-i18n="newsessionpage.modehosteddesc">適合主辦者，要設定買入、再購、報名與玩家規則。</span>
 					</div>
 					<div role="button" tabindex="0" class="rounded-[24px] border border-zinc-700 bg-gradient-to-b from-zinc-900 to-zinc-800 p-6 text-left transition duration-150 hover:-translate-y-0.5 hover:border-zinc-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500" data-mode-card="personal" id="modepersonal">
 						<span class="mb-4 inline-flex rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300" data-i18n="newsessionpage.modepersonal">個人成績補登</span>
 						<span class="mb-3 block text-[28px] font-extrabold leading-tight text-white" data-i18n="newsessionpage.modepersonaltitle">我要補登這次參賽結果</span>
-						<span class="block text-sm leading-7 text-zinc-400" data-i18n="newsessionpage.modepersonaldesc">適合選手個人紀錄，不顯示主辦專用設定。</span>
+						<span class="block text-sm leading-7 text-zinc-400" data-i18n="newsessionpage.modepersonaldesc">適合玩家個人紀錄，不顯示主辦專用設定。</span>
 					</div>
 				</div>
 			</section>
@@ -112,7 +112,7 @@
 					<div class="mb-6 rounded-[20px] border border-emerald-500/30 bg-emerald-500/5 p-4">
 						<div class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
 							<span class="text-sm font-extrabold text-emerald-300" data-i18n="newsessionpage.aititle">⚡ AI 匯入賽事</span>
-							<span class="text-[11px] text-zinc-500" data-i18n="newsessionpage.aidesc">貼上其他網站的賽事頁，自動填入名稱／起始計分牌／買入／開始時間與賽程結構</span>
+							<span class="text-[11px] text-zinc-500" data-i18n="newsessionpage.aidesc">貼上其他網站的賽事頁，自動填入名稱／起始籌碼／買入／開始時間與賽程結構</span>
 						</div>
 						<textarea id="aiImportText" rows="4" class="w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-[13px] leading-relaxed text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-placeholder="newsessionpage.aiplaceholder" placeholder="把整段賽事資訊貼進來，例如從賽事頁複製的內容…"></textarea>
 						<div class="mt-2 flex flex-wrap items-center gap-3">
@@ -143,7 +143,7 @@
 							<div>
 								<label for="name" class="mb-2 block text-sm font-bold text-zinc-100"><span data-i18n="newsessionpage.labelname">場次名稱</span> <span class="text-red-500">*</span></label>
 								<input type="text" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-placeholder="newsessionpage.nameplaceholder" id="name" placeholder="例如：週五深籌賞金賽">
-								<p class="mt-2 text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.namenote">建議讓選手一眼看懂時間或特色。</p>
+								<p class="mt-2 text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.namenote">建議讓玩家一眼看懂時間或特色。</p>
 							</div>
 							<div>
 								<label for="clubid" class="mb-2 block text-sm font-bold text-zinc-100"><span data-i18n="newsessionpage.labelvenue">地點</span> <span class="text-red-500">*</span></label>
@@ -173,7 +173,7 @@
 					<section class="hidden" data-step-panel="2">
 						<div class="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 							<div>
-								<h2 class="mb-2 text-3xl font-extrabold tracking-tight text-white" data-i18n="newsessionpage.step2title">步驟 2. 報名與選手規則</h2>
+								<h2 class="mb-2 text-3xl font-extrabold tracking-tight text-white" data-i18n="newsessionpage.step2title">步驟 2. 報名與玩家規則</h2>
 							</div>
 							<div class="inline-flex rounded-full border border-yellow-300/20 bg-yellow-400/10 px-4 py-2 text-xs font-bold text-yellow-200" data-i18n="newsessionpage.step2kicker">依模式調整</div>
 						</div>
@@ -181,7 +181,7 @@
 						<div data-mode-panel="hosted">
 							<div class="mb-5 rounded-[20px] border border-emerald-400/20 bg-gradient-to-b from-emerald-950/70 to-emerald-900/10 p-5">
 								<div class="mb-2 text-[15px] font-bold text-emerald-100" data-i18n="newsessionpage.step2hostedtitle">主辦牌局會保留完整規則</div>
-								<div class="text-sm leading-7 text-emerald-200/80" data-i18n="newsessionpage.step2hosteddesc">先決定選手是否可報名與是否有再購 / 再入 / 增購次數，再到下一步補上金額與計分牌。</div>
+								<div class="text-sm leading-7 text-emerald-200/80" data-i18n="newsessionpage.step2hosteddesc">先決定玩家是否可報名與是否有再購 / 再入 / 增購次數，再到下一步補上金額與籌碼。</div>
 							</div>
 
 							<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -198,7 +198,7 @@
 								<div>
 									<label for="addoncount" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labeladdoncount">Addon 次數</label>
 									<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="addoncount" min="0" inputmode="numeric" value="0">
-									<p class="mt-2 text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.addonexplain">Addon：固定時機追加計分牌，通常不需要先淘汰。</p>
+									<p class="mt-2 text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.addonexplain">Addon：固定時機追加籌碼，通常不需要先淘汰。</p>
 								</div>
 							</div>
 
@@ -207,14 +207,14 @@
 									<input type="checkbox" class="mt-1 h-[18px] w-[18px] accent-emerald-500" id="linkuser">
 									<span>
 										<strong class="mb-1 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labellinkuser">使用者連結</strong>
-										<small class="block text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.linkusernote">讓選手能在系統內看到這場並與帳號關聯。</small>
+										<small class="block text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.linkusernote">讓玩家能在系統內看到這場並與帳號關聯。</small>
 									</span>
 								</label>
 								<label class="flex min-h-full cursor-pointer gap-3 rounded-[20px] border border-zinc-800 bg-zinc-950/70 p-4">
 									<input type="checkbox" class="mt-1 h-[18px] w-[18px] accent-emerald-500" id="openregistration">
 									<span>
 										<strong class="mb-1 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelopenregistration">開放報名</strong>
-										<small class="block text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.openregistrationnote">選手可從場次列表直接報名，需先開啟使用者連結。</small>
+										<small class="block text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.openregistrationnote">玩家可從場次列表直接報名，需先開啟使用者連結。</small>
 									</span>
 								</label>
 								<label class="flex min-h-full cursor-pointer gap-3 rounded-[20px] border border-zinc-800 bg-zinc-950/70 p-4">
@@ -278,11 +278,11 @@
 								</div>
 								<div class="rounded-[20px] border border-zinc-800 bg-zinc-950/70 p-4">
 									<div class="mb-2 text-sm font-extrabold text-yellow-200">Reentry</div>
-									<div class="text-sm leading-7 text-zinc-300" data-i18n="newsessionpage.reentrynote">淘汰後重新報到，等於重新入場，費用與計分牌可獨立設定。</div>
+									<div class="text-sm leading-7 text-zinc-300" data-i18n="newsessionpage.reentrynote">淘汰後重新報到，等於重新入場，費用與籌碼可獨立設定。</div>
 								</div>
 								<div class="rounded-[20px] border border-zinc-800 bg-zinc-950/70 p-4">
 									<div class="mb-2 text-sm font-extrabold text-yellow-200">Addon</div>
-									<div class="text-sm leading-7 text-zinc-300" data-i18n="newsessionpage.addonnote">固定時點追加計分牌，不需要先淘汰，常見於休息前後。</div>
+									<div class="text-sm leading-7 text-zinc-300" data-i18n="newsessionpage.addonnote">固定時點追加籌碼，不需要先淘汰，常見於休息前後。</div>
 								</div>
 							</div>
 
@@ -296,7 +296,7 @@
 									<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="buyinfee" min="0" inputmode="numeric" value="0">
 								</div>
 								<div>
-									<label for="chip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelchip">起始計分牌</label>
+									<label for="chip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelchip">起始籌碼</label>
 									<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="chip" min="0" inputmode="numeric" value="25000">
 								</div>
 							</div>
@@ -313,7 +313,7 @@
 										<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="rebuyfee" min="0" inputmode="numeric" value="0">
 									</div>
 									<div>
-										<label for="rebuychip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelrebuychip">Rebuy 計分牌</label>
+										<label for="rebuychip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelrebuychip">Rebuy 籌碼</label>
 										<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="rebuychip" min="0" inputmode="numeric" value="25000">
 									</div>
 								</div>
@@ -331,7 +331,7 @@
 										<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="reentryfee" min="0" inputmode="numeric" value="0">
 									</div>
 									<div>
-										<label for="reentrychip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelreentrychip">Reentry 計分牌</label>
+										<label for="reentrychip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelreentrychip">Reentry 籌碼</label>
 										<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="reentrychip" min="0" inputmode="numeric" value="0">
 									</div>
 								</div>
@@ -349,7 +349,7 @@
 										<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="addonfee" min="0" inputmode="numeric" value="0">
 									</div>
 									<div>
-										<label for="addonchip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labeladdonchip">Addon 計分牌</label>
+										<label for="addonchip" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labeladdonchip">Addon 籌碼</label>
 										<input type="number" class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="addonchip" min="0" inputmode="numeric" value="0">
 									</div>
 								</div>
@@ -412,7 +412,7 @@
 					</section>
 
 					<section class="hidden" data-step-panel="4">
-						<div class="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+						<div class="mt-6 mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 							<div>
 								<h2 class="mb-2 text-2xl font-extrabold tracking-tight text-zinc-200" data-i18n="newsessionpage.step4title">進階設定（選填）</h2>
 							</div>
@@ -429,7 +429,7 @@
 								<select class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="limittype"></select>
 							</div>
 							<div>
-								<label for="stacktype" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelchiptype">計分牌類型</label>
+								<label for="stacktype" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelchiptype">籌碼類型</label>
 								<select class="min-h-12 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-[15px] text-white outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="stacktype"></select>
 							</div>
 							<div>
@@ -439,12 +439,11 @@
 							<div class="md:col-span-2 xl:col-span-4">
 								<label for="description" class="mb-2 block text-sm font-bold text-zinc-100" data-i18n="newsessionpage.labelnote">備註</label>
 								<textarea placeholder="可補充這場的特色、活動名稱、盲注說明或你想記住的內容" class="w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-[15px] text-white outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-i18n-placeholder="newsessionpage.descriptionplaceholder" id="description" rows="4"></textarea>
-								<p class="mt-2 text-xs leading-6 text-zinc-500" data-i18n="newsessionpage.descriptionnote">這裡適合補充外部資訊，不必把規則都塞進場次名稱。</p>
 							</div>
 						</div>
 					</section>
 
-					<div class="mt-5 min-h-6 text-sm font-bold leading-7 text-rose-300" id="error"></div>
+					<div class="mt-5 text-sm font-bold leading-7 text-rose-300" id="error"></div>
 
 					<div class="mt-3 grid grid-cols-[1fr,1fr] gap-2 items-center">
 						<input type="button" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-zinc-800 px-5 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" data-i18n-value="onboarding.prev" id="previousbtn" value="上一步">

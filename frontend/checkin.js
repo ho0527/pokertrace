@@ -1,7 +1,7 @@
 // 報到核對頁：掃描收據 QR 後開啟，網址帶 sessionid(場次id) 與 r(報名id)。
 // 另一種進法是掃描頁的手動輸入：帶 sessionid 與 entry(收據上的入場編號 serialno)，
 // 入場編號只在單一場次內唯一，所以一定要有場次，走 getcheckininfobyentry。
-// 目前為唯讀核對版：查出該筆報名並顯示選手 / 狀態 / 桌座 / 買入。報到動作之後再加。
+// 目前為唯讀核對版：查出該筆報名並顯示玩家 / 狀態 / 桌座 / 買入。報到動作之後再加。
 //
 // 參數名以 sessionid 為準，但一定要相容舊的 s：已經印出去的收據 QR 內含 ?s=，
 // 改名後那些紙本仍要掃得動，所以讀取一律「新的優先、沒有才回退舊的」。
@@ -106,11 +106,11 @@ function rendercheckin(d){
 	if(d["canissue"]&&float(d["finalprize"])>0){
 		prizelink=`<input type="button" id="printprizebtn" class="cursor-pointer rounded-2xl bg-amber-600 hover:bg-amber-700 px-5 py-2 text-sm font-bold text-white" value="${escapehtml(checkintext("printprize","列印獎金收據"))}">`
 	}
-	// 掃到的是前一日的收據、該選手已晉級時，後端會自動沿鏈回傳最新一場的資料，
+	// 掃到的是前一日的收據、該玩家已晉級時，後端會自動沿鏈回傳最新一場的資料，
 	// 這裡明確告知現場人員「這張舊收據仍有效，看到的是最新場次」，免得以為掃錯或重印。
 	let advancenotice=""
 	if(d["followedadvanceed"]){
-		let noticetext=checkintext("advancefollowed","此收據為「{from}」的報到憑證，該選手已晉級，以下顯示「{current}」的最新資料。")
+		let noticetext=checkintext("advancefollowed","此收據為「{from}」的報到憑證，該玩家已晉級，以下顯示「{current}」的最新資料。")
 		noticetext=noticetext.replace("{from}",d["advancedfrom"]||"").replace("{current}",d["currentsessionname"]||"")
 		advancenotice=`<div class="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200">${escapehtml(noticetext)}</div>`
 	}
@@ -126,7 +126,7 @@ function rendercheckin(d){
 			</div>
 			<div class="mt-4 flex items-end justify-between gap-3">
 				<div class="min-w-0">
-					<div class="text-xs text-zinc-500">${escapehtml(checkintext("player","選手"))}</div>
+					<div class="text-xs text-zinc-500">${escapehtml(checkintext("player","玩家"))}</div>
 					<div class="text-3xl font-extrabold text-white break-words">${escapehtml(d["playername"]||"-")}</div>
 					<div class="text-sm text-zinc-500">${escapehtml(d["playerplayerid"]||"")}</div>
 				</div>

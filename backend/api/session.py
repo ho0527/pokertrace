@@ -503,7 +503,7 @@ def _fastsessionlist(request,tokenuserrow):
 			ORDER BY "id", accesspriority
 		),
 		filtered AS (
-			SELECT a.*, c."name" AS clubname,
+			SELECT a.*, c."name" AS clubname, owner."name" AS ownername,
 			       sp."id" AS myregistrationid, sp."status" AS myregistrationstatus, sp."buyin" AS mybuyin, sp."fee" AS myfee,
 			       sp."rebuycount" AS myrebuycount, sp."reentrycount" AS myreentrycount, sp."addoncount" AS myaddoncount,
 			       sp."paymenttype" AS mypaymenttype, sp."ticketvalue" AS myticketvalue, sp."prize" AS myprize,
@@ -526,6 +526,7 @@ def _fastsessionlist(request,tokenuserrow):
 			       + (COALESCE(a."addonbuyin",0)+COALESCE(a."addonfee",0))*COALESCE(sp."addoncount",0) AS mycost,
 			       COALESCE(sp."prizeoverride",sp."prize",0) AS myfinalprize
 			FROM access a
+			LEFT JOIN "user" owner ON owner."id"=a."userid" AND owner."deletetime" IS NULL
 			LEFT JOIN "club" c ON c."id"=a."clubid" AND c."deletetime" IS NULL
 			LEFT JOIN "sessionplayer" sp ON sp."sessionid"=a."id" AND sp."userid"=%s AND sp."deletetime" IS NULL
 			LEFT JOIN "sessiontimerplayer" tp ON tp."sessionid"=a."id" AND tp."userid"=%s AND tp."deletetime" IS NULL
@@ -562,7 +563,13 @@ def _fastsessionlist(request,tokenuserrow):
 			           )
 			           ELSE 0
 			       END AS statprofit,
-			       CASE WHEN isstaff=false AND ((isown=false AND owned=true AND myregistrationstatus IN ('confirmed','advanced')) OR (isown=true AND owned=false)) THEN EXTRACT(EPOCH FROM (endtime-starttime))/60 ELSE NULL END AS statduration
+			       CASE WHEN isstaff=false AND ((isown=false AND owned=true AND myregistrationstatus IN ('confirmed','advanced')) OR (isown=true AND owned=false)) THEN
+			           CASE
+			               WHEN endtime>=starttime THEN EXTRACT(EPOCH FROM (endtime-starttime))/60
+			               WHEN endtime::date=starttime::date THEN EXTRACT(EPOCH FROM (endtime+INTERVAL '1 day'-starttime))/60
+			               ELSE NULL
+			           END
+			           ELSE NULL END AS statduration
 			FROM filtered
 		)
 		SELECT *, COUNT(*) OVER() AS totalrows, SUM(statcount) OVER() AS statgamecount, SUM(statprofit) OVER() AS stattotalprofit, AVG(statduration) OVER() AS statavgduration
@@ -1309,7 +1316,7 @@ def editsessionsettings(request,sessionid):
 	if requestdata["error"] is not None:
 		return errorresponse(requestdata["error"])
 	data=requestdata["data"]
-	# 計分員不可操作計時器: dealer 不可改計時器相關設定 (比照 timer.py 的 role IN ('floor','assistant') 判斷)
+	# 發牌員不可操作計時器: dealer 不可改計時器相關設定 (比照 timer.py 的 role IN ('floor','assistant') 判斷)
 	if "autostartbytime" in data:
 		access=getsessionstaffaccess(sessionid,userrow["id"])
 		isadmin=(4<=int(userrow["permission"]))

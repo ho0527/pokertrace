@@ -631,7 +631,7 @@ function renderchips(){
 	value("#sgchipselectall",selectalltext)
 }
 
-// 全選 / 取消全選桌上的計分牌面額
+// 全選 / 取消全選桌上的籌碼面額
 function toggleselectallchips(){
 	let allon=sgchips.length>0
 	for(let i=0;i<sgchips.length;i=i+1){
@@ -670,7 +670,7 @@ function addchip(){
 	regenerate()
 }
 
-// 套用一組面額到桌上計分牌
+// 套用一組面額到桌上籌碼
 function applychipdenoms(denoms){
 	if(!denoms||denoms.length<1){
 		return
@@ -684,7 +684,7 @@ function applychipdenoms(denoms){
 	regenerate()
 }
 
-// 從個人資料的計分牌組合（chipsets）載入面額。
+// 從個人資料的籌碼組合（chipsets）載入面額。
 // interactive=true（使用者點按鈕）時，多組會跳選擇燈箱；
 // 自動載入（interactive=false）不跳燈箱，只在剛好一組時靜默套用。
 function loadprofilechips(interactive){
@@ -705,7 +705,7 @@ function loadprofilechips(interactive){
 	},!interactive)
 }
 
-// 多組計分牌時的選擇彈窗
+// 多組籌碼時的選擇彈窗
 function openchipsetpicker(sets){
 	let old=domgetid("sgchipsetpicker")
 	if(old){

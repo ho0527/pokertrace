@@ -20,6 +20,7 @@ from . import table
 from . import timer
 from . import type
 from . import user
+from . import usernote
 # from . import connect
 
 urlpatterns=[
@@ -38,6 +39,11 @@ urlpatterns=[
     re_path(r"^replycontactmessage/(?P<messageid>[^/]+)$",contact.replycontactmessage,name="replycontactmessage"),
 
     re_path(r"^getuser$",user.getuser,name="getuser"),
+    re_path(r"^checkmyplayerid$",user.checkmyplayerid,name="checkmyplayerid"),
+    re_path(r"^editmyplayerid$",user.editmyplayerid,name="editmyplayerid"),
+    re_path(r"^getusernotelist$",usernote.getusernotelist,name="getusernotelist"),
+    re_path(r"^getmyusernotelist$",usernote.getmyusernotelist,name="getmyusernotelist"),
+    re_path(r"^editusernote/(?P<targetuserid>[^/]+)$",usernote.editusernote,name="editusernote"),
     re_path(r"^searchusers$",user.searchusers,name="searchusers"),
     re_path(r"^getuserreport$",user.getuserreport,name="getuserreport"),
     re_path(r"^edituserlanguage$",user.edituserlanguage,name="edituserlang"),
@@ -90,8 +96,10 @@ urlpatterns=[
     re_path(r"^batchcreatesessions$",batch.batchcreatesessions,name="batchcreatesessions"),
 
     re_path(r"^getclublist$",club.getclublist,name="getclublist"),
+    re_path(r"^editcluborder$",club.editcluborder,name="editcluborder"),
     re_path(r"^newclub$",club.newclub,name="newclub"),
     re_path(r"^editclub/(?P<clubid>[^/]+)$",club.editclub,name="editclub"),
+    re_path(r"^editclubnote/(?P<clubid>[^/]+)$",club.editclubnote,name="editclubnote"),
     re_path(r"^deleteclub/(?P<clubid>[^/]+)$",club.deleteclub,name="deleteclub"),
 
     re_path(r"^getfollowtargetlist$",follow.getfollowtargetlist,name="getfollowtargetlist"),
@@ -182,6 +190,7 @@ urlpatterns=[
     re_path(r"^confirmsessionplayer/(?P<sessionplayerid>[^/]+)$",sessionplayer.confirmsessionplayer,name="confirmsessionplayer"),
     re_path(r"^rebuysessionplayer/(?P<sessionplayerid>[^/]+)$",sessionplayer.rebuysessionplayer,name="rebuysessionplayer"),
     re_path(r"^cancelsessionplayer/(?P<sessionplayerid>[^/]+)$",sessionplayer.cancelsessionplayer,name="cancelsessionplayer"),
+    re_path(r"^editsessionplayernote/(?P<sessionplayerid>[^/]+)$",sessionplayer.editsessionplayernote,name="editsessionplayernote"),
     re_path(r"^editsessionplayerfinance/(?P<sessionplayerid>[^/]+)$",sessionplayer.editsessionplayerfinance,name="editsessionplayerfinance"),
     re_path(r"^applysessionplayericm/(?P<sessionid>[^/]+)$",sessionplayer.applysessionplayericm,name="applysessionplayericm"),
     re_path(r"^editsessionplayerseat/(?P<sessionplayerid>[^/]+)$",sessionplayer.editsessionplayerseat,name="editsessionplayerseat"),

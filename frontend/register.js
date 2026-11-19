@@ -1,11 +1,15 @@
 let sessionid=getget("sessionid")
-// 預設測試用使用者 (defultuser.py)：playerid 0 開頭皆為測試使用者，名稱前綴 TUP_ 為測試選手
+// 預設測試用使用者 (defultuser.py)：playerid 0 開頭皆為測試使用者，名稱前綴 TUP_ 為測試玩家
 // showtestusered 未開啟時查詢結果一律過濾掉測試使用者
 const TESTUSERKEYWORD="TUP_"
 let showtestusered=false
 function rt(key){
 	if(!TRANSLATE[LANGUAGE]||!TRANSLATE[LANGUAGE]["registerpage"]){ return key }
-	return TRANSLATE[LANGUAGE]["registerpage"][key]||key
+	const TEXT=TRANSLATE[LANGUAGE]["registerpage"][key]
+	if(TEXT!=undefined){
+		return TEXT
+	}
+	return key
 }
 // 屬性值 / option 內容用：escapehtml 不轉義引號，塞進雙引號屬性會被打穿，這裡補上引號轉義。
 function safehtml(value){
@@ -32,8 +36,8 @@ let advancetargets=[]
 let unifiedhandrecord=false
 let totalchipcount=0
 let edittimerplayerpending={}
-// 應有總計分牌（後端 expectedchiptotal）。與 totalchipcount 相減就是誤差 ——
-// 錦標賽的計分牌守恆，淘汰者的碼會轉到存活者身上，所以兩者本來就該相等。
+// 應有總籌碼（後端 expectedchiptotal）。與 totalchipcount 相減就是誤差 ——
+// 錦標賽的籌碼守恆，淘汰者的碼會轉到存活者身上，所以兩者本來就該相等。
 let expectedchipcount=0
 let receiptheaderdata={
 	"seriestitle": "",
@@ -191,7 +195,7 @@ function setregistrationresultsummary(summary){
 	}
 }
 
-// 總計分牌旁邊的誤差。誤差 = 已記錄 − 應有，為 0 時整個藏起來（不加任何文字）。
+// 總籌碼旁邊的誤差。誤差 = 已記錄 − 應有，為 0 時整個藏起來（不加任何文字）。
 // 多發是紅的、短發是琥珀色 —— 少記通常只是還沒把碼量更新上來，沒有多發那麼嚴重。
 function rendertotalchipdiff(){
 	let diffbox=domgetid("stattotalchipdiff")
@@ -414,7 +418,7 @@ function canreentryregistration(r){
 	return false
 }
 
-// Rebuy 給在場中(已確認、未淘汰)的選手：允許 rebuy 且未達上限。
+// Rebuy 給在場中(已確認、未淘汰)的玩家：允許 rebuy 且未達上限。
 function canrebuyregistration(r){
 	if(r["status"]!="confirmed"){
 		return false
@@ -467,7 +471,7 @@ function tableoptions(selected,openonlyed){
 	for(let i=0;i<tables.length;i=i+1){
 		let table=tables[i]
 		let closed=table["closedtime"]?true:false
-		// openonlyed: 排座下拉只列開放中的桌 (已關閉桌不可再塞新選手); 手動座位下拉仍列出全部, 但標註已關閉
+		// openonlyed: 排座下拉只列開放中的桌 (已關閉桌不可再塞新玩家); 手動座位下拉仍列出全部, 但標註已關閉
 		if(openonlyed&&closed&&String(selected)!=String(table["id"])){
 			continue
 		}
@@ -480,7 +484,7 @@ function tableoptions(selected,openonlyed){
 		}
 		html=html+`<option value="${safehtml(table["id"])}" ${String(selected)==String(table["id"])?"selected":""}>${safehtml(label)}</option>`
 	}
-	// 已存的牌桌可能已被刪除，此時同樣要保住原值，否則改別的欄位會把選手靜默移出牌桌。
+	// 已存的牌桌可能已被刪除，此時同樣要保住原值，否則改別的欄位會把玩家靜默移出牌桌。
 	if(!matched&&selected){
 		html=html+`<option value="${safehtml(selected)}" selected>${safehtml(selected)}${rt("tablenotfound")}</option>`
 	}
@@ -538,8 +542,8 @@ function seatoptions(selected,tableid,ownid){
 		}
 	}
 	// 座位號可能超出目前的 maxseat（例如場次把每桌座位從 9 改成 6，但已有人坐 8 號位）。
-	// 若不補這個選項，select 會落在第一個「-」，而改動任一欄位時 handler 會把該選手的
-	// tableid / seatno / startchip 一起送出 —— 使用者只是改了計分牌，座位就被靜默清掉。
+	// 若不補這個選項，select 會落在第一個「-」，而改動任一欄位時 handler 會把該玩家的
+	// tableid / seatno / startchip 一起送出 —— 使用者只是改了籌碼，座位就被靜默清掉。
 	if(!matched&&selected){
 		html=html+`<option value="${safehtml(selected)}" selected>${safehtml(selected)}${rt("seatoutofrange")}</option>`
 	}
@@ -612,7 +616,7 @@ function askadvancechip(defaultchip,done){
 		let chip=int(cover.querySelector("#advancechipinput").value)
 		// 欄位留空時 int("") 會是 NaN，而 NaN<=0 是 false ——
 		// 用 chip<=0 檢查會被繞過，接著 JSON.stringify 把 NaN 變成 null，
-		// 後端收到 null 會回退成 startchip，選手就帶著錯的計分牌晉級（靜默）。
+		// 後端收到 null 會回退成 startchip，玩家就帶著錯的籌碼晉級（靜默）。
 		// 改用正向條件，NaN 不成立即被擋下。
 		if(!(chip>0)){
 			pttoast(rt("needadvancechip"),"warning")
@@ -743,8 +747,15 @@ function openfinancemodal(button){
 	onenterclick(".financeinput",function(){ savefinance(id) })
 }
 
+let registersearchtimer=null
+let registersearchgeneration=0
+let registerscanneded=false
+
 function searchusers(){
 	let keyword=getvalue("hostplayerid")||""
+    keyword=keyword.trim()
+    registersearchgeneration=registersearchgeneration+1
+    const GENERATION=registersearchgeneration
 	let box=domgetid("usersearchresult")
 	if(!box){
 		return
@@ -758,6 +769,9 @@ function searchusers(){
 		return
 	}
 	ajax("GET",AJAXURL+"searchusers?sessionid="+sessionid+"&keyword="+encodeURIComponent(keyword),function(event,data){
+        if(GENERATION!=registersearchgeneration){
+            return
+        }
 		if(!data["success"]){
 			return
 		}
@@ -769,7 +783,6 @@ function searchusers(){
 				continue
 			}
 			let action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="${rt("register")}">`
-			let reentryed=false
 			if(r["isstaff"]){
 				action=`<span class="text-xs text-red-300">${rt("staffcannotregister")}</span>`
 			}
@@ -777,20 +790,14 @@ function searchusers(){
 				action=`<span class="text-xs text-zinc-400">${r["registrationstatus"]}</span>`
 				if(r["registrationstatus"]=="confirmed"&&r["timerstatus"]=="eliminated"&&0<maxreentry&&int(r["reentrycount"]||0)<maxreentry){
 					action=`<input type="button" class="searchregisterbtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-playerid="${safehtml(r["playerid"])}" value="${rt("reentry")}">`
-					reentryed=true
 				}
 			}
-			let noteinput=""
-			if(!r["isstaff"]&&(!r["registrationstatus"]||reentryed)){
-				noteinput=`<input type="text" class="searchregisternote min-h-10 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-3 text-sm text-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" placeholder="${rt("buyinnote")}" aria-label="${rt("buyinnote")}">`
-			}
 			html=html+`
-				<div class="searchregisterrow grid gap-3 border-b border-zinc-700 px-3 py-3 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+				<div class="searchregisterrow grid gap-3 border-b border-zinc-700 px-3 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
 					<div class="min-w-0">
 						<div class="text-sm text-white">${escapehtml(r["name"]||"-")}</div>
 						<div class="text-xs text-zinc-500">${escapehtml(r["playerid"]||"")} ${escapehtml(r["email"]||"")}</div>
 					</div>
-					${noteinput}
 					${action}
 				</div>
 			`
@@ -810,13 +817,8 @@ function searchusers(){
 		box.classList.remove("hidden")
 		onclick(".searchregisterbtn",function(element,event){
 			element.disabled=true
-			let row=element.closest(".searchregisterrow")
-			let noteinput=row?row.querySelector(".searchregisternote"):null
 			ajax("POST",AJAXURL+"registersessionplayer/"+sessionid,function(event,data){
 				if(data["success"]){
-					if(noteinput){
-						noteinput.value=""
-					}
 					loadregistrations()
 					pttoast(rt("paneladded1"),"success")
 				}else{
@@ -824,8 +826,7 @@ function searchusers(){
 					element.disabled=false
 				}
 			},str({
-				"playerid": dataset(element,"playerid"),
-				"note": noteinput?noteinput.value:""
+				"playerid": dataset(element,"playerid")
 			}),[
 				["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 			],{
@@ -888,6 +889,7 @@ function loadregistrations(){
 					</div>
 					<div class="flex flex-wrap gap-2 items-center mb-3">
 						<input type="text" class="bg-zinc-700 text-white rounded px-2 py-2 text-sm w-48" id="hostplayerid" placeholder=rt("searchplaceholder")>
+                        <a href="scan.html?mode=player&sessionid=${encodeURIComponent(sessionid)}" class="bg-emerald-600 px-3 py-2 rounded text-sm font-semibold">${rt("scanplayer")}</a>
 						<input type="button" class="${showtestusered?"bg-emerald-600 hover:bg-emerald-700":"bg-zinc-700 hover:bg-zinc-600"} px-3 py-2 rounded text-sm font-semibold" id="showtestuserbtn" value="${rt("testuser")}">
 					</div>
 				</div>
@@ -944,8 +946,27 @@ function loadregistrations(){
 				resultbox.classList.add("mt-3")
 			}
 			oninput("#hostplayerid",function(element,event){
-				searchusers()
+                registersearchgeneration=registersearchgeneration+1
+                document.getElementById("usersearchresult").replaceChildren()
+                document.getElementById("usersearchresult").classList.add("hidden")
+                clearTimeout(registersearchtimer)
+                registersearchtimer=setTimeout(searchusers,250)
 			})
+            hostinput.addEventListener("keydown",function(event){
+                if(event.key=="Enter"){
+                    event.preventDefault()
+                    clearTimeout(registersearchtimer)
+                    searchusers()
+                }
+            })
+            if(!registerscanneded&&(getget("playerkey")||getget("playerid"))){
+                const KEY=getget("playerkey")||getget("playerid")
+                if(/^(PTUSER:[1-9][0-9]{0,18}|[1-9][0-9]{7})$/.test(KEY)){
+                    registerscanneded=true
+                    hostinput.value=KEY
+                    searchusers()
+                }
+            }
 			onclick("#showtestuserbtn",function(element,event){
 				showtestusered=!showtestusered
 				if(showtestusered){
@@ -1206,7 +1227,6 @@ function renderregistrationlist(){
 				`
 				if(canreentryregistration(r)){
 					actions=`
-						<input type="text" class="registrationreentrynote min-h-10 w-40 rounded-xl border border-zinc-700 bg-zinc-800 px-2 text-xs text-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" data-id="${r["id"]}" placeholder="${rt("buyinnote")}" aria-label="${rt("buyinnote")}">
 						<input type="button" class="reentrybtn bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" data-playerid="${safehtml(r["playerplayerid"])}" value="${rt("reentry")}">
 						<input type="button" class="cancelbtn bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("cancel")}">
 					`
@@ -1223,6 +1243,7 @@ function renderregistrationlist(){
 			if(!cancancelregistration(r)){
 				actions=actions.replace(/<input type="button" class="cancelbtn[^>]*?>/g,"")
 			}
+			actions=actions+`<input type="button" class="registrationnotebutton bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs focus:ring-4 focus:ring-emerald-500/15" data-id="${r["id"]}" value="${rt("editnote")}">`
 			let receiptbtn=`<input type="button" class="printreceiptbtn bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("printreceipt")}">`
 			let prizereceiptbtn=`<input type="button" class="printprizereceiptbtn bg-violet-700 hover:bg-violet-600 px-3 py-1 rounded text-xs" data-id="${r["id"]}" value="${rt("printprizereceipt")}">`
 			let profitclass=0<=float(r["profit"])?"text-green-400":"text-red-400"
@@ -1234,7 +1255,7 @@ function renderregistrationlist(){
 						<select class="seatinput text-center w-full bg-zinc-700 text-white rounded px-2 py-1 text-xs" data-id="${r["id"]}" data-field="tableid">${tableoptions(r["tableid"])}</select>
 						<select class="seatinput text-center w-full bg-zinc-700 text-white rounded px-2 py-1 text-xs" data-id="${r["id"]}" data-field="seatno">${seatoptions(r["seatno"],r["tableid"],r["id"])}</select>
 					</div>
-					<input type="number" class="seatinput w-full bg-zinc-700 text-white rounded px-2 py-1 text-xs" data-id="${r["id"]}" data-field="startchip" data-bestchip="${r["bestadvancechip"]||0}" value="${r["startchip"]||startchip}">
+					<input type="number" class="seatinput w-full bg-zinc-700 text-white rounded px-2 py-1 text-xs" data-id="${r["id"]}" data-field="startchip" data-bestchip="${r["bestadvancechip"]||0}" inputmode="numeric" value="${r["startchip"]||startchip}">
 				`
 				// 「記錄手牌」連結目前刻意不顯示；若未來要恢復，需在這裡重新加回產生碼（連到 newedithand.html?tableid=...&seatno=...&playerid=...）。
 				if(r["timerstatus"]=="eliminated"){
@@ -1251,6 +1272,7 @@ function renderregistrationlist(){
 					<td class="px-3 py-2">
 						<div>${escapehtml(r["playername"]||"-")}</div>
 						<div class="text-xs text-zinc-500">${escapehtml(r["playerplayerid"]||"")}</div>
+                        ${ptusernotehtml(r["userid"],r["playername"])}
 						${r["note"]?`<div class="mt-1 break-words text-xs text-zinc-400">${escapehtml(r["note"])}</div>`:""}
 					</td>
 					<td class="px-3 py-2 text-xs">${formattime(r["registertime"])}</td>
@@ -1282,10 +1304,11 @@ function renderregistrationlist(){
 						<div class="">
 							<div class="flex items-start gap-3">
 								<div class="pt-1">${mobilecheckbox}</div>
-								<div>
+                                <div class="ptusernotewrap">
 									<div class="text-xs font-semibold text-emerald-300">${rt("printcolno")} ${serialno}</div>
 					<div class="font-semibold">${escapehtml(r["playername"]||"-")}</div>
 					<div class="text-xs text-zinc-500">${escapehtml(r["playerplayerid"]||"")}</div>
+                    ${ptusernotehtml(r["userid"],r["playername"])}
 									${r["note"]?`<div class="mt-1 break-words text-xs text-zinc-400">${escapehtml(r["note"])}</div>`:""}
 									<div class="text-xs text-zinc-500 mt-1"> ${formattime(r["registertime"])}</div>
 								</div>
@@ -1324,6 +1347,83 @@ function renderregistrationlist(){
 }
 
 function bindactions(){
+    onclick(".registrationnotebutton",function(element,event){
+        const REGISTRATION=registrationdatalist.find(function(item){
+            return String(item["id"])==String(dataset(element,"id"))
+        })
+        if(REGISTRATION){
+            const COVER=doccreate("div")
+            COVER.id="registrationnotemodal"
+            COVER.className="fixed inset-0 z-[9998] bg-black/70 flex items-center justify-center p-4"
+            COVER.innerHTML=`
+                <form class="bg-zinc-900 rounded-2xl max-w-md w-full p-6" role="dialog" aria-modal="true" aria-labelledby="registrationnotetitle">
+                    <h2 class="text-lg font-semibold text-white" id="registrationnotetitle">${rt("editnote")}</h2>
+                    <div class="mt-1 mb-4 text-sm text-zinc-400">${safehtml(REGISTRATION["playername"]||"-")}</div>
+                    <label for="registrationnoteinput" class="text-sm text-zinc-300">${rt("buyinnote")}</label>
+                    <textarea class="mt-1 w-full rounded-2xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15" id="registrationnoteinput" rows="4">${safehtml(REGISTRATION["note"]||"")}</textarea>
+                    <div class="flex justify-end gap-2 mt-4">
+                        <input type="button" class="registrationnoteclose min-h-10 bg-zinc-700 hover:bg-zinc-600 px-4 py-2 rounded focus:ring-4 focus:ring-emerald-500/15" value="${rt("cancel")}">
+                        <input type="submit" class="min-h-10 bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded focus:ring-4 focus:ring-emerald-500/15 disabled:opacity-40 disabled:cursor-not-allowed" value="${rt("save")}">
+                    </div>
+                </form>
+            `
+            ptlockpagescroll()
+            document.body.appendChild(COVER)
+            const FORM=COVER.querySelector("form")
+            const INPUT=domgetid("registrationnoteinput")
+            INPUT.focus()
+            onclick(".registrationnoteclose",function(){
+                ptremovescrollcover(COVER)
+                element.focus()
+            })
+            COVER.addEventListener("keydown",function(event){
+                if(event.key=="Escape"&&!FORM.querySelector("input[type=submit]").disabled){
+                    event.preventDefault()
+                    ptremovescrollcover(COVER)
+                    element.focus()
+                }else if(event.key=="Tab"){
+                    const FIRST=INPUT
+                    const LAST=FORM.querySelector("input[type=submit]")
+                    if(event.shiftKey&&document.activeElement==FIRST){
+                        event.preventDefault()
+                        LAST.focus()
+                    }else if(!event.shiftKey&&document.activeElement==LAST){
+                        event.preventDefault()
+                        FIRST.focus()
+                    }
+                }
+            })
+            FORM.addEventListener("submit",function(event){
+                event.preventDefault()
+                const BUTTONLIST=FORM.querySelectorAll("input")
+                for(let i=0;i<BUTTONLIST.length;i=i+1){
+                    BUTTONLIST[i].disabled=true
+                }
+                INPUT.disabled=true
+                ajax("PUT",AJAXURL+"editsessionplayernote/"+REGISTRATION["id"],function(event,data){
+                    if(data["success"]){
+                        ptremovescrollcover(COVER)
+                        loadregistrations()
+                        pttoast(rt("notesaved"),"success")
+                    }else{
+                        for(let i=0;i<BUTTONLIST.length;i=i+1){
+                            BUTTONLIST[i].disabled=false
+                        }
+                        INPUT.disabled=false
+                        INPUT.focus()
+                        pttoast(pterror(data["data"]||rt("notesavefail")),"error")
+                    }
+                },str({
+                    "note": INPUT.value
+                }),[
+                    ["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
+                ],{
+                    "loadingtarget": "#registrationnotemodal form"
+                })
+            })
+        }
+    })
+
 	onclick(".confirmbtn",function(element,event){
 		element.disabled=true
 		ajax("PUT",AJAXURL+"confirmsessionplayer/"+dataset(element,"id"),function(event,data){
@@ -1363,8 +1463,6 @@ function bindactions(){
 
 	onclick(".reentrybtn",function(element,event){
 		element.disabled=true
-		let row=element.closest("tr, .registrationcard")
-		let noteinput=row?row.querySelector(".registrationreentrynote"):null
 		ajax("POST",AJAXURL+"registersessionplayer/"+sessionid,function(event,data){
 			if(data["success"]){
 				loadregistrations()
@@ -1373,8 +1471,7 @@ function bindactions(){
 				element.disabled=false
 			}
 		},str({
-			"playerid": dataset(element,"playerid"),
-			"note": noteinput?noteinput.value:""
+			"playerid": dataset(element,"playerid")
 		}),[
 			["Authorization","Bearer "+weblsget(WEBLSNAME+"token")]
 		],{
@@ -1616,7 +1713,7 @@ function confirmselectedplayers(button){
 }
 
 function applybestadvancechips(button){
-	// 先把每位重複晉級選手「整列」的座位資料快照下來(含套用後的 startchip)，
+	// 先把每位重複晉級玩家「整列」的座位資料快照下來(含套用後的 startchip)，
 	// 之後再逐筆送出。每次儲存會觸發 WebSocket 廣播 → 重新載入並重繪表格，
 	// 若改在送出當下才從 DOM 讀值，未存的列會被重繪洗回 0，導致只有前幾筆成功。
 	let inputs=document.querySelectorAll(`.seatinput[data-field="startchip"]`)

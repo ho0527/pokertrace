@@ -216,7 +216,7 @@ def loaduserchipset(userid):
 	return output
 
 def saveuserchipset(userid,sets):
-	# 全量覆寫: 先軟刪除既有組合與其計分牌, 再插入新的 (sets 已驗證好的 [{name,chips}] 結構)。
+	# 全量覆寫: 先軟刪除既有組合與其籌碼, 再插入新的 (sets 已驗證好的 [{name,chips}] 結構)。
 	ensureuserchipsettables()
 	query(SETTING["dbname"],f"""UPDATE "userchipsetchip" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "chipsetid" IN (SELECT "id" FROM "userchipset" WHERE "userid"=%s) AND "deletetime" IS NULL""",[userid],SETTING["dbsetting"])
 	query(SETTING["dbname"],f"""UPDATE "userchipset" SET "deletetime"=NOW(),"updatetime"=NOW() WHERE "userid"=%s AND "deletetime" IS NULL""",[userid],SETTING["dbsetting"])
@@ -791,6 +791,12 @@ def searchusers(request):
 	if autherror:
 		return autherror
 	keyword=(request.GET.get("keyword") or "").strip()
+	identityid=None
+	if keyword.startswith("PTUSER:"):
+		match=re.fullmatch(r"PTUSER:([1-9][0-9]{0,18})",keyword)
+		if not match or int(match.group(1))>9223372036854775807:
+			return Response({"success": True,"data": []})
+		identityid=int(match.group(1))
 	# sessionid 為空字串時綁 None (NULL): 帳號搜尋 (newedithand.js) 不帶 sessionid,
 	# 若直接把 "" 綁進 bigint 比較 (sp."sessionid"=%s 等) 會觸發 '' -> bigint 轉型錯誤,
 	# 讓整個 query 吞例外回 None → 端點永遠找不到人。綁 None 時 sessionplayer/staff 相關欄位
@@ -820,10 +826,10 @@ def searchusers(request):
 		   LEFT JOIN "sessionplayer" sp ON sp."userid"=u."id" AND sp."sessionid"=%s AND sp."deletetime" IS NULL
 		   LEFT JOIN "sessiontimerplayer" tp ON tp."sessionplayerid"=sp."id" AND tp."sessionid"=sp."sessionid" AND tp."deletetime" IS NULL
 		   WHERE u."deletetime" IS NULL
-		     AND (u."playerid" ILIKE %s OR u."name" ILIKE %s OR u."email" ILIKE %s)
+		     AND ((%s::bigint IS NOT NULL AND u."id"=%s) OR (%s::bigint IS NULL AND (u."playerid" ILIKE %s OR u."name" ILIKE %s OR u."email" ILIKE %s)))
 		   ORDER BY u."playerid" ASC
 		   LIMIT 20""",
-		[sessionid,sessionid,sessionid,like,like,like],
+		[sessionid,sessionid,sessionid,identityid,identityid,identityid,like,like,like],
 		SETTING["dbsetting"]
 	)
 	# 非管理員 (permission<4) 不回傳完整 email，改回遮罩後的 email，
@@ -1366,7 +1372,7 @@ def edituserchipset(request):
 		name=str(item.get("name") or "").strip()
 		chips=item.get("chips") or []
 		if name=="":
-			name="計分牌組合 "+str(i+1)
+			name="籌碼組合 "+str(i+1)
 		chipoutput=[]
 		if isinstance(chips,list):
 			for j in range(len(chips)):
@@ -1524,6 +1530,7 @@ def deleteuser(request,userid):
 		# 各端點的 inline 驗證繼續操作；兩件事包在單一交易，避免只做一半。
 		sqllist=[
 			["""UPDATE "user" SET "deletetime"=%s WHERE "id"=%s""",[nowtime(),userid]],
+			["""DELETE FROM "usernote" WHERE "userid"=%s OR "targetuserid"=%s""",[userid,userid]],
 			["""DELETE FROM "token" WHERE "userid"=%s""",[userid]]
 		]
 		response=querytransaction(SETTING["dbname"],sqllist,SETTING["dbsetting"])
@@ -1766,3 +1773,81 @@ def getapilog(request):
 			}
 		}
 	},status.HTTP_200_OK)
+
+
+def playeridchangeerror(user,playerid):
+    error=None
+    if not isinstance(playerid,str) or re.fullmatch(r"[1-9][0-9]{7}",playerid) is None:
+        error="ERROR_request_data_type_error"
+    elif user.get("playeridchangedtime"):
+        error="ERROR_playerid_already_changed"
+    elif user["playerid"]==playerid:
+        error="ERROR_playerid_same"
+    else:
+        duplicate=query(SETTING["dbname"],'SELECT "id" FROM "user" WHERE "playerid"=%s',[playerid],SETTING["dbsetting"])
+        if duplicate is None:
+            error="ERROR_database_error"
+        elif duplicate:
+            error="ERROR_playerid_exist"
+    return error
+
+
+@api_view(["POST"])
+def checkmyplayerid(request):
+    user,autherror=commonauthuser(request)
+    response=autherror
+    if autherror is None:
+        try:
+            data=json.loads(request.body)
+        except (ValueError,UnicodeDecodeError):
+            data=None
+        if not isinstance(data,dict) or set(data)!={"playerid"}:
+            response=errorresponse("ERROR_request_data_type_error")
+        else:
+            error=playeridchangeerror(user,data["playerid"])
+            if error:
+                response=errorresponse(error)
+            else:
+                response=Response({"success": True,"data": {"playerid": data["playerid"]}})
+    response["Cache-Control"]="no-store"
+    return response
+
+
+@api_view(["PUT"])
+def editmyplayerid(request):
+    user,autherror=commonauthuser(request)
+    if autherror:
+        return autherror
+    try:
+        data=json.loads(request.body)
+    except (ValueError,UnicodeDecodeError):
+        return errorresponse("ERROR_request_data_type_error")
+    if not isinstance(data,dict) or set(data)!={"playerid","confirmplayerid","confirmagain"}:
+        return errorresponse("ERROR_request_data_type_error")
+    playerid=data["playerid"]
+    if not isinstance(playerid,str) or re.fullmatch(r"[1-9][0-9]{7}",playerid) is None or data["confirmplayerid"]!=playerid or data["confirmagain"]!=playerid:
+        return errorresponse("ERROR_request_data_type_error")
+    if user.get("playeridchangedtime"):
+        if user["playerid"]==playerid:
+            return Response({"success": True,"data": {"playerid": playerid,"playeridchangedtime": user["playeridchangedtime"]}},headers={"Cache-Control": "no-store"})
+        return errorresponse("ERROR_playerid_already_changed")
+    error=playeridchangeerror(user,playerid)
+    if error:
+        return errorresponse(error)
+    timestamp=nowtime()
+    result=querytransaction(SETTING["dbname"],[
+        ['SELECT "id" FROM "user" WHERE "id"=%s AND "deletetime" IS NULL FOR UPDATE',[user["id"]]],
+        ['''WITH updated AS (
+            UPDATE "user" SET "playerid"=%s,"playeridchangedtime"=%s,"updatetime"=%s
+            WHERE "id"=%s AND "playeridchangedtime" IS NULL AND "deletetime" IS NULL
+            RETURNING "playerid","playeridchangedtime"
+        ) SELECT * FROM updated''',[playerid,timestamp,timestamp,user["id"]]]
+    ],SETTING["dbsetting"],errorredacted=True)
+    if result is None:
+        duplicate=query(SETTING["dbname"],'SELECT "id" FROM "user" WHERE "playerid"=%s',[playerid],SETTING["dbsetting"])
+        if duplicate:
+            return errorresponse("ERROR_playerid_exist")
+        return errorresponse("ERROR_database_error")
+    if not result[0] or not result[1]:
+        return errorresponse("ERROR_playerid_already_changed")
+    return Response({"success": True,"data": result[1][0]},headers={"Cache-Control": "no-store"})

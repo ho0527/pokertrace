@@ -74,7 +74,7 @@ function rendericmstacks(){
 	let inputs=host.querySelectorAll("[data-stack]")
 	for(let i=0;i<inputs.length;i=i+1){
 		inputs[i].addEventListener("input",function(){
-			// min="0" 對手動輸入沒有強制力，負計分牌會讓 ICM 機率變成無意義的負值，這裡直接夾到 0
+			// min="0" 對手動輸入沒有強制力，負籌碼會讓 ICM 機率變成無意義的負值，這裡直接夾到 0
 			let stackvalue=num(this.value)
 			if(stackvalue<0){
 				stackvalue=0

@@ -17,7 +17,7 @@ function editmode(){
 }
 
 function noteonly(){
-    // 編輯非最新一筆校正：只能改備註，計分牌鎖定（後端也只接受備註欄位）
+    // 編輯非最新一筆校正：只能改備註，籌碼鎖定（後端也只接受備註欄位）
     return editmode()&&!state.editlatest
 }
 
@@ -246,7 +246,7 @@ function render(){
         if(dom("dealerseat")){
             dom("dealerseat").disabled=true
         }
-        settext("adjustnote",stackadjusttext("lockednote","這不是最新一筆紀錄，計分牌已鎖定，只能修改備註"))
+        settext("adjustnote",stackadjusttext("lockednote","這不是最新一筆紀錄，籌碼已鎖定，只能修改備註"))
     }
     renderwarnings()
 }
@@ -284,7 +284,7 @@ function warnings(){
             }
         }
         if(!changed){
-            list.push(stackadjusttext("warnnoadjust","尚未填寫任何計分牌增減。"))
+            list.push(stackadjusttext("warnnoadjust","尚未填寫任何籌碼增減。"))
         }
     }
     if(!val("ps").trim()){
@@ -397,7 +397,7 @@ function save(){
     settext("savestatus",stackadjusttext("saving","儲存中..."))
     if(editmode()){
         if(noteonly()){
-            // 非最新一筆：只送備註，後端也只會更新不影響計分牌的欄位
+            // 非最新一筆：只送備註，後端也只會更新不影響籌碼的欄位
             api("PUT","edithand/"+handid,{ ps: val("ps"),note: val("ps") },aftersave)
         }else{
             api("PUT","edithand/"+handid,buildpayload(),aftersave)
@@ -457,7 +457,7 @@ function init(){
 }
 
 function loadexisting(){
-    settext("pagetitle",stackadjusttext("pagetitle","編輯計分牌校正"))
+    settext("pagetitle",stackadjusttext("pagetitle","編輯籌碼校正"))
     settext("savestatus",stackadjusttext("loading","載入中..."))
     api("GET","gethand/"+handid,null,function(result){
         if(!result["success"]){
@@ -467,7 +467,7 @@ function loadexisting(){
         }
         let hand=result["data"]
         if((hand["recordtype"]||"hand")!="stackadjustment"){
-            pttoast(stackadjusttext("notadjustrecord","這不是計分牌校正紀錄"),"error")
+            pttoast(stackadjusttext("notadjustrecord","這不是籌碼校正紀錄"),"error")
             href("table.html?id="+tableid+"#2")
             return
         }

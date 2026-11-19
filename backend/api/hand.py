@@ -219,7 +219,7 @@ def sessionispublicbroadcast(sessionrow):
 
 
 def broadcastsessionchips(sessionid):
-	# 轉播頁下注計分牌配色用: 回傳該場次的計分牌面額(含顏色), 無設定則給預設
+	# 轉播頁下注籌碼配色用: 回傳該場次的籌碼面額(含顏色), 無設定則給預設
 	rows=query(SETTING["dbname"],"""SELECT "shape","value","color","sortorder" FROM "sessionchip" WHERE "sessionid"=%s AND "deletetime" IS NULL ORDER BY "sortorder" ASC,"value" ASC,"id" ASC""",[sessionid],SETTING["dbsetting"])
 	if rows:
 		return [dict(rows[i]) for i in range(len(rows))]
@@ -595,8 +595,8 @@ def buildseatmap(sessionrow,tablerow,latesthand):
 	if latesthand:
 		seatingrow=query(SETTING["dbname"],"""SELECT*FROM "handseating" WHERE "handid"=%s AND "deletetime" IS NULL ORDER BY "seatno" ASC""",[latesthand["id"]],SETTING["dbsetting"])
 		latestchips={}
-		# 上一手爆掉 (計分牌歸 0) 的人。判準與 persisthand 的自動淘汰、deletehand 的還原完全一致:
-		# 計分牌已知 (chip>=0 且沒有 UNKNOWN_CHIP) 且 endchip<=0。三處必須同一套, 否則會各自漂移。
+		# 上一手爆掉 (籌碼歸 0) 的人。判準與 persisthand 的自動淘汰、deletehand 的還原完全一致:
+		# 籌碼已知 (chip>=0 且沒有 UNKNOWN_CHIP) 且 endchip<=0。三處必須同一套, 否則會各自漂移。
 		bustedkeys={}
 		# 統一紀錄 + 連動玩家時, 爆掉當下 persisthand 會把 sessionplayer 的 tableid/seatno 清成 NULL。
 		# 所以「上一手爆掉、現在卻還坐在位子上」只可能是那之後重新入座 (reentry/rebuy) ——
@@ -813,7 +813,7 @@ def savetimebank(request,tableid):
 
 
 def latesthandidmap(tableids):
-	# 每桌最新一筆紀錄（不分 recordtype），用來判斷哪一筆能刪／能改計分牌；不受列表的篩選條件影響
+	# 每桌最新一筆紀錄（不分 recordtype），用來判斷哪一筆能刪／能改籌碼；不受列表的篩選條件影響
 	result={}
 	seen=set()
 	for tid in tableids or []:
@@ -882,7 +882,7 @@ def gethandlist(request,tableid):
 		item=serializehand(rows[i],True,seatingmap.get(handid,[]),bittingmap.get(handid,[]),communitymap.get(handid,[]),potmap.get(handid,[]),allocationmap.get(handid,[]))
 		canmodify=rows[i]["userid"]==userrow["id"] or access["canunifiedrecord"]
 		item["islatest"]=str(latestmap.get(rows[i]["tableid"]))==str(handid)
-		# 非最新一筆只能改不影響計分牌的欄位（備註等），故 canedit 仍看權限；但刪除只允許最新一筆，以免後面手牌起始碼量錯亂。
+		# 非最新一筆只能改不影響籌碼的欄位（備註等），故 canedit 仍看權限；但刪除只允許最新一筆，以免後面手牌起始碼量錯亂。
 		# 快速手牌（quickhand）為獨立紀錄、不與其他手牌連動，故任何一筆都可刪除。
 		isquickhand=rows[i].get("recordtype")=="quickhand"
 		item["canedit"]=canmodify
@@ -1087,7 +1087,7 @@ def broadcastrelease(request,sessionid):
 
 @api_view(["GET"])
 def getsessionchips(request,sessionid):
-	# 手牌回放上色用: 回傳該場次計分牌面額(含顏色), 需可讀取該場手牌者
+	# 手牌回放上色用: 回傳該場次籌碼面額(含顏色), 需可讀取該場手牌者
 	userrow,errresp=getrequestuser(request)
 	if errresp:
 		return errresp
@@ -2745,7 +2745,7 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 		return errorresponse("ERROR_request_data_type_error")
 	if "quicknetchange" in data and recordtype!="quickhand":
 		return errorresponse("ERROR_request_data_type_error")
-	# 快速手牌（quickhand）是獨立的正常手牌，計分牌 / 底池比照 hand 計算，不需要例外類型與備註
+	# 快速手牌（quickhand）是獨立的正常手牌，籌碼 / 底池比照 hand 計算，不需要例外類型與備註
 	if recordtype in ("stackadjustment","brokenhand"):
 		if not data.get("exceptiontype") or not (data.get("ps") or data.get("note")):
 			return errorresponse("ERROR_request_data_not_found")
@@ -2905,9 +2905,9 @@ def persisthand(data,tablerow,sessionrow,userrow,access,edithandid):
 			if recordtype=="hand" and boolval(sessionrow.get("unifiedhandrecord")) and boolval(sessionrow.get("linkuser")) and not unknownchip and intval(endchip,0)<=0 and seat.get("sessionplayerid") and seat.get("userid"):
 				bustedplayers.append({"sessionplayerid": seat.get("sessionplayerid"),"userid": seat.get("userid"),"chip": intval(chip,0)})
 	if recordtype=="hand" and boolval(sessionrow.get("unifiedhandrecord")) and boolval(sessionrow.get("linkuser")) and bustedplayers:
-		# 統一紀錄手牌：玩家計分牌歸 0 自動淘汰，操作者送出後不需再請裁判處理。
-		# 同一手同桌多人爆掉時，名次依「該手開始時的計分牌」決定：計分牌少的名次較差（視為先出局）。
-		# 名次靠 eliminatedtime 排序（早＝名次差），故依計分牌由小到大給遞增毫秒位移，讓小計分牌最早＝名次最差。
+		# 統一紀錄手牌：玩家籌碼歸 0 自動淘汰，操作者送出後不需再請裁判處理。
+		# 同一手同桌多人爆掉時，名次依「該手開始時的籌碼」決定：籌碼少的名次較差（視為先出局）。
+		# 名次靠 eliminatedtime 排序（早＝名次差），故依籌碼由小到大給遞增毫秒位移，讓小籌碼最早＝名次最差。
 		bustedplayers.sort(key=lambda bp: intval(bp.get("chip"),0))
 		for idx in range(len(bustedplayers)):
 			bp=bustedplayers[idx]
@@ -3092,8 +3092,8 @@ def edithand(request,handid):
 		data=json.loads(request.body)
 	except Exception as error:
 		return errorresponse("ERROR_request_data_not_found")
-	# 只有最新一手能整手重寫；舊手牌一旦改計分牌會污染後面手牌的起始碼量，因此只允許改不影響計分牌的欄位。
-	# 例外：快速手牌（quickhand）為獨立紀錄、不與其他手牌連動，任何時候都可整手重寫（含計分牌）。
+	# 只有最新一手能整手重寫；舊手牌一旦改籌碼會污染後面手牌的起始碼量，因此只允許改不影響籌碼的欄位。
+	# 例外：快速手牌（quickhand）為獨立紀錄、不與其他手牌連動，任何時候都可整手重寫（含籌碼）。
 	latestrow=query(SETTING["dbname"],"""SELECT "id" FROM "hand" WHERE "tableid"=%s AND "deletetime" IS NULL ORDER BY "createtime" DESC,"id" DESC LIMIT 1""",[hand["tableid"]],SETTING["dbsetting"])
 	islatest=bool(latestrow) and str(latestrow[0]["id"])==str(handid)
 	isquickhand=hand.get("recordtype")=="quickhand"
@@ -3142,7 +3142,7 @@ def deletehand(request,handid):
 		if not (latestrow and str(latestrow[0]["id"])==str(handid)):
 			return errorresponse("ERROR_only_latest_hand_deletable")
 	# 還原 persisthand 自動寫入的淘汰連動：依寫入條件反推「這一手造成淘汰」的座位
-	# （recordtype=hand、統一紀錄＋連動玩家、計分牌已知且 endchip<=0、有 sessionplayerid/userid），
+	# （recordtype=hand、統一紀錄＋連動玩家、籌碼已知且 endchip<=0、有 sessionplayerid/userid），
 	# 把 sessiontimerplayer 還原為 active、sessionplayer 還原回原桌原座位。
 	# 保護條件：只在該玩家仍是 eliminated、且座位仍空著（未被重買/換座覆蓋）時才還原，避免蓋掉之後的手動異動。
 	restorelist=[]
