@@ -4,6 +4,10 @@
 
 Django REST API、Channels WebSocket、資料庫 helper 與專案設定。
 
+`gethand/{handid}` 在統一手牌紀錄場次回傳登入者自己的 `myseatno`、`myhandcard` 與 `myhandnote`。查詢私人底牌以登入者 ID 限定；未入座的人員／管理員及非統一紀錄場次不取得私人內容，已軟刪的底牌也不會回傳。
+
+`handplayercard.playerid` 保留既有 API 欄位名稱，值為 `user.id`。啟動時會以 `handplayercard_userid_fkey` 取代指向舊 `player` 表的外鍵；修改前必須確認既有底牌全部對得上帳號並備份資料庫。底牌 API 寫入失敗會回傳錯誤，避免顯示未實際儲存的成功訊息。
+
 ## 主要檔案
 
 - `.gitignore`

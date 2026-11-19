@@ -1125,6 +1125,19 @@ def gethand(request,handid):
 	item=serializehand(row[0])
 	latestrow=query(SETTING["dbname"],"""SELECT "id" FROM "hand" WHERE "tableid"=%s AND "deletetime" IS NULL ORDER BY "createtime" DESC,"id" DESC LIMIT 1""",[row[0]["tableid"]],SETTING["dbsetting"])
 	item["islatest"]=bool(latestrow) and str(latestrow[0]["id"])==str(handid)
+	item["myseatno"]=None
+	item["myhandcard"]={}
+	item["myhandnote"]=""
+	if boolval(sessionrow[0].get("unifiedhandrecord")):
+		for seating in item["seatingdata"]:
+			if seating.get("userid")==userrow["id"]:
+				item["myseatno"]=seating["seatno"]
+		if item["myseatno"] is not None:
+			# Private cards and notes are scoped to the authenticated seated player.
+			cardrow=query(SETTING["dbname"],"""SELECT "card1","card2","note" FROM "handplayercard" WHERE "handid"=%s AND "playerid"=%s AND "deletetime" IS NULL ORDER BY "id" DESC LIMIT 1""",[handid,userrow["id"]],SETTING["dbsetting"])
+			if cardrow:
+				item["myhandcard"]={"card1": cardrow[0].get("card1") or "","card2": cardrow[0].get("card2") or ""}
+				item["myhandnote"]=cardrow[0].get("note") or ""
 	return Response({"success": True,"data": item},status.HTTP_200_OK)
 
 
@@ -3058,7 +3071,7 @@ def editmyhandcard(request,handid):
 	note=data.get("note") or ""
 	cardrow=query(SETTING["dbname"],"""SELECT*FROM "handplayercard" WHERE "handid"=%s AND "playerid"=%s AND "deletetime" IS NULL ORDER BY "id" DESC LIMIT 1""",[handid,userrow["id"]],SETTING["dbsetting"])
 	if cardrow:
-		queryupdate(SETTING["dbname"],"handplayercard",{
+		saved=queryupdate(SETTING["dbname"],"handplayercard",{
 			"card1": card1,
 			"card2": card2,
 			"note": note,
@@ -3066,9 +3079,11 @@ def editmyhandcard(request,handid):
 			"updatetime": nowtime()
 		},{"id": cardrow[0]["id"]},SETTING["dbsetting"])
 	else:
-		query(SETTING["dbname"],"""INSERT INTO "handplayercard"("handid","playerid","card1","card2","revealed","note","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s)""",[
+		saved=query(SETTING["dbname"],"""INSERT INTO "handplayercard"("handid","playerid","card1","card2","revealed","note","createtime")VALUES(%s,%s,%s,%s,%s,%s,%s)""",[
 			handid,userrow["id"],card1,card2,False,note,nowtime()
 		],SETTING["dbsetting"])
+	if not saved:
+		return errorresponse("ERROR_database_error")
 	handbroadcast(sessionrow[0]["id"],"hand.mycard.updated",handid,{})
 	return Response({"success": True,"data": ""},status.HTTP_200_OK)
 

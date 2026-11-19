@@ -2815,7 +2815,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} v0.0.0
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} v0.1.0
 			</div>
 		</div>
 	</footer>

@@ -1949,7 +1949,7 @@ const APICATEGORIES=[
 			},
 			{
 				id: "gethand",method: "GET",path: "/gethand/{handid}",title: { z: "取得手牌",e: "Get hand" },
-				desc: { z: "取得單一手牌完整詳情。",e: "Get a single hand in full." },
+				"desc": { "z": "取得單一手牌完整詳情。統一紀錄場次中，已入座的登入者另取得自己的 myseatno、myhandcard 與 myhandnote；不會取得其他人的私人底牌筆記。未入座或非統一紀錄時，這三欄依序為 null、空物件與空字串。","e": "Get a single hand in full. For unified recording, seated callers also receive their own myseatno, myhandcard and myhandnote, without another player's private cards or notes. These fields are null, an empty object and an empty string for unseated callers or non-unified sessions." },
 				auth: AUTHTOKEN,params: [pathparam("handid","手牌 id。","Hand id.",9001)],
 				response: [R("data","object","手牌完整物件。","The full hand object.",handfields().concat([R("seatinglist","object[]","各座位玩家與籌碼。","Players and chips per seat.",[SUB("seatno","int","座位號。","Seat number."),SUB("name","string","玩家名稱。","Player name."),SUB("chip","int","籌碼量。","Chip amount.")]),R("bittingdata","object[]","下注動作。","Betting actions.",[SUB("seatno","int","座位號。","Seat number."),SUB("street","string","街道。","Street."),SUB("action","string","動作。","Action."),SUB("amount","int","金額。","Amount.")]),SUB("winners","int[]","贏家座位號。","Winning seat numbers.")]))],
 				errors: [ETOKEN,ERR("404","ERROR_hand_not_found / ERROR_session_not_found","找不到手牌或場次。","Hand or session not found."),EPERM]
