@@ -1,0 +1,200 @@
+.preflopsolveroptions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 16px;
+}
+
+.preflopsolverfield {
+    display: grid;
+    gap: 8px;
+}
+
+.preflopsolverstackgrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.preflopsolverstackgrid[data-playercount="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preflopsolverstackitem {
+    display: grid;
+    gap: 8px;
+}
+
+.preflopsolvermatchupfield {
+    display: grid;
+    width: min(100%, 360px);
+    gap: 8px;
+    color: #d4d4d8;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.preflopsolvermatchupfield[hidden] {
+    display: none;
+}
+
+.preflopsolvermatchupselect {
+    width: 100%;
+    min-height: 48px;
+    padding: 8px 12px;
+    border: 1px solid #3f3f46;
+    border-radius: var(--radiuscontrol);
+    background-color: #18181b;
+    color: #f4f4f5;
+    font: inherit;
+}
+
+.preflopsolvermatchupselect:hover {
+    border-color: #71717a;
+}
+
+.preflopsolvermatchupselect:focus-visible {
+    border-color: #34d399;
+    outline: 2px solid #34d399;
+    outline-offset: 2px;
+}
+
+.preflopsolvermatchupselect:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.preflopsolverinput {
+    width: 100%;
+    min-width: 0;
+}
+
+.preflopsolversubmit {
+    width: 100%;
+    cursor: pointer;
+}
+
+.preflopsolversubmit:disabled {
+    cursor: not-allowed;
+}
+
+.preflopsolverresume {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: var(--radiuscontrol);
+    background: #10b981;
+    color: #09090b;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.preflopsolverresume:focus-visible {
+    outline: 2px solid #a7f3d0;
+    outline-offset: 2px;
+}
+
+.preflopsolvercancel {
+    display: inline-block;
+    margin-top: 10px;
+    margin-left: 8px;
+    padding: 8px 12px;
+    border: 1px solid #f87171;
+    border-radius: var(--radiuscontrol);
+    background: #450a0a;
+    color: #fecaca;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.preflopsolvercancel:focus-visible {
+    outline: 2px solid #fca5a5;
+    outline-offset: 2px;
+}
+
+.preflopsolverpositionfield {
+    display: grid;
+    width: min(100%, 240px);
+    gap: 8px;
+}
+
+.preflopsolvercontextfield {
+    display: grid;
+    width: min(100%, 430px);
+    gap: 8px;
+}
+
+.preflopsolverresults[hidden] {
+    display: none;
+}
+
+.preflopsolverresultheader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.preflopsolvergridwrap {
+    overflow-x: auto;
+    margin-top: 16px;
+    padding-bottom: 4px;
+}
+
+.preflopsolvergrid {
+    display: grid;
+    grid-template-columns: repeat(13, minmax(36px, 1fr));
+    gap: 4px;
+    min-width: 516px;
+}
+
+.preflopsolvercell {
+    display: flex;
+    min-height: 48px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1.2;
+}
+
+.preflopsolvercell:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.preflopsolvercell[aria-pressed="true"] {
+    border-color: currentColor;
+}
+
+.preflopsolvermetrics > div {
+    min-width: 0;
+}
+
+.preflopsolverdetail:empty {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .preflopsolveroptions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .preflopsolverstackgrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .preflopsolveroptions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

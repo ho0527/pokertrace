@@ -7,11 +7,12 @@
 //  - API 請求、非 GET、跨來源（CDN）：一律直接走網路，不快取
 // 改版時把 CACHEVERSION 加一，activate 會清掉舊快取。
 
-const CACHEVERSION="pokertrace-v7"
+const CACHEVERSION="pokertrace-v9"
 const OFFLINE_URL = "offline.html"
 
 // 預先快取的核心資源（相對於 SW scope，即 frontend/）
 const PRECACHE = [
+	"radius.css",
 	"offline.html",
 	"manifest.json",
 	"initialize.js",

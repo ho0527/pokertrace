@@ -1,5 +1,116 @@
 /* 共用小工具樣式：選牌、全螢幕燈箱、牌面、勝率雙頭條 */
 
+/* 工具操作沿用站台控制項：48px 高、16px 圓角及同一組焦點／停用狀態。 */
+body[data-backfallback^="tool"] :is(input[type="button"], input[type="submit"], input[type="reset"], button),
+body[data-backfallback^="tool"] a[class*="bg-"]:not(.hidden) {
+    border-radius: var(--radiuscontrol);
+    min-height: 48px;
+}
+
+body[data-backfallback^="tool"] a[class*="bg-"]:not(.hidden) {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+}
+
+body[data-backfallback^="tool"] :is(input, select, textarea):not(:where([type="checkbox"], [type="radio"], [type="range"])) {
+    max-width: 100%;
+    min-width: 0;
+}
+
+body[data-backfallback^="tool"] :is(input, select, textarea, button, a, [role="button"]):focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+body[data-backfallback^="tool"] :is(input, select, textarea, button):disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+body[data-backfallback^="tool"] #tbtimer:hover {
+    border-color: var(--color-primary);
+}
+
+body[data-backfallback^="tool"] .handrow-remove {
+    flex-shrink: 0;
+    min-width: 44px;
+}
+
+body[data-backfallback^="tool"] #pttoolactionbar {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+@media (max-width: 639px) {
+    body[data-backfallback^="tool"] #pttoolactionbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body[data-backfallback^="tool"] #pttoolactionbar > :only-child {
+        grid-column: 1 / -1;
+    }
+
+    body[data-backfallback^="tool"] :is(#cngrid, #cigrid) > div {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(44px, 1fr);
+    }
+
+    body[data-backfallback^="tool"] #csrows > div,
+    body[data-backfallback^="tool"] section:has(#csrows) > div:has(#cshdenom) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 44px;
+    }
+
+    body[data-backfallback^="tool"] :is(#csrows, #cngrid, #cigrid) input {
+        padding-left: 8px;
+        padding-right: 8px;
+        width: 100%;
+    }
+
+    body[data-backfallback^="tool"] :is(#csrows, #cngrid, #cigrid) [data-chipswatch] {
+        grid-column: 1 / -1;
+    }
+
+    body[data-backfallback^="tool"] :is(#csrows, #cngrid, #cigrid) > div > span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    body[data-backfallback^="tool"] #spplayers > div,
+    body[data-backfallback^="tool"] section:has(#spplayers) > div:has(#spnamehead) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 44px 44px;
+    }
+
+    body[data-backfallback^="tool"] #spplayers > div > *,
+    body[data-backfallback^="tool"] section:has(#spplayers) > div:has(#spnamehead) > * {
+        min-width: 0;
+        width: 100%;
+    }
+
+    body[data-backfallback^="tool"] #spplayers input:not([type="checkbox"]) {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    body[data-backfallback^="tool"] #spplayers label {
+        min-height: 48px;
+    }
+
+    body[data-backfallback^="tool"] section:has(#csrows) > div:has(#csprofilechips) {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    body[data-backfallback^="tool"] section:has(#csrows) > div:has(#csprofilechips) > .flex {
+        justify-content: flex-start;
+    }
+}
+
+
 #tbtimer.tbexpired {
 	animation: tbflash .6s ease-in-out infinite;
 	border-color: var(--color-danger);
@@ -33,7 +144,7 @@
 	align-items: center;
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	display: inline-flex;
 	min-height: 40px;
 	overflow: hidden;
@@ -96,7 +207,7 @@
 	align-items: center;
 	background: rgba(9, 9, 11, 0.6);
 	border: 1px solid var(--color-border);
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	width: 275px;
 	/* display: flex; */
 	/* gap: 20px; */
@@ -176,7 +287,7 @@
 
 .handrow-remove {
 	background: #7f1d1d;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	color: #fff;
 	font-weight: 800;
 	padding: 6px 12px;
@@ -191,7 +302,7 @@
 	align-items: center;
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	color: var(--color-text);
 	cursor: pointer;
 	display: inline-flex;
@@ -405,7 +516,7 @@
 .toolmodal-close {
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 14px;
+	border-radius: var(--radiuscontrol);
 	color: var(--color-text);
 	font-weight: 800;
 	padding: 8px 16px;
@@ -421,7 +532,7 @@
 .toolmodal-selected span {
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	font-size: 22px;
 	font-weight: 900;
 	min-width: 48px;
@@ -448,7 +559,7 @@
 	align-items: center;
 	background: var(--color-surface);
 	border: 1px solid #3f3f46;
-	border-radius: 10px;
+	border-radius: var(--radiuscontrol);
 	color: #ffffff;
 	cursor: pointer;
 	display: flex;
@@ -491,7 +602,7 @@
 .toolmodal-actions input[type="button"],
 .toolmodal-actions input[type="submit"],
 .toolmodal-actions input[type="reset"] {
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	flex: 1 1 0;
 	font-weight: 900;
 	min-height: 52px;
@@ -551,7 +662,7 @@
 
 .equitybar {
 	background: var(--color-surface-2);
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	display: flex;
 	height: 8px;
 	margin: 5px 0 8px;
@@ -561,14 +672,14 @@
 .equitybar-win {
 	background: linear-gradient(to right, var(--color-primary-soft), var(--color-primary));
 	height: 100%;
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 }
 
 .equitybar-tie {
 	background: #f59e0b;
 	height: 100%;
 	margin-left: auto;
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 }
 
 .equitypct {
@@ -597,7 +708,7 @@
         font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
         background: var(--color-surface);
         border: 1px solid #3f3f46;
-        border-radius: 8px;
+        border-radius: var(--radiuscontrol);
 	display: inline-block;
 	font-weight: bold;
 	margin: 2px 3px 0 0;
@@ -619,7 +730,7 @@
 .equityrangeinput {
         background: rgba(9, 9, 11, 0.7);
         border: 1px solid var(--color-border);
-        border-radius: 12px;
+        border-radius: var(--radiuscontrol);
         color: var(--color-text);
         font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
         font-size: 13px;
@@ -650,7 +761,7 @@
 .equityrangeselect {
 	background: rgba(16, 185, 129, .14);
 	border: 1px solid var(--color-primary);
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	color: var(--color-primary-soft);
 	font-size: 14px;
 	font-weight: 800;
@@ -682,7 +793,7 @@
 .equityrange-cell {
 	aspect-ratio: 1;
 	background: var(--color-surface-2);
-	border-radius: 4px;
+	border-radius: var(--radiusdetail);
 	color: #d4d4d8;
 	font-size: 11px;
 	font-weight: 800;
@@ -744,7 +855,7 @@
 
 .rangepicker-capture {
 	background: var(--color-bg);
-	border-radius: 20px;
+	border-radius: var(--radiuscontrol);
 	min-width: 0;
 	overflow-x: auto;
 	padding: 24px;
@@ -769,7 +880,7 @@
 	align-items: center;
 	aspect-ratio: 1;
 	background: var(--color-surface-2);
-	border-radius: 4px;
+	border-radius: var(--radiusdetail);
 	color: #d4d4d8;
 	cursor: pointer;
 	display: flex;
@@ -820,7 +931,7 @@
 .rangepicker-output {
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	color: #ffffff;
 	font-size: 14px;
 	outline: none;
@@ -851,7 +962,7 @@
 .rangepicker-primary,
 .rangepicker-secondary,
 .rangepicker-danger {
-	border-radius: 14px;
+	border-radius: var(--radiuscontrol);
 	color: #ffffff;
 	font-size: 14px;
 	font-weight: 800;
@@ -898,7 +1009,7 @@
 .apiep {
 	background: linear-gradient(to bottom, rgba(24, 24, 27, 0.95), rgba(9, 9, 11, 0.95));
 	border: 1px solid var(--color-border);
-	border-radius: 20px;
+	border-radius: var(--radiuscontrol);
 	overflow: hidden;
 }
 
@@ -920,7 +1031,7 @@
 }
 
 .apiep-method {
-	border-radius: 8px;
+	border-radius: var(--radiuscontrol);
 	color: #fff;
 	font-size: 12px;
 	font-weight: 900;
@@ -969,7 +1080,7 @@
 .apiep-auth {
 	background: rgba(9, 9, 11, 0.7);
 	border: 1px solid var(--color-border);
-	border-radius: 14px;
+	border-radius: var(--radiuscontrol);
 	color: var(--color-text-muted);
 	font-size: 13px;
 	line-height: 1.7;
@@ -1020,7 +1131,7 @@
 }
 
 .apifield-req {
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	font-size: 11px;
 	font-weight: 800;
 	padding: 1px 8px;
@@ -1047,7 +1158,7 @@
 .apiep-desc code,
 .apinote-body code {
 	background: var(--color-surface);
-	border-radius: 6px;
+	border-radius: var(--radiuscontrol);
 	font-size: 12px;
 	padding: 1px 5px;
 }
@@ -1068,7 +1179,7 @@
 .apinote {
 	background: rgba(9, 9, 11, 0.7);
 	border: 1px solid var(--color-border);
-	border-radius: 14px;
+	border-radius: var(--radiuscontrol);
 	padding: 12px 14px;
 }
 
@@ -1095,7 +1206,7 @@
 .apicode {
 	background: rgba(9, 9, 11, 0.85);
 	border: 1px solid var(--color-border);
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	color: #d4d4d8;
 	font-size: 12px;
 	line-height: 1.6;
@@ -1112,7 +1223,7 @@
 .apidoc-search {
 	background: rgba(9, 9, 11, 0.7);
 	border: 1px solid var(--color-border);
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	color: var(--color-text);
 	font-size: 14px;
 	outline: none;
@@ -1177,7 +1288,7 @@
 
 .apinav-link {
 	align-items: center;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	color: var(--color-text-muted);
 	cursor: pointer;
 	display: flex;
@@ -1196,7 +1307,7 @@
 
 .apinav-count {
 	background: var(--color-surface);
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	color: var(--color-text-faint);
 	font-size: 11px;
 	font-weight: 700;
@@ -1276,7 +1387,7 @@
 
 .apicat-count {
 	background: rgba(16, 185, 129, 0.15);
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	color: var(--color-primary-soft);
 	font-size: 12px;
 	font-weight: 800;
@@ -1341,7 +1452,7 @@
 .gtoopt {
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 14px;
+	border-radius: var(--radiuscontrol);
 	color: #d4d4d8;
 	font-size: 14px;
 	font-weight: 800;
@@ -1357,7 +1468,7 @@
 
 .gtocell {
 	align-items: center;
-	border-radius: 3px;
+	border-radius: var(--radiusdetail);
 	cursor: pointer;
 	display: flex;
 	font-size: 10px;
@@ -1389,7 +1500,7 @@
 }
 
 .gtolegendswatch {
-	border-radius: 4px;
+	border-radius: var(--radiusdetail);
 	display: inline-block;
 	height: 14px;
 	width: 14px;
@@ -1427,7 +1538,7 @@
 }
 
 .gtodetailaction {
-	border-radius: 10px;
+	border-radius: var(--radiuscontrol);
 	font-size: 13px;
 	font-weight: 800;
 	padding: 4px 12px;
@@ -1460,14 +1571,14 @@
 
 .gtofreqbar {
 	background: var(--color-surface-2);
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	flex: 1 1 0;
 	height: 8px;
 	overflow: hidden;
 }
 
 .gtofreqbar span {
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	display: block;
 	height: 100%;
 }
@@ -1527,7 +1638,7 @@
 .gtotreectl {
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	color: #d4d4d8;
 	font-size: 13px;
 	font-weight: 800;
@@ -1536,7 +1647,7 @@
 }
 
 .gtotreebtn {
-	border-radius: 14px;
+	border-radius: var(--radiuscontrol);
 	font-size: 14px;
 	font-weight: 900;
 	min-height: 44px;
@@ -1570,7 +1681,7 @@
 
 .gtoseat {
 	border: 1px solid #27272a;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	min-width: 64px;
 	padding: 6px 8px;
 	text-align: center;
@@ -1590,7 +1701,7 @@
 
 .gtoseathero {
 	background: var(--color-primary);
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	color: #04140e;
 	font-size: 9px;
 	font-weight: 900;
@@ -1631,7 +1742,7 @@
 }
 
 .gtolinetag {
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	font-size: 12px;
 	font-weight: 700;
 	padding: 3px 10px;
@@ -1669,7 +1780,7 @@
 .fssel {
 	background: var(--color-surface-2);
 	border: 1px solid #3f3f46;
-	border-radius: 10px;
+	border-radius: var(--radiuscontrol);
 	color: var(--color-text);
 	font-size: 16px;
 	font-weight: 800;
@@ -1683,7 +1794,7 @@
 
 .fscell {
 	align-items: center;
-	border-radius: 3px;
+	border-radius: var(--radiusdetail);
 	cursor: pointer;
 	display: flex;
 	justify-content: center;
@@ -1782,7 +1893,7 @@
 }
 
 .fsdot {
-	border-radius: 3px;
+	border-radius: var(--radiusdetail);
 	display: inline-block;
 	height: 11px;
 	margin-right: 6px;
@@ -1842,7 +1953,7 @@
 	min-height: 40px;
 	padding: 0 14px;
 	border: 1px solid var(--color-border, #3f3f46);
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	background: #27272a;
 	color: #f4f4f5;
 	font-size: 14px;
@@ -1891,7 +2002,7 @@
 	gap: 6px;
 	margin-left: auto;
 	padding: 3px 10px;
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	font-size: 12px;
 	font-weight: 700;
 }
@@ -1899,7 +2010,7 @@
 	content: "";
 	width: 6px;
 	height: 6px;
-	border-radius: 999px;
+	border-radius: var(--radiuspill);
 	background: currentColor;
 }
 .gtodatagradesolved {
@@ -1926,7 +2037,7 @@
 	margin-top: 12px;
 	padding: 20px;
 	border: 1px dashed #3f3f46;
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	text-align: center;
 }
 .gtogridemptytitle {

@@ -232,6 +232,13 @@ onclick("#tbtimer",function(){
 	handletap()
 })
 
+domgetid("tbtimer").addEventListener("keydown",function(event){
+	if(event.key=="Enter"||event.key==" "){
+		event.preventDefault()
+		toggletimer()
+	}
+})
+
 onclick("#tbadd",function(){
 	let seconds=num(getvalue("tbnewseconds"))
 	if(seconds<1){

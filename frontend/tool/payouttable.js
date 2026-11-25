@@ -15,10 +15,13 @@ function moneyfmt(value){
 }
 
 function calcpt(){
-	let pool=num(getvalue("ptpool"))
+	const POOL=Math.max(0,Math.round(num(getvalue("ptpool"))))
 	let places=Math.floor(num(getvalue("ptplaces")))
 	let steep=num(getvalue("ptsteep"))
 	let step=Math.floor(num(getvalue("ptround")))
+	if(step<1){
+		step=1
+	}
 	if(places<1){
 		places=1
 	}
@@ -38,19 +41,17 @@ function calcpt(){
 	let cash=[]
 	let sum=0
 	for(let i=0;i<places;i=i+1){
-		let c=pool*weights[i]/total
-		if(step>0){
-			c=Math.round(c/step)*step
-		}else{
-			c=Math.round(c)
-		}
-		cash.push(c)
-		sum=sum+c
+		const AMOUNT=Math.floor(POOL*weights[i]/total/step)*step
+		cash.push(AMOUNT)
+		sum=sum+AMOUNT
 	}
-	cash[0]=cash[0]+(pool-sum)
-	if(cash[0]<0){
-		cash[0]=0
+	// 先向下取整，再按名次補足整個單位，避免四捨五入超發或冠軍低於後續名次。
+	const EXTRAUNITCOUNT=Math.floor((POOL-sum)/step)
+	for(let i=0;i<EXTRAUNITCOUNT;i=i+1){
+		cash[i]=cash[i]+step
+		sum=sum+step
 	}
+	cash[0]=cash[0]+(POOL-sum)
 	let paidplaces=0
 	for(let i=0;i<places;i=i+1){
 		if(cash[i]>0){
@@ -59,12 +60,15 @@ function calcpt(){
 	}
 	let html=""
 	for(let i=0;i<paidplaces;i=i+1){
-		let pct=(function(){if(pool>0){return cash[i]/pool*100}return 0})()
+		let percentage=0
+		if(POOL>0){
+			percentage=cash[i]/POOL*100
+		}
 		html=html+`
 			<div class="grid grid-cols-3 gap-px bg-zinc-800">
 				<div class="bg-zinc-950/60 px-4 py-3 font-bold text-white">${i+1}</div>
 				<div class="bg-zinc-950/60 px-4 py-3 text-right font-mono text-emerald-400">$${moneyfmt(cash[i])}</div>
-				<div class="bg-zinc-950/60 px-4 py-3 text-right font-mono text-zinc-400">${Math.round(pct*10)/10}%</div>
+				<div class="bg-zinc-950/60 px-4 py-3 text-right font-mono text-zinc-400">${Math.round(percentage*10)/10}%</div>
 			</div>
 		`
 	}

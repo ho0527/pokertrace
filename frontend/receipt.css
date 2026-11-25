@@ -48,7 +48,7 @@ html, body {
 .receiptbutton {
 	cursor: pointer;
 	border: 0;
-	border-radius: 8px;
+	border-radius: var(--radiuscontrol);
 	background: #10b981;
 	color: #062017;
 	padding: 8px 16px;
@@ -285,7 +285,7 @@ html, body {
 .receiptseatbox {
 	flex: 1 1 0;
 	border: 1px solid #000000;
-	border-radius: 4px;
+	border-radius: var(--radiusdetail);
 	padding: 4px 2px 6px;
 	text-align: center;
 }
@@ -305,7 +305,7 @@ html, body {
 .receiptstamp {
 	position: relative;
 	border: 1px dashed #000000;
-	border-radius: 4px;
+	border-radius: var(--radiusdetail);
 	height: 68px;
 	margin: 8px 0;
 }

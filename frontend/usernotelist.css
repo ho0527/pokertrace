@@ -9,7 +9,7 @@
     align-items: center;
     gap: 12px;
     padding: 16px;
-    border-radius: 16px;
+    border-radius: var(--radiuscontrol);
     background: #27272a;
 }
 
@@ -38,7 +38,7 @@
 .usernotedelete {
     min-height: 44px;
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: var(--radiuscontrol);
     color: #f87171;
     background: #18181b;
     cursor: pointer;

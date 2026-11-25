@@ -1,0 +1,55 @@
+:root {
+    --radiuscontrol: 16px;
+    --radiuspanel: 28px;
+    --radiusdetail: 4px;
+    --radiuscardface: 8px;
+    --radiuscircle: 50%;
+    --radiuspill: 9999px;
+}
+
+/* Existing utility names now share the same rectangular surface tokens. */
+body :is(.rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl),
+body :is([class~="rounded-[4px]"], [class~="rounded-[6px]"], [class~="rounded-[8px]"], [class~="rounded-[10px]"], [class~="rounded-[12px]"], [class~="rounded-[14px]"], [class~="rounded-[16px]"], [class~="rounded-[18px]"], [class~="rounded-[20px]"]) {
+    border-radius: var(--radiuscontrol) !important;
+}
+
+body :is(.rounded-3xl, [class~="rounded-[24px]"], [class~="rounded-[28px]"], [class~="rounded-[32px]"]) {
+    border-radius: var(--radiuspanel) !important;
+}
+
+/* Inline legacy surfaces are included without copying their inline styling. */
+body :is([style*="border-radius:4px"], [style*="border-radius: 4px"], [style*="border-radius:6px"], [style*="border-radius: 6px"], [style*="border-radius:8px"], [style*="border-radius: 8px"], [style*="border-radius:10px"], [style*="border-radius: 10px"], [style*="border-radius:12px"], [style*="border-radius: 12px"], [style*="border-radius:14px"], [style*="border-radius: 14px"], [style*="border-radius:16px"], [style*="border-radius: 16px"], [style*="border-radius:18px"], [style*="border-radius: 18px"], [style*="border-radius:20px"], [style*="border-radius: 20px"]) {
+    border-radius: var(--radiuscontrol) !important;
+}
+
+body :is([style*="border-radius:24px"], [style*="border-radius: 24px"], [style*="border-radius:28px"], [style*="border-radius: 28px"], [style*="border-radius:32px"], [style*="border-radius: 32px"]) {
+    border-radius: var(--radiuspanel) !important;
+}
+
+/* Shared controls must agree even when page CSS or old inline styles load later. */
+body :is(button, select, textarea, input, [role="button"]):not(:where([type="checkbox"], [type="radio"], [type="range"], [type="hidden"])),
+body a:is([class*="rounded"], [class*="bg-"], .pagebackbtn, .pttoolaction):not(:where(.rounded-3xl, [class~="rounded-[24px]"], [class~="rounded-[28px]"], [class~="rounded-[32px]"])) {
+    border-radius: var(--radiuscontrol) !important;
+}
+
+/* Avatars and color choices keep their circular meaning. */
+body :is(.ptusernoteavatar, .ptusernotecolorchoice),
+body a:has(> img.rounded-full),
+body [role="button"]:has(> img.rounded-full) {
+    border-radius: var(--radiuscircle) !important;
+}
+
+body :is(.pt-card, .bc-card, .felt-pcard) {
+    border-radius: var(--radiuscardface) !important;
+}
+
+/* A plain underline tab has no filled corner; segmented mobile tabs do. */
+body [class*="tab-btn"]:not([class*="rounded"]) {
+    border-radius: 0 !important;
+}
+
+@media (max-width: 767px) {
+    body #sessionmain .tab-content :is(.overviewtab-btn, .tabletab-btn, .handtab-btn, .othertab-btn) {
+        border-radius: var(--radiuscontrol) !important;
+    }
+}

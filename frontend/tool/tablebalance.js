@@ -55,11 +55,17 @@ function calctb(){
 		`
 	}
 	innerhtml("#tbrows",html,false)
-	// build advice: move from over-tables to under-tables
+	// 先分配餘數席位給人數最多的桌，空桌仍需補到下限，不能只算超過上限的人數。
 	let moves=0
+	const SORTEDCOUNTLIST=counts.slice().sort(function(a,b){return b-a})
+	const EXTRATABLECOUNT=total-minsize*tables
 	for(let i=0;i<tables;i=i+1){
-		if(counts[i]>maxsize){
-			moves=moves+(counts[i]-maxsize)
+		let target=minsize
+		if(i<EXTRATABLECOUNT){
+			target=maxsize
+		}
+		if(SORTEDCOUNTLIST[i]>target){
+			moves=moves+(SORTEDCOUNTLIST[i]-target)
 		}
 	}
 	let advice

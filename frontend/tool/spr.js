@@ -24,7 +24,7 @@ function calcspr(){
 	let zone
 	let guide
 	let color
-	if(spr<3){
+	if(spr<=3){
 		zone=sprtext("zonelow")
 		guide=sprtext("guidelow")
 		color="text-red-400"

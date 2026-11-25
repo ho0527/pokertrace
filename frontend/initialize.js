@@ -497,7 +497,7 @@ appuistyle.textContent=`
 	#navnotifybadge,
 	#navnotifybadgemobile {
 		background: #f43f5e;
-		border-radius: 9999px;
+		border-radius: var(--radiuspill);
 		color: #ffffff;
 		font-size: 11px;
 		font-weight: 700;
@@ -538,7 +538,7 @@ appuistyle.textContent=`
 
 	::-webkit-scrollbar-thumb {
 		background: #3f3f46;
-		border-radius: 999px;
+		border-radius: var(--radiuspill);
 		border: 2px solid #09090b;
 	}
 
@@ -732,7 +732,7 @@ ptloadingstyle.textContent=`
 	.ptloader span {
 		animation: ptbounce .8s ease-in-out infinite;
 		background: #34d399;
-		border-radius: 999px;
+		border-radius: var(--radiuspill);
 		height: 14px;
 		width: 14px;
 	}
@@ -754,7 +754,7 @@ ptloadingstyle.textContent=`
 
 	@keyframes ptbounce {
 		50% {
-			border-radius: 14px;
+			border-radius: var(--radiuscontrol);
 			height: 48px;
 			transform: translateY(-8px);
 		}
@@ -1881,36 +1881,49 @@ function pttoolstaterestore(){
 // 複製用的純文字：把主卡片整個複製一份，把每個輸入控制項換成它「目前的值」，
 // 再取 textContent。這樣不必知道任何一頁的結構，就能同時帶出標籤與使用者填的數字。
 function pttoolresulttext(){
-	let card=document.querySelector("section[class*=\"rounded-[28px]\"]")
-	if(!card){
+	const CARDLIST=document.querySelectorAll("section[class*=\"rounded-[28px]\"]")
+	if(CARDLIST.length==0){
 		return ""
 	}
-	let clone=card.cloneNode(true)
-	let actionbar=clone.querySelector("#pttoolactionbar")
-	if(actionbar){
-		actionbar.remove()
+	const CONTENT=document.createElement("div")
+	for(let i=0;i<CARDLIST.length;i=i+1){
+		const CARD=CARDLIST[i]
+		if(!CARD.querySelector("#toolseotitle,#toolseobody")){
+			CONTENT.appendChild(CARD.cloneNode(true))
+			CONTENT.appendChild(document.createTextNode("\n"))
+		}
 	}
-	let originallist=card.querySelectorAll("input,select,textarea")
-	let clonelist=clone.querySelectorAll("input,select,textarea")
+	const ORIGINALLIST=[]
+	for(let i=0;i<CARDLIST.length;i=i+1){
+		if(!CARDLIST[i].querySelector("#toolseotitle,#toolseobody")){
+			const FIELDLIST=CARDLIST[i].querySelectorAll("input,select,textarea")
+			for(let j=0;j<FIELDLIST.length;j=j+1){
+				ORIGINALLIST.push(FIELDLIST[j])
+			}
+		}
+	}
+	let clonelist=CONTENT.querySelectorAll("input,select,textarea")
 	for(let i=0;i<clonelist.length;i=i+1){
 		let text=""
-		if(originallist[i]){
-			let type=(originallist[i].getAttribute("type")||"").toLowerCase()
+		if(ORIGINALLIST[i]){
+			let type=(ORIGINALLIST[i].getAttribute("type")||"").toLowerCase()
 			if(type=="button"||type=="submit"||type=="reset"){
 				text=""
 			}else if(type=="checkbox"||type=="radio"){
-				if(originallist[i].checked){
+				if(ORIGINALLIST[i].checked){
 					text=" [v] "
 				}else{
 					text=" [ ] "
 				}
+			}else if(ORIGINALLIST[i].tagName=="SELECT"&&ORIGINALLIST[i].selectedIndex>=0){
+				text=" "+ORIGINALLIST[i].options[ORIGINALLIST[i].selectedIndex].text+" "
 			}else{
-				text=" "+originallist[i].value+" "
+				text=" "+ORIGINALLIST[i].value+" "
 			}
 		}
 		clonelist[i].replaceWith(document.createTextNode(text))
 	}
-	let rawlist=String(clone.textContent||"").split("\n")
+	let rawlist=String(CONTENT.textContent||"").split("\n")
 	let linelist=[]
 	for(let i=0;i<rawlist.length;i=i+1){
 		let line=rawlist[i].replace(/\s+/g," ").trim()
@@ -1928,14 +1941,20 @@ function pttoolactionbar(){
 	if((document.body.getAttribute("data-toolaction")||"").trim()=="off"){
 		return
 	}
-	let card=document.querySelector("section[class*=\"rounded-[28px]\"]")
+	let card=null
+	const CARDLIST=document.querySelectorAll("section[class*=\"rounded-[28px]\"]")
+	for(let i=0;i<CARDLIST.length;i=i+1){
+		if(!CARDLIST[i].querySelector("#toolseotitle,#toolseobody")){
+			card=CARDLIST[i]
+		}
+	}
 	if(!card){
 		return
 	}
 	// 純參考頁（glossary、rules、tdarules 這類）沒有任何可保存欄位，
 	// 對它們顯示「重設輸入」沒有意義，只留「複製結果」。
 	let resetbuttonhtml=""
-	if(pttoolstatefieldlist().length>0){
+	if(pttoolstatefieldlist().length>0||typeof pttoolstatecustom=="function"){
 		resetbuttonhtml=`<input type="button" class="min-h-10 rounded-2xl border border-zinc-700 bg-zinc-800 px-4 text-sm font-bold text-zinc-100 transition hover:bg-zinc-700" id="pttoolreset" value="${ptcommontext("resetinput","重設輸入")}">`
 	}
 	let wrap=doccreate("div")
@@ -2815,7 +2834,7 @@ innerhtml("#footer",`
 				<a href="contact.html" class="sitefooterlink hover:text-emerald-400">${TRANSLATE[LANGUAGE]["footer"]["contact"]}</a>
 			</div>
 			<div class="sitefooternote text-xs text-gray-500">
-				${TRANSLATE[LANGUAGE]["footer"]["version"]} v0.1.0
+				${TRANSLATE[LANGUAGE]["footer"]["version"]} v0.2.0
 			</div>
 		</div>
 	</footer>

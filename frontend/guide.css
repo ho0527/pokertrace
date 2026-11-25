@@ -9,7 +9,7 @@
 @media (max-width: 639px) {
     .guidesection {
         padding: 16px;
-        border-radius: 20px;
+        border-radius: var(--radiuscontrol);
     }
 
     .guideitemhead {

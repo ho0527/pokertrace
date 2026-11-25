@@ -51,7 +51,7 @@ table tbody > tr:nth-child(even) > td {
 .indexfeature {
 	border: 1px solid var(--color-border);
 	background: var(--color-surface);
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	padding: 16px;
 	transition: border-color 0.2s ease, transform 0.2s ease;
 }
@@ -64,7 +64,7 @@ table tbody > tr:nth-child(even) > td {
 .indexshotcard {
 	border: 1px solid var(--color-border);
 	background: var(--color-surface);
-	border-radius: 16px;
+	border-radius: var(--radiuscontrol);
 	padding: 20px;
 	transition: border-color 0.2s ease;
 }
@@ -75,7 +75,7 @@ table tbody > tr:nth-child(even) > td {
 
 .indexshotframe {
 	border: 1px solid #3f3f46;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	overflow: hidden;
 	aspect-ratio: 16 / 9;
 	background: var(--color-bg);
@@ -95,7 +95,7 @@ table tbody > tr:nth-child(even) > td {
 	justify-content: center;
 	aspect-ratio: 20 / 9;
 	border: 1.5px dashed #3f3f46;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	color: #52525b;
 	background: repeating-linear-gradient(45deg, #141416, #141416 12px, var(--color-surface) 12px, var(--color-surface) 24px);
 }
@@ -126,7 +126,7 @@ table tbody > tr:nth-child(even) > td {
 	color: #ffffff;
 	font-size: 17px;
 	font-weight: 900;
-	border-radius: 8px;
+	border-radius: var(--radiuscontrol);
 	width: 45px;
 	height: 50px;
 	overflow: hidden;
@@ -172,7 +172,7 @@ table tbody > tr:nth-child(even) > td {
 .pagebackbtn {
 	background: var(--color-primary);
 	border: 0;
-	border-radius: 8px;
+	border-radius: var(--radiuscontrol);
 	color: #ffffff;
 	cursor: pointer;
 	font-size: 14px;
@@ -278,7 +278,7 @@ table tbody > tr:nth-child(even) > td {
 .card-btn {
 	width: 32px;
 	height: 40px;
-	border-radius: 6px;
+	border-radius: var(--radiuscontrol);
 	border: 1.5px solid #444;
 	background: #232323;
 	color: #fff;
@@ -312,7 +312,7 @@ table tbody > tr:nth-child(even) > td {
 
 button.action {
 	padding: 0.4rem 1.2rem;
-	border-radius: 6px;
+	border-radius: var(--radiuscontrol);
 	border: none;
 	background: #00e676;
 	color: #222;
@@ -535,7 +535,7 @@ select:not([multiple]) {
 	height: 28px;
 	width: 28px;
 	flex: 0 0 28px;
-	border-radius: 9999px;
+	border-radius: var(--radiuspill);
 	border: 1px solid #52525b;
 	background: transparent;
 }
@@ -562,7 +562,7 @@ select:not([multiple]) {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	border-radius: 9999px;
+	border-radius: var(--radiuspill);
 	border: 1px solid #27272a;
 	background: rgba(9,9,11,0.7);
 	padding: 6px 12px 6px 6px;
@@ -615,7 +615,7 @@ select:not([multiple]) {
 	align-self: center;
 	height: 8px;
 	width: 8px;
-	border-radius: 9999px;
+	border-radius: var(--radiuspill);
 	background: #34d399;
 }
 
@@ -634,7 +634,7 @@ select:not([multiple]) {
 	max-width: 140px;
 	overflow: hidden;
 	border: 1px solid #27272a;
-	border-radius: 9999px;
+	border-radius: var(--radiuspill);
 	background: rgba(9, 9, 11, 0.7);
 	padding: 4px 12px;
 	font-size: 13px;
@@ -650,7 +650,7 @@ select:not([multiple]) {
 	gap: 12px;
 	min-height: 44px;
 	padding: 0 8px;
-	border-radius: 12px;
+	border-radius: var(--radiuscontrol);
 	cursor: pointer;
 }
 

@@ -115,6 +115,7 @@ function updatesessiontabs(){
 	}
 	let showed=!!currentsession["owned"]
 	let settingsed=canviewsessionsettings(currentsession)
+    const LIVEED=currentsession["owned"]==true||currentsession["linkuser"]==true
 	let hiddenkeys=[
 		"payout"
 	]
@@ -161,13 +162,24 @@ function updatesessiontabs(){
     const STAFFBUTTON=document.querySelector('.othertab-btn[data-othertab="staff"]')
     const STAFFCONTENT=document.getElementById("othertab-staff")
     if(STAFFBUTTON){
-        STAFFBUTTON.classList.toggle("hidden",!settingsed)
-        if(!settingsed&&STAFFBUTTON.classList.contains("border-emerald-400")){
+        STAFFBUTTON.classList.toggle("hidden",!settingsed||!LIVEED)
+        if((!settingsed||!LIVEED)&&STAFFBUTTON.classList.contains("border-emerald-400")){
             selectsessionothertab("orderinfo")
         }
     }
-    if(STAFFCONTENT&&!settingsed){
+    if(STAFFCONTENT&&(!settingsed||!LIVEED)){
         STAFFCONTENT.classList.add("hidden")
+    }
+    const DISPLAYBUTTONLIST=document.querySelectorAll('.settings-side-btn[data-setting="display"]')
+    for(let i=0;i<DISPLAYBUTTONLIST.length;i=i+1){
+        DISPLAYBUTTONLIST[i].classList.toggle("hidden",!LIVEED)
+    }
+    if(!LIVEED&&document.querySelector('.settings-side-btn[data-setting="display"].bg-emerald-600')){
+        rendersettings("general")
+    }
+    const TABLEBOARDENTRY=domgetid("tableboardentry")
+    if(TABLEBOARDENTRY){
+        TABLEBOARDENTRY.classList.toggle("hidden",!LIVEED)
     }
 }
 
@@ -1103,13 +1115,11 @@ function smt(key,fallback){
 }
 
 function sessioncanmanagetable(){
-	if(!currentsession){
-		return false
-	}
-	if(currentsession["isown"]||currentsession["isadmin"]){
-		return true
-	}
-	return false
+    let allowed=false
+    if(currentsession&&(currentsession["owned"]==true||currentsession["linkuser"]==true)){
+        allowed=currentsession["isown"]==true||currentsession["isadmin"]==true
+    }
+    return allowed
 }
 
 function findsessiontable(tableid){
@@ -1775,8 +1785,13 @@ function buildsessionplayertables(players,keyword){
 }
 
 function sessiontablebuttonhtml(table,key,activekey){
+	let label=sessionpagetext("tablebuttonlabel","{table} 桌 · {count} 人")
+	if(key=="unseated"){
+		label=sessionpagetext("unseatedbuttonlabel","未排座 · {count} 人")
+	}
+	label=label.replace("{count}",String(table["players"].length)).split("{table}").join(String(table["name"]))
 	return `
-		<input type="button" class="sessiontablebtn ${key==activekey?"bg-emerald-600 text-white":"bg-zinc-700 text-zinc-200"} hover:bg-emerald-700 px-3 py-2 rounded text-sm" data-tablekey="${safehtml(key)}" value="${safehtml(table["name"])} ${table["players"].length}">
+		<input type="button" class="sessiontablebtn ${key==activekey?"bg-emerald-600 text-white":"bg-zinc-700 text-zinc-200"} hover:bg-emerald-700 px-3 py-2 rounded text-sm" data-tablekey="${safehtml(key)}" value="${safehtml(label)}">
 	`
 }
 
@@ -2767,7 +2782,7 @@ function getactivesettingtab(){
 		return saved
 	}
 	let active=document.querySelector(".settings-side-btn.bg-emerald-600")
-	if(active&&active.dataset.setting){
+	if(active&&active.dataset.setting&&!(active.dataset.setting=="display"&&currentsession&&currentsession["owned"]!=true&&currentsession["linkuser"]!=true)){
 		return active.dataset.setting
 	}
 	return "general"
@@ -2858,6 +2873,9 @@ function rendersettings(tab){
 	if(!currentsession||!domgetid("settingscontent")){
 		return
 	}
+    if(tab=="display"&&currentsession["owned"]!=true&&currentsession["linkuser"]!=true){
+        tab="general"
+    }
 	weblsset(settingtabkey,tab)
 	ptkeytouch(settingtabkey)
 	let sidebuttons=document.querySelectorAll(".settings-side-btn")
@@ -4802,7 +4820,7 @@ function staffclock(action,staffuserid){
 }
 
 function selectsessionothertab(tab){
-	if((tab=="settings"||tab=="staff")&&currentsession&&!canviewsessionsettings(currentsession)){
+	if(currentsession&&((tab=="settings"||tab=="staff")&&!canviewsessionsettings(currentsession)||tab=="staff"&&currentsession["owned"]!=true&&currentsession["linkuser"]!=true)){
 		tab="orderinfo"
 	}
 	let btns=document.querySelectorAll(".othertab-btn")

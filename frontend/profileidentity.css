@@ -1,7 +1,7 @@
 .profileidentitybutton {
     min-height: 44px;
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: var(--radiuscontrol);
     background: #3f3f46;
     color: #f4f4f5;
     font-size: 12px;
@@ -19,7 +19,7 @@
     margin: auto;
     padding: 24px;
     border: 0;
-    border-radius: 16px;
+    border-radius: var(--radiuscontrol);
     background: #18181b;
     color: #f4f4f5;
     overflow: auto;
@@ -48,7 +48,7 @@
     margin: 12px 0;
     padding: 12px;
     border: 1px solid #3f3f46;
-    border-radius: 12px;
+    border-radius: var(--radiuscontrol);
     background: #27272a;
     color: #f4f4f5;
 }
